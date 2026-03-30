@@ -64,7 +64,26 @@ npm run test:e2e          # Playwright: E2E tests from previous QA runs
 ```
 Note any failures — these are regressions and must be treated as High bugs.
 
-### 6. Write E2E Tests
+### 6. Write Unit Tests
+Before E2E tests, identify and test isolated logic with Vitest in `src/__tests__/PROJ-X-*.test.ts`:
+
+**What to unit test (evaluate each):**
+- Custom hooks with non-trivial logic (e.g. `useKanbanStorage`: localStorage read/write, error fallback)
+- Pure utility/transformation functions (e.g. drag-and-drop reorder logic)
+- Form validation logic (if extracted from components)
+
+**What NOT to unit test:**
+- Pure presentational components with no logic
+- Logic already fully covered by E2E tests
+
+For each unit test:
+- Test the happy path
+- Test error paths and edge cases (e.g. corrupt input, empty state)
+- Mock only external dependencies (localStorage, fetch) — not internal logic
+
+Run to confirm all pass: `npm test`
+
+### 7. Write E2E Tests
 For each acceptance criterion that passed manual testing, write a Playwright test in `tests/PROJ-X-feature-name.spec.ts`:
 - One `test()` per acceptance criterion
 - Tests describe the user journey in plain language
@@ -72,11 +91,11 @@ For each acceptance criterion that passed manual testing, write a Playwright tes
 
 These tests become the permanent regression suite for this feature.
 
-### 7. Document Results
+### 8. Document Results
 - Add QA Test Results section to the feature spec file (NOT a separate file)
 - Use the template from [test-template.md](test-template.md)
 
-### 8. User Review
+### 9. User Review
 Present test results with clear summary:
 - Total acceptance criteria: X passed, Y failed
 - Bugs found: breakdown by severity
@@ -119,6 +138,8 @@ If your context was compacted mid-task:
 - [ ] Regression test on related features
 - [ ] Every bug documented with severity + steps to reproduce
 - [ ] Screenshots added for visual bugs
+- [ ] Unit tests written for non-trivial hooks and utility functions (`npm test` passes)
+- [ ] E2E tests written for all passing acceptance criteria (`npm run test:e2e` passes)
 - [ ] QA section added to feature spec file
 - [ ] User has reviewed results and prioritized bugs
 - [ ] Production-ready decision made
