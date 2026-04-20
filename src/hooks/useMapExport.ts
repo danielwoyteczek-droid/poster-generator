@@ -1,0 +1,436 @@
+'use client'
+
+import { useState } from 'react'
+import { useEditorStore, type TextBlock, type ViewState, type MarkerState, type SecondMapState, type ShapeConfigState } from './useEditorStore'
+import { composeMaskSvg, composeFrameSvg, parseShapeSvg, svgToDataUrl, hasAnyFrame } from '@/lib/mask-composer'
+import { PRINT_FORMATS, type PrintFormat } from '@/lib/print-formats'
+import { MAP_MASKS, type MapMaskKey } from '@/lib/map-masks'
+import { resolveMask } from '@/hooks/useCustomMasks'
+import { getCoordinatesText } from '@/components/editor/TextBlockOverlay'
+
+// ─── Types ─────────────────────────────────────────────────────────────────
+
+export interface ExportSnapshot {
+  viewState: ViewState
+  styleId: string
+  maskKey: MapMaskKey
+  marker: MarkerState
+  secondMarker: MarkerState
+  secondMap: SecondMapState
+  shapeConfig?: ShapeConfigState
+  textBlocks: TextBlock[]
+  locationName: string
+}
+
+// ─── Helpers ───────────────────────────────────────────────────────────────
+
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    img.onload = () => resolve(img)
+    img.onerror = () => reject(new Error(`Failed to load image: ${src}`))
+    img.src = src
+  })
+}
+
+function makePinSVGUrl(type: 'classic' | 'heart', color: string): string {
+  const c = encodeURIComponent(color)
+  const svg =
+    type === 'heart'
+      ? `<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M16 30C16 30 2 19 2 10C2 5.58 5.58 2 10 2C12.5 2 14.74 3.18 16 5C17.26 3.18 19.5 2 22 2C26.42 2 30 5.58 30 10C30 19 16 30 16 30Z" fill="${c}"/></svg>`
+      : `<svg width="28" height="40" viewBox="0 0 28 40" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M14 0C6.27 0 0 6.27 0 14C0 24.5 14 40 14 40C14 40 28 24.5 28 14C28 6.27 21.73 0 14 0Z" fill="${c}"/><circle cx="14" cy="13" r="5" fill="white" fill-opacity="0.85"/></svg>`
+  return 'data:image/svg+xml;charset=utf-8,' + svg
+}
+
+function buildStyleUrl(mapId: string, apiKey: string) {
+  return `https://api.maptiler.com/maps/${mapId}/style.json?key=${encodeURIComponent(apiKey)}`
+}
+
+function wait(ms: number) {
+  return new Promise<void>((resolve) => window.setTimeout(resolve, ms))
+}
+
+/**
+ * Projects a lat/lng to pixel-space within a canvas of size width×height, using
+ * a rectangular viewport described by `bounds`. Uses Web-Mercator (valid
+ * because our maps are flat: no pitch, no bearing).
+ */
+function projectLngLat(
+  lng: number, lat: number,
+  bounds: ViewState['bounds'],
+  width: number, height: number,
+): { x: number; y: number } {
+  const toMerc = (lo: number, la: number) => {
+    const x = (lo + 180) / 360
+    const y = (1 - Math.log(Math.tan((la * Math.PI) / 180) + 1 / Math.cos((la * Math.PI) / 180)) / Math.PI) / 2
+    return { x, y }
+  }
+  const p = toMerc(lng, lat)
+  const nw = toMerc(bounds.west, bounds.north)
+  const se = toMerc(bounds.east, bounds.south)
+  const spanX = se.x - nw.x || 1
+  const spanY = se.y - nw.y || 1
+  return {
+    x: ((p.x - nw.x) / spanX) * width,
+    y: ((p.y - nw.y) / spanY) * height,
+  }
+}
+
+function waitForEventOnce(target: any, eventName: string) {
+  return new Promise<void>((resolve) => {
+    const handler = () => { target.off(eventName, handler); resolve() }
+    target.on(eventName, handler)
+  })
+}
+
+async function waitForMapStable(map: any) {
+  if (!map.loaded()) {
+    await waitForEventOnce(map, 'load')
+  }
+  await new Promise<void>((resolve) => { map.once('idle', () => resolve()) })
+  await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+  await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+  await wait(150)
+}
+
+// ─── Offscreen map renderer ────────────────────────────────────────────────
+
+async function renderMapOffscreen({
+  styleId,
+  vs,
+  previewW,
+  previewH,
+  outputW,
+  outputH,
+}: {
+  styleId: string
+  vs: ViewState
+  previewW: number
+  previewH: number
+  outputW: number
+  outputH: number
+}): Promise<HTMLCanvasElement> {
+  const maptilersdk = await import('@maptiler/sdk')
+  const apiKey = process.env.NEXT_PUBLIC_MAPTILER_API_KEY!
+
+  const pixelRatio = (outputW / previewW + outputH / previewH) / 2
+
+  const container = document.createElement('div')
+  container.style.cssText = `position:fixed;left:-99999px;top:0;width:${previewW}px;height:${previewH}px;pointer-events:none;opacity:0;`
+  document.body.appendChild(container)
+
+  let map: any = null
+  try {
+    maptilersdk.config.apiKey = apiKey
+    map = new maptilersdk.Map({
+      container,
+      style: buildStyleUrl(styleId, apiKey),
+      center: [vs.lng, vs.lat],
+      zoom: vs.zoom,
+      attributionControl: false,
+      navigationControl: false,
+      geolocateControl: false,
+      fullscreenControl: false,
+      scaleControl: false,
+      hash: false,
+      interactive: false,
+      preserveDrawingBuffer: true,
+      pitch: 0,
+      bearing: 0,
+      fadeDuration: 0,
+      renderWorldCopies: false,
+      pixelRatio,
+      maxCanvasSize: [8192, 8192],
+    } as any)
+
+    map.resize()
+    await waitForMapStable(map)
+
+    const srcCanvas = map.getCanvas() as HTMLCanvasElement
+    const dst = document.createElement('canvas')
+    dst.width = outputW
+    dst.height = outputH
+    dst.getContext('2d')!.drawImage(srcCanvas, 0, 0, outputW, outputH)
+    return dst
+  } finally {
+    try { map?.remove?.() } catch { /* ignore */ }
+    container.remove()
+  }
+}
+
+// ─── Mask application ──────────────────────────────────────────────────────
+
+async function applyMask(canvas: HTMLCanvasElement, svgPath: string): Promise<HTMLCanvasElement> {
+  const out = document.createElement('canvas')
+  out.width = canvas.width
+  out.height = canvas.height
+  const ctx = out.getContext('2d')!
+  ctx.drawImage(canvas, 0, 0)
+  const maskImg = await loadImage(svgPath)
+  ctx.globalCompositeOperation = 'destination-in'
+  ctx.drawImage(maskImg, 0, 0, out.width, out.height)
+  ctx.globalCompositeOperation = 'source-over'
+  return out
+}
+
+// ─── Text blocks ───────────────────────────────────────────────────────────
+
+async function ensureFontsLoaded(textBlocks: TextBlock[]) {
+  await document.fonts.ready
+  const families = [...new Set(textBlocks.map((b) => b.fontFamily))]
+  await Promise.all(families.flatMap((f) => [
+    document.fonts.load(`normal 16px "${f}"`),
+    document.fonts.load(`bold 16px "${f}"`),
+  ]))
+}
+
+function drawTextBlocks(
+  ctx: CanvasRenderingContext2D,
+  textBlocks: TextBlock[],
+  displayTexts: Record<string, string>,
+  W: number,
+  H: number,
+  previewW: number,
+  previewH: number,
+) {
+  const scaleX = W / previewW
+
+  for (const block of textBlocks) {
+    const raw = displayTexts[block.id] ?? block.text
+    const text = block.uppercase ? raw.toUpperCase() : raw
+    if (!text.trim()) continue
+
+    const scaledFontSize = Math.max(8, Math.round(block.fontSize * scaleX))
+    const weight = block.bold ? 'bold' : 'normal'
+    ctx.font = `${weight} ${scaledFontSize}px "${block.fontFamily}", sans-serif`
+    ctx.fillStyle = block.color
+    ctx.textAlign = block.align
+    ctx.textBaseline = 'alphabetic'
+
+    const blockLeft = block.x * W
+    const blockTop = block.y * H
+    const blockW = block.width * W
+    const lineH = Math.round(scaledFontSize * 1.2)
+
+    // Reproduce CSS line-height:1.2 exactly, including fonts whose content area > line-height.
+    // halfLeading = (lineHeight - contentArea) / 2 — can be negative for tall/script fonts.
+    const m = ctx.measureText('Hg')
+    const ascent = m.fontBoundingBoxAscent > 0 ? m.fontBoundingBoxAscent : scaledFontSize * 0.8
+    const descent = m.fontBoundingBoxDescent > 0 ? m.fontBoundingBoxDescent : scaledFontSize * 0.2
+    const halfLeading = (lineH - ascent - descent) / 2
+    const firstBaselineY = blockTop + halfLeading + ascent
+
+    const anchorX =
+      block.align === 'center' ? blockLeft + blockW / 2
+      : block.align === 'right' ? blockLeft + blockW
+      : blockLeft
+
+    for (const [i, line] of text.split('\n').entries()) {
+      ctx.fillText(line, anchorX, firstBaselineY + i * lineH)
+    }
+  }
+}
+
+// ─── Canvas builder ────────────────────────────────────────────────────────
+
+export async function buildPosterCanvas(
+  format: PrintFormat,
+  store: ExportSnapshot,
+): Promise<HTMLCanvasElement> {
+  const fmt = PRINT_FORMATS[format]
+  const W = fmt.widthPx
+  const H = fmt.heightPx
+
+  const { viewState, styleId, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName } = store
+  const mask = (await resolveMask(maskKey)) ?? MAP_MASKS.none
+  const isDualMap = mask.isSplit && secondMap.enabled
+
+  // Build a dynamic mask from shape + shapeConfig for non-split masks.
+  // Split masks fall back to their baked SVG files (no composition).
+  async function applyComposedMask(srcCanvas: HTMLCanvasElement): Promise<HTMLCanvasElement> {
+    if (!mask.shape || !shapeConfig) return srcCanvas
+    const maskSvg = composeMaskSvg(mask.shape, shapeConfig)
+    const out = document.createElement('canvas')
+    out.width = srcCanvas.width
+    out.height = srcCanvas.height
+    const c = out.getContext('2d')!
+    c.drawImage(srcCanvas, 0, 0)
+    const maskImg = await loadImage(svgToDataUrl(maskSvg))
+    c.globalCompositeOperation = 'destination-in'
+    c.drawImage(maskImg, 0, 0, out.width, out.height)
+    c.globalCompositeOperation = 'source-over'
+    return out
+  }
+
+  const previewW = viewState.viewportWidth > 0 ? viewState.viewportWidth : 500
+  const previewH = viewState.viewportHeight > 0 ? viewState.viewportHeight : Math.round(previewW * (H / W))
+
+  await ensureFontsLoaded(textBlocks)
+
+  const canvas = document.createElement('canvas')
+  canvas.width = W
+  canvas.height = H
+  const ctx = canvas.getContext('2d')!
+  ctx.fillStyle = '#ffffff'
+  ctx.fillRect(0, 0, W, H)
+
+  if (isDualMap) {
+    // Left map (primary)
+    let leftCanvas = await renderMapOffscreen({ styleId, vs: viewState, previewW, previewH, outputW: W, outputH: H })
+    if (mask.leftSvgPath) leftCanvas = await applyMask(leftCanvas, mask.leftSvgPath)
+    ctx.drawImage(leftCanvas, 0, 0)
+
+    // Right map (secondary)
+    const secVS = secondMap.viewState
+    const secPreviewW = secVS.viewportWidth > 0 ? secVS.viewportWidth : previewW
+    const secPreviewH = secVS.viewportHeight > 0 ? secVS.viewportHeight : previewH
+    let rightCanvas = await renderMapOffscreen({ styleId: secondMap.styleId, vs: secVS, previewW: secPreviewW, previewH: secPreviewH, outputW: W, outputH: H })
+    if (mask.rightSvgPath) rightCanvas = await applyMask(rightCanvas, mask.rightSvgPath)
+    ctx.drawImage(rightCanvas, 0, 0)
+  } else {
+    let mapCanvas = await renderMapOffscreen({ styleId, vs: viewState, previewW, previewH, outputW: W, outputH: H })
+    if (mask.shape) {
+      mapCanvas = await applyComposedMask(mapCanvas)
+    } else if (mask.svgPath) {
+      mapCanvas = await applyMask(mapCanvas, mask.svgPath)
+    }
+    ctx.drawImage(mapCanvas, 0, 0)
+  }
+
+  // Build display texts for coordinate blocks — pin position takes precedence over map center
+  const coordLat = marker.lat ?? viewState.lat
+  const coordLng = marker.lng ?? viewState.lng
+  const displayTexts: Record<string, string> = {}
+  for (const block of textBlocks) {
+    displayTexts[block.id] = block.isCoordinates
+      ? getCoordinatesText(coordLat, coordLng, locationName)
+      : block.text
+  }
+
+  // Text blocks
+  drawTextBlocks(ctx, textBlocks, displayTexts, W, H, previewW, previewH)
+
+  // Decorative frame (inner + outer), composed from shape + shapeConfig
+  if (!isDualMap && mask.shape && shapeConfig && hasAnyFrame(shapeConfig)) {
+    const frameSvg = composeFrameSvg(mask.shape, shapeConfig)
+    const frameImg = await loadImage(svgToDataUrl(frameSvg))
+    ctx.drawImage(frameImg, 0, 0, W, H)
+  }
+
+  // Marker pins — position from marker.lat/lng when dragged, else centered above mask
+  const pinScale = W / previewW
+  if (marker.enabled) {
+    const pinImg = await loadImage(makePinSVGUrl(marker.type, marker.color))
+    const [pw, ph] = marker.type === 'heart' ? [32, 32] : [28, 40]
+    let cx = (isDualMap ? 0.25 : 0.5) * W
+    let cy = 0.5 * H
+    if (marker.lat != null && marker.lng != null && viewState.bounds) {
+      const pt = projectLngLat(marker.lng, marker.lat, viewState.bounds, W, H)
+      cx = pt.x; cy = pt.y
+    }
+    ctx.drawImage(pinImg, cx - (pw * pinScale) / 2, cy - ph * pinScale, pw * pinScale, ph * pinScale)
+  }
+  if (isDualMap && secondMarker.enabled) {
+    const pinImg = await loadImage(makePinSVGUrl(secondMarker.type, secondMarker.color))
+    const [pw, ph] = secondMarker.type === 'heart' ? [32, 32] : [28, 40]
+    let cx = 0.75 * W
+    let cy = 0.5 * H
+    const sVS = secondMap.viewState
+    if (secondMarker.lat != null && secondMarker.lng != null && sVS?.bounds) {
+      // Offscreen the right map is also rendered at full width — project using its bounds
+      // then shift into the right half of the poster.
+      const pt = projectLngLat(secondMarker.lng, secondMarker.lat, sVS.bounds, W, H)
+      cx = 0.5 * W + pt.x * 0.5  // right map lives in the 0.5..1.0 x-range
+      cy = pt.y
+    }
+    ctx.drawImage(pinImg, cx - (pw * pinScale) / 2, cy - ph * pinScale, pw * pinScale, ph * pinScale)
+  }
+
+  return canvas
+}
+
+// ─── Download helpers ──────────────────────────────────────────────────────
+
+function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
+  return new Promise<Blob>((resolve, reject) =>
+    canvas.toBlob((b: Blob | null) => (b ? resolve(b) : reject(new Error('Canvas toBlob failed'))), 'image/png'),
+  )
+}
+
+function slugify(name: string): string {
+  return (
+    name
+      .toLowerCase()
+      .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
+      .replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
+    || 'poster'
+  )
+}
+
+// ─── Hook ──────────────────────────────────────────────────────────────────
+
+export function useMapExport() {
+  const [isExporting, setIsExporting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const { viewState, styleId, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName } =
+    useEditorStore()
+
+  const run = async (format: PrintFormat, type: 'png' | 'pdf') => {
+    setIsExporting(true)
+    setError(null)
+    try {
+      const snapshot: ExportSnapshot = {
+        viewState, styleId, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName,
+      }
+      const canvas = await buildPosterCanvas(format, snapshot)
+      const pngBlob = await canvasToBlob(canvas)
+      const filename = `${slugify(locationName)}-poster`
+
+      if (type === 'png') {
+        const url = URL.createObjectURL(pngBlob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `${filename}.png`
+        a.click()
+        URL.revokeObjectURL(url)
+      } else {
+        const { PDFDocument } = await import('pdf-lib')
+        const fmt = PRINT_FORMATS[format]
+        const MM_TO_PT = 72 / 25.4
+        const pdfDoc = await PDFDocument.create()
+        const page = pdfDoc.addPage([fmt.widthMm * MM_TO_PT, fmt.heightMm * MM_TO_PT])
+        const pngImage = await pdfDoc.embedPng(new Uint8Array(await pngBlob.arrayBuffer()))
+        page.drawImage(pngImage, { x: 0, y: 0, width: fmt.widthMm * MM_TO_PT, height: fmt.heightMm * MM_TO_PT })
+        const pdfBytes = await pdfDoc.save()
+        const blob = new Blob([pdfBytes.buffer as ArrayBuffer], { type: 'application/pdf' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `${filename}.pdf`
+        a.click()
+        URL.revokeObjectURL(url)
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Export fehlgeschlagen')
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
+  const renderPreview = async (format: PrintFormat): Promise<string> => {
+    const snapshot: ExportSnapshot = {
+      viewState, styleId, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName,
+    }
+    const canvas = await buildPosterCanvas(format, snapshot)
+    return canvas.toDataURL('image/png')
+  }
+
+  return {
+    exportPNG: (format: PrintFormat) => run(format, 'png'),
+    exportPDF: (format: PrintFormat) => run(format, 'pdf'),
+    renderPreview,
+    isExporting,
+    error,
+  }
+}

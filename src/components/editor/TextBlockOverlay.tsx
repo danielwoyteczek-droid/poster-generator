@@ -1,0 +1,247 @@
+'use client'
+
+import { useEffect, useRef } from 'react'
+import { Lock } from 'lucide-react'
+import { useEditorStore, type TextBlock } from '@/hooks/useEditorStore'
+
+function toDMS(deg: number, isLat: boolean): string {
+  const dir = isLat ? (deg >= 0 ? 'N' : 'S') : (deg >= 0 ? 'E' : 'W')
+  const abs = Math.abs(deg)
+  const d = Math.floor(abs)
+  const mFull = (abs - d) * 60
+  const m = Math.floor(mFull)
+  const s = Math.floor((mFull - m) * 60)
+  return `${d}° ${String(m).padStart(2, '0')}' ${String(s).padStart(2, '0')}" ${dir}`
+}
+
+export function getCoordinatesText(lat: number, lng: number, locationName: string): string {
+  return `${locationName}, ${toDMS(lat, true)}  ${toDMS(lng, false)}`
+}
+
+interface BlockItemProps {
+  block: TextBlock
+  isSelected: boolean
+  overlayRef: React.RefObject<HTMLDivElement | null>
+  displayText: string
+}
+
+function BlockItem({ block, isSelected, overlayRef, displayText }: BlockItemProps) {
+  const { updateTextBlock, setSelectedBlockId } = useEditorStore()
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.stopPropagation()
+    setSelectedBlockId(block.id)
+    if (block.locked) return
+
+    const rect = overlayRef.current?.getBoundingClientRect()
+    if (!rect) return
+
+    const startX = e.clientX
+    const startY = e.clientY
+    const startBlockX = block.x
+    const startBlockY = block.y
+    const blockWidthPx = block.width * rect.width
+
+    const handleMove = (ev: PointerEvent) => {
+      const dx = ev.clientX - startX
+      const dy = ev.clientY - startY
+      const rawX = startBlockX + dx / rect.width
+      const rawY = startBlockY + dy / rect.height
+
+      // Snap to 10px grid
+      const snapX = Math.round((rawX * rect.width) / 10) * 10 / rect.width
+      const snapY = Math.round((rawY * rect.height) / 10) * 10 / rect.height
+
+      // Clamp inside poster bounds
+      const maxX = 1 - blockWidthPx / rect.width
+      const clampedX = Math.max(0, Math.min(maxX, snapX))
+      const clampedY = Math.max(0, Math.min(0.98, snapY))
+
+      updateTextBlock(block.id, { x: clampedX, y: clampedY })
+    }
+
+    const handleUp = () => {
+      window.removeEventListener('pointermove', handleMove)
+      window.removeEventListener('pointerup', handleUp)
+    }
+
+    window.addEventListener('pointermove', handleMove)
+    window.addEventListener('pointerup', handleUp)
+  }
+
+  const handleResizePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.stopPropagation()
+    if (block.locked) return
+
+    const rect = overlayRef.current?.getBoundingClientRect()
+    if (!rect) return
+
+    const startX = e.clientX
+    const startWidth = block.width
+
+    const handleMove = (ev: PointerEvent) => {
+      const dx = ev.clientX - startX
+      const rawWidth = startWidth + dx / rect.width
+
+      // Snap width to 10px grid
+      const snapWidth = Math.round((rawWidth * rect.width) / 10) * 10 / rect.width
+
+      // Clamp width
+      const maxWidth = 1 - block.x
+      const clampedWidth = Math.max(0.05, Math.min(maxWidth, snapWidth))
+
+      updateTextBlock(block.id, { width: clampedWidth })
+    }
+
+    const handleUp = () => {
+      window.removeEventListener('pointermove', handleMove)
+      window.removeEventListener('pointerup', handleUp)
+    }
+
+    window.addEventListener('pointermove', handleMove)
+    window.addEventListener('pointerup', handleUp)
+  }
+
+  return (
+    <div
+      className="absolute pointer-events-auto"
+      style={{
+        left: `${block.x * 100}%`,
+        top: `${block.y * 100}%`,
+        width: `${block.width * 100}%`,
+        cursor: block.locked ? 'default' : 'move',
+        outline: isSelected ? '1px dashed #3b82f6' : 'none',
+        outlineOffset: '2px',
+      }}
+      onPointerDown={handlePointerDown}
+    >
+      <div
+        style={{
+          fontFamily: block.fontFamily,
+          fontSize: block.fontSize,
+          color: block.color,
+          textAlign: block.align,
+          fontWeight: block.bold ? 'bold' : 'normal',
+          textTransform: block.uppercase ? 'uppercase' : 'none',
+          lineHeight: 1.2,
+          whiteSpace: 'pre-wrap',
+          wordBreak: 'break-word',
+          userSelect: 'none',
+        }}
+      >
+        {displayText}
+      </div>
+
+      {isSelected && block.locked && (
+        <div
+          className="absolute -top-1 -left-1 bg-white rounded-sm shadow-sm p-0.5 pointer-events-none"
+        >
+          <Lock className="w-3 h-3 text-gray-700" />
+        </div>
+      )}
+
+      {isSelected && !block.locked && (
+        <div
+          className="absolute top-0 right-0 w-2 h-full cursor-ew-resize"
+          style={{ transform: 'translateX(50%)' }}
+          onPointerDown={handleResizePointerDown}
+        />
+      )}
+    </div>
+  )
+}
+
+interface TextBlockOverlayProps {
+  coordinatesSource?: { lat: number; lng: number; locationName: string }
+}
+
+export function TextBlockOverlay({ coordinatesSource }: TextBlockOverlayProps = {}) {
+  const overlayRef = useRef<HTMLDivElement>(null)
+  const {
+    textBlocks,
+    selectedBlockId,
+    setSelectedBlockId,
+    updateTextBlock,
+    deleteTextBlock,
+    viewState,
+    marker,
+    locationName,
+  } = useEditorStore()
+  // Pin-Position hat Vorrang vor Map-Zentrum, damit Koordinaten dem Pin folgen
+  const coords = coordinatesSource ?? {
+    lat: marker.lat ?? viewState.lat,
+    lng: marker.lng ?? viewState.lng,
+    locationName,
+  }
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const active = document.activeElement
+      const tag = active?.tagName?.toLowerCase()
+      if (tag === 'input' || tag === 'textarea' || tag === 'select') return
+      if (active instanceof HTMLElement && active.isContentEditable) return
+
+      if (!selectedBlockId) return
+      const block = textBlocks.find((b) => b.id === selectedBlockId)
+      if (!block) return
+
+      const rect = overlayRef.current?.getBoundingClientRect()
+      if (!rect) return
+
+      const step = e.shiftKey ? 10 : 1
+      const stepX = step / rect.width
+      const stepY = step / rect.height
+
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault()
+        if (!block.locked) {
+          updateTextBlock(block.id, { x: Math.max(0, block.x - stepX) })
+        }
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault()
+        if (!block.locked) {
+          const maxX = 1 - block.width
+          updateTextBlock(block.id, { x: Math.min(maxX, block.x + stepX) })
+        }
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault()
+        if (!block.locked) {
+          updateTextBlock(block.id, { y: Math.max(0, block.y - stepY) })
+        }
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault()
+        if (!block.locked) {
+          updateTextBlock(block.id, { y: Math.min(0.98, block.y + stepY) })
+        }
+      } else if (e.key === 'Backspace' || e.key === 'Delete') {
+        e.preventDefault()
+        deleteTextBlock(block.id)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [selectedBlockId, textBlocks, updateTextBlock, deleteTextBlock])
+
+  return (
+    <div
+      ref={overlayRef}
+      className="absolute inset-0 pointer-events-none"
+    >
+      {textBlocks.map((block) => {
+        const displayText = block.isCoordinates
+          ? getCoordinatesText(coords.lat, coords.lng, coords.locationName)
+          : block.text
+        return (
+          <BlockItem
+            key={block.id}
+            block={block}
+            isSelected={block.id === selectedBlockId}
+            overlayRef={overlayRef}
+            displayText={displayText}
+          />
+        )
+      })}
+    </div>
+  )
+}

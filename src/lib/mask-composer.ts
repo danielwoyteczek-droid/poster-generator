@@ -1,0 +1,160 @@
+/**
+ * Composes mask and frame SVGs dynamically from a base shape + configuration.
+ *
+ * The architecture: admin uploads only the pure shape (e.g. `<circle .../>`).
+ * Everything else — outer fade area, inner frame stroke, outer frame stroke
+ * (single or double) — is generated at render time from parameters.
+ */
+
+export type OuterMode = 'none' | 'opacity' | 'full'
+export type FrameStyle = 'single' | 'double'
+
+export interface ShapeConfigState {
+  outer: {
+    mode: OuterMode
+    opacity: number // 0..1, used when mode === 'opacity'
+    margin: number  // mm from poster edge (all sides equal)
+  }
+  innerFrame: {
+    enabled: boolean
+    color: string
+    thickness: number // mm, 0.3–2
+  }
+  outerFrame: {
+    enabled: boolean
+    color: string
+    thickness: number // mm, 0.3–2
+    style: FrameStyle
+    gap: number       // mm between double lines
+  }
+}
+
+export const DEFAULT_SHAPE_CONFIG: ShapeConfigState = {
+  outer: { mode: 'none', opacity: 0.3, margin: 10 },
+  innerFrame: { enabled: false, color: '#1a1a1a', thickness: 0.7 },
+  outerFrame: { enabled: false, color: '#1a1a1a', thickness: 0.7, style: 'single', gap: 1.5 },
+}
+
+export interface ShapeDefinition {
+  viewBox: string    // e.g. '0 0 595.3 841.9'
+  width: number      // viewBox width in SVG units
+  height: number     // viewBox height in SVG units
+  markup: string     // inner shape elements, e.g. '<circle cx=".." cy=".." r=".."/>'
+}
+
+/**
+ * Convert a millimeter measurement to SVG-viewBox units. We assume the
+ * uploaded shape SVG has viewBox width ≈ A4-width in its unit system
+ * (most exports from Illustrator use 595.3pt = 210mm for A4).
+ */
+export function mmToUnits(mm: number, viewBoxWidth: number): number {
+  return (mm / 210) * viewBoxWidth
+}
+
+/**
+ * Parse an uploaded SVG string and extract the useful bits: viewBox and
+ * inner shape markup. Strips CSS classes and fill attributes so they don't
+ * fight the composition's own fill/stroke rules.
+ */
+export function parseShapeSvg(svgString: string): ShapeDefinition | null {
+  const viewBoxMatch = svgString.match(/viewBox\s*=\s*"([^"]+)"/i)
+  if (!viewBoxMatch) return null
+  const [, , widthStr, heightStr] = viewBoxMatch[1].split(/\s+/)
+  const width = parseFloat(widthStr)
+  const height = parseFloat(heightStr)
+  if (!Number.isFinite(width) || !Number.isFinite(height)) return null
+
+  // Extract only shape elements from inside <svg>. Drop <style>, <defs>, comments.
+  const innerMatch = svgString.match(/<svg[^>]*>([\s\S]*)<\/svg>/i)
+  if (!innerMatch) return null
+  let inner = innerMatch[1]
+  inner = inner.replace(/<!--[\s\S]*?-->/g, '')
+  inner = inner.replace(/<defs[\s\S]*?<\/defs>/gi, '')
+  inner = inner.replace(/<style[\s\S]*?<\/style>/gi, '')
+  // Remove class attributes (we can't resolve CSS classes anyway)
+  inner = inner.replace(/\sclass\s*=\s*"[^"]*"/gi, '')
+  // Remove hard-coded fills so our group-level fill wins
+  inner = inner.replace(/\sfill\s*=\s*"[^"]*"/gi, '')
+  inner = inner.replace(/\sfill-opacity\s*=\s*"[^"]*"/gi, '')
+  // Remove strokes (we add our own in the frame composer)
+  inner = inner.replace(/\sstroke\s*=\s*"[^"]*"/gi, '')
+  inner = inner.replace(/\sstroke-width\s*=\s*"[^"]*"/gi, '')
+  inner = inner.replace(/\sstroke-miterlimit\s*=\s*"[^"]*"/gi, '')
+  inner = inner.replace(/\sstyle\s*=\s*"[^"]*"/gi, '')
+
+  return {
+    viewBox: viewBoxMatch[1].trim(),
+    width, height,
+    markup: inner.trim(),
+  }
+}
+
+/**
+ * Build the final alpha-mask SVG for a given shape + config.
+ * Resulting SVG uses fill-opacity to indicate map visibility per region.
+ */
+export function composeMaskSvg(shape: ShapeDefinition, config: ShapeConfigState): string {
+  const parts: string[] = []
+  const { outer } = config
+
+  if (outer.mode !== 'none') {
+    const m = mmToUnits(outer.margin, shape.width)
+    const w = shape.width - 2 * m
+    const h = shape.height - 2 * m
+    const op = outer.mode === 'full' ? 1 : outer.opacity
+    parts.push(
+      `<rect x="${m}" y="${m}" width="${w}" height="${h}" fill="#fff" fill-opacity="${op}"/>`,
+    )
+  }
+
+  // Shape always drawn at full opacity on top (unless mode=full made it redundant)
+  parts.push(`<g fill="#fff" fill-opacity="1">${shape.markup}</g>`)
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${shape.viewBox}">${parts.join('')}</svg>`
+}
+
+/**
+ * Build the decorative frame SVG (strokes). Returns empty SVG if nothing enabled.
+ */
+export function composeFrameSvg(shape: ShapeDefinition, config: ShapeConfigState): string {
+  const parts: string[] = []
+  const { innerFrame, outerFrame } = config
+
+  if (outerFrame.enabled) {
+    const m = mmToUnits(config.outer.margin, shape.width)
+    const thickness = mmToUnits(outerFrame.thickness, shape.width)
+    const w = shape.width - 2 * m
+    const h = shape.height - 2 * m
+    parts.push(
+      `<rect x="${m}" y="${m}" width="${w}" height="${h}" fill="none" stroke="${outerFrame.color}" stroke-width="${thickness}"/>`,
+    )
+    if (outerFrame.style === 'double') {
+      const gap = mmToUnits(outerFrame.gap, shape.width)
+      const innerOffset = m + thickness + gap
+      const innerW = shape.width - 2 * innerOffset
+      const innerH = shape.height - 2 * innerOffset
+      if (innerW > 0 && innerH > 0) {
+        parts.push(
+          `<rect x="${innerOffset}" y="${innerOffset}" width="${innerW}" height="${innerH}" fill="none" stroke="${outerFrame.color}" stroke-width="${thickness}"/>`,
+        )
+      }
+    }
+  }
+
+  if (innerFrame.enabled) {
+    const thickness = mmToUnits(innerFrame.thickness, shape.width)
+    parts.push(
+      `<g fill="none" stroke="${innerFrame.color}" stroke-width="${thickness}" stroke-linejoin="round">${shape.markup}</g>`,
+    )
+  }
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${shape.viewBox}">${parts.join('')}</svg>`
+}
+
+export function svgToDataUrl(svg: string): string {
+  return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg)
+}
+
+export function hasAnyFrame(config: ShapeConfigState): boolean {
+  return config.innerFrame.enabled || config.outerFrame.enabled
+}

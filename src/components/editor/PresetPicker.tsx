@@ -1,0 +1,116 @@
+'use client'
+
+import { useCallback, useEffect, useState } from 'react'
+import Image from 'next/image'
+import { Loader2, LayoutTemplate, ChevronDown, ChevronUp } from 'lucide-react'
+import { toast } from 'sonner'
+import { Label } from '@/components/ui/label'
+import { invalidateCustomMasksCache } from '@/hooks/useCustomMasks'
+import { applyPreset } from '@/lib/apply-preset'
+import { cn } from '@/lib/utils'
+
+const INITIAL_VISIBLE = 3
+
+interface PresetRow {
+  id: string
+  name: string
+  description: string | null
+  poster_type: 'map' | 'star-map'
+  preview_image_url: string | null
+  config_json: Record<string, unknown>
+  display_order: number
+}
+
+interface Props {
+  posterType: 'map' | 'star-map'
+}
+
+export function PresetPicker({ posterType }: Props) {
+  const [presets, setPresets] = useState<PresetRow[]>([])
+  const [loading, setLoading] = useState(true)
+  const [appliedId, setAppliedId] = useState<string | null>(null)
+  const [expanded, setExpanded] = useState(false)
+
+  useEffect(() => {
+    fetch(`/api/presets?poster_type=${posterType}`)
+      .then((r) => r.json())
+      .then((d) => setPresets(d.presets ?? []))
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [posterType])
+
+  const apply = useCallback(async (preset: PresetRow) => {
+    invalidateCustomMasksCache()
+    const undo = applyPreset(preset)
+    setAppliedId(preset.id)
+    toast.success(`Design „${preset.name}" übernommen`, {
+      duration: 8000,
+      action: { label: 'Rückgängig', onClick: () => { undo(); setAppliedId(null) } },
+    })
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="space-y-1.5">
+        <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400">Designs</Label>
+        <div className="flex items-center justify-center py-4">
+          <Loader2 className="w-4 h-4 animate-spin text-gray-300" />
+        </div>
+      </div>
+    )
+  }
+
+  if (presets.length === 0) return null
+
+  const visible = expanded ? presets : presets.slice(0, INITIAL_VISIBLE)
+  const hasMore = presets.length > INITIAL_VISIBLE
+
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400">Designs</Label>
+      <div className="grid grid-cols-3 gap-2">
+        {visible.map((preset) => (
+          <button
+            key={preset.id}
+            type="button"
+            onClick={() => apply(preset)}
+            className={cn(
+              'relative aspect-[2/3] rounded-md border-2 overflow-hidden transition-all bg-gray-50',
+              appliedId === preset.id
+                ? 'border-gray-900 ring-2 ring-gray-900/20'
+                : 'border-gray-200 hover:border-gray-400',
+            )}
+            title={preset.description || preset.name}
+          >
+            {preset.preview_image_url ? (
+              <Image
+                src={preset.preview_image_url}
+                alt={preset.name}
+                fill
+                sizes="(max-width: 288px) 33vw, 96px"
+                className="object-cover"
+              />
+            ) : (
+              <div className="absolute inset-0 flex items-center justify-center text-gray-300">
+                <LayoutTemplate className="w-6 h-6" />
+              </div>
+            )}
+            <span className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent text-white text-[9px] font-medium px-1 py-1 text-center leading-tight truncate">
+              {preset.name}
+            </span>
+          </button>
+        ))}
+      </div>
+      {hasMore && (
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="w-full text-[11px] text-gray-500 hover:text-gray-900 flex items-center justify-center gap-0.5 py-1"
+        >
+          {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+          {expanded ? 'Weniger anzeigen' : `Mehr anzeigen (${presets.length - INITIAL_VISIBLE})`}
+        </button>
+      )}
+    </div>
+  )
+}
