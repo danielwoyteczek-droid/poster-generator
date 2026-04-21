@@ -2,7 +2,7 @@ import { Resend } from 'resend'
 import { PRINT_FORMAT_OPTIONS } from './print-formats'
 import { PRODUCTS, formatPrice } from './products'
 
-const FROM = 'Poster Generator <onboarding@resend.dev>'
+const FROM = 'petite-moment <noreply@petite-moment.com>'
 
 function getResend(): Resend {
   const key = process.env.RESEND_API_KEY
@@ -217,7 +217,7 @@ export async function sendOrderConfirmation(input: OrderConfirmationInput) {
   const result = await getResend().emails.send({
     from: FROM,
     to: input.to,
-    subject: 'Deine Bestellung bei Poster Generator',
+    subject: 'Deine Bestellung bei petite-moment',
     html,
   })
   if (result.error) {
