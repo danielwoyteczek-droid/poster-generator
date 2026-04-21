@@ -1,4 +1,9 @@
-import 'dotenv/config'
+import { config } from 'dotenv'
+import path from 'node:path'
+
+// Load env files in the same order Next.js does: .env.local wins over .env
+config({ path: path.resolve(process.cwd(), '.env.local') })
+config({ path: path.resolve(process.cwd(), '.env') })
 
 function required(name: string): string {
   const value = process.env[name]
