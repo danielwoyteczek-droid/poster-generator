@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 export default function DatenschutzPage() {
   return (
-    <LegalLayout title="Datenschutzerklärung" updatedAt="20. April 2026">
+    <LegalLayout title="Datenschutzerklärung" updatedAt="21. April 2026">
       <h2>1. Verantwortlicher</h2>
       <p>
         Verantwortlicher im Sinne der DSGVO und anderer nationaler Datenschutzgesetze ist:
@@ -131,14 +131,49 @@ export default function DatenschutzPage() {
 
       <h2>8. Cookies und Local Storage</h2>
       <p>
-        Wir verwenden ausschließlich <strong>technisch notwendige Cookies</strong> und den lokalen
-        Browser-Speicher (Local Storage), um deine Anmeldung aufrechtzuerhalten, den Warenkorb zu
-        speichern und unveröffentlichte Poster-Entwürfe lokal abzulegen. Details findest du in
+        Technisch notwendige Cookies und Local Storage (Anmeldung, Warenkorb, Poster-Entwürfe)
+        setzen wir immer ein. Analyse- und Marketing-Cookies werden nur nach deiner
+        <strong> ausdrücklichen Einwilligung</strong> über unser Cookie-Banner geladen. Du kannst
+        deine Einwilligung jederzeit im Footer unter „Cookie-Einstellungen" widerrufen. Details in
         unserer <a href="/cookie-richtlinie">Cookie-Richtlinie</a>.
       </p>
-      <p>Rechtsgrundlage: § 25 Abs. 2 Nr. 2 TTDSG sowie Art. 6 Abs. 1 lit. f DSGVO.</p>
+      <p>
+        Rechtsgrundlage für notwendige Cookies: § 25 Abs. 2 Nr. 2 TTDSG sowie Art. 6 Abs. 1 lit. f
+        DSGVO. Rechtsgrundlage für Analyse- und Marketing-Cookies: § 25 Abs. 1 TTDSG sowie Art. 6
+        Abs. 1 lit. a DSGVO (Einwilligung).
+      </p>
 
-      <h2>9. Deine Rechte</h2>
+      <h2>9. Google Tag Manager</h2>
+      <p>
+        Wir setzen <strong>Google Tag Manager</strong> der Google Ireland Limited, Gordon House,
+        Barrow Street, Dublin 4, Irland, ein. Der Tag Manager selbst erhebt keine personenbezogenen
+        Daten, sondern dient ausschließlich der Verwaltung der von uns eingesetzten Analyse- und
+        Marketing-Tags. Er lädt diese nur, wenn du entsprechend eingewilligt hast.
+      </p>
+
+      <h2>10. Google Analytics 4</h2>
+      <p>
+        Mit deiner Einwilligung nutzen wir <strong>Google Analytics 4</strong> (Google Ireland
+        Limited), um die Nutzung unserer Website statistisch auszuwerten. Dabei werden
+        pseudonymisierte Nutzungsdaten (z. B. aufgerufene Seiten, Klicks, Geräteinformationen)
+        verarbeitet. IP-Adressen werden von Google vor der Speicherung gekürzt.
+      </p>
+      <p>
+        Google kann die Daten zusätzlich in die USA übermitteln. Es bestehen
+        EU-Standardvertragsklauseln nach Art. 46 DSGVO.
+      </p>
+      <p>
+        Rechtsgrundlage: Art. 6 Abs. 1 lit. a DSGVO (Einwilligung), § 25 Abs. 1 TTDSG.
+      </p>
+      <p>
+        Speicherdauer: maximal 14 Monate. Datenschutzerklärung:{' '}
+        <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">
+          policies.google.com/privacy
+        </a>
+        . Widerruf jederzeit über das Cookie-Banner möglich.
+      </p>
+
+      <h2>11. Deine Rechte</h2>
       <p>Du hast jederzeit das Recht auf:</p>
       <ul>
         <li><strong>Auskunft</strong> über die zu deiner Person gespeicherten Daten (Art. 15 DSGVO)</li>
@@ -156,7 +191,7 @@ export default function DatenschutzPage() {
         <a href="mailto:love@petite-moment.com">love@petite-moment.com</a>.
       </p>
 
-      <h2>10. Beschwerderecht</h2>
+      <h2>12. Beschwerderecht</h2>
       <p>
         Du hast das Recht, dich bei einer Datenschutz-Aufsichtsbehörde zu beschweren. Zuständig
         für uns ist:
@@ -169,13 +204,13 @@ export default function DatenschutzPage() {
         </a>
       </p>
 
-      <h2>11. Keine automatisierte Entscheidungsfindung</h2>
+      <h2>13. Keine automatisierte Entscheidungsfindung</h2>
       <p>
         Wir nutzen keine automatisierte Entscheidungsfindung oder Profiling im Sinne von Art. 22
         DSGVO.
       </p>
 
-      <h2>12. Aktualität dieser Erklärung</h2>
+      <h2>14. Aktualität dieser Erklärung</h2>
       <p>
         Wir behalten uns vor, diese Datenschutzerklärung anzupassen, um sie an geänderte
         Rechtslagen oder bei Änderungen unserer Dienste anzupassen. Die aktuelle Version findest

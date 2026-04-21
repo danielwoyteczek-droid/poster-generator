@@ -1,10 +1,11 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { CheckCircle2, Loader2, FileImage, FileText, Package, AlertTriangle } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { useCartStore } from '@/hooks/useCartStore'
+import { trackPurchase } from '@/lib/analytics'
 import { PRODUCTS, formatPrice } from '@/lib/products'
 import { PRINT_FORMAT_OPTIONS, type PrintFormat } from '@/lib/print-formats'
 import {
@@ -59,10 +60,29 @@ export function OrderView({ orderId, token, showSuccessBanner }: Props) {
   const [loadError, setLoadError] = useState<string | null>(null)
   const [preparing, setPreparing] = useState<Record<number, boolean>>({})
   const clearCart = useCartStore((s) => s.clearCart)
+  const purchaseTrackedRef = useRef(false)
 
   useEffect(() => {
     if (showSuccessBanner) clearCart()
   }, [showSuccessBanner, clearCart])
+
+  useEffect(() => {
+    if (!showSuccessBanner || !order || purchaseTrackedRef.current) return
+    if (order.status !== 'paid') return
+    purchaseTrackedRef.current = true
+    trackPurchase({
+      transactionId: order.id,
+      totalCents: order.total_cents,
+      items: order.items.map((item, idx) => ({
+        id: `${order.id}-${idx}`,
+        title: item.title,
+        productId: item.productId,
+        format: item.format,
+        priceCents: item.priceCents,
+        posterType: item.posterType,
+      })),
+    })
+  }, [showSuccessBanner, order])
 
   const fetchOrder = useCallback(async () => {
     const res = await fetch(`/api/orders/${orderId}?token=${encodeURIComponent(token)}`)

@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { getSiteSettings } from '@/sanity/queries'
+import { CookieSettingsLink } from '@/components/consent/CookieSettingsLink'
 
 const LEGAL_LINKS = [
   { label: 'Impressum', href: '/impressum' },
@@ -61,6 +62,9 @@ export async function LandingFooter() {
                   <Link href={link.href} className="text-sm text-gray-600 hover:text-gray-900">{link.label}</Link>
                 </li>
               ))}
+              <li>
+                <CookieSettingsLink />
+              </li>
             </ul>
           </div>
         </div>

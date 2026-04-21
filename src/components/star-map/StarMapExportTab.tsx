@@ -15,6 +15,7 @@ import { PRODUCTS, formatPrice, type ProductId } from '@/lib/products'
 import { cn } from '@/lib/utils'
 import { PosterFrameModal } from '@/components/editor/PosterFrameModal'
 import { downsizeDataURL } from '@/lib/image-utils'
+import { trackAddToCart } from '@/lib/analytics'
 
 const PRODUCT_ICONS: Record<string, React.ReactNode> = {
   download: <Download className="w-5 h-5" />,
@@ -140,11 +141,12 @@ function CustomerProductView({ printFormat }: { printFormat: string }) {
     try {
       const fullDataUrl = await renderPreview(printFormat as PrintFormat)
       const previewDataUrl = await downsizeDataURL(fullDataUrl, 600)
+      const title = starMap.locationName || 'Sternkarte'
       addItem({
         productId: selectedProduct,
         format: printFormat as PrintFormat,
         posterType: 'star-map',
-        title: starMap.locationName || 'Sternkarte',
+        title,
         priceCents: price,
         previewDataUrl,
         projectId: editor.projectId ?? null,
@@ -164,6 +166,14 @@ function CustomerProductView({ printFormat }: { printFormat: string }) {
           frameConfig: starMap.frameConfig,
           textBlocks: editor.textBlocks,
         },
+      })
+      trackAddToCart({
+        id: `${selectedProduct}-${printFormat}-${Date.now()}`,
+        title,
+        productId: selectedProduct,
+        format: printFormat,
+        priceCents: price,
+        posterType: 'star-map',
       })
       toast.success('Zum Warenkorb hinzugefügt')
     } catch (err) {

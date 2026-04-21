@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { X, ShoppingCart, CreditCard, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useCartStore } from '@/hooks/useCartStore'
+import { trackBeginCheckout } from '@/lib/analytics'
 import { PRODUCTS, formatPrice } from '@/lib/products'
 import { PRINT_FORMAT_OPTIONS } from '@/lib/print-formats'
 import { Button } from '@/components/ui/button'
@@ -35,6 +36,14 @@ export function CartView() {
       return
     }
     setIsCheckingOut(true)
+    trackBeginCheckout(items.map((i) => ({
+      id: i.id,
+      title: i.title,
+      productId: i.productId,
+      format: i.format,
+      priceCents: i.priceCents,
+      posterType: i.posterType,
+    })))
     try {
       const payload = {
         items: items.map(({ productId, format, posterType, title, snapshot, projectId }) => ({

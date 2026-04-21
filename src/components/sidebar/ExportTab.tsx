@@ -13,6 +13,7 @@ import { PRINT_FORMAT_OPTIONS, type PrintFormat } from '@/lib/print-formats'
 import { PRODUCTS, formatPrice, type ProductId } from '@/lib/products'
 import { cn } from '@/lib/utils'
 import { PosterFrameModal } from '@/components/editor/PosterFrameModal'
+import { trackAddToCart } from '@/lib/analytics'
 import { downsizeDataURL } from '@/lib/image-utils'
 
 // ExportTab adds icons on top of the shared product catalogue
@@ -136,11 +137,12 @@ function CustomerProductView({ printFormat }: { printFormat: string }) {
     try {
       const fullDataUrl = await renderPreview(printFormat as PrintFormat)
       const previewDataUrl = await downsizeDataURL(fullDataUrl, 600)
+      const title = editor.locationName || 'Karten-Poster'
       addItem({
         productId: selectedProduct,
         format: printFormat as PrintFormat,
         posterType: 'map',
-        title: editor.locationName || 'Karten-Poster',
+        title,
         priceCents: price,
         previewDataUrl,
         projectId: editor.projectId ?? null,
@@ -155,6 +157,14 @@ function CustomerProductView({ printFormat }: { printFormat: string }) {
           textBlocks: editor.textBlocks,
           locationName: editor.locationName,
         },
+      })
+      trackAddToCart({
+        id: `${selectedProduct}-${printFormat}-${Date.now()}`,
+        title,
+        productId: selectedProduct,
+        format: printFormat,
+        priceCents: price,
+        posterType: 'map',
       })
       toast.success('Zum Warenkorb hinzugefügt')
     } catch (err) {
