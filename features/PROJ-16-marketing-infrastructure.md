@@ -58,6 +58,22 @@ petite-moment ist live, Commerce funktioniert, Content steht. Damit bezahlte Kam
 - Resend-Audience-API für Newsletter (oder einfacher: separate Supabase-Tabelle `newsletter_subscribers`, wir exportieren zu Resend on-demand)
 - Datenschutz muss ergänzt werden: Meta-Pixel, TikTok-Pixel, Newsletter-Verarbeitung, Review-Veröffentlichung
 
+## Trust-Aufbau in der Früh-Phase (vor echtem Review-Volumen)
+
+Bevor das Review-System echte Einträge hat, ist die Homepage mit Bewertungs-Feldern leer — das wirkt schlechter als kein Review-Widget. Fake-Reviews sind rechtlich problematisch (§5a UWG, DSA) und praktisch riskant. Deshalb sammeln wir hier die legitimen Alternativen, die bis zu den ersten 50 echten Reviews funktionieren:
+
+**1. Früh-Kunden-Programm** — 10-20 Menschen aus deinem Umfeld (Familie, Freunde, Paare im Bekanntenkreis) bekommen ein Poster geschenkt oder mit 50 % Rabatt im Tausch gegen ehrliches Feedback. Sind **echte Transaktionen**, echte Reviews, rechtlich sauber. Zeitrahmen: 2-4 Wochen, dann 10-15 authentische Bewertungen.
+
+**2. Testimonials statt Sterne-Reviews** — kurze Zitate mit Vornamen + Ort ("Wir haben's zur Hochzeit verschenkt, die Reaktion war unglaublich." — Sarah, München). Weniger Conversion-Power als Stern-Reviews, aber rechtlich weniger problematisch und fühlt sich menschlicher an.
+
+**3. "So sieht das bei unseren Kund:innen aus"-Galerie** — Kunden-Poster zeigen (mit schriftlicher Zustimmung), erzeugt Social Proof ohne je das Wort "Review" oder "Rating" zu nutzen. Geeignet sowohl für Homepage als auch für eine dedicated `/inspiration`-Seite.
+
+**4. Offene "We're new"-Haltung** — "Wir sind frisch gestartet. Sei eine der ersten zehn Bestellungen und bekomme 20 % Rabatt, dazu freuen wir uns über dein Feedback." Macht aus der Schwäche (keine Reviews) eine Geste (Frühbucher-Vorteil).
+
+**5. Press-Mentions oder "Als gesehen bei…"** — sobald kleine Blogs, Magazine, Podcasts oder Influencer euch organisch erwähnen, zitieren und mit Logo/Link einbinden.
+
+**Empfohlener Weg:** Kombination aus **#1** (echte Reviews generieren) + **#3** (Kunden-Galerie als sichtbares Vertrauen), dazu optional **#4** als Opt-in-Incentivierung. Das Review-System bleibt im Hintergrund vorbereitet, wird aber erst aktiv sichtbar, wenn mindestens ~10 echte Reviews da sind.
+
 ---
 <!-- Sections below are added by subsequent skills -->
 
