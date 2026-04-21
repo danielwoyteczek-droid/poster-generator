@@ -6,6 +6,8 @@ import { LandingFooter } from '@/components/landing/LandingFooter'
 import { listBlogPosts } from '@/sanity/queries'
 import { urlFor } from '@/sanity/client'
 
+export const revalidate = 60
+
 export const metadata: Metadata = {
   title: 'Blog',
   description: 'Geschichten, Tipps & Inspiration rund um individuelle Poster.',

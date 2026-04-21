@@ -7,6 +7,8 @@ import { PortableTextRenderer } from '@/components/sanity/PortableTextRenderer'
 import { getBlogPost } from '@/sanity/queries'
 import { urlFor } from '@/sanity/client'
 
+export const revalidate = 60
+
 interface Props {
   params: Promise<{ slug: string }>
 }

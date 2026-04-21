@@ -6,6 +6,8 @@ import { PortableTextRenderer } from '@/components/sanity/PortableTextRenderer'
 import { getAboutPage } from '@/sanity/queries'
 import { urlFor } from '@/sanity/client'
 
+export const revalidate = 60
+
 export async function generateMetadata(): Promise<Metadata> {
   const page = await getAboutPage()
   return {

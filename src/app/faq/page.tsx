@@ -5,6 +5,8 @@ import { FaqList } from '@/components/sanity/FaqList'
 import { listFaqItems } from '@/sanity/queries'
 import { toPlainText } from '@portabletext/react'
 
+export const revalidate = 60
+
 export const metadata: Metadata = {
   title: 'FAQ – Häufig gestellte Fragen',
   description: 'Antworten auf häufige Fragen rund um unsere Karten- und Sternenposter.',
