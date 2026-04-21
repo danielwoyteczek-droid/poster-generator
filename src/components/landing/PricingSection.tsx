@@ -5,12 +5,13 @@ import Link from 'next/link'
 import { Download, ImageIcon, Frame, ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { PRODUCTS, formatPrice } from '@/lib/products'
+import { priceFromCatalog, useProductCatalog } from '@/hooks/useProductCatalog'
+import type { PrintFormat } from '@/lib/print-formats'
 import { cn } from '@/lib/utils'
 
-const FORMATS = [
+const FORMATS: Array<{ id: PrintFormat; label: string }> = [
   { id: 'a4', label: 'A4' },
   { id: 'a3', label: 'A3' },
-  { id: 'a2', label: 'A2' },
 ]
 
 const PRODUCT_ICONS = {
@@ -20,7 +21,8 @@ const PRODUCT_ICONS = {
 }
 
 export function PricingSection() {
-  const [format, setFormat] = useState('a4')
+  const [format, setFormat] = useState<PrintFormat>('a4')
+  const { products: catalog, loading } = useProductCatalog()
 
   return (
     <section id="pricing" className="py-24 bg-white">
@@ -33,7 +35,6 @@ export function PricingSection() {
             Wähle dein Format und das passende Produkt.
           </p>
 
-          {/* Format toggle */}
           <div className="mt-8 inline-flex rounded-lg border border-gray-200 p-1 bg-gray-50">
             {FORMATS.map((f) => (
               <button
@@ -56,6 +57,7 @@ export function PricingSection() {
           {PRODUCTS.map((product, idx) => {
             const Icon = PRODUCT_ICONS[product.id as keyof typeof PRODUCT_ICONS]
             const isHighlighted = idx === 1
+            const price = priceFromCatalog(catalog, product.id, format)
 
             return (
               <div
@@ -82,16 +84,21 @@ export function PricingSection() {
                 </p>
 
                 <div className="mt-auto">
-                  <div className={cn('text-3xl font-bold mb-6', isHighlighted ? 'text-white' : 'text-gray-900')}>
-                    {formatPrice(product.prices[format])}
+                  <div className={cn('mb-6', isHighlighted ? 'text-white' : 'text-gray-900')}>
+                    {price?.compareAtCents && price.compareAtCents > price.unitAmount && (
+                      <div className={cn('text-sm line-through', isHighlighted ? 'text-white/50' : 'text-gray-400')}>
+                        {formatPrice(price.compareAtCents)}
+                      </div>
+                    )}
+                    <div className="text-3xl font-bold">
+                      {price ? formatPrice(price.unitAmount) : loading ? '…' : '–'}
+                    </div>
                   </div>
                   <Button
                     asChild
                     className={cn(
                       'w-full',
-                      isHighlighted
-                        ? 'bg-white text-gray-900 hover:bg-gray-100'
-                        : '',
+                      isHighlighted ? 'bg-white text-gray-900 hover:bg-gray-100' : '',
                     )}
                     variant={isHighlighted ? 'secondary' : 'outline'}
                   >

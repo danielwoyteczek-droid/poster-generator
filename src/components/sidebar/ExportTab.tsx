@@ -14,6 +14,7 @@ import { PRODUCTS, formatPrice, type ProductId } from '@/lib/products'
 import { cn } from '@/lib/utils'
 import { PosterFrameModal } from '@/components/editor/PosterFrameModal'
 import { trackAddToCart } from '@/lib/analytics'
+import { priceFromCatalog, useProductCatalog } from '@/hooks/useProductCatalog'
 import { downsizeDataURL } from '@/lib/image-utils'
 
 // ExportTab adds icons on top of the shared product catalogue
@@ -127,12 +128,15 @@ function CustomerProductView({ printFormat }: { printFormat: string }) {
   const { renderPreview } = useMapExport()
   const addItem = useCartStore((s) => s.addItem)
   const editor = useEditorStore()
+  const { products: catalog, loading: catalogLoading } = useProductCatalog()
 
-  const selected = PRODUCTS.find((p) => p.id === selectedProduct)
-  const price = selected ? selected.prices[printFormat] : null
+  const catalogPrice = selectedProduct
+    ? priceFromCatalog(catalog, selectedProduct, printFormat as PrintFormat)
+    : null
+  const priceCents = catalogPrice?.unitAmount ?? null
 
   const handleAddToCart = async () => {
-    if (!selectedProduct || !price) return
+    if (!selectedProduct || priceCents == null) return
     setIsAdding(true)
     try {
       const fullDataUrl = await renderPreview(printFormat as PrintFormat)
@@ -143,7 +147,7 @@ function CustomerProductView({ printFormat }: { printFormat: string }) {
         format: printFormat as PrintFormat,
         posterType: 'map',
         title,
-        priceCents: price,
+        priceCents,
         previewDataUrl,
         projectId: editor.projectId ?? null,
         snapshot: {
@@ -163,7 +167,7 @@ function CustomerProductView({ printFormat }: { printFormat: string }) {
         title,
         productId: selectedProduct,
         format: printFormat,
-        priceCents: price,
+        priceCents,
         posterType: 'map',
       })
       toast.success('Zum Warenkorb hinzugefügt')
@@ -181,52 +185,64 @@ function CustomerProductView({ printFormat }: { printFormat: string }) {
       </Label>
 
       <div className="space-y-2">
-        {PRODUCTS.map((product) => (
-          <button
-            key={product.id}
-            type="button"
-            onClick={() => setSelectedProduct(product.id)}
-            className={cn(
-              'w-full text-left rounded-lg border-2 px-3 py-2.5 transition-colors',
-              selectedProduct === product.id
-                ? 'border-gray-900 bg-gray-50'
-                : 'border-gray-200 hover:border-gray-300 bg-white',
-            )}
-          >
-            <div className="flex items-start gap-2.5">
-              <span className={cn(
-                'mt-0.5 shrink-0',
-                selectedProduct === product.id ? 'text-gray-900' : 'text-gray-400',
-              )}>
-                {PRODUCT_ICONS[product.id]}
-              </span>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-sm font-medium text-gray-900">{product.label}</span>
-                  <span className={cn(
-                    'text-sm font-semibold shrink-0',
-                    selectedProduct === product.id ? 'text-gray-900' : 'text-gray-500',
-                  )}>
-                    {formatPrice(product.prices[printFormat])}
-                  </span>
+        {PRODUCTS.map((product) => {
+          const rowPrice = priceFromCatalog(catalog, product.id, printFormat as PrintFormat)
+          return (
+            <button
+              key={product.id}
+              type="button"
+              onClick={() => setSelectedProduct(product.id)}
+              disabled={!rowPrice}
+              className={cn(
+                'w-full text-left rounded-lg border-2 px-3 py-2.5 transition-colors',
+                selectedProduct === product.id
+                  ? 'border-gray-900 bg-gray-50'
+                  : 'border-gray-200 hover:border-gray-300 bg-white',
+                !rowPrice && 'opacity-50 cursor-not-allowed',
+              )}
+            >
+              <div className="flex items-start gap-2.5">
+                <span className={cn(
+                  'mt-0.5 shrink-0',
+                  selectedProduct === product.id ? 'text-gray-900' : 'text-gray-400',
+                )}>
+                  {PRODUCT_ICONS[product.id]}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-medium text-gray-900">{product.label}</span>
+                    <span className="flex items-baseline gap-1.5 shrink-0">
+                      {rowPrice?.compareAtCents && rowPrice.compareAtCents > rowPrice.unitAmount && (
+                        <span className="text-xs text-gray-400 line-through">
+                          {formatPrice(rowPrice.compareAtCents)}
+                        </span>
+                      )}
+                      <span className={cn(
+                        'text-sm font-semibold',
+                        selectedProduct === product.id ? 'text-gray-900' : 'text-gray-500',
+                      )}>
+                        {rowPrice ? formatPrice(rowPrice.unitAmount) : catalogLoading ? '…' : '–'}
+                      </span>
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-0.5 leading-snug">{product.description}</p>
                 </div>
-                <p className="text-xs text-gray-400 mt-0.5 leading-snug">{product.description}</p>
               </div>
-            </div>
-          </button>
-        ))}
+            </button>
+          )
+        })}
       </div>
 
       <button
         type="button"
-        disabled={!selectedProduct || isAdding}
+        disabled={!selectedProduct || priceCents == null || isAdding}
         onClick={handleAddToCart}
         className="w-full h-10 flex items-center justify-center gap-2 rounded-md bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed mt-1"
       >
         {isAdding ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShoppingCart className="w-4 h-4" />}
         {isAdding
           ? 'Wird hinzugefügt…'
-          : price ? `In den Warenkorb · ${formatPrice(price)}` : 'Produkt wählen'}
+          : priceCents != null ? `In den Warenkorb · ${formatPrice(priceCents)}` : 'Produkt wählen'}
       </button>
 
       <p className="text-xs text-gray-400 leading-relaxed">

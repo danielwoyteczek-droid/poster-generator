@@ -27,7 +27,7 @@ interface OrderDetail {
   currency: string
   items: Array<{
     productId: 'download' | 'poster' | 'frame'
-    format: 'a4' | 'a3' | 'a2'
+    format: 'a4' | 'a3'
     posterType: PosterType
     title: string
     priceCents: number

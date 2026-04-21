@@ -12,7 +12,7 @@ function getResend(): Resend {
 
 interface OrderItemInput {
   productId: 'download' | 'poster' | 'frame'
-  format: 'a4' | 'a3' | 'a2'
+  format: 'a4' | 'a3'
   posterType: 'map' | 'star-map'
   title: string
   priceCents: number

@@ -14,7 +14,7 @@ const FEATURES = [
   {
     icon: Printer,
     title: 'Druckfertige Formate',
-    description: 'A4, A3 oder A2 — alle Formate werden in voller Druckauflösung (300 dpi) exportiert.',
+    description: 'A4 und A3 — alle Formate werden in voller Druckauflösung (300 dpi) exportiert.',
   },
   {
     icon: Download,

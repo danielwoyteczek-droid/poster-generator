@@ -3,12 +3,12 @@ import { z } from 'zod'
 import { stripe } from '@/lib/stripe'
 import { createClient } from '@/lib/supabase-server'
 import { createAdminClient } from '@/lib/supabase-admin'
-import { PRODUCTS } from '@/lib/products'
-import { PRINT_FORMATS } from '@/lib/print-formats'
+import { PRODUCTS, getStripePriceId } from '@/lib/products'
+import { getProductCatalog } from '@/lib/stripe-catalog'
 
 const CartItemSchema = z.object({
   productId: z.enum(['download', 'poster', 'frame']),
-  format: z.enum(['a4', 'a3', 'a2']),
+  format: z.enum(['a4', 'a3']),
   posterType: z.enum(['map', 'star-map']),
   title: z.string().min(1).max(200),
   projectId: z.string().uuid().nullable().optional(),
@@ -27,24 +27,31 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid cart' }, { status: 400 })
   }
 
-  // Optional auth — guest checkout allowed
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Validate prices server-side (never trust client)
+  // Resolve current prices from Stripe (cached) for persisting order totals
+  const catalog = await getProductCatalog()
+
   const items = parsed.data.items.map((item) => {
     const product = PRODUCTS.find((p) => p.id === item.productId)
-    if (!product) throw new Error(`Unknown product ${item.productId}`)
-    const priceCents = product.prices[item.format]
-    if (!priceCents) throw new Error(`No price for ${item.productId}/${item.format}`)
-    return { ...item, priceCents, productLabel: product.label }
+    const priceId = getStripePriceId(item.productId, item.format)
+    const catalogPrice = catalog[item.productId]?.[item.format]
+    if (!product || !priceId || !catalogPrice) {
+      throw new Error(`Unknown product / price: ${item.productId}/${item.format}`)
+    }
+    return {
+      ...item,
+      priceCents: catalogPrice.unitAmount,
+      productLabel: product.label,
+      stripePriceId: priceId,
+    }
   })
 
   const totalCents = items.reduce((sum, i) => sum + i.priceCents, 0)
   const hasPhysical = items.some((i) => i.productId !== 'download')
   const hasDigital = items.some((i) => i.productId === 'download')
 
-  // Digital downloads require explicit consent to waive 14-day withdrawal right (§ 356 Abs. 5 BGB)
   if (hasDigital && !parsed.data.digitalConsent) {
     return NextResponse.json(
       { error: 'Zustimmung zum sofortigen Download-Beginn erforderlich' },
@@ -52,7 +59,6 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  // Persist pending order (bypassing RLS via service role)
   const admin = createAdminClient()
   const { data: order, error: insertErr } = await admin
     .from('orders')
@@ -79,14 +85,7 @@ export async function POST(req: NextRequest) {
       locale: 'de',
       line_items: items.map((item) => ({
         quantity: 1,
-        price_data: {
-          currency: 'eur',
-          unit_amount: item.priceCents,
-          product_data: {
-            name: `${item.productLabel} · ${PRINT_FORMATS[item.format].label} · ${item.title}`,
-            description: item.posterType === 'star-map' ? 'Sternenposter' : 'Stadtposter',
-          },
-        },
+        price: item.stripePriceId,
       })),
       success_url: `${origin}/orders/${order.id}?token=${order.access_token}&success=1`,
       cancel_url: `${origin}/cart`,
@@ -98,7 +97,6 @@ export async function POST(req: NextRequest) {
       metadata: { order_id: order.id },
     })
 
-    // Link session to order
     await admin
       .from('orders')
       .update({ stripe_session_id: session.id })
@@ -106,7 +104,6 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ url: session.url })
   } catch (err) {
-    // Mark order failed so it doesn't sit as pending forever
     await admin.from('orders').update({ status: 'failed' }).eq('id', order.id)
     const message = err instanceof Error ? err.message : 'Checkout failed'
     return NextResponse.json({ error: message }, { status: 500 })
