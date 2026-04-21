@@ -19,4 +19,5 @@ export const structure: StructureResolver = (S) =>
       S.documentTypeListItem('legalPage').title('Rechtliche Seiten'),
       S.documentTypeListItem('faqItem').title('FAQ-Einträge'),
       S.documentTypeListItem('blogPost').title('Blog-Artikel'),
+      S.documentTypeListItem('blogTopic').title('Blog-Themen-Queue'),
     ])
