@@ -42,7 +42,10 @@ export async function markTopicError(topicId: string, message: string) {
 }
 
 export async function existingTitles(): Promise<string[]> {
-  const titles = await sanity.fetch<string[]>(`*[_type == "blogPost"].title`)
+  // Only consider published posts — drafts may be leftovers from failed runs.
+  const titles = await sanity.fetch<string[]>(
+    `*[_type == "blogPost" && !(_id in path("drafts.**"))].title`,
+  )
   return titles ?? []
 }
 
