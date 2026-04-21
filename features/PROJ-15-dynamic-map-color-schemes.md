@@ -17,6 +17,7 @@ PROJ-15 entkoppelt **Layout** (was wird dargestellt: Straßen, Wasser, Labels, L
 - Als Betreiber will ich eine Galerie von vordefinierten Farbpaletten (z. B. "Mint", "Sand", "Navy", "Terracotta") anbieten, aus der Nutzer wählen können.
 - Als End-Nutzer will ich neben dem Basis-Style eine Farbe wählen und sofort sehen, wie Land, Wasser, Straßen und Labels in dieser Farbe aussehen.
 - Als End-Nutzer will ich optional eine freie Farbe (Farbwähler) wählen, wenn die Paletten nicht reichen.
+- Als End-Nutzer will ich Straßennamen ein- oder ausblenden können, damit ich je nach Poster-Stimmung mehr oder weniger Detail auf der Karte habe.
 - Als Betreiber will ich neue Paletten ergänzen können, ohne das MapTiler-Backend anzufassen — idealerweise nur via Code oder später Admin-UI.
 
 ## Acceptance Criteria
@@ -28,6 +29,7 @@ PROJ-15 entkoppelt **Layout** (was wird dargestellt: Straßen, Wasser, Labels, L
 - [ ] Die Farbwahl überlebt Reload und wird im `projectId`-Snapshot mitgespeichert, damit Projekte später identisch wiederhergestellt werden können.
 - [ ] Die Farbwahl fließt in den Export (PNG/PDF) unverändert mit ein.
 - [ ] Ein freier Farbwähler (Hex) ist unter einer Accordion-Zeile "Eigene Farbe" verfügbar — Änderung dort setzt eine neue „custom"-Palette basierend auf einer Heuristik (z. B. Grundton wählt sofort Land + passende Wasser-/Straßen-Töne).
+- [ ] Ein Toggle **"Straßennamen anzeigen"** im Editor blendet alle textbasierten Straßenlabels der Karte ein/aus. Standard: aus (klareres Posterbild), der Nutzer kann explizit einschalten. Einstellung wird im Projekt-Snapshot mitgespeichert und fließt in den Export ein.
 
 ## Edge Cases
 - Farbpalette passt nicht zum Basis-Layout (z. B. Schwarz auf Dunkelblau → Labels unlesbar) → Heuristik stellt sicher, dass Labels immer ausreichend Kontrast zum Land haben; zur Not wird Label-Farbe auf Weiß/Schwarz gesetzt.
@@ -36,7 +38,7 @@ PROJ-15 entkoppelt **Layout** (was wird dargestellt: Straßen, Wasser, Labels, L
 - MapTiler-SDK erhält einen sehr großen Style-JSON → Transformer soll idempotent sein und bei erneuter Anwendung nichts doppelt färben.
 
 ## Non-Goals
-- Kein vollständiger Style-Editor für End-User (keine Liniendicken, keine Font-Wahl, kein Label-Toggle).
+- Kein vollständiger Style-Editor für End-User (keine Liniendicken, keine Font-Wahl, kein Layer-Toggle außer Straßennamen).
 - Kein Upload eigener MapTiler-Styles via Admin-UI in V1 — das wäre PROJ-16+.
 - Keine automatische Farbextraktion aus einem Bild ("Lade Foto hoch, wir generieren Palette") — kann später als V2 dazukommen.
 
