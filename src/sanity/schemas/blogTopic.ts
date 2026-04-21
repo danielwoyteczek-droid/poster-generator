@@ -61,7 +61,8 @@ export const blogTopic = defineType({
       title: 'Generierter Artikel',
       type: 'reference',
       to: [{ type: 'blogPost' }],
-      description: 'Wird automatisch gesetzt, sobald ein Artikel generiert wurde.',
+      weak: true,
+      description: 'Wird automatisch gesetzt, sobald ein Artikel generiert wurde. Kann auf einen noch nicht veröffentlichten Entwurf zeigen.',
     }),
     defineField({
       name: 'lastError',

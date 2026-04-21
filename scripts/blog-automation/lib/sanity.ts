@@ -30,7 +30,10 @@ export async function pickNextTopic(): Promise<BlogTopicDoc | null> {
 export async function markTopicDrafted(topicId: string, postId: string) {
   await sanity
     .patch(topicId)
-    .set({ status: 'drafted', generatedPost: { _ref: postId, _type: 'reference' } })
+    .set({
+      status: 'drafted',
+      generatedPost: { _ref: postId, _type: 'reference', _weak: true },
+    })
     .commit()
 }
 
