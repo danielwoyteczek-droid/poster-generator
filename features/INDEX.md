@@ -29,10 +29,12 @@
 | PROJ-13 | Content CMS (Sanity) | In Progress | [PROJ-13-content-cms.md](PROJ-13-content-cms.md) | 2026-04-20 |
 | PROJ-14 | Blog-Publishing-Automatisierung | In Progress | [PROJ-14-blog-automation.md](PROJ-14-blog-automation.md) | 2026-04-21 |
 | PROJ-15 | Dynamische Map-Farbschemen | Planned | [PROJ-15-dynamic-map-color-schemes.md](PROJ-15-dynamic-map-color-schemes.md) | 2026-04-21 |
+| PROJ-16 | Marketing-Infrastruktur | Planned | [PROJ-16-marketing-infrastructure.md](PROJ-16-marketing-infrastructure.md) | 2026-04-21 |
+| PROJ-17 | Marketing-Playbook & Kampagnen | Planned | [PROJ-17-marketing-playbook.md](PROJ-17-marketing-playbook.md) | 2026-04-21 |
 
 <!-- Add features above this line -->
 
-## Next Available ID: PROJ-16
+## Next Available ID: PROJ-18
 
 ## Recommended Build Order
 1. **PROJ-1** — Karten-Editor Core (Fundament der App)
