@@ -1,8 +1,8 @@
 import type { GeneratedArticle } from './claude'
 import { countHeadingLevel, countInternalLinks, wordCount } from './markdown'
 
-const MIN_WORDS = 500
-const MAX_WORDS = 1400
+const MIN_WORDS = 350
+const MAX_WORDS = 900
 const MIN_H2 = 2
 const MIN_INTERNAL_LINKS = 1
 const MAX_EXCERPT_LEN = 180
