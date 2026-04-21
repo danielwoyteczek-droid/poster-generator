@@ -28,21 +28,27 @@ export function writeConsent(choices: ConsentChoices) {
 
 function applyConsentToGtag(choices: ConsentChoices) {
   if (typeof window === 'undefined') return
-  const w = window as unknown as { dataLayer?: unknown[] }
+  const w = window as unknown as {
+    dataLayer?: unknown[]
+    gtag?: (...args: unknown[]) => void
+  }
   w.dataLayer = w.dataLayer || []
-  w.dataLayer.push({
-    event: 'consent_update',
-  })
-  w.dataLayer.push([
-    'consent',
-    'update',
-    {
-      analytics_storage: choices.analytics,
-      ad_storage: choices.marketing,
-      ad_user_data: choices.marketing,
-      ad_personalization: choices.marketing,
-    },
-  ])
+  const consentState = {
+    analytics_storage: choices.analytics,
+    ad_storage: choices.marketing,
+    ad_user_data: choices.marketing,
+    ad_personalization: choices.marketing,
+  }
+  if (typeof w.gtag === 'function') {
+    w.gtag('consent', 'update', consentState)
+  } else {
+    // Fallback if the inline gtag helper is not yet defined
+    const tempGtag = (...args: unknown[]) => {
+      w.dataLayer!.push(args)
+    }
+    tempGtag('consent', 'update', consentState)
+  }
+  w.dataLayer.push({ event: 'consent_update' })
 }
 
 function push(event: Record<string, unknown>) {
