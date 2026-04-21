@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { PRODUCTS, formatPrice } from '@/lib/products'
 import { priceFromCatalog, useProductCatalog } from '@/hooks/useProductCatalog'
 import type { PrintFormat } from '@/lib/print-formats'
+import { DiscountBadge } from '@/components/ui/discount-badge'
 import { cn } from '@/lib/utils'
 
 const FORMATS: Array<{ id: PrintFormat; label: string }> = [
@@ -86,8 +87,11 @@ export function PricingSection() {
                 <div className="mt-auto">
                   <div className={cn('mb-6', isHighlighted ? 'text-white' : 'text-gray-900')}>
                     {price?.compareAtCents && price.compareAtCents > price.unitAmount && (
-                      <div className={cn('text-sm line-through', isHighlighted ? 'text-white/50' : 'text-gray-400')}>
-                        {formatPrice(price.compareAtCents)}
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className={cn('text-sm line-through', isHighlighted ? 'text-white/50' : 'text-gray-400')}>
+                          {formatPrice(price.compareAtCents)}
+                        </span>
+                        <DiscountBadge unitAmount={price.unitAmount} compareAtCents={price.compareAtCents} />
                       </div>
                     )}
                     <div className="text-3xl font-bold">

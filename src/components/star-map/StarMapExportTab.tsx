@@ -17,6 +17,7 @@ import { PosterFrameModal } from '@/components/editor/PosterFrameModal'
 import { downsizeDataURL } from '@/lib/image-utils'
 import { trackAddToCart } from '@/lib/analytics'
 import { priceFromCatalog, useProductCatalog } from '@/hooks/useProductCatalog'
+import { DiscountBadge } from '@/components/ui/discount-badge'
 
 const PRODUCT_ICONS: Record<string, React.ReactNode> = {
   download: <Download className="w-5 h-5" />,
@@ -220,7 +221,10 @@ function CustomerProductView({ printFormat }: { printFormat: string }) {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-sm font-medium text-gray-900">{product.label}</span>
-                    <span className="flex items-baseline gap-1.5 shrink-0">
+                    <span className="flex items-center gap-1.5 shrink-0">
+                      {rowPrice && (
+                        <DiscountBadge unitAmount={rowPrice.unitAmount} compareAtCents={rowPrice.compareAtCents} />
+                      )}
                       {rowPrice?.compareAtCents && rowPrice.compareAtCents > rowPrice.unitAmount && (
                         <span className="text-xs text-gray-400 line-through">
                           {formatPrice(rowPrice.compareAtCents)}
