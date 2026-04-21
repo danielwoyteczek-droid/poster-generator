@@ -1,0 +1,65 @@
+name: Blog Automation Scheduler
+
+on:
+  schedule:
+    # Daily at 06:00 UTC
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    inputs:
+      topic:
+        description: 'Manual topic override (optional). If empty, picks next from Sanity queue.'
+        required: false
+        type: string
+      keyword:
+        description: 'Target SEO keyword (required when topic is set)'
+        required: false
+        type: string
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Restore budget log
+        uses: actions/cache@v4
+        with:
+          path: scripts/blog-automation/.budget.json
+          key: blog-budget-${{ github.run_id }}
+          restore-keys: |
+            blog-budget-
+
+      - name: Generate article
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          SANITY_API_WRITE_TOKEN: ${{ secrets.SANITY_API_WRITE_TOKEN }}
+          NEXT_PUBLIC_SANITY_PROJECT_ID: ${{ secrets.NEXT_PUBLIC_SANITY_PROJECT_ID }}
+          NEXT_PUBLIC_SANITY_DATASET: ${{ secrets.NEXT_PUBLIC_SANITY_DATASET }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
+          NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
+          BLOG_AUTOMATION_MONTHLY_BUDGET_USD: ${{ secrets.BLOG_AUTOMATION_MONTHLY_BUDGET_USD }}
+          BLOG_AUTOMATION_MODEL: ${{ secrets.BLOG_AUTOMATION_MODEL }}
+        run: |
+          if [ -n "${{ inputs.topic }}" ]; then
+            npm run blog:generate -- --topic "${{ inputs.topic }}" --keyword "${{ inputs.keyword }}"
+          else
+            npm run blog:generate -- --from-queue
+          fi
+
+      - name: Persist budget log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: blog-budget-${{ github.run_id }}
+          path: scripts/blog-automation/.budget.json
+          retention-days: 90
+          if-no-files-found: ignore

@@ -27,10 +27,11 @@
 | PROJ-11 | Homepage (Landing Page) | In Progress | [PROJ-11-homepage.md](PROJ-11-homepage.md) | 2026-04-19 |
 | PROJ-12 | Client-Order-Management | In Progress | [PROJ-12-client-order-management.md](PROJ-12-client-order-management.md) | 2026-04-20 |
 | PROJ-13 | Content CMS (Sanity) | In Progress | [PROJ-13-content-cms.md](PROJ-13-content-cms.md) | 2026-04-20 |
+| PROJ-14 | Blog-Publishing-Automatisierung | In Progress | [PROJ-14-blog-automation.md](PROJ-14-blog-automation.md) | 2026-04-21 |
 
 <!-- Add features above this line -->
 
-## Next Available ID: PROJ-14
+## Next Available ID: PROJ-15
 
 ## Recommended Build Order
 1. **PROJ-1** — Karten-Editor Core (Fundament der App)

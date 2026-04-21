@@ -5,7 +5,8 @@ import { blogPost } from './schemas/blogPost'
 import { aboutPage } from './schemas/aboutPage'
 import { faqItem } from './schemas/faqItem'
 import { siteSettings } from './schemas/siteSettings'
+import { blogTopic } from './schemas/blogTopic'
 
 export const schema: { types: SchemaTypeDefinition[] } = {
-  types: [portableText, legalPage, blogPost, aboutPage, faqItem, siteSettings],
+  types: [portableText, legalPage, blogPost, aboutPage, faqItem, siteSettings, blogTopic],
 }
