@@ -91,6 +91,7 @@ export async function POST(req: NextRequest) {
       success_url: `${origin}/orders/${order.id}?token=${order.access_token}&success=1`,
       cancel_url: `${origin}/cart`,
       customer_email: user?.email,
+      allow_promotion_codes: true,
       shipping_address_collection: hasPhysical
         ? { allowed_countries: ['DE', 'AT', 'CH'] }
         : undefined,
