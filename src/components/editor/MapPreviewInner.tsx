@@ -40,9 +40,11 @@ export default function MapPreviewInner({ storeSlice = 'primary' }: MapPreviewIn
   const setViewStateRef = useRef(setViewState)
   const clearPendingCenterRef = useRef(clearPendingCenter)
   const clearZoomDeltaRef = useRef(clearZoomDelta)
+  const streetLabelsRef = useRef(streetLabelsVisible)
   useEffect(() => { setViewStateRef.current = setViewState }, [setViewState])
   useEffect(() => { clearPendingCenterRef.current = clearPendingCenter }, [clearPendingCenter])
   useEffect(() => { clearZoomDeltaRef.current = clearZoomDelta }, [clearZoomDelta])
+  useEffect(() => { streetLabelsRef.current = streetLabelsVisible }, [streetLabelsVisible])
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return
@@ -91,7 +93,26 @@ export default function MapPreviewInner({ storeSlice = 'primary' }: MapPreviewIn
       })
     }
 
-    map.on('load', () => { map.resize(); emit() })
+    const applyStreetLabels = () => {
+      if (!mapRef.current) return
+      const style = mapRef.current.getStyle()
+      if (!style?.layers) return
+      for (const layer of style.layers) {
+        const sl = (layer as { 'source-layer'?: string })['source-layer']
+        if (layer.type === 'symbol' && sl === 'transportation_name') {
+          try {
+            mapRef.current.setLayoutProperty(
+              layer.id,
+              'visibility',
+              streetLabelsRef.current ? 'visible' : 'none',
+            )
+          } catch { /* layer may be gone on style swap */ }
+        }
+      }
+    }
+
+    map.on('load', () => { map.resize(); emit(); applyStreetLabels() })
+    map.on('styledata', applyStreetLabels)
     map.on('moveend', emit)
     map.on('zoomend', emit)
 
@@ -140,6 +161,26 @@ export default function MapPreviewInner({ storeSlice = 'primary' }: MapPreviewIn
 
     return () => { cancelled = true }
   }, [styleId, paletteId, customPaletteBase, streetLabelsVisible])
+
+  // Toggle street labels on any style (MapTiler-hosted or petite-base)
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+    const style = map.getStyle()
+    if (!style?.layers) return
+    for (const layer of style.layers) {
+      const sl = (layer as { 'source-layer'?: string })['source-layer']
+      if (layer.type === 'symbol' && sl === 'transportation_name') {
+        try {
+          map.setLayoutProperty(
+            layer.id,
+            'visibility',
+            streetLabelsVisible ? 'visible' : 'none',
+          )
+        } catch { /* layer may be gone during style swap */ }
+      }
+    }
+  }, [streetLabelsVisible])
 
   // Fly to geocoded location
   useEffect(() => {

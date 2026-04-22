@@ -185,74 +185,73 @@ export function MapTab() {
         </div>
       </div>
 
-      {/* Palette + street-labels — only when petite-base is active */}
+      {/* Palette — only when petite-base is active (only petite-base is recolourable) */}
       {styleId === PETITE_BASE_STYLE_ID && (
-        <>
-          <div className="space-y-1.5">
-            <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400">Farbpalette</Label>
-            <div className="grid grid-cols-3 gap-1.5">
-              {MAP_PALETTES.map((p) => {
-                const c = p.colors
-                return (
-                  <button
-                    key={p.id}
-                    onClick={() => setPaletteId(p.id)}
-                    className={cn(
-                      'rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
-                      paletteId === p.id
-                        ? 'border-gray-900'
-                        : 'border-gray-200 hover:border-gray-400',
-                    )}
-                    title={p.description}
-                  >
-                    <div className="flex gap-0.5">
-                      <span className="w-3 h-3 rounded-full border border-black/10" style={{ background: c.land }} />
-                      <span className="w-3 h-3 rounded-full border border-black/10" style={{ background: c.water }} />
-                      <span className="w-3 h-3 rounded-full border border-black/10" style={{ background: c.road }} />
-                      <span className="w-3 h-3 rounded-full border border-black/10" style={{ background: c.label }} />
-                    </div>
-                    <span className="text-[10px] leading-tight text-gray-700">{p.label}</span>
-                  </button>
-                )
-              })}
-              <button
-                onClick={() => setPaletteId('custom')}
-                className={cn(
-                  'rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
-                  paletteId === 'custom'
-                    ? 'border-gray-900'
-                    : 'border-gray-200 hover:border-gray-400',
-                )}
-              >
-                <div
-                  className="w-3 h-3 rounded-full border border-black/10"
-                  style={{ background: customPaletteBase ?? '#84c5a6' }}
-                />
-                <span className="text-[10px] leading-tight text-gray-700">Eigene</span>
-              </button>
+        <div className="space-y-1.5">
+          <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400">Farbpalette</Label>
+          <div className="grid grid-cols-3 gap-1.5">
+            {MAP_PALETTES.map((p) => {
+              const c = p.colors
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => setPaletteId(p.id)}
+                  className={cn(
+                    'rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
+                    paletteId === p.id
+                      ? 'border-gray-900'
+                      : 'border-gray-200 hover:border-gray-400',
+                  )}
+                  title={p.description}
+                >
+                  <div className="flex gap-0.5">
+                    <span className="w-3 h-3 rounded-full border border-black/10" style={{ background: c.land }} />
+                    <span className="w-3 h-3 rounded-full border border-black/10" style={{ background: c.water }} />
+                    <span className="w-3 h-3 rounded-full border border-black/10" style={{ background: c.road }} />
+                    <span className="w-3 h-3 rounded-full border border-black/10" style={{ background: c.label }} />
+                  </div>
+                  <span className="text-[10px] leading-tight text-gray-700">{p.label}</span>
+                </button>
+              )
+            })}
+            <button
+              onClick={() => setPaletteId('custom')}
+              className={cn(
+                'rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
+                paletteId === 'custom'
+                  ? 'border-gray-900'
+                  : 'border-gray-200 hover:border-gray-400',
+              )}
+            >
+              <div
+                className="w-3 h-3 rounded-full border border-black/10"
+                style={{ background: customPaletteBase ?? '#84c5a6' }}
+              />
+              <span className="text-[10px] leading-tight text-gray-700">Eigene</span>
+            </button>
+          </div>
+          {paletteId === 'custom' && (
+            <div className="flex items-center gap-2 pt-1">
+              <span className="text-[11px] text-gray-500">Grundton</span>
+              <input
+                type="color"
+                value={customPaletteBase ?? '#84c5a6'}
+                onChange={(e) => setCustomPaletteBase(e.target.value)}
+                className="flex-1 h-8 rounded-md border border-gray-200 cursor-pointer px-1"
+              />
             </div>
-            {paletteId === 'custom' && (
-              <div className="flex items-center gap-2 pt-1">
-                <span className="text-[11px] text-gray-500">Grundton</span>
-                <input
-                  type="color"
-                  value={customPaletteBase ?? '#84c5a6'}
-                  onChange={(e) => setCustomPaletteBase(e.target.value)}
-                  className="flex-1 h-8 rounded-md border border-gray-200 cursor-pointer px-1"
-                />
-              </div>
-            )}
-          </div>
-
-          <div className="flex items-center justify-between">
-            <Label className="text-xs text-gray-700">Straßennamen anzeigen</Label>
-            <Switch
-              checked={streetLabelsVisible}
-              onCheckedChange={setStreetLabelsVisible}
-            />
-          </div>
-        </>
+          )}
+        </div>
       )}
+
+      {/* Street labels — always available, works on any map style */}
+      <div className="flex items-center justify-between">
+        <Label className="text-xs text-gray-700">Straßennamen anzeigen</Label>
+        <Switch
+          checked={streetLabelsVisible}
+          onCheckedChange={setStreetLabelsVisible}
+        />
+      </div>
 
       <Separator />
 
