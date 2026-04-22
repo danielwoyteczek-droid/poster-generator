@@ -73,7 +73,136 @@ PROJ-19 öffnet den Editor für **Bild-Uploads** und lässt diese in vordefinier
 <!-- Sections below are added by subsequent skills -->
 
 ## Tech Design (Solution Architect)
-_To be added by /architecture_
+
+### A) Gesamtablauf
+
+```
+[User lädt Bild hoch] → clientseitige Kompression + HEIC-Umwandlung
+       ↓
+[Upload zu Supabase Storage: Bucket user-photos, Owner-only via RLS]
+       ↓
+[Storage-URL (signed) landet im Editor-Store → im Projekt-Snapshot]
+       ↓
+[Foto wird im Editor in einer Foto-Maske gerendert (Crop/Pan/Zoom per Touch)]
+       ↓
+[Beim Export: Foto in voller Auflösung ins PNG/PDF eingefügt]
+       ↓
+[Cron: nach 30 Tagen + Bestellung abgeschlossen → Foto aus Bucket löschen]
+```
+
+### B) Komponenten-Struktur
+
+```
+poster-generator
+│
+├── src/lib/photo-masks.ts             ← NEW: Foto-Masken analog zu map-masks.ts
+├── src/lib/photo-upload.ts            ← NEW: Kompression + HEIC → Supabase-Upload
+├── src/hooks/useEditorStore.ts        ← erweitert um `photos: PhotoState[]`
+├── src/components/editor/PhotoMaskOverlay.tsx  ← NEW: zeigt Fotos auf dem Poster
+├── src/components/sidebar/PhotoTab.tsx         ← NEW: Upload-UI + Masken-Auswahl
+├── src/app/api/photos/upload/route.ts          ← optional, wenn serverseitig signiert wird
+└── scripts/cleanup-photos/                     ← NEW: Cron-Script zum Aufräumen
+    └── purge.ts
+```
+
+### C) Datenmodell (Editor-Store & Snapshot)
+
+**PhotoState** (pro hochgeladenem Foto):
+- `id` (UUID)
+- `storagePath` (Pfad im Supabase-Bucket, z. B. `user-photos/2026/04/abc.jpg`)
+- `maskKey` (z. B. `circle`, `heart`, `full`, `split-left`, `split-right`)
+- `crop` — Position + Zoom innerhalb der Maske: `{ x: 0.5, y: 0.5, scale: 1.0 }`
+- `uploadedAt` (ISO-Datum)
+
+**Snapshot-Erweiterung:**
+```
+snapshot.photos: PhotoState[]
+```
+
+**Supabase Storage:**
+- Bucket `user-photos`, privat
+- RLS-Policy: Owner-only (authenticated User darf nur eigene Fotos lesen/schreiben)
+- Ordnerstruktur: `{userId | 'anon'}/{yyyy-mm}/{uuid}.jpg`
+
+### D) Tech-Entscheidungen
+
+| Entscheidung | Begründung |
+|-------------|-----------|
+| **Supabase Storage** (nicht Vercel Blob / AWS S3) | Schon aufgesetzt, RLS vorhanden, konsistent mit Auth-Flow. |
+| **Client-Upload direkt in Storage** (signed URL) | Vermeidet, dass Bilder durch unseren API-Endpoint müssen → kein Next.js-Function-Timeout, keine Bandbreite auf Vercel. |
+| **Kompression clientseitig** via `browser-image-compression` | ~15 KB Lib, verkleinert 10 MB iPhone-Foto auf ~1-2 MB in < 2 s. |
+| **HEIC-Konvertierung** via `heic2any` | Apple speichert iPhone-Fotos standardmäßig als HEIC — andere Browser verstehen das nicht. Client-Umwandlung → kompatibles JPEG überall. |
+| **Crop-State im Snapshot**, nicht im Bild | Wir beschneiden nicht das hochgeladene Bild, sondern rendern zur Laufzeit mit CSS/Canvas-Clip. Original bleibt intakt, User kann Crop ändern ohne Re-Upload. |
+| **Photo-Masken analog zu Map-Masken** | Gleiche SVG-Mask-Technik, gleiche Interaktion — konsistent für den User. |
+| **Auto-Cleanup 30 Tage nach Bestellung** | Storage-Kosten unter Kontrolle, rechtlich sauber (DSGVO-Löschpflicht). |
+
+### E) Foto-Masken (V1-Set)
+
+Minimal 6 Formen für Einzelbild, plus Split-Varianten mit Karte:
+
+**Einzelbild-Masken** (Foto füllt die gewählte Form auf dem Poster):
+- `full` — Vollbild (Foto statt Karte)
+- `circle` — rund
+- `heart` — Herz
+- `square` — Quadrat
+- `portrait` — Hochformat-Rechteck
+- `landscape` — Querformat-Rechteck
+
+**Split-Masken** (Karte + Foto nebeneinander):
+- `split-vertical-left` / `split-vertical-right` — Karte links/rechts, Foto gegenüber
+- `split-horizontal-top` / `split-horizontal-bottom` — analog oben/unten
+- `split-circles-photo` — zwei Kreise, einer Karte, einer Foto
+- `split-hearts-photo` — analog Herz-Paar
+
+### F) Interaktion im Editor
+
+- **Upload-Button** im neuen Tab "Foto": öffnet Datei-Picker (Desktop) oder direkt Kamera/Galerie (Mobile via `<input capture>`).
+- Nach Upload erscheint ein **Thumbnail** mit "Entfernen"-Button.
+- Maske wählen: gleiche Grid-Galerie wie bei Karten-Masken, inkl. Split-Varianten.
+- **Crop-Interaktion:**
+  - Desktop: Bild anklicken → Drag verschiebt, Scrollen zoomt
+  - Mobile: Bild antippen → Drag verschiebt, Pinch zoomt
+  - Crop-Änderungen updaten `snapshot.photos[i].crop`
+
+### G) Export-Pipeline
+
+`src/lib/poster-from-snapshot.ts` wird erweitert:
+- Beim Rendern auf Canvas: für jedes Foto im Snapshot…
+  - Fetch Bild (signed URL)
+  - Rechne Crop + Maske → Canvas-Clip-Pfad
+  - Zeichne Bild in der Maske an der richtigen Stelle
+- PDF analog via `pdf-lib`-Image-Embed.
+
+### H) DSGVO-Sicherheiten
+
+- Bucket-RLS: nur Owner des Fotos liest/schreibt; anonymer Upload nur mit Session-gebundenem Pfad (Cookie-Session-ID als Ordner).
+- **Datenschutz-Seite** erweitert um "Foto-Uploads":
+  - Speicherort (Supabase EU-Frankfurt)
+  - Zweck (Erstellung + Druck des Posters)
+  - Aufbewahrung (30 Tage nach Fulfillment, dann Auto-Löschung)
+  - Recht auf sofortige Löschung via Kunden-Anfrage
+
+### I) Auto-Cleanup (Cron)
+
+- GitHub Action, wöchentlich (Sonntag 03:00 UTC)
+- Script `scripts/cleanup-photos/purge.ts`:
+  - Liest alle `photos` aus `orders`, deren `status in ('paid', 'shipped', 'done')` und `updated_at < NOW() - 30 days`
+  - Löscht entsprechende Objekte aus dem Bucket
+  - Markiert im Order-Snapshot `photos.deleted_at`
+
+### J) Migrations-Schritte
+
+1. Supabase: Bucket `user-photos` anlegen, RLS-Policies setzen (Supabase MCP oder SQL-Snippet)
+2. Packages installieren: `browser-image-compression`, `heic2any`
+3. `src/lib/photo-masks.ts` mit 6+ Masken + Split-Varianten
+4. `src/lib/photo-upload.ts` mit Kompression + Upload-Helper
+5. Editor-Store erweitern (`photos`-Array + Actions)
+6. `PhotoMaskOverlay`-Komponente rendert Fotos auf dem Poster
+7. Neue Sidebar-Tab `PhotoTab.tsx` mit Upload + Masken-Picker + Crop
+8. `poster-from-snapshot.ts` für Export erweitern
+9. Datenschutz-Seite aktualisieren
+10. Cleanup-Cron-Job + GitHub Action
+11. Test: Upload, Crop, Save-Load, Export
 
 ## QA Test Results
 _To be added by /qa_

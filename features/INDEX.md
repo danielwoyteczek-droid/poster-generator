@@ -32,7 +32,7 @@
 | PROJ-16 | Marketing-Infrastruktur | Planned | [PROJ-16-marketing-infrastructure.md](PROJ-16-marketing-infrastructure.md) | 2026-04-21 |
 | PROJ-17 | Marketing-Playbook & Kampagnen | Planned | [PROJ-17-marketing-playbook.md](PROJ-17-marketing-playbook.md) | 2026-04-21 |
 | PROJ-18 | Mobile-Schnellbestellung via Presets | Planned | [PROJ-18-mobile-editor-optimization.md](PROJ-18-mobile-editor-optimization.md) | 2026-04-21 |
-| PROJ-19 | Foto-Integration im Poster | Planned | [PROJ-19-photo-integration.md](PROJ-19-photo-integration.md) | 2026-04-21 |
+| PROJ-19 | Foto-Integration im Poster | Architected | [PROJ-19-photo-integration.md](PROJ-19-photo-integration.md) | 2026-04-21 |
 | PROJ-20 | Internationalisierung (i18n) | Planned | [PROJ-20-internationalization.md](PROJ-20-internationalization.md) | 2026-04-21 |
 
 <!-- Add features above this line -->
