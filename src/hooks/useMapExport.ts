@@ -8,6 +8,7 @@ import { MAP_MASKS, type MapMaskKey } from '@/lib/map-masks'
 import { resolveMask } from '@/hooks/useCustomMasks'
 import { getCoordinatesText } from '@/components/editor/TextBlockOverlay'
 import { PHOTO_MASKS, type PhotoMaskKey } from '@/lib/photo-masks'
+import { filterCss } from '@/lib/photo-filters'
 import type { PhotoItem } from './useEditorStore'
 
 // ─── Types ─────────────────────────────────────────────────────────────────
@@ -118,7 +119,11 @@ async function drawPhotos(
     }
     const dx = x + (w - drawW) / 2 + photo.cropX * w
     const dy = y + (h - drawH) / 2 + photo.cropY * h
+
+    const css = filterCss(photo.filter)
+    if (css !== 'none') ctx.filter = css
     ctx.drawImage(img, dx, dy, drawW, drawH)
+    ctx.filter = 'none'
     ctx.restore()
   }
 }

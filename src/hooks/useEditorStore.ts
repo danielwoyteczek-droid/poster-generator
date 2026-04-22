@@ -6,6 +6,8 @@ import type { PhotoMaskKey } from '@/lib/photo-masks'
 
 export type { MapMaskKey, PrintFormat, ShapeConfigState }
 
+export type PhotoFilter = 'none' | 'grayscale' | 'sepia'
+
 export interface PhotoItem {
   id: string
   storagePath: string
@@ -20,6 +22,7 @@ export interface PhotoItem {
   /** Crop offset inside the mask: -0.5..0.5 range */
   cropX: number
   cropY: number
+  filter: PhotoFilter
   uploadedAt: string
 }
 

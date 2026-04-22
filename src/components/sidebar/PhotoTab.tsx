@@ -10,6 +10,8 @@ import { useEditorStore } from '@/hooks/useEditorStore'
 import { useAuth } from '@/hooks/useAuth'
 import { uploadPhoto, deletePhoto } from '@/lib/photo-upload'
 import { PHOTO_MASK_OPTIONS, type PhotoMaskKey } from '@/lib/photo-masks'
+import { PHOTO_FILTERS } from '@/lib/photo-filters'
+import type { PhotoFilter } from '@/hooks/useEditorStore'
 import { cn } from '@/lib/utils'
 
 export function PhotoTab() {
@@ -42,6 +44,7 @@ export function PhotoTab() {
         scale: 0.5,
         cropX: 0,
         cropY: 0,
+        filter: 'none',
       })
       toast.success('Foto hinzugefügt')
     } catch (err) {
@@ -60,6 +63,10 @@ export function PhotoTab() {
 
   const handleMaskChange = (photoId: string, maskKey: PhotoMaskKey) => {
     updatePhoto(photoId, { maskKey })
+  }
+
+  const handleFilterChange = (photoId: string, filter: PhotoFilter) => {
+    updatePhoto(photoId, { filter })
   }
 
   return (
@@ -152,6 +159,23 @@ export function PhotoTab() {
                       )}
                     >
                       {mask.label}
+                    </button>
+                  ))}
+                </div>
+                <div className="grid grid-cols-3 gap-1 pt-1">
+                  {PHOTO_FILTERS.map((f) => (
+                    <button
+                      key={f.id}
+                      type="button"
+                      onClick={() => handleFilterChange(photo.id, f.id)}
+                      className={cn(
+                        'rounded-sm border px-1.5 py-1 text-[10px] transition-colors',
+                        photo.filter === f.id
+                          ? 'border-gray-900 bg-gray-900 text-white'
+                          : 'border-gray-200 text-gray-600 hover:border-gray-400',
+                      )}
+                    >
+                      {f.label}
                     </button>
                   ))}
                 </div>

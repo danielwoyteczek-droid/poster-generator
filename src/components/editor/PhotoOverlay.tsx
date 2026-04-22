@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react'
 import { Lock } from 'lucide-react'
 import { useEditorStore, type PhotoItem } from '@/hooks/useEditorStore'
 import { PHOTO_MASKS } from '@/lib/photo-masks'
+import { filterCss } from '@/lib/photo-filters'
 
 function photoHeightFraction(photo: PhotoItem, posterRatio: number): number {
   const mask = PHOTO_MASKS[photo.maskKey]
@@ -120,6 +121,7 @@ function PhotoItemView({
           className="absolute w-full h-full object-cover select-none"
           style={{
             transform: `translate(${photo.cropX * 100}%, ${photo.cropY * 100}%)`,
+            filter: filterCss(photo.filter),
           }}
         />
       </div>
