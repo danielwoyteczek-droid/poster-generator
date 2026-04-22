@@ -49,7 +49,7 @@ export function PosterCanvas() {
   const [posterSize, setPosterSize] = useState({ width: 0, height: 0 })
   const [locating, setLocating] = useState(false)
 
-  const { maskKey, printFormat, zoomIn, zoomOut, flyToLocation, zoomInSecond, zoomOutSecond, secondMap, marker, secondMarker, shapeConfig, viewState, setMarker, setSecondMarker, setSelectedBlockId, splitPhoto, splitPhotoSide } = useEditorStore()
+  const { maskKey, printFormat, zoomIn, zoomOut, flyToLocation, zoomInSecond, zoomOutSecond, secondMap, marker, secondMarker, shapeConfig, viewState, setMarker, setSecondMarker, setSelectedBlockId, splitMode, splitPhoto, splitPhotoZone } = useEditorStore()
   const { masks: customMasks } = useCustomMasks()
   const mask =
     (MAP_MASKS as Record<string, typeof MAP_MASKS['none']>)[maskKey] ??
@@ -58,14 +58,15 @@ export function PosterCanvas() {
   const format = PRINT_FORMATS[printFormat]
   const ratio = format.widthMm / format.heightMm
 
-  const isDualMap = mask.isSplit && secondMap.enabled
-  const isSplitPhoto = mask.isSplit && !secondMap.enabled && splitPhoto != null
-  // Primary map renders on the side opposite to the photo
+  const isDualMap = mask.isSplit && splitMode === 'second-map'
+  const isSplitPhoto = mask.isSplit && splitMode === 'photo' && splitPhoto != null
+  // Zone 0 = left/first half, zone 1 = right/second half
+  const photoIsRightZone = splitPhotoZone === 1
   const mapHalfSvg = isSplitPhoto
-    ? (splitPhotoSide === 'right' ? mask.leftSvgPath : mask.rightSvgPath)
+    ? (photoIsRightZone ? mask.leftSvgPath : mask.rightSvgPath)
     : null
   const photoHalfSvg = isSplitPhoto
-    ? (splitPhotoSide === 'right' ? mask.rightSvgPath : mask.leftSvgPath)
+    ? (photoIsRightZone ? mask.rightSvgPath : mask.leftSvgPath)
     : null
   const useComposedMask = !!mask.shape && !isDualMap && !isSplitPhoto
   const composedMaskDataUrl = useComposedMask && mask.shape

@@ -24,8 +24,9 @@ export interface ExportSnapshot {
   textBlocks: TextBlock[]
   locationName: string
   photos?: PhotoItem[]
+  splitMode?: 'none' | 'second-map' | 'photo'
   splitPhoto?: SplitPhoto | null
-  splitPhotoSide?: 'left' | 'right'
+  splitPhotoZone?: number
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
@@ -372,10 +373,11 @@ export async function buildPosterCanvas(
 
   const { viewState, styleId, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName } = store
   const mask = (await resolveMask(maskKey)) ?? MAP_MASKS.none
-  const isDualMap = mask.isSplit && secondMap.enabled
+  const splitMode = store.splitMode ?? (secondMap.enabled ? 'second-map' : 'none')
   const splitPhoto = store.splitPhoto ?? null
-  const splitPhotoSide = store.splitPhotoSide ?? 'right'
-  const isSplitPhoto = mask.isSplit && !secondMap.enabled && splitPhoto != null
+  const splitPhotoZone = store.splitPhotoZone ?? 1
+  const isDualMap = mask.isSplit && splitMode === 'second-map'
+  const isSplitPhoto = mask.isSplit && splitMode === 'photo' && splitPhoto != null
 
   // Build a dynamic mask from shape + shapeConfig for non-split masks.
   // Split masks fall back to their baked SVG files (no composition).
@@ -420,8 +422,9 @@ export async function buildPosterCanvas(
     if (mask.rightSvgPath) rightCanvas = await applyMask(rightCanvas, mask.rightSvgPath)
     ctx.drawImage(rightCanvas, 0, 0)
   } else if (isSplitPhoto && splitPhoto && mask.leftSvgPath && mask.rightSvgPath) {
-    const mapSideSvg = splitPhotoSide === 'right' ? mask.leftSvgPath : mask.rightSvgPath
-    const photoSideSvg = splitPhotoSide === 'right' ? mask.rightSvgPath : mask.leftSvgPath
+    const photoIsRightZone = splitPhotoZone === 1
+    const mapSideSvg = photoIsRightZone ? mask.leftSvgPath : mask.rightSvgPath
+    const photoSideSvg = photoIsRightZone ? mask.rightSvgPath : mask.leftSvgPath
     let mapCanvas = await renderMapOffscreen({ styleId, vs: viewState, previewW, previewH, outputW: W, outputH: H })
     mapCanvas = await applyMask(mapCanvas, mapSideSvg)
     ctx.drawImage(mapCanvas, 0, 0)
@@ -514,7 +517,7 @@ function slugify(name: string): string {
 export function useMapExport() {
   const [isExporting, setIsExporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const { viewState, styleId, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos, splitPhoto, splitPhotoSide } =
+  const { viewState, styleId, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos, splitMode, splitPhoto, splitPhotoZone } =
     useEditorStore()
 
   const run = async (format: PrintFormat, type: 'png' | 'pdf') => {
@@ -522,7 +525,7 @@ export function useMapExport() {
     setError(null)
     try {
       const snapshot: ExportSnapshot = {
-        viewState, styleId, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos, splitPhoto, splitPhotoSide,
+        viewState, styleId, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos, splitMode, splitPhoto, splitPhotoZone,
       }
       const canvas = await buildPosterCanvas(format, snapshot)
       const pngBlob = await canvasToBlob(canvas)
@@ -561,7 +564,7 @@ export function useMapExport() {
 
   const renderPreview = async (format: PrintFormat): Promise<string> => {
     const snapshot: ExportSnapshot = {
-      viewState, styleId, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos, splitPhoto, splitPhotoSide,
+      viewState, styleId, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos, splitMode, splitPhoto, splitPhotoZone,
     }
     const canvas = await buildPosterCanvas(format, snapshot)
     return canvas.toDataURL('image/png')

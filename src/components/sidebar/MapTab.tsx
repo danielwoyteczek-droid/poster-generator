@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef, useState } from 'react'
-import { ChevronDown, ChevronUp, Loader2, Upload, Trash2 } from 'lucide-react'
+import { ChevronDown, ChevronUp, Loader2, Upload, Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
 import { toast } from 'sonner'
 import { Label } from '@/components/ui/label'
 import { LocationSearch } from '@/components/editor/LocationSearch'
@@ -28,6 +28,14 @@ const MASK_INITIAL_VISIBLE = 3
 const SPLIT_MASK_OPTIONS = MAP_MASK_OPTIONS.filter((m) => m.isSplit)
 const SINGLE_MASK_OPTIONS = MAP_MASK_OPTIONS.filter((m) => !m.isSplit)
 
+// Zones per split mask — later multi-part masks can declare 3+ zones here
+const ZONE_COUNT_BY_MASK: Record<string, number> = {
+  'split-circles': 2,
+  'split-hearts': 2,
+  'split-halves': 2,
+}
+const ZONE_LABELS = ['Links', 'Rechts', 'Oben', 'Unten', 'Mitte']
+
 export function MapTab() {
   const {
     styleId, maskKey, marker, secondMarker, shapeConfig,
@@ -36,8 +44,9 @@ export function MapTab() {
     setShapeOuter, setInnerFrame, setOuterFrame,
     setPaletteId, setCustomPaletteBase, setStreetLabelsVisible,
     flyToLocation, setLocationName,
-    secondMap, setSecondMapEnabled, setSecondMapStyleId, flyToSecondLocation,
-    splitPhoto, splitPhotoSide, setSplitPhoto, updateSplitPhoto, setSplitPhotoSide,
+    secondMap, setSecondMapStyleId, flyToSecondLocation,
+    splitMode, setSplitMode,
+    splitPhoto, splitPhotoZone, setSplitPhoto, updateSplitPhoto, setSplitPhotoZone,
   } = useEditorStore()
   const { user, isAdmin } = useAuth()
   const { masks: customMasks } = useCustomMasks()
@@ -47,22 +56,22 @@ export function MapTab() {
   const [splitProgress, setSplitProgress] = useState(0)
 
   type SplitMode = 'none' | 'second-map' | 'photo'
-  const splitMode: SplitMode = secondMap.enabled ? 'second-map' : splitPhoto ? 'photo' : 'none'
 
   const handleSplitModeChange = (mode: SplitMode) => {
-    if (mode === 'none') {
-      setSecondMapEnabled(false)
-      if (splitPhoto) setSplitPhoto(null)
-      if (currentMask.isSplit) setMaskKey('circle')
-    } else if (mode === 'second-map') {
-      if (splitPhoto) setSplitPhoto(null)
-      setSecondMapEnabled(true)
-      if (!currentMask.isSplit) setMaskKey('split-circles')
-    } else {
-      setSecondMapEnabled(false)
-      if (!currentMask.isSplit) setMaskKey('split-circles')
+    setSplitMode(mode)
+    if (mode === 'none' && currentMask.isSplit) {
+      setMaskKey('circle')
+    } else if (mode !== 'none' && !currentMask.isSplit) {
+      setMaskKey('split-circles')
     }
   }
+
+  const zoneCount = ZONE_COUNT_BY_MASK[maskKey] ?? 2
+  const cycleZone = (dir: 1 | -1) => {
+    const next = (splitPhotoZone + dir + zoneCount) % zoneCount
+    setSplitPhotoZone(next)
+  }
+  const zoneLabel = ZONE_LABELS[splitPhotoZone] ?? `Zone ${splitPhotoZone + 1}`
 
   const handleSplitPhotoFile = async (file: File) => {
     if (!user) { toast.error('Bitte melde dich an, um Fotos hochzuladen.'); return }
@@ -150,23 +159,29 @@ export function MapTab() {
         {splitMode === 'photo' && (
           <div className="space-y-2 pl-1">
             <div className="flex items-center gap-2">
-              <Label className="text-xs text-gray-500 flex-1">Seite</Label>
-              <div className="flex gap-1">
-                {(['left', 'right'] as const).map((side) => (
-                  <button
-                    key={side}
-                    type="button"
-                    onClick={() => setSplitPhotoSide(side)}
-                    className={cn(
-                      'h-7 px-2.5 rounded-sm text-[11px] border',
-                      splitPhotoSide === side
-                        ? 'bg-gray-900 text-white border-gray-900'
-                        : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400',
-                    )}
-                  >
-                    {side === 'left' ? 'Links' : 'Rechts'}
-                  </button>
-                ))}
+              <Label className="text-xs text-gray-500 flex-1">Position</Label>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => cycleZone(-1)}
+                  disabled={zoneCount < 2}
+                  className="w-7 h-7 flex items-center justify-center rounded-sm border border-gray-200 bg-white text-gray-600 hover:border-gray-400 disabled:opacity-40"
+                  aria-label="Vorherige Zone"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                </button>
+                <span className="text-[11px] text-gray-700 min-w-[48px] text-center tabular-nums">
+                  {zoneLabel}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => cycleZone(1)}
+                  disabled={zoneCount < 2}
+                  className="w-7 h-7 flex items-center justify-center rounded-sm border border-gray-200 bg-white text-gray-600 hover:border-gray-400 disabled:opacity-40"
+                  aria-label="Nächste Zone"
+                >
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
               </div>
             </div>
 

@@ -162,8 +162,9 @@ function CustomerProductView({ printFormat }: { printFormat: string }) {
           textBlocks: editor.textBlocks,
           locationName: editor.locationName,
           photos: editor.photos,
+          splitMode: editor.splitMode,
           splitPhoto: editor.splitPhoto,
-          splitPhotoSide: editor.splitPhotoSide,
+          splitPhotoZone: editor.splitPhotoZone,
         },
       })
       trackAddToCart({

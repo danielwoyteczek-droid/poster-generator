@@ -118,8 +118,9 @@ export interface EditorStore {
   selectedBlockId: string | null
   projectId: string | null
   photos: PhotoItem[]
+  splitMode: 'none' | 'second-map' | 'photo'
   splitPhoto: SplitPhoto | null
-  splitPhotoSide: 'left' | 'right'
+  splitPhotoZone: number
 
   setViewState: (vs: ViewState) => void
   flyToLocation: (lng: number, lat: number, zoom?: number) => void
@@ -158,9 +159,10 @@ export interface EditorStore {
   addPhoto: (photo: Omit<PhotoItem, 'id' | 'uploadedAt'>) => void
   updatePhoto: (id: string, updates: Partial<PhotoItem>) => void
   removePhoto: (id: string) => void
+  setSplitMode: (mode: 'none' | 'second-map' | 'photo') => void
   setSplitPhoto: (photo: SplitPhoto | null) => void
   updateSplitPhoto: (updates: Partial<SplitPhoto>) => void
-  setSplitPhotoSide: (side: 'left' | 'right') => void
+  setSplitPhotoZone: (zone: number) => void
   loadFromConfig: (config: Partial<EditorConfig>) => void
 }
 
@@ -179,8 +181,9 @@ export interface EditorConfig {
   textBlocks: TextBlock[]
   locationName: string
   photos: PhotoItem[]
+  splitMode: 'none' | 'second-map' | 'photo'
   splitPhoto: SplitPhoto | null
-  splitPhotoSide: 'left' | 'right'
+  splitPhotoZone: number
 }
 
 const DEFAULT_VIEW: ViewState = {
@@ -245,8 +248,9 @@ export const useEditorStore = create<EditorStore>((set) => ({
   selectedBlockId: null,
   projectId: null,
   photos: [],
+  splitMode: 'none',
   splitPhoto: null,
-  splitPhotoSide: 'right',
+  splitPhotoZone: 1,
 
   setViewState: (viewState) => set({ viewState }),
   flyToLocation: (lng, lat, zoom = 13) =>
@@ -318,10 +322,16 @@ export const useEditorStore = create<EditorStore>((set) => ({
     set((s) => ({
       photos: s.photos.filter((p) => p.id !== id),
     })),
+  setSplitMode: (splitMode) =>
+    set((s) => ({
+      splitMode,
+      secondMap: { ...s.secondMap, enabled: splitMode === 'second-map' },
+      splitPhoto: splitMode === 'photo' ? s.splitPhoto : null,
+    })),
   setSplitPhoto: (photo) => set({ splitPhoto: photo }),
   updateSplitPhoto: (updates) =>
     set((s) => ({ splitPhoto: s.splitPhoto ? { ...s.splitPhoto, ...updates } : null })),
-  setSplitPhotoSide: (splitPhotoSide) => set({ splitPhotoSide }),
+  setSplitPhotoZone: (splitPhotoZone) => set({ splitPhotoZone }),
   loadFromConfig: (config) => set((s) => ({
     viewState: config.viewState ?? s.viewState,
     styleId: config.styleId ?? s.styleId,
@@ -339,8 +349,9 @@ export const useEditorStore = create<EditorStore>((set) => ({
     textBlocks: config.textBlocks ?? s.textBlocks,
     locationName: config.locationName ?? s.locationName,
     photos: config.photos ?? s.photos,
+    splitMode: config.splitMode ?? s.splitMode,
     splitPhoto: config.splitPhoto ?? s.splitPhoto,
-    splitPhotoSide: config.splitPhotoSide ?? s.splitPhotoSide,
+    splitPhotoZone: config.splitPhotoZone ?? s.splitPhotoZone,
     pendingCenter: config.viewState
       ? { lng: config.viewState.lng, lat: config.viewState.lat, zoom: config.viewState.zoom }
       : s.pendingCenter,

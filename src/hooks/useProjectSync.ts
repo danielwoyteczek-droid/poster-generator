@@ -25,8 +25,9 @@ function getConfig(): EditorConfig {
     textBlocks: s.textBlocks,
     locationName: s.locationName,
     photos: s.photos,
+    splitMode: s.splitMode,
     splitPhoto: s.splitPhoto,
-    splitPhotoSide: s.splitPhotoSide,
+    splitPhotoZone: s.splitPhotoZone,
   }
 }
 
