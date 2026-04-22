@@ -161,6 +161,7 @@ function CustomerProductView({ printFormat }: { printFormat: string }) {
           shapeConfig: editor.shapeConfig,
           textBlocks: editor.textBlocks,
           locationName: editor.locationName,
+          photos: editor.photos,
         },
       })
       trackAddToCart({

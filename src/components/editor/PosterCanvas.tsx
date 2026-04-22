@@ -190,7 +190,7 @@ export function PosterCanvas() {
             )}
 
             {/* Photo overlay */}
-            <PhotoOverlay />
+            <PhotoOverlay posterRef={posterRef} />
 
             {/* Text blocks overlay */}
             <TextBlockOverlay />

@@ -7,6 +7,8 @@ import { PRINT_FORMATS, type PrintFormat } from '@/lib/print-formats'
 import { MAP_MASKS, type MapMaskKey } from '@/lib/map-masks'
 import { resolveMask } from '@/hooks/useCustomMasks'
 import { getCoordinatesText } from '@/components/editor/TextBlockOverlay'
+import { PHOTO_MASKS, type PhotoMaskKey } from '@/lib/photo-masks'
+import type { PhotoItem } from './useEditorStore'
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -20,6 +22,7 @@ export interface ExportSnapshot {
   shapeConfig?: ShapeConfigState
   textBlocks: TextBlock[]
   locationName: string
+  photos?: PhotoItem[]
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
@@ -45,6 +48,79 @@ function makePinSVGUrl(type: 'classic' | 'heart', color: string): string {
 
 function buildStyleUrl(mapId: string, apiKey: string) {
   return `https://api.maptiler.com/maps/${mapId}/style.json?key=${encodeURIComponent(apiKey)}`
+}
+
+function applyPhotoMask(
+  ctx: CanvasRenderingContext2D,
+  maskKey: PhotoMaskKey,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+): void {
+  ctx.beginPath()
+  if (maskKey === 'circle') {
+    const cx = x + w / 2
+    const cy = y + h / 2
+    const r = Math.min(w, h) / 2
+    ctx.arc(cx, cy, r, 0, Math.PI * 2)
+  } else if (maskKey === 'heart') {
+    const sx = w / 100
+    const sy = h / 100
+    ctx.moveTo(x + 50 * sx, y + 88 * sy)
+    ctx.bezierCurveTo(x + 50 * sx, y + 88 * sy, x + 6 * sx, y + 60 * sy, x + 6 * sx, y + 30 * sy)
+    ctx.bezierCurveTo(x + 6 * sx, y + 15 * sy, x + 18 * sx, y + 4 * sy, x + 32 * sx, y + 4 * sy)
+    ctx.bezierCurveTo(x + 40 * sx, y + 4 * sy, x + 46 * sx, y + 8 * sy, x + 50 * sx, y + 14 * sy)
+    ctx.bezierCurveTo(x + 54 * sx, y + 8 * sy, x + 60 * sx, y + 4 * sy, x + 68 * sx, y + 4 * sy)
+    ctx.bezierCurveTo(x + 82 * sx, y + 4 * sy, x + 94 * sx, y + 15 * sy, x + 94 * sx, y + 30 * sy)
+    ctx.bezierCurveTo(x + 94 * sx, y + 60 * sy, x + 50 * sx, y + 88 * sy, x + 50 * sx, y + 88 * sy)
+    ctx.closePath()
+  } else {
+    ctx.rect(x, y, w, h)
+  }
+  ctx.clip()
+}
+
+async function drawPhotos(
+  ctx: CanvasRenderingContext2D,
+  photos: PhotoItem[],
+  posterW: number,
+  posterH: number,
+): Promise<void> {
+  for (const photo of photos) {
+    let img: HTMLImageElement
+    try {
+      img = await loadImage(photo.publicUrl)
+    } catch {
+      continue  // expired URL or network issue — skip rather than abort export
+    }
+    const mask = PHOTO_MASKS[photo.maskKey]
+    const x = photo.x * posterW
+    const y = photo.y * posterH
+    const w = photo.scale * posterW
+    const h = mask.aspectRatio
+      ? (photo.scale / mask.aspectRatio) * posterW
+      : (photo.scale / (img.naturalWidth / img.naturalHeight)) * posterW
+
+    ctx.save()
+    applyPhotoMask(ctx, photo.maskKey, x, y, w, h)
+
+    // object-cover: fill the container, preserving aspect ratio
+    const imgAspect = img.naturalWidth / img.naturalHeight
+    const containerAspect = w / h
+    let drawW: number, drawH: number
+    if (imgAspect > containerAspect) {
+      drawH = h
+      drawW = h * imgAspect
+    } else {
+      drawW = w
+      drawH = w / imgAspect
+    }
+    const dx = x + (w - drawW) / 2 + photo.cropX * w
+    const dy = y + (h - drawH) / 2 + photo.cropY * h
+    ctx.drawImage(img, dx, dy, drawW, drawH)
+    ctx.restore()
+  }
 }
 
 function wait(ms: number) {
@@ -308,6 +384,9 @@ export async function buildPosterCanvas(
       : block.text
   }
 
+  // Photos (before text so text sits on top)
+  await drawPhotos(ctx, store.photos ?? [], W, H)
+
   // Text blocks
   drawTextBlocks(ctx, textBlocks, displayTexts, W, H, previewW, previewH)
 
@@ -373,7 +452,7 @@ function slugify(name: string): string {
 export function useMapExport() {
   const [isExporting, setIsExporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const { viewState, styleId, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName } =
+  const { viewState, styleId, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos } =
     useEditorStore()
 
   const run = async (format: PrintFormat, type: 'png' | 'pdf') => {
@@ -381,7 +460,7 @@ export function useMapExport() {
     setError(null)
     try {
       const snapshot: ExportSnapshot = {
-        viewState, styleId, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName,
+        viewState, styleId, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos,
       }
       const canvas = await buildPosterCanvas(format, snapshot)
       const pngBlob = await canvasToBlob(canvas)
@@ -420,7 +499,7 @@ export function useMapExport() {
 
   const renderPreview = async (format: PrintFormat): Promise<string> => {
     const snapshot: ExportSnapshot = {
-      viewState, styleId, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName,
+      viewState, styleId, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos,
     }
     const canvas = await buildPosterCanvas(format, snapshot)
     return canvas.toDataURL('image/png')
