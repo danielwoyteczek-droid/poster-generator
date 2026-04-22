@@ -2,8 +2,26 @@ import { create } from 'zustand'
 import type { MapMaskKey } from '@/lib/map-masks'
 import type { PrintFormat } from '@/lib/print-formats'
 import { DEFAULT_SHAPE_CONFIG, type ShapeConfigState } from '@/lib/mask-composer'
+import type { PhotoMaskKey } from '@/lib/photo-masks'
 
 export type { MapMaskKey, PrintFormat, ShapeConfigState }
+
+export interface PhotoItem {
+  id: string
+  storagePath: string
+  publicUrl: string
+  width: number
+  height: number
+  maskKey: PhotoMaskKey
+  /** 0-1 fractions within the poster */
+  x: number
+  y: number
+  scale: number  // 0-1 fraction of poster width
+  /** Crop offset inside the mask: -0.5..0.5 range */
+  cropX: number
+  cropY: number
+  uploadedAt: string
+}
 
 export interface ViewState {
   lng: number
@@ -77,6 +95,7 @@ export interface EditorStore {
   textBlocks: TextBlock[]
   selectedBlockId: string | null
   projectId: string | null
+  photos: PhotoItem[]
 
   setViewState: (vs: ViewState) => void
   flyToLocation: (lng: number, lat: number, zoom?: number) => void
@@ -112,6 +131,9 @@ export interface EditorStore {
   deleteTextBlock: (id: string) => void
   setSelectedBlockId: (id: string | null) => void
   setProjectId: (id: string | null) => void
+  addPhoto: (photo: Omit<PhotoItem, 'id' | 'uploadedAt'>) => void
+  updatePhoto: (id: string, updates: Partial<PhotoItem>) => void
+  removePhoto: (id: string) => void
   loadFromConfig: (config: Partial<EditorConfig>) => void
 }
 
@@ -129,6 +151,7 @@ export interface EditorConfig {
   shapeConfig: ShapeConfigState
   textBlocks: TextBlock[]
   locationName: string
+  photos: PhotoItem[]
 }
 
 const DEFAULT_VIEW: ViewState = {
@@ -192,6 +215,7 @@ export const useEditorStore = create<EditorStore>((set) => ({
   locationName: 'München',
   selectedBlockId: null,
   projectId: null,
+  photos: [],
 
   setViewState: (viewState) => set({ viewState }),
   flyToLocation: (lng, lat, zoom = 13) =>
@@ -248,6 +272,21 @@ export const useEditorStore = create<EditorStore>((set) => ({
   setLocationName: (name) => set({ locationName: name }),
   setSelectedBlockId: (id) => set({ selectedBlockId: id }),
   setProjectId: (id) => set({ projectId: id }),
+  addPhoto: (photo) =>
+    set((s) => ({
+      photos: [
+        ...s.photos,
+        { ...photo, id: crypto.randomUUID(), uploadedAt: new Date().toISOString() },
+      ],
+    })),
+  updatePhoto: (id, updates) =>
+    set((s) => ({
+      photos: s.photos.map((p) => (p.id === id ? { ...p, ...updates } : p)),
+    })),
+  removePhoto: (id) =>
+    set((s) => ({
+      photos: s.photos.filter((p) => p.id !== id),
+    })),
   loadFromConfig: (config) => set((s) => ({
     viewState: config.viewState ?? s.viewState,
     styleId: config.styleId ?? s.styleId,
@@ -264,6 +303,7 @@ export const useEditorStore = create<EditorStore>((set) => ({
       : s.secondMap,
     textBlocks: config.textBlocks ?? s.textBlocks,
     locationName: config.locationName ?? s.locationName,
+    photos: config.photos ?? s.photos,
     pendingCenter: config.viewState
       ? { lng: config.viewState.lng, lat: config.viewState.lat, zoom: config.viewState.zoom }
       : s.pendingCenter,

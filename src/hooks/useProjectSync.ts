@@ -24,6 +24,7 @@ function getConfig(): EditorConfig {
     shapeConfig: s.shapeConfig,
     textBlocks: s.textBlocks,
     locationName: s.locationName,
+    photos: s.photos,
   }
 }
 

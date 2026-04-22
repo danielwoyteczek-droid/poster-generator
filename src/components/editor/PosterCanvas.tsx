@@ -10,6 +10,7 @@ import { PRINT_FORMATS } from '@/lib/print-formats'
 import { MapPreview } from './MapPreview'
 import { TextBlockOverlay } from './TextBlockOverlay'
 import { DraggablePin } from './DraggablePin'
+import { PhotoOverlay } from './PhotoOverlay'
 
 function ClassicPin({ color }: { color: string }) {
   return (
@@ -187,6 +188,9 @@ export function PosterCanvas() {
                 onMove={(lat, lng) => setSecondMarker({ lat, lng })}
               />
             )}
+
+            {/* Photo overlay */}
+            <PhotoOverlay />
 
             {/* Text blocks overlay */}
             <TextBlockOverlay />

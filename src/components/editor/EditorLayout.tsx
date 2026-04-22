@@ -5,6 +5,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { MapTab } from '@/components/sidebar/MapTab'
 import { TextTab } from '@/components/sidebar/TextTab'
+import { PhotoTab } from '@/components/sidebar/PhotoTab'
 import { ExportTab } from '@/components/sidebar/ExportTab'
 import { PosterCanvas } from './PosterCanvas'
 import { useProjectSync } from '@/hooks/useProjectSync'
@@ -31,6 +32,12 @@ export function EditorLayout() {
               Text
             </TabsTrigger>
             <TabsTrigger
+              value="photo"
+              className="flex-1 h-full rounded-none text-xs font-medium data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-gray-900 data-[state=active]:bg-white"
+            >
+              Foto
+            </TabsTrigger>
+            <TabsTrigger
               value="export"
               className="flex-1 h-full rounded-none text-xs font-medium data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-gray-900 data-[state=active]:bg-white"
             >
@@ -44,6 +51,9 @@ export function EditorLayout() {
             </TabsContent>
             <TabsContent value="text" className="mt-0">
               <TextTab />
+            </TabsContent>
+            <TabsContent value="photo" className="mt-0">
+              <PhotoTab />
             </TabsContent>
             <TabsContent value="export" className="mt-0">
               <ExportTab />
