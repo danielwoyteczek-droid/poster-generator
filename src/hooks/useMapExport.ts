@@ -93,20 +93,22 @@ async function drawPhotos(
     try {
       img = await loadImage(photo.publicUrl)
     } catch {
-      continue  // expired URL or network issue — skip rather than abort export
+      continue
     }
     const mask = PHOTO_MASKS[photo.maskKey]
-    const x = photo.x * posterW
-    const y = photo.y * posterH
-    const w = photo.scale * posterW
-    const h = mask.aspectRatio
-      ? (photo.scale / mask.aspectRatio) * posterW
-      : (photo.scale / (img.naturalWidth / img.naturalHeight)) * posterW
 
-    ctx.save()
-    applyPhotoMask(ctx, photo.maskKey, x, y, w, h)
+    let x: number, y: number, w: number, h: number
+    if (mask.fullPoster) {
+      x = 0; y = 0; w = posterW; h = posterH
+    } else {
+      x = photo.x * posterW
+      y = photo.y * posterH
+      w = photo.scale * posterW
+      h = mask.aspectRatio
+        ? (photo.scale / mask.aspectRatio) * posterW
+        : (photo.scale / (img.naturalWidth / img.naturalHeight)) * posterW
+    }
 
-    // object-cover: fill the container, preserving aspect ratio
     const imgAspect = img.naturalWidth / img.naturalHeight
     const containerAspect = w / h
     let drawW: number, drawH: number
@@ -120,11 +122,29 @@ async function drawPhotos(
     const dx = x + (w - drawW) / 2 + photo.cropX * w
     const dy = y + (h - drawH) / 2 + photo.cropY * h
 
+    // Render into an offscreen canvas so mask composite stays isolated from main ctx
+    const off = document.createElement('canvas')
+    off.width = w
+    off.height = h
+    const octx = off.getContext('2d')!
+
     const css = filterCss(photo.filter)
-    if (css !== 'none') ctx.filter = css
-    ctx.drawImage(img, dx, dy, drawW, drawH)
-    ctx.filter = 'none'
-    ctx.restore()
+    if (css !== 'none') octx.filter = css
+    octx.drawImage(img, dx - x, dy - y, drawW, drawH)
+    octx.filter = 'none'
+
+    if (mask.svgPath) {
+      const maskImg = await loadImage(mask.svgPath)
+      octx.globalCompositeOperation = 'destination-in'
+      octx.drawImage(maskImg, 0, 0, w, h)
+      octx.globalCompositeOperation = 'source-over'
+      ctx.drawImage(off, x, y)
+    } else {
+      ctx.save()
+      applyPhotoMask(ctx, photo.maskKey, x, y, w, h)
+      ctx.drawImage(off, x, y)
+      ctx.restore()
+    }
   }
 }
 
