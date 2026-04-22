@@ -9,7 +9,7 @@ import { Separator } from '@/components/ui/separator'
 import { useEditorStore } from '@/hooks/useEditorStore'
 import { useAuth } from '@/hooks/useAuth'
 import { uploadPhoto, deletePhoto } from '@/lib/photo-upload'
-import { PHOTO_MASK_SINGLES, PHOTO_MASK_SPLITS, type PhotoMaskKey } from '@/lib/photo-masks'
+import { PHOTO_MASK_OPTIONS, type PhotoMaskKey } from '@/lib/photo-masks'
 import { PHOTO_FILTERS } from '@/lib/photo-filters'
 import type { PhotoFilter } from '@/hooks/useEditorStore'
 import { cn } from '@/lib/utils'
@@ -145,43 +145,22 @@ export function PhotoTab() {
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
-                <div className="space-y-1">
-                  <p className="text-[10px] text-gray-400 uppercase tracking-wider">Einzelbild</p>
-                  <div className="grid grid-cols-3 gap-1">
-                    {PHOTO_MASK_SINGLES.map((mask) => (
-                      <button
-                        key={mask.key}
-                        type="button"
-                        onClick={() => handleMaskChange(photo.id, mask.key)}
-                        className={cn(
-                          'rounded-sm border px-1.5 py-1 text-[10px] transition-colors',
-                          photo.maskKey === mask.key
-                            ? 'border-gray-900 bg-gray-900 text-white'
-                            : 'border-gray-200 text-gray-600 hover:border-gray-400',
-                        )}
-                      >
-                        {mask.label}
-                      </button>
-                    ))}
-                  </div>
-                  <p className="text-[10px] text-gray-400 uppercase tracking-wider pt-1">Split-Form (mit Karte)</p>
-                  <div className="grid grid-cols-2 gap-1">
-                    {PHOTO_MASK_SPLITS.map((mask) => (
-                      <button
-                        key={mask.key}
-                        type="button"
-                        onClick={() => handleMaskChange(photo.id, mask.key)}
-                        className={cn(
-                          'rounded-sm border px-1.5 py-1 text-[10px] transition-colors',
-                          photo.maskKey === mask.key
-                            ? 'border-gray-900 bg-gray-900 text-white'
-                            : 'border-gray-200 text-gray-600 hover:border-gray-400',
-                        )}
-                      >
-                        {mask.label}
-                      </button>
-                    ))}
-                  </div>
+                <div className="grid grid-cols-3 gap-1">
+                  {PHOTO_MASK_OPTIONS.map((mask) => (
+                    <button
+                      key={mask.key}
+                      type="button"
+                      onClick={() => handleMaskChange(photo.id, mask.key)}
+                      className={cn(
+                        'rounded-sm border px-1.5 py-1 text-[10px] transition-colors',
+                        photo.maskKey === mask.key
+                          ? 'border-gray-900 bg-gray-900 text-white'
+                          : 'border-gray-200 text-gray-600 hover:border-gray-400',
+                      )}
+                    >
+                      {mask.label}
+                    </button>
+                  ))}
                 </div>
                 <div className="grid grid-cols-3 gap-1 pt-1">
                   {PHOTO_FILTERS.map((f) => (

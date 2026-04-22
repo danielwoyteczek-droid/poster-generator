@@ -1,13 +1,15 @@
 'use client'
 
-import { useState } from 'react'
-import { ChevronDown, ChevronUp } from 'lucide-react'
+import { useRef, useState } from 'react'
+import { ChevronDown, ChevronUp, Loader2, Upload, Trash2 } from 'lucide-react'
+import { toast } from 'sonner'
 import { Label } from '@/components/ui/label'
 import { LocationSearch } from '@/components/editor/LocationSearch'
 import { Switch } from '@/components/ui/switch'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { Slider } from '@/components/ui/slider'
+import { Button } from '@/components/ui/button'
 import { PresetPicker } from '@/components/editor/PresetPicker'
 import { useEditorStore } from '@/hooks/useEditorStore'
 import { useAuth } from '@/hooks/useAuth'
@@ -16,6 +18,8 @@ import { MAP_MASK_OPTIONS, MAP_MASKS } from '@/lib/map-masks'
 import { STYLE_OPTIONS } from '@/lib/map-style-options'
 import { MAP_PALETTES } from '@/lib/map-palettes'
 import { PETITE_BASE_STYLE_ID } from '@/lib/petite-style-loader'
+import { uploadPhoto, deletePhoto } from '@/lib/photo-upload'
+import { PHOTO_FILTERS } from '@/lib/photo-filters'
 import { cn } from '@/lib/utils'
 
 const MASK_INITIAL_VISIBLE = 3
@@ -33,9 +37,70 @@ export function MapTab() {
     setPaletteId, setCustomPaletteBase, setStreetLabelsVisible,
     flyToLocation, setLocationName,
     secondMap, setSecondMapEnabled, setSecondMapStyleId, flyToSecondLocation,
+    splitPhoto, splitPhotoSide, setSplitPhoto, updateSplitPhoto, setSplitPhotoSide,
   } = useEditorStore()
-  const { isAdmin } = useAuth()
+  const { user, isAdmin } = useAuth()
   const { masks: customMasks } = useCustomMasks()
+
+  const splitPhotoInputRef = useRef<HTMLInputElement>(null)
+  const [splitUploading, setSplitUploading] = useState(false)
+  const [splitProgress, setSplitProgress] = useState(0)
+
+  type SplitMode = 'none' | 'second-map' | 'photo'
+  const splitMode: SplitMode = secondMap.enabled ? 'second-map' : splitPhoto ? 'photo' : 'none'
+
+  const handleSplitModeChange = (mode: SplitMode) => {
+    if (mode === 'none') {
+      setSecondMapEnabled(false)
+      if (splitPhoto) setSplitPhoto(null)
+      if (currentMask.isSplit) setMaskKey('circle')
+    } else if (mode === 'second-map') {
+      if (splitPhoto) setSplitPhoto(null)
+      setSecondMapEnabled(true)
+      if (!currentMask.isSplit) setMaskKey('split-circles')
+    } else {
+      setSecondMapEnabled(false)
+      if (!currentMask.isSplit) setMaskKey('split-circles')
+    }
+  }
+
+  const handleSplitPhotoFile = async (file: File) => {
+    if (!user) { toast.error('Bitte melde dich an, um Fotos hochzuladen.'); return }
+    setSplitUploading(true)
+    setSplitProgress(0)
+    try {
+      const uploaded = await uploadPhoto(file, {
+        userId: user.id,
+        onProgress: setSplitProgress,
+      })
+      setSplitPhoto({
+        storagePath: uploaded.storagePath,
+        publicUrl: uploaded.publicUrl,
+        width: uploaded.width,
+        height: uploaded.height,
+        filter: 'none',
+        cropX: 0,
+        cropY: 0,
+        cropScale: 1,
+        uploadedAt: new Date().toISOString(),
+      })
+      toast.success('Foto eingefügt')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Upload fehlgeschlagen')
+    } finally {
+      setSplitUploading(false)
+      setSplitProgress(0)
+      if (splitPhotoInputRef.current) splitPhotoInputRef.current.value = ''
+    }
+  }
+
+  const handleRemoveSplitPhoto = async () => {
+    const toDelete = splitPhoto?.storagePath
+    setSplitPhoto(null)
+    if (toDelete) {
+      try { await deletePhoto(toDelete) } catch { /* ignore */ }
+    }
+  }
 
   // Admin sees built-in + uploaded; customer only sees built-in
   const adminMasks = isAdmin ? customMasks : []
@@ -46,18 +111,10 @@ export function MapTab() {
   const shapeSupported = !!currentMask.shape
   const [masksExpanded, setMasksExpanded] = useState(false)
 
-  const visibleMasks = secondMap.enabled
+  const isSplitActive = splitMode === 'second-map' || splitMode === 'photo'
+  const visibleMasks = isSplitActive
     ? SPLIT_MASK_OPTIONS
     : [...SINGLE_MASK_OPTIONS, ...adminMasks]
-
-  const handleToggleSecondMap = (enabled: boolean) => {
-    setSecondMapEnabled(enabled)
-    if (enabled && !currentMask.isSplit) {
-      setMaskKey('split-circles')
-    } else if (!enabled && currentMask.isSplit) {
-      setMaskKey('circle')
-    }
-  }
 
   return (
     <div className="space-y-5 p-4">
@@ -67,19 +124,138 @@ export function MapTab() {
         <LocationSearch onSelect={(lng, lat, name) => { flyToLocation(lng, lat); setLocationName(name) }} />
       </div>
 
-      {/* Second map toggle — always visible */}
+      {/* Split-Modus: None / zweite Karte / Foto */}
       <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400">
-            Zweite Karte
-          </Label>
-          <Switch
-            checked={secondMap.enabled}
-            onCheckedChange={handleToggleSecondMap}
-          />
+        <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+          Zweite Ansicht
+        </Label>
+        <div className="grid grid-cols-3 gap-1">
+          {(['none', 'second-map', 'photo'] as const).map((m) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => handleSplitModeChange(m)}
+              className={cn(
+                'h-8 rounded-md text-[11px] font-medium transition-colors',
+                splitMode === m
+                  ? 'bg-gray-900 text-white'
+                  : 'bg-white text-gray-700 border border-gray-200 hover:border-gray-400',
+              )}
+            >
+              {m === 'none' ? 'Keine' : m === 'second-map' ? 'Zweite Karte' : 'Foto'}
+            </button>
+          ))}
         </div>
 
-        {secondMap.enabled && (
+        {splitMode === 'photo' && (
+          <div className="space-y-2 pl-1">
+            <div className="flex items-center gap-2">
+              <Label className="text-xs text-gray-500 flex-1">Seite</Label>
+              <div className="flex gap-1">
+                {(['left', 'right'] as const).map((side) => (
+                  <button
+                    key={side}
+                    type="button"
+                    onClick={() => setSplitPhotoSide(side)}
+                    className={cn(
+                      'h-7 px-2.5 rounded-sm text-[11px] border',
+                      splitPhotoSide === side
+                        ? 'bg-gray-900 text-white border-gray-900'
+                        : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400',
+                    )}
+                  >
+                    {side === 'left' ? 'Links' : 'Rechts'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <input
+              ref={splitPhotoInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+              hidden
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                if (file) handleSplitPhotoFile(file)
+              }}
+            />
+            {!splitPhoto ? (
+              <Button
+                type="button"
+                onClick={() => splitPhotoInputRef.current?.click()}
+                disabled={!user || splitUploading}
+                variant="outline"
+                className="w-full"
+              >
+                {splitUploading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span className="ml-2">Hochladen… {splitProgress}%</span>
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-4 h-4" />
+                    <span className="ml-2">Foto hochladen</span>
+                  </>
+                )}
+              </Button>
+            ) : (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 rounded-md border border-gray-200 p-2">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={splitPhoto.publicUrl} alt="" className="w-12 h-12 object-cover rounded-sm" />
+                  <p className="flex-1 text-xs text-gray-600 truncate">
+                    {splitPhoto.width} × {splitPhoto.height}px
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleRemoveSplitPhoto}
+                    className="w-7 h-7 flex items-center justify-center rounded-sm hover:bg-gray-100 text-gray-500 hover:text-red-600"
+                    aria-label="Foto entfernen"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+                <div className="grid grid-cols-3 gap-1">
+                  {PHOTO_FILTERS.map((f) => (
+                    <button
+                      key={f.id}
+                      type="button"
+                      onClick={() => updateSplitPhoto({ filter: f.id })}
+                      className={cn(
+                        'rounded-sm border px-1.5 py-1 text-[10px] transition-colors',
+                        splitPhoto.filter === f.id
+                          ? 'border-gray-900 bg-gray-900 text-white'
+                          : 'border-gray-200 text-gray-600 hover:border-gray-400',
+                      )}
+                    >
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] text-gray-600">Zoom</span>
+                    <span className="text-[11px] text-gray-400 tabular-nums">
+                      {splitPhoto.cropScale.toFixed(1)}×
+                    </span>
+                  </div>
+                  <Slider
+                    min={1} max={4} step={0.1}
+                    value={[splitPhoto.cropScale]}
+                    onValueChange={([v]) => updateSplitPhoto({ cropScale: v })}
+                  />
+                </div>
+                <p className="text-[10px] text-gray-400 leading-relaxed">
+                  Ziehe das Foto auf dem Poster, um den Ausschnitt anzupassen.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {splitMode === 'second-map' && (
           <div className="space-y-3 pl-1">
             <div className="space-y-1.5">
               <Label className="text-xs text-gray-500">Ort (rechts)</Label>
@@ -147,6 +323,7 @@ export function MapTab() {
       </div>
 
       <Separator />
+
 
       {/* Preset picker — shows published map designs, collapsible */}
       <PresetPicker posterType="map" />

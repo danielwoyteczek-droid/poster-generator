@@ -11,6 +11,7 @@ import { MapPreview } from './MapPreview'
 import { TextBlockOverlay } from './TextBlockOverlay'
 import { DraggablePin } from './DraggablePin'
 import { PhotoOverlay } from './PhotoOverlay'
+import { SplitPhotoOverlay } from './SplitPhotoOverlay'
 
 function ClassicPin({ color }: { color: string }) {
   return (
@@ -48,7 +49,7 @@ export function PosterCanvas() {
   const [posterSize, setPosterSize] = useState({ width: 0, height: 0 })
   const [locating, setLocating] = useState(false)
 
-  const { maskKey, printFormat, zoomIn, zoomOut, flyToLocation, zoomInSecond, zoomOutSecond, secondMap, marker, secondMarker, shapeConfig, viewState, setMarker, setSecondMarker, setSelectedBlockId } = useEditorStore()
+  const { maskKey, printFormat, zoomIn, zoomOut, flyToLocation, zoomInSecond, zoomOutSecond, secondMap, marker, secondMarker, shapeConfig, viewState, setMarker, setSecondMarker, setSelectedBlockId, splitPhoto, splitPhotoSide } = useEditorStore()
   const { masks: customMasks } = useCustomMasks()
   const mask =
     (MAP_MASKS as Record<string, typeof MAP_MASKS['none']>)[maskKey] ??
@@ -58,7 +59,15 @@ export function PosterCanvas() {
   const ratio = format.widthMm / format.heightMm
 
   const isDualMap = mask.isSplit && secondMap.enabled
-  const useComposedMask = !!mask.shape && !isDualMap
+  const isSplitPhoto = mask.isSplit && !secondMap.enabled && splitPhoto != null
+  // Primary map renders on the side opposite to the photo
+  const mapHalfSvg = isSplitPhoto
+    ? (splitPhotoSide === 'right' ? mask.leftSvgPath : mask.rightSvgPath)
+    : null
+  const photoHalfSvg = isSplitPhoto
+    ? (splitPhotoSide === 'right' ? mask.rightSvgPath : mask.leftSvgPath)
+    : null
+  const useComposedMask = !!mask.shape && !isDualMap && !isSplitPhoto
   const composedMaskDataUrl = useComposedMask && mask.shape
     ? svgToDataUrl(composeMaskSvg(mask.shape, shapeConfig))
     : null
@@ -132,6 +141,15 @@ export function PosterCanvas() {
                 >
                   <MapPreview storeSlice="secondary" />
                 </div>
+              </>
+            ) : isSplitPhoto && mapHalfSvg && photoHalfSvg ? (
+              <>
+                {/* Primary map on one half */}
+                <div className="absolute inset-0" style={makeMaskStyle(mapHalfSvg)}>
+                  <MapPreview storeSlice="primary" />
+                </div>
+                {/* Photo on the other half */}
+                <SplitPhotoOverlay svgPath={photoHalfSvg} />
               </>
             ) : (
               <div

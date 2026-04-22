@@ -1,29 +1,17 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { Lock } from 'lucide-react'
 import { useEditorStore, type PhotoItem } from '@/hooks/useEditorStore'
 import { PHOTO_MASKS } from '@/lib/photo-masks'
 import { filterCss } from '@/lib/photo-filters'
 
 function photoHeightFraction(photo: PhotoItem, posterRatio: number): number {
   const mask = PHOTO_MASKS[photo.maskKey]
-  if (mask.fullPoster) return 1
   if (mask.aspectRatio) {
     return (photo.scale / mask.aspectRatio) * posterRatio
   }
   const intrinsic = photo.width / photo.height
   return (photo.scale / intrinsic) * posterRatio
-}
-
-function photoWidthFraction(photo: PhotoItem): number {
-  const mask = PHOTO_MASKS[photo.maskKey]
-  return mask.fullPoster ? 1 : photo.scale
-}
-
-function photoPosition(photo: PhotoItem): { x: number; y: number } {
-  const mask = PHOTO_MASKS[photo.maskKey]
-  return mask.fullPoster ? { x: 0, y: 0 } : { x: photo.x, y: photo.y }
 }
 
 interface Props {
@@ -46,7 +34,6 @@ function PhotoItemView({
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     e.stopPropagation()
     setSelectedBlockId(photo.id)
-    if (mask.fullPoster) return // split-mask photos cover the whole poster; no drag
     const rect = posterRef.current?.getBoundingClientRect()
     if (!rect) return
 
@@ -106,39 +93,24 @@ function PhotoItemView({
   }
 
   const heightFrac = photoHeightFraction(photo, posterRatio)
-  const widthFrac = photoWidthFraction(photo)
-  const pos = photoPosition(photo)
-  const maskStyle = mask.svgPath
-    ? {
-        maskImage: `url(${mask.svgPath})`,
-        WebkitMaskImage: `url(${mask.svgPath})`,
-        maskRepeat: 'no-repeat',
-        WebkitMaskRepeat: 'no-repeat',
-        maskSize: '100% 100%',
-        WebkitMaskSize: '100% 100%',
-      }
-    : {
-        clipPath: mask.clipPath,
-        WebkitClipPath: mask.clipPath,
-      }
 
   return (
     <div
       className="absolute pointer-events-auto"
       style={{
-        left: `${pos.x * 100}%`,
-        top: `${pos.y * 100}%`,
-        width: `${widthFrac * 100}%`,
+        left: `${photo.x * 100}%`,
+        top: `${photo.y * 100}%`,
+        width: `${photo.scale * 100}%`,
         height: `${heightFrac * 100}%`,
-        cursor: mask.fullPoster ? 'default' : 'move',
-        outline: isSelected && !mask.fullPoster ? '1px dashed #3b82f6' : 'none',
+        cursor: 'move',
+        outline: isSelected ? '1px dashed #3b82f6' : 'none',
         outlineOffset: '2px',
       }}
       onPointerDown={handlePointerDown}
     >
       <div
         className="relative w-full h-full overflow-hidden"
-        style={maskStyle as React.CSSProperties}
+        style={{ clipPath: mask.clipPath, WebkitClipPath: mask.clipPath }}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
@@ -153,7 +125,7 @@ function PhotoItemView({
         />
       </div>
 
-      {isSelected && !mask.fullPoster && (
+      {isSelected && (
         <div
           className="absolute -right-1 -bottom-1 w-3 h-3 bg-white border border-blue-500 rounded-sm cursor-nwse-resize"
           onPointerDown={handleResizePointerDown}

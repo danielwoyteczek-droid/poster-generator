@@ -9,7 +9,7 @@ import { resolveMask } from '@/hooks/useCustomMasks'
 import { getCoordinatesText } from '@/components/editor/TextBlockOverlay'
 import { PHOTO_MASKS, type PhotoMaskKey } from '@/lib/photo-masks'
 import { filterCss } from '@/lib/photo-filters'
-import type { PhotoItem } from './useEditorStore'
+import type { PhotoItem, SplitPhoto } from './useEditorStore'
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -24,6 +24,8 @@ export interface ExportSnapshot {
   textBlocks: TextBlock[]
   locationName: string
   photos?: PhotoItem[]
+  splitPhoto?: SplitPhoto | null
+  splitPhotoSide?: 'left' | 'right'
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
@@ -96,18 +98,12 @@ async function drawPhotos(
       continue
     }
     const mask = PHOTO_MASKS[photo.maskKey]
-
-    let x: number, y: number, w: number, h: number
-    if (mask.fullPoster) {
-      x = 0; y = 0; w = posterW; h = posterH
-    } else {
-      x = photo.x * posterW
-      y = photo.y * posterH
-      w = photo.scale * posterW
-      h = mask.aspectRatio
-        ? (photo.scale / mask.aspectRatio) * posterW
-        : (photo.scale / (img.naturalWidth / img.naturalHeight)) * posterW
-    }
+    const x = photo.x * posterW
+    const y = photo.y * posterH
+    const w = photo.scale * posterW
+    const h = mask.aspectRatio
+      ? (photo.scale / mask.aspectRatio) * posterW
+      : (photo.scale / (img.naturalWidth / img.naturalHeight)) * posterW
 
     const imgAspect = img.naturalWidth / img.naturalHeight
     const containerAspect = w / h
@@ -122,30 +118,61 @@ async function drawPhotos(
     const dx = x + (w - drawW) / 2 + photo.cropX * w
     const dy = y + (h - drawH) / 2 + photo.cropY * h
 
-    // Render into an offscreen canvas so mask composite stays isolated from main ctx
-    const off = document.createElement('canvas')
-    off.width = w
-    off.height = h
-    const octx = off.getContext('2d')!
-
+    ctx.save()
+    applyPhotoMask(ctx, photo.maskKey, x, y, w, h)
     const css = filterCss(photo.filter)
-    if (css !== 'none') octx.filter = css
-    octx.drawImage(img, dx - x, dy - y, drawW, drawH)
-    octx.filter = 'none'
-
-    if (mask.svgPath) {
-      const maskImg = await loadImage(mask.svgPath)
-      octx.globalCompositeOperation = 'destination-in'
-      octx.drawImage(maskImg, 0, 0, w, h)
-      octx.globalCompositeOperation = 'source-over'
-      ctx.drawImage(off, x, y)
-    } else {
-      ctx.save()
-      applyPhotoMask(ctx, photo.maskKey, x, y, w, h)
-      ctx.drawImage(off, x, y)
-      ctx.restore()
-    }
+    if (css !== 'none') ctx.filter = css
+    ctx.drawImage(img, dx, dy, drawW, drawH)
+    ctx.filter = 'none'
+    ctx.restore()
   }
+}
+
+async function drawSplitPhoto(
+  ctx: CanvasRenderingContext2D,
+  splitPhoto: SplitPhoto,
+  svgPath: string,
+  posterW: number,
+  posterH: number,
+): Promise<void> {
+  let img: HTMLImageElement
+  try {
+    img = await loadImage(splitPhoto.publicUrl)
+  } catch {
+    return
+  }
+
+  const off = document.createElement('canvas')
+  off.width = posterW
+  off.height = posterH
+  const octx = off.getContext('2d')!
+
+  // object-cover geometry to fill the full poster area, respecting cropScale/X/Y
+  const imgAspect = img.naturalWidth / img.naturalHeight
+  const containerAspect = posterW / posterH
+  let drawW: number, drawH: number
+  if (imgAspect > containerAspect) {
+    drawH = posterH
+    drawW = posterH * imgAspect
+  } else {
+    drawW = posterW
+    drawH = posterW / imgAspect
+  }
+  drawW *= splitPhoto.cropScale
+  drawH *= splitPhoto.cropScale
+  const dx = (posterW - drawW) / 2 + splitPhoto.cropX * posterW
+  const dy = (posterH - drawH) / 2 + splitPhoto.cropY * posterH
+
+  const css = filterCss(splitPhoto.filter)
+  if (css !== 'none') octx.filter = css
+  octx.drawImage(img, dx, dy, drawW, drawH)
+  octx.filter = 'none'
+
+  const maskImg = await loadImage(svgPath)
+  octx.globalCompositeOperation = 'destination-in'
+  octx.drawImage(maskImg, 0, 0, posterW, posterH)
+  octx.globalCompositeOperation = 'source-over'
+  ctx.drawImage(off, 0, 0)
 }
 
 function wait(ms: number) {
@@ -346,6 +373,9 @@ export async function buildPosterCanvas(
   const { viewState, styleId, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName } = store
   const mask = (await resolveMask(maskKey)) ?? MAP_MASKS.none
   const isDualMap = mask.isSplit && secondMap.enabled
+  const splitPhoto = store.splitPhoto ?? null
+  const splitPhotoSide = store.splitPhotoSide ?? 'right'
+  const isSplitPhoto = mask.isSplit && !secondMap.enabled && splitPhoto != null
 
   // Build a dynamic mask from shape + shapeConfig for non-split masks.
   // Split masks fall back to their baked SVG files (no composition).
@@ -389,6 +419,13 @@ export async function buildPosterCanvas(
     let rightCanvas = await renderMapOffscreen({ styleId: secondMap.styleId, vs: secVS, previewW: secPreviewW, previewH: secPreviewH, outputW: W, outputH: H })
     if (mask.rightSvgPath) rightCanvas = await applyMask(rightCanvas, mask.rightSvgPath)
     ctx.drawImage(rightCanvas, 0, 0)
+  } else if (isSplitPhoto && splitPhoto && mask.leftSvgPath && mask.rightSvgPath) {
+    const mapSideSvg = splitPhotoSide === 'right' ? mask.leftSvgPath : mask.rightSvgPath
+    const photoSideSvg = splitPhotoSide === 'right' ? mask.rightSvgPath : mask.leftSvgPath
+    let mapCanvas = await renderMapOffscreen({ styleId, vs: viewState, previewW, previewH, outputW: W, outputH: H })
+    mapCanvas = await applyMask(mapCanvas, mapSideSvg)
+    ctx.drawImage(mapCanvas, 0, 0)
+    await drawSplitPhoto(ctx, splitPhoto, photoSideSvg, W, H)
   } else {
     let mapCanvas = await renderMapOffscreen({ styleId, vs: viewState, previewW, previewH, outputW: W, outputH: H })
     if (mask.shape) {
@@ -477,7 +514,7 @@ function slugify(name: string): string {
 export function useMapExport() {
   const [isExporting, setIsExporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const { viewState, styleId, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos } =
+  const { viewState, styleId, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos, splitPhoto, splitPhotoSide } =
     useEditorStore()
 
   const run = async (format: PrintFormat, type: 'png' | 'pdf') => {
@@ -485,7 +522,7 @@ export function useMapExport() {
     setError(null)
     try {
       const snapshot: ExportSnapshot = {
-        viewState, styleId, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos,
+        viewState, styleId, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos, splitPhoto, splitPhotoSide,
       }
       const canvas = await buildPosterCanvas(format, snapshot)
       const pngBlob = await canvasToBlob(canvas)
@@ -524,7 +561,7 @@ export function useMapExport() {
 
   const renderPreview = async (format: PrintFormat): Promise<string> => {
     const snapshot: ExportSnapshot = {
-      viewState, styleId, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos,
+      viewState, styleId, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos, splitPhoto, splitPhotoSide,
     }
     const canvas = await buildPosterCanvas(format, snapshot)
     return canvas.toDataURL('image/png')

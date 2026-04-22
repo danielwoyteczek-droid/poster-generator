@@ -8,6 +8,25 @@ export type { MapMaskKey, PrintFormat, ShapeConfigState }
 
 export type PhotoFilter = 'none' | 'grayscale' | 'sepia'
 
+/**
+ * A photo that occupies the "opposite" half of a split map mask.
+ * When a split mask is active on the primary map, exactly one of
+ * secondMap.enabled or splitPhoto is active at a time.
+ */
+export interface SplitPhoto {
+  storagePath: string
+  publicUrl: string
+  width: number
+  height: number
+  filter: PhotoFilter
+  /** -0.5 to 0.5: how far to shift the image inside the mask */
+  cropX: number
+  cropY: number
+  /** 1.0 to 4.0: scale factor inside the mask, >1 zooms in */
+  cropScale: number
+  uploadedAt: string
+}
+
 export interface PhotoItem {
   id: string
   storagePath: string
@@ -99,6 +118,8 @@ export interface EditorStore {
   selectedBlockId: string | null
   projectId: string | null
   photos: PhotoItem[]
+  splitPhoto: SplitPhoto | null
+  splitPhotoSide: 'left' | 'right'
 
   setViewState: (vs: ViewState) => void
   flyToLocation: (lng: number, lat: number, zoom?: number) => void
@@ -137,6 +158,9 @@ export interface EditorStore {
   addPhoto: (photo: Omit<PhotoItem, 'id' | 'uploadedAt'>) => void
   updatePhoto: (id: string, updates: Partial<PhotoItem>) => void
   removePhoto: (id: string) => void
+  setSplitPhoto: (photo: SplitPhoto | null) => void
+  updateSplitPhoto: (updates: Partial<SplitPhoto>) => void
+  setSplitPhotoSide: (side: 'left' | 'right') => void
   loadFromConfig: (config: Partial<EditorConfig>) => void
 }
 
@@ -155,6 +179,8 @@ export interface EditorConfig {
   textBlocks: TextBlock[]
   locationName: string
   photos: PhotoItem[]
+  splitPhoto: SplitPhoto | null
+  splitPhotoSide: 'left' | 'right'
 }
 
 const DEFAULT_VIEW: ViewState = {
@@ -219,6 +245,8 @@ export const useEditorStore = create<EditorStore>((set) => ({
   selectedBlockId: null,
   projectId: null,
   photos: [],
+  splitPhoto: null,
+  splitPhotoSide: 'right',
 
   setViewState: (viewState) => set({ viewState }),
   flyToLocation: (lng, lat, zoom = 13) =>
@@ -290,6 +318,10 @@ export const useEditorStore = create<EditorStore>((set) => ({
     set((s) => ({
       photos: s.photos.filter((p) => p.id !== id),
     })),
+  setSplitPhoto: (photo) => set({ splitPhoto: photo }),
+  updateSplitPhoto: (updates) =>
+    set((s) => ({ splitPhoto: s.splitPhoto ? { ...s.splitPhoto, ...updates } : null })),
+  setSplitPhotoSide: (splitPhotoSide) => set({ splitPhotoSide }),
   loadFromConfig: (config) => set((s) => ({
     viewState: config.viewState ?? s.viewState,
     styleId: config.styleId ?? s.styleId,
@@ -307,6 +339,8 @@ export const useEditorStore = create<EditorStore>((set) => ({
     textBlocks: config.textBlocks ?? s.textBlocks,
     locationName: config.locationName ?? s.locationName,
     photos: config.photos ?? s.photos,
+    splitPhoto: config.splitPhoto ?? s.splitPhoto,
+    splitPhotoSide: config.splitPhotoSide ?? s.splitPhotoSide,
     pendingCenter: config.viewState
       ? { lng: config.viewState.lng, lat: config.viewState.lat, zoom: config.viewState.zoom }
       : s.pendingCenter,
