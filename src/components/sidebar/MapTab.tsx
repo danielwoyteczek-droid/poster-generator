@@ -14,6 +14,8 @@ import { useAuth } from '@/hooks/useAuth'
 import { useCustomMasks } from '@/hooks/useCustomMasks'
 import { MAP_MASK_OPTIONS, MAP_MASKS } from '@/lib/map-masks'
 import { STYLE_OPTIONS } from '@/lib/map-style-options'
+import { MAP_PALETTES } from '@/lib/map-palettes'
+import { PETITE_BASE_STYLE_ID } from '@/lib/petite-style-loader'
 import { cn } from '@/lib/utils'
 
 const MASK_INITIAL_VISIBLE = 3
@@ -25,8 +27,10 @@ const SINGLE_MASK_OPTIONS = MAP_MASK_OPTIONS.filter((m) => !m.isSplit)
 export function MapTab() {
   const {
     styleId, maskKey, marker, secondMarker, shapeConfig,
+    paletteId, customPaletteBase, streetLabelsVisible,
     setStyleId, setMaskKey, setMarker, setSecondMarker,
     setShapeOuter, setInnerFrame, setOuterFrame,
+    setPaletteId, setCustomPaletteBase, setStreetLabelsVisible,
     flyToLocation, setLocationName,
     secondMap, setSecondMapEnabled, setSecondMapStyleId, flyToSecondLocation,
   } = useEditorStore()
@@ -153,6 +157,17 @@ export function MapTab() {
       <div className="space-y-1.5">
         <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400">Karten-Stil</Label>
         <div className="grid grid-cols-2 gap-1.5">
+          <button
+            onClick={() => setStyleId(PETITE_BASE_STYLE_ID)}
+            className={cn(
+              'rounded-md border-2 px-2 py-2 text-left text-xs font-medium transition-all',
+              styleId === PETITE_BASE_STYLE_ID
+                ? 'border-gray-900 bg-gray-900 text-white'
+                : 'border-gray-200 text-gray-700 hover:border-gray-400'
+            )}
+          >
+            petite-moment
+          </button>
           {STYLE_OPTIONS.map((style) => (
             <button
               key={style.id}
@@ -169,6 +184,75 @@ export function MapTab() {
           ))}
         </div>
       </div>
+
+      {/* Palette + street-labels — only when petite-base is active */}
+      {styleId === PETITE_BASE_STYLE_ID && (
+        <>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400">Farbpalette</Label>
+            <div className="grid grid-cols-3 gap-1.5">
+              {MAP_PALETTES.map((p) => {
+                const c = p.colors
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => setPaletteId(p.id)}
+                    className={cn(
+                      'rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
+                      paletteId === p.id
+                        ? 'border-gray-900'
+                        : 'border-gray-200 hover:border-gray-400',
+                    )}
+                    title={p.description}
+                  >
+                    <div className="flex gap-0.5">
+                      <span className="w-3 h-3 rounded-full border border-black/10" style={{ background: c.land }} />
+                      <span className="w-3 h-3 rounded-full border border-black/10" style={{ background: c.water }} />
+                      <span className="w-3 h-3 rounded-full border border-black/10" style={{ background: c.road }} />
+                      <span className="w-3 h-3 rounded-full border border-black/10" style={{ background: c.label }} />
+                    </div>
+                    <span className="text-[10px] leading-tight text-gray-700">{p.label}</span>
+                  </button>
+                )
+              })}
+              <button
+                onClick={() => setPaletteId('custom')}
+                className={cn(
+                  'rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
+                  paletteId === 'custom'
+                    ? 'border-gray-900'
+                    : 'border-gray-200 hover:border-gray-400',
+                )}
+              >
+                <div
+                  className="w-3 h-3 rounded-full border border-black/10"
+                  style={{ background: customPaletteBase ?? '#84c5a6' }}
+                />
+                <span className="text-[10px] leading-tight text-gray-700">Eigene</span>
+              </button>
+            </div>
+            {paletteId === 'custom' && (
+              <div className="flex items-center gap-2 pt-1">
+                <span className="text-[11px] text-gray-500">Grundton</span>
+                <input
+                  type="color"
+                  value={customPaletteBase ?? '#84c5a6'}
+                  onChange={(e) => setCustomPaletteBase(e.target.value)}
+                  className="flex-1 h-8 rounded-md border border-gray-200 cursor-pointer px-1"
+                />
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center justify-between">
+            <Label className="text-xs text-gray-700">Straßennamen anzeigen</Label>
+            <Switch
+              checked={streetLabelsVisible}
+              onCheckedChange={setStreetLabelsVisible}
+            />
+          </div>
+        </>
+      )}
 
       <Separator />
 

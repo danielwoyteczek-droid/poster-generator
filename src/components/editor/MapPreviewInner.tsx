@@ -6,6 +6,7 @@ import '@maptiler/sdk/dist/maptiler-sdk.css'
 import { useEditorStore } from '@/hooks/useEditorStore'
 import type { ViewState } from '@/hooks/useEditorStore'
 import { setMapInstance } from '@/hooks/useMapInstance'
+import { buildPetiteStyle, isPetiteStyle } from '@/lib/petite-style-loader'
 
 function buildStyleUrl(mapId: string, key: string) {
   return `https://api.maptiler.com/maps/${mapId}/style.json?key=${encodeURIComponent(key)}`
@@ -18,11 +19,14 @@ interface MapPreviewInnerProps {
 export default function MapPreviewInner({ storeSlice = 'primary' }: MapPreviewInnerProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<maptilersdk.Map | null>(null)
-  const lastStyleRef = useRef<string | null>(null)
+  const lastStyleKeyRef = useRef<string | null>(null)
 
   const store = useEditorStore()
 
   const styleId = storeSlice === 'primary' ? store.styleId : store.secondMap.styleId
+  const paletteId = store.paletteId
+  const customPaletteBase = store.customPaletteBase
+  const streetLabelsVisible = store.streetLabelsVisible
   const pendingCenter = storeSlice === 'primary' ? store.pendingCenter : store.secondMap.pendingCenter
   const pendingZoomDelta = storeSlice === 'primary' ? store.pendingZoomDelta : store.secondMap.pendingZoomDelta
   const viewState = storeSlice === 'primary' ? store.viewState : store.secondMap.viewState
@@ -50,11 +54,15 @@ export default function MapPreviewInner({ storeSlice = 'primary' }: MapPreviewIn
     }
 
     maptilersdk.config.apiKey = apiKey
-    const styleUrl = buildStyleUrl(styleId, apiKey)
+
+    // Initial style — URL for MapTiler-hosted styles, fallback JSON for petite-base
+    const initialStyle: maptilersdk.StyleSpecification | string = isPetiteStyle(styleId)
+      ? ({ version: 8, sources: {}, layers: [] } as unknown as maptilersdk.StyleSpecification)
+      : buildStyleUrl(styleId, apiKey)
 
     const map = new maptilersdk.Map({
       container: containerRef.current,
-      style: styleUrl,
+      style: initialStyle,
       center: [viewState.lng, viewState.lat],
       zoom: viewState.zoom,
       dragRotate: false,
@@ -88,7 +96,6 @@ export default function MapPreviewInner({ storeSlice = 'primary' }: MapPreviewIn
     map.on('zoomend', emit)
 
     mapRef.current = map
-    lastStyleRef.current = styleUrl
     setMapInstance(storeSlice, map)
 
     return () => {
@@ -98,17 +105,41 @@ export default function MapPreviewInner({ storeSlice = 'primary' }: MapPreviewIn
     }
   }, [storeSlice]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Update style
+  // Apply style changes (external styleId or palette/street settings for petite-base)
   useEffect(() => {
     const map = mapRef.current
     const apiKey = process.env.NEXT_PUBLIC_MAPTILER_API_KEY
     if (!map || !apiKey) return
-    const styleUrl = buildStyleUrl(styleId, apiKey)
-    if (lastStyleRef.current !== styleUrl) {
-      lastStyleRef.current = styleUrl
-      map.setStyle(styleUrl)
-    }
-  }, [styleId])
+
+    let cancelled = false
+
+    ;(async () => {
+      if (isPetiteStyle(styleId)) {
+        const key = `petite|${paletteId}|${customPaletteBase ?? ''}|${streetLabelsVisible}`
+        if (lastStyleKeyRef.current === key) return
+        try {
+          const style = await buildPetiteStyle({
+            paletteId,
+            customPaletteBase,
+            streetLabelsVisible,
+            apiKey,
+          })
+          if (cancelled) return
+          map.setStyle(style as maptilersdk.StyleSpecification)
+          lastStyleKeyRef.current = key
+        } catch (err) {
+          console.error('[MapPreview] buildPetiteStyle failed:', err)
+        }
+      } else {
+        const styleUrl = buildStyleUrl(styleId, apiKey)
+        if (lastStyleKeyRef.current === styleUrl) return
+        lastStyleKeyRef.current = styleUrl
+        map.setStyle(styleUrl)
+      }
+    })()
+
+    return () => { cancelled = true }
+  }, [styleId, paletteId, customPaletteBase, streetLabelsVisible])
 
   // Fly to geocoded location
   useEffect(() => {

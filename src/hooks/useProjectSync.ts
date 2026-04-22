@@ -13,6 +13,9 @@ function getConfig(): EditorConfig {
   return {
     viewState: s.viewState,
     styleId: s.styleId,
+    paletteId: s.paletteId,
+    customPaletteBase: s.customPaletteBase,
+    streetLabelsVisible: s.streetLabelsVisible,
     maskKey: s.maskKey,
     printFormat: s.printFormat,
     marker: s.marker,

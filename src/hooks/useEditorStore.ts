@@ -64,6 +64,9 @@ export interface EditorStore {
   pendingCenter: PendingCenter | null
   pendingZoomDelta: number | null
   styleId: string
+  paletteId: string
+  customPaletteBase: string | null
+  streetLabelsVisible: boolean
   maskKey: MapMaskKey
   printFormat: PrintFormat
   marker: MarkerState
@@ -82,6 +85,9 @@ export interface EditorStore {
   zoomOut: () => void
   clearZoomDelta: () => void
   setStyleId: (id: string) => void
+  setPaletteId: (id: string) => void
+  setCustomPaletteBase: (hex: string | null) => void
+  setStreetLabelsVisible: (visible: boolean) => void
   setMaskKey: (key: MapMaskKey) => void
   setPrintFormat: (format: PrintFormat) => void
   setMarker: (updates: Partial<MarkerState>) => void
@@ -112,6 +118,9 @@ export interface EditorStore {
 export interface EditorConfig {
   viewState: ViewState
   styleId: string
+  paletteId: string
+  customPaletteBase: string | null
+  streetLabelsVisible: boolean
   maskKey: MapMaskKey
   printFormat: PrintFormat
   marker: MarkerState
@@ -136,6 +145,9 @@ export const useEditorStore = create<EditorStore>((set) => ({
   pendingCenter: null,
   pendingZoomDelta: null,
   styleId: '019ce7b9-403f-703d-95e6-3936bbfe60dc',
+  paletteId: 'mint',
+  customPaletteBase: null,
+  streetLabelsVisible: false,
   maskKey: 'none',
   printFormat: 'a4',
   marker: { enabled: false, type: 'classic', color: '#e63946' },
@@ -190,6 +202,9 @@ export const useEditorStore = create<EditorStore>((set) => ({
   zoomOut: () => set({ pendingZoomDelta: -1 }),
   clearZoomDelta: () => set({ pendingZoomDelta: null }),
   setStyleId: (styleId) => set({ styleId }),
+  setPaletteId: (paletteId) => set({ paletteId }),
+  setCustomPaletteBase: (customPaletteBase) => set({ customPaletteBase }),
+  setStreetLabelsVisible: (streetLabelsVisible) => set({ streetLabelsVisible }),
   setMaskKey: (maskKey) => set({ maskKey }),
   setPrintFormat: (printFormat) => set({ printFormat }),
   setMarker: (updates) => set((s) => ({ marker: { ...s.marker, ...updates } })),
@@ -236,6 +251,9 @@ export const useEditorStore = create<EditorStore>((set) => ({
   loadFromConfig: (config) => set((s) => ({
     viewState: config.viewState ?? s.viewState,
     styleId: config.styleId ?? s.styleId,
+    paletteId: config.paletteId ?? s.paletteId,
+    customPaletteBase: config.customPaletteBase ?? s.customPaletteBase,
+    streetLabelsVisible: config.streetLabelsVisible ?? s.streetLabelsVisible,
     maskKey: config.maskKey ?? s.maskKey,
     printFormat: config.printFormat ?? s.printFormat,
     marker: config.marker ?? s.marker,
