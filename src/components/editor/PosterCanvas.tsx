@@ -145,12 +145,21 @@ export function PosterCanvas() {
               </>
             ) : isSplitPhoto && mapHalfSvg && photoHalfSvg ? (
               <>
-                {/* Primary map on one half */}
-                <div className="absolute inset-0" style={makeMaskStyle(mapHalfSvg)}>
+                {/* Primary map — clipped to the half opposite the photo, so
+                    the photo overlay doesn't steal its pointer events */}
+                <div
+                  className="absolute inset-0"
+                  style={{
+                    ...makeMaskStyle(mapHalfSvg),
+                    clipPath: photoIsRightZone
+                      ? 'polygon(0 0, 50% 0, 50% 100%, 0 100%)'
+                      : 'polygon(50% 0, 100% 0, 100% 100%, 50% 100%)',
+                  }}
+                >
                   <MapPreview storeSlice="primary" />
                 </div>
-                {/* Photo on the other half */}
-                <SplitPhotoOverlay svgPath={photoHalfSvg} />
+                {/* Photo on the opposite half */}
+                <SplitPhotoOverlay svgPath={photoHalfSvg} side={photoIsRightZone ? 'right' : 'left'} />
               </>
             ) : (
               <div

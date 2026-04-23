@@ -326,7 +326,8 @@ export const useEditorStore = create<EditorStore>((set) => ({
     set((s) => ({
       splitMode,
       secondMap: { ...s.secondMap, enabled: splitMode === 'second-map' },
-      splitPhoto: splitMode === 'photo' ? s.splitPhoto : null,
+      // Keep the uploaded split photo around so switching modes doesn't
+      // force the user to re-upload. It just becomes inactive.
     })),
   setSplitPhoto: (photo) => set({ splitPhoto: photo }),
   updateSplitPhoto: (updates) =>

@@ -6,6 +6,9 @@ import { filterCss } from '@/lib/photo-filters'
 interface Props {
   /** clip-path svg url from the active map mask (leftSvgPath or rightSvgPath). */
   svgPath: string
+  /** Which half of the poster the photo occupies, so pointer events stay
+   *  out of the opposite half and the map underneath remains draggable. */
+  side: 'left' | 'right'
 }
 
 /**
@@ -13,9 +16,16 @@ interface Props {
  * assigned. The SVG mask defines the visible shape; the photo itself
  * can be panned (cropX/cropY) and zoomed (cropScale) within that shape.
  */
-export function SplitPhotoOverlay({ svgPath }: Props) {
+export function SplitPhotoOverlay({ svgPath, side }: Props) {
   const { splitPhoto, updateSplitPhoto } = useEditorStore()
   if (!splitPhoto) return null
+
+  // Restrict pointer events to the half this photo occupies, so the map
+  // on the opposite half keeps working for drag + zoom.
+  const halfClip =
+    side === 'left'
+      ? 'polygon(0 0, 50% 0, 50% 100%, 0 100%)'
+      : 'polygon(50% 0, 100% 0, 100% 100%, 50% 100%)'
 
   const maskStyle: React.CSSProperties = {
     maskImage: `url(${svgPath})`,
@@ -24,6 +34,8 @@ export function SplitPhotoOverlay({ svgPath }: Props) {
     WebkitMaskRepeat: 'no-repeat',
     maskSize: '100% 100%',
     WebkitMaskSize: '100% 100%',
+    clipPath: halfClip,
+    WebkitClipPath: halfClip,
   }
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
