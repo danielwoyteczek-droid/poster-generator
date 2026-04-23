@@ -92,10 +92,15 @@ export function applyPreset(preset: PresetLike): UndoFn {
     splitMode: editor.splitMode,
     splitPhotoZone: editor.splitPhotoZone,
     splitPhoto: editor.splitPhoto,
+    pendingCenter: editor.pendingCenter,
   }
 
+  type MapConfigExtras = { zoom?: number; secondMapZoom?: number }
   useEditorStore.setState((state) => {
-    const c = config as Partial<EditorStore>
+    const c = config as Partial<EditorStore> & MapConfigExtras
+    const newSecondMap = c.secondMap ? { ...state.secondMap, ...c.secondMap } : state.secondMap
+    const zoom = typeof c.zoom === 'number' ? c.zoom : null
+    const secondZoom = typeof c.secondMapZoom === 'number' ? c.secondMapZoom : null
     return {
       ...state,
       styleId: c.styleId ?? state.styleId,
@@ -106,12 +111,17 @@ export function applyPreset(preset: PresetLike): UndoFn {
       maskKey: c.maskKey ?? state.maskKey,
       marker: c.marker ?? state.marker,
       secondMarker: c.secondMarker ?? state.secondMarker,
-      secondMap: c.secondMap ? { ...state.secondMap, ...c.secondMap } : state.secondMap,
+      secondMap: secondZoom != null
+        ? { ...newSecondMap, pendingCenter: { lng: state.secondMap.viewState.lng, lat: state.secondMap.viewState.lat, zoom: secondZoom } }
+        : newSecondMap,
       shapeConfig: c.shapeConfig ?? state.shapeConfig,
       textBlocks: c.textBlocks ?? state.textBlocks,
       splitMode: c.splitMode ?? state.splitMode,
       splitPhotoZone: c.splitPhotoZone ?? state.splitPhotoZone,
       splitPhoto: c.splitPhoto ?? state.splitPhoto,
+      pendingCenter: zoom != null
+        ? { lng: state.viewState.lng, lat: state.viewState.lat, zoom }
+        : state.pendingCenter,
     }
   })
 
