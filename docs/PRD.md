@@ -23,6 +23,7 @@ Ein webbasierter Karten-Poster-Generator, mit dem Nutzer ohne Designkenntnisse p
 | P1 | Admin-Bestellverwaltung (Fulfillment für physische Produkte) | Planned |
 | P2 | Stern-Karten-Generator | Planned |
 | P1 | Homepage (Landing Page) | Planned |
+| P1 | Layout-Presets (Textposition + Innenrand) | Planned |
 
 ## Success Metrics
 - Conversion Rate: >5% der anonymen Nutzer erstellen ein Konto
