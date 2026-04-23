@@ -52,7 +52,10 @@ async function getImageDimensions(file: File): Promise<{ width: number; height: 
 }
 
 export interface UploadOptions {
-  userId: string
+  /** Set when the user is logged in. If undefined, the upload lands under
+   *  the anonymous guest folder and a session UUID from localStorage. */
+  userId?: string | null
+  guestSessionId?: string
   onProgress?: (percent: number) => void
 }
 
@@ -81,7 +84,8 @@ export async function uploadPhoto(file: File, opts: UploadOptions): Promise<Uplo
   const uuid = crypto.randomUUID()
   const now = new Date()
   const ym = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`
-  const storagePath = `${opts.userId}/${ym}/${uuid}.jpg`
+  const folder = opts.userId ? opts.userId : `anon/${opts.guestSessionId ?? 'unknown'}`
+  const storagePath = `${folder}/${ym}/${uuid}.jpg`
 
   const { error } = await supabase.storage
     .from(BUCKET)

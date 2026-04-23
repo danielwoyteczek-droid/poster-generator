@@ -19,6 +19,7 @@ import { STYLE_OPTIONS } from '@/lib/map-style-options'
 import { MAP_PALETTES, paletteFromBaseColor, type MapPaletteColors } from '@/lib/map-palettes'
 import { PETITE_BASE_STYLE_ID } from '@/lib/petite-style-loader'
 import { uploadPhoto, deletePhoto } from '@/lib/photo-upload'
+import { getOrCreateGuestSessionId } from '@/lib/guest-session'
 import { PHOTO_FILTERS } from '@/lib/photo-filters'
 import { cn } from '@/lib/utils'
 
@@ -74,12 +75,12 @@ export function MapTab() {
   const zoneLabel = ZONE_LABELS[splitPhotoZone] ?? `Zone ${splitPhotoZone + 1}`
 
   const handleSplitPhotoFile = async (file: File) => {
-    if (!user) { toast.error('Bitte melde dich an, um Fotos hochzuladen.'); return }
     setSplitUploading(true)
     setSplitProgress(0)
     try {
       const uploaded = await uploadPhoto(file, {
-        userId: user.id,
+        userId: user?.id,
+        guestSessionId: user ? undefined : getOrCreateGuestSessionId(),
         onProgress: setSplitProgress,
       })
       setSplitPhoto({
@@ -199,7 +200,7 @@ export function MapTab() {
               <Button
                 type="button"
                 onClick={() => splitPhotoInputRef.current?.click()}
-                disabled={!user || splitUploading}
+                disabled={splitUploading}
                 variant="outline"
                 className="w-full"
               >

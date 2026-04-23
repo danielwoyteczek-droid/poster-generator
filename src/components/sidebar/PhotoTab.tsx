@@ -9,6 +9,7 @@ import { Separator } from '@/components/ui/separator'
 import { useEditorStore } from '@/hooks/useEditorStore'
 import { useAuth } from '@/hooks/useAuth'
 import { uploadPhoto, deletePhoto } from '@/lib/photo-upload'
+import { getOrCreateGuestSessionId } from '@/lib/guest-session'
 import { PHOTO_MASK_OPTIONS, type PhotoMaskKey } from '@/lib/photo-masks'
 import { PHOTO_FILTERS } from '@/lib/photo-filters'
 import type { PhotoFilter } from '@/hooks/useEditorStore'
@@ -22,15 +23,12 @@ export function PhotoTab() {
   const [progress, setProgress] = useState(0)
 
   const handleFile = async (file: File) => {
-    if (!user) {
-      toast.error('Bitte melde dich an, um Fotos hochzuladen.')
-      return
-    }
     setIsUploading(true)
     setProgress(0)
     try {
       const uploaded = await uploadPhoto(file, {
-        userId: user.id,
+        userId: user?.id,
+        guestSessionId: user ? undefined : getOrCreateGuestSessionId(),
         onProgress: setProgress,
       })
       addPhoto({
@@ -76,8 +74,8 @@ export function PhotoTab() {
           Foto hochladen
         </Label>
         {!user && (
-          <p className="text-xs text-gray-500">
-            Melde dich an, um eigene Fotos hochzuladen.
+          <p className="text-[11px] text-gray-500 leading-relaxed">
+            Du kannst auch ohne Konto hochladen. Fotos ohne Bestellung werden nach 7 Tagen automatisch gelöscht.
           </p>
         )}
         <input
@@ -93,7 +91,7 @@ export function PhotoTab() {
         <Button
           type="button"
           onClick={() => fileInputRef.current?.click()}
-          disabled={!user || isUploading}
+          disabled={isUploading}
           variant="outline"
           className="w-full"
         >
