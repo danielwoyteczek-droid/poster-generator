@@ -134,6 +134,7 @@ export default function MapPreviewInner({ storeSlice = 'primary' }: MapPreviewIn
       const key = `${layoutId}|${paletteId}|${customPaletteBase ?? ''}|${JSON.stringify(customPalette ?? null)}|${streetLabelsVisible}`
       if (lastStyleKeyRef.current === key) return
       try {
+        console.log('[MapPreview] loading layout:', layoutId, 'palette:', paletteId)
         const style = await buildPetiteStyle({
           layoutId,
           paletteId,
@@ -143,6 +144,7 @@ export default function MapPreviewInner({ storeSlice = 'primary' }: MapPreviewIn
           apiKey,
         })
         if (cancelled) return
+        console.log('[MapPreview] style built, layers:', (style as { layers?: unknown[] }).layers?.length)
         map.setStyle(style as maptilersdk.StyleSpecification)
         lastStyleKeyRef.current = key
       } catch (err) {

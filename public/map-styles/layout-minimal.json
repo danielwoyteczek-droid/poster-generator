@@ -12,18 +12,14 @@
     {
       "id": "background",
       "type": "background",
-      "paint": {
-        "background-color": "#f8f8f6"
-      }
+      "paint": { "background-color": "#f8f8f6" }
     },
     {
       "id": "water",
       "type": "fill",
       "source": "maptiler_planet",
       "source-layer": "water",
-      "paint": {
-        "fill-color": "#c7dbef"
-      }
+      "paint": { "fill-color": "#c7dbef" }
     },
     {
       "id": "waterway",
@@ -32,14 +28,7 @@
       "source-layer": "waterway",
       "paint": {
         "line-color": "#c7dbef",
-        "line-width": [
-          "interpolate",
-          ["linear"],
-          ["zoom"],
-          5, 0.5,
-          10, 1.2,
-          14, 2.5
-        ]
+        "line-width": { "stops": [[5, 0.5], [10, 1.2], [14, 2.5]] }
       }
     },
     {
@@ -47,18 +36,10 @@
       "type": "fill",
       "source": "maptiler_planet",
       "source-layer": "landuse",
-      "filter": ["==", ["get", "class"], "residential"],
+      "filter": ["==", "class", "residential"],
       "paint": {
         "fill-color": "#111111",
-        "fill-opacity": [
-          "interpolate",
-          ["linear"],
-          ["zoom"],
-          5, 0.10,
-          8, 0.16,
-          11, 0.22,
-          13, 0.10
-        ]
+        "fill-opacity": { "stops": [[5, 0.10], [8, 0.16], [11, 0.22], [13, 0.10]] }
       }
     },
     {
@@ -66,18 +47,10 @@
       "type": "fill",
       "source": "maptiler_planet",
       "source-layer": "landuse",
-      "filter": ["in", ["get", "class"], ["literal", ["industrial", "commercial", "retail"]]],
+      "filter": ["in", "class", "industrial", "commercial", "retail"],
       "paint": {
         "fill-color": "#111111",
-        "fill-opacity": [
-          "interpolate",
-          ["linear"],
-          ["zoom"],
-          5, 0.12,
-          8, 0.18,
-          11, 0.26,
-          13, 0.14
-        ]
+        "fill-opacity": { "stops": [[5, 0.12], [8, 0.18], [11, 0.26], [13, 0.14]] }
       }
     },
     {
@@ -85,27 +58,17 @@
       "type": "fill",
       "source": "maptiler_planet",
       "source-layer": "park",
-      "paint": {
-        "fill-color": "#f3f3f0",
-        "fill-opacity": 1
-      }
+      "paint": { "fill-color": "#f3f3f0", "fill-opacity": 1 }
     },
     {
       "id": "roads-minor",
       "type": "line",
       "source": "maptiler_planet",
       "source-layer": "transportation",
-      "filter": ["in", ["get", "class"], ["literal", ["minor", "service", "track"]]],
+      "filter": ["in", "class", "minor", "service", "track"],
       "paint": {
         "line-color": "#efefec",
-        "line-width": [
-          "interpolate",
-          ["linear"],
-          ["zoom"],
-          10, 0.3,
-          14, 0.8,
-          16, 1.2
-        ],
+        "line-width": { "stops": [[10, 0.3], [14, 0.8], [16, 1.2]] },
         "line-opacity": 0.35
       }
     },
@@ -114,18 +77,10 @@
       "type": "line",
       "source": "maptiler_planet",
       "source-layer": "transportation",
-      "filter": ["in", ["get", "class"], ["literal", ["primary", "secondary", "tertiary", "trunk"]]],
+      "filter": ["in", "class", "primary", "secondary", "tertiary", "trunk"],
       "paint": {
         "line-color": "#ecebe7",
-        "line-width": [
-          "interpolate",
-          ["linear"],
-          ["zoom"],
-          6, 0.4,
-          10, 0.8,
-          14, 1.8,
-          16, 2.8
-        ],
+        "line-width": { "stops": [[6, 0.4], [10, 0.8], [14, 1.8], [16, 2.8]] },
         "line-opacity": 0.45
       }
     },
@@ -137,14 +92,7 @@
       "minzoom": 13,
       "paint": {
         "fill-color": "#111111",
-        "fill-opacity": [
-          "interpolate",
-          ["linear"],
-          ["zoom"],
-          13, 0.55,
-          14, 0.75,
-          16, 0.95
-        ]
+        "fill-opacity": { "stops": [[13, 0.55], [14, 0.75], [16, 0.95]] }
       }
     }
   ]
