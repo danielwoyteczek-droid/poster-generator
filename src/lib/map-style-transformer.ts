@@ -90,14 +90,15 @@ function applyRoleColor(layer: Layer, role: Exclude<Role, null>, palette: MapPal
 }
 
 export interface TransformOptions {
-  palette: MapPalette
+  palette: MapPalette | null
   streetLabelsVisible?: boolean
 }
 
 /**
- * Deep-clone the base style and apply the palette's colours to every
- * layer whose role we can identify. `streetLabelsVisible` toggles
- * only the street-name symbol layer; other place labels stay visible.
+ * Deep-clone the base style and, if a palette is supplied, apply its
+ * colours to every layer whose role we can identify. When palette is
+ * null the layout keeps its native colours — used for the "Original"
+ * option. `streetLabelsVisible` always applies.
  */
 export function transformStyle(baseStyle: Style, opts: TransformOptions): Style {
   const style: Style = structuredClone(baseStyle)
@@ -105,7 +106,7 @@ export function transformStyle(baseStyle: Style, opts: TransformOptions): Style 
 
   for (const layer of style.layers as Layer[]) {
     const role = detectRole(layer)
-    if (role) applyRoleColor(layer, role, opts.palette)
+    if (role && opts.palette) applyRoleColor(layer, role, opts.palette)
     if (role === 'label-road') {
       layer.layout = {
         ...(layer.layout ?? {}),

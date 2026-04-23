@@ -48,7 +48,8 @@ export function resolvePalette(
   paletteId: string,
   customBase: string | null,
   customPalette?: MapPaletteColors | null,
-): MapPalette {
+): MapPalette | null {
+  if (paletteId === 'original') return null
   if (paletteId === 'custom') {
     const basis = paletteFromBaseColor(customBase ?? '#84c5a6')
     if (customPalette) {

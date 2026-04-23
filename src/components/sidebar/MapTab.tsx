@@ -300,6 +300,19 @@ export function MapTab() {
                 <div className="space-y-1.5 pt-2">
                   <Label className="text-xs text-gray-500">Farbpalette (rechts)</Label>
                   <div className="grid grid-cols-3 gap-1.5">
+                    <button
+                      onClick={() => setSecondMapPaletteId('original')}
+                      className={cn(
+                        'rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
+                        secondMap.paletteId === 'original'
+                          ? 'border-gray-900'
+                          : 'border-gray-200 hover:border-gray-400',
+                      )}
+                      title="Farben aus dem Layout übernehmen"
+                    >
+                      <div className="w-3 h-3 rounded-full border border-black/10 bg-gradient-to-br from-gray-200 via-gray-400 to-gray-600" />
+                      <span className="text-[10px] leading-tight text-gray-700">Original</span>
+                    </button>
                     {MAP_PALETTES.map((p) => {
                       const c = p.colors
                       return (
@@ -432,6 +445,19 @@ export function MapTab() {
         <div className="space-y-1.5">
           <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400">Farbpalette</Label>
           <div className="grid grid-cols-3 gap-1.5">
+            <button
+              onClick={() => setPaletteId('original')}
+              className={cn(
+                'rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
+                paletteId === 'original'
+                  ? 'border-gray-900'
+                  : 'border-gray-200 hover:border-gray-400',
+              )}
+              title="Farben aus dem Layout übernehmen"
+            >
+              <div className="w-3 h-3 rounded-full border border-black/10 bg-gradient-to-br from-gray-200 via-gray-400 to-gray-600" />
+              <span className="text-[10px] leading-tight text-gray-700">Original</span>
+            </button>
             {MAP_PALETTES.map((p) => {
               const c = p.colors
               return (
