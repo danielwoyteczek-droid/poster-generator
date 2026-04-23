@@ -54,9 +54,9 @@ export function LandingNav() {
           <img
             src="/brand/logo_1200x300.svg"
             alt="petite-moment"
-            className="h-6 w-auto"
-            width={160}
-            height={32}
+            className="h-9 w-auto"
+            width={192}
+            height={48}
           />
         </Link>
 

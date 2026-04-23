@@ -29,9 +29,9 @@ export async function LandingFooter() {
             <img
               src="/brand/logo_1200x300.svg"
               alt="petite-moment"
-              className="h-6 w-auto mb-3"
-              width={160}
-              height={32}
+              className="h-10 w-auto mb-3"
+              width={224}
+              height={56}
             />
             <p className="text-xs text-gray-500 leading-relaxed">
               Individuelle Karten- und Sternenposter, die deinen Moment zeigen.
