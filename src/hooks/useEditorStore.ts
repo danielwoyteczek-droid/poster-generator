@@ -211,7 +211,7 @@ export const useEditorStore = create<EditorStore>((set) => ({
   viewState: DEFAULT_VIEW,
   pendingCenter: null,
   pendingZoomDelta: null,
-  styleId: 'classic',
+  styleId: 'klassisch',
   paletteId: 'mint',
   customPaletteBase: null,
   customPalette: null,
@@ -223,7 +223,7 @@ export const useEditorStore = create<EditorStore>((set) => ({
   shapeConfig: DEFAULT_SHAPE_CONFIG,
   secondMap: {
     enabled: false,
-    styleId: 'classic',
+    styleId: 'klassisch',
     paletteId: 'mint',
     customPaletteBase: null,
     customPalette: null,

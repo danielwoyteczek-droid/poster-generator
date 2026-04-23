@@ -18,15 +18,27 @@ export interface MapLayoutDefinition {
 
 export const MAP_LAYOUTS: MapLayoutDefinition[] = [
   {
-    id: 'classic',
+    id: 'klassisch',
     label: 'Klassisch',
     description: 'Klare Grundstruktur mit Straßen und Orts-Labels.',
-    file: '/map-styles/layout-classic.json',
+    file: '/map-styles/layout-klassisch.json',
+  },
+  {
+    id: 'satellite',
+    label: 'Satellit',
+    description: 'Satellitenbild – die Palette wirkt hier nicht auf die Luftaufnahme.',
+    file: '/map-styles/layout-satellite.json',
+  },
+  {
+    id: 'minimal',
+    label: 'Minimal',
+    description: 'Reduzierte Poster-Optik mit Urban-Flächen und feinen Straßen.',
+    file: '/map-styles/layout-minimal.json',
   },
   // Additional layouts get added here once the operator exports them.
 ]
 
-export const DEFAULT_LAYOUT_ID = 'classic'
+export const DEFAULT_LAYOUT_ID = 'klassisch'
 
 export function getLayout(id: string): MapLayoutDefinition {
   return MAP_LAYOUTS.find((l) => l.id === id) ?? MAP_LAYOUTS[0]
