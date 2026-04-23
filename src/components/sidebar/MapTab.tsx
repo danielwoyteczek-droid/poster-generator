@@ -278,7 +278,7 @@ export function MapTab() {
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs text-gray-500">Layout (rechts)</Label>
+              <Label className="text-xs text-gray-500">Kartenstil (rechts)</Label>
               <div className="grid grid-cols-2 gap-1.5">
                 {MAP_LAYOUTS.map((layout) => (
                   <button
@@ -308,7 +308,7 @@ export function MapTab() {
                           ? 'border-gray-900'
                           : 'border-gray-200 hover:border-gray-400',
                       )}
-                      title="Farben aus dem Layout übernehmen"
+                      title="Farben aus dem Kartenstil übernehmen"
                     >
                       <div className="w-3 h-3 rounded-full border border-black/10 bg-gradient-to-br from-gray-200 via-gray-400 to-gray-600" />
                       <span className="text-[10px] leading-tight text-gray-700">Original</span>
@@ -421,7 +421,7 @@ export function MapTab() {
 
       {/* Map layout — choose detail level / what's shown at which zoom */}
       <div className="space-y-1.5">
-        <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400">Layout</Label>
+        <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400">Kartenstil</Label>
         <div className="grid grid-cols-2 gap-1.5">
           {MAP_LAYOUTS.map((layout) => (
             <button
@@ -453,7 +453,7 @@ export function MapTab() {
                   ? 'border-gray-900'
                   : 'border-gray-200 hover:border-gray-400',
               )}
-              title="Farben aus dem Layout übernehmen"
+              title="Farben aus dem Kartenstil übernehmen"
             >
               <div className="w-3 h-3 rounded-full border border-black/10 bg-gradient-to-br from-gray-200 via-gray-400 to-gray-600" />
               <span className="text-[10px] leading-tight text-gray-700">Original</span>
