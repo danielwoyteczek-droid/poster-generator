@@ -33,7 +33,7 @@ function detectRole(layer: Layer): Role {
   if (type === 'background') return 'background'
   if (src === 'water' && type === 'fill') return 'water'
   if (src === 'waterway' && type === 'line') return 'water'
-  if (src === 'landcover' || src === 'landuse' || src === 'park') return 'land'
+  if ((src === 'landcover' || src === 'landuse' || src === 'park') && type === 'fill') return 'land'
   if (src === 'transportation' && (type === 'line' || type === 'fill')) return 'road'
   if (src === 'boundary' && type === 'line') return 'border'
   if (src === 'building' && type === 'fill') return 'building'
