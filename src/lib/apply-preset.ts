@@ -81,6 +81,7 @@ export function applyPreset(preset: PresetLike): UndoFn {
     styleId: editor.styleId,
     paletteId: editor.paletteId,
     customPaletteBase: editor.customPaletteBase,
+    customPalette: editor.customPalette,
     streetLabelsVisible: editor.streetLabelsVisible,
     maskKey: editor.maskKey,
     marker: editor.marker,
@@ -90,6 +91,7 @@ export function applyPreset(preset: PresetLike): UndoFn {
     textBlocks: editor.textBlocks,
     splitMode: editor.splitMode,
     splitPhotoZone: editor.splitPhotoZone,
+    splitPhoto: editor.splitPhoto,
   }
 
   useEditorStore.setState((state) => {
@@ -99,6 +101,7 @@ export function applyPreset(preset: PresetLike): UndoFn {
       styleId: c.styleId ?? state.styleId,
       paletteId: c.paletteId ?? state.paletteId,
       customPaletteBase: c.customPaletteBase ?? state.customPaletteBase,
+      customPalette: c.customPalette ?? state.customPalette,
       streetLabelsVisible: c.streetLabelsVisible ?? state.streetLabelsVisible,
       maskKey: c.maskKey ?? state.maskKey,
       marker: c.marker ?? state.marker,
@@ -108,6 +111,7 @@ export function applyPreset(preset: PresetLike): UndoFn {
       textBlocks: c.textBlocks ?? state.textBlocks,
       splitMode: c.splitMode ?? state.splitMode,
       splitPhotoZone: c.splitPhotoZone ?? state.splitPhotoZone,
+      splitPhoto: c.splitPhoto ?? state.splitPhoto,
     }
   })
 

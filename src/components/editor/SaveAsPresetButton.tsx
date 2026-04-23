@@ -75,12 +75,19 @@ export function SaveAsPresetButton() {
       } else {
         configJson = {
           styleId: editor.styleId,
+          paletteId: editor.paletteId,
+          customPaletteBase: editor.customPaletteBase,
+          customPalette: editor.customPalette,
+          streetLabelsVisible: editor.streetLabelsVisible,
           maskKey: editor.maskKey,
           marker: editor.marker,
           secondMarker: editor.secondMarker,
           secondMap: editor.secondMap,
           shapeConfig: editor.shapeConfig,
           textBlocks: editor.textBlocks,
+          splitMode: editor.splitMode,
+          splitPhotoZone: editor.splitPhotoZone,
+          splitPhoto: editor.splitPhoto,
         }
       }
 
