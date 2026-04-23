@@ -23,6 +23,13 @@ export interface MapMaskDefinition {
   leftSvgPath?: string
   rightSvgPath?: string
   /**
+   * When true, skip the poster-middle 50% clip-path for split rendering.
+   * Used when the left/right shapes intentionally extend across the midline
+   * (entwined hearts etc.) — without this flag the shapes would be cut
+   * along the poster centre.
+   */
+  noHalfClip?: boolean
+  /**
    * Pure shape definition (viewBox + inner markup). Present for non-split
    * masks that participate in the mask composer. Split masks or the "none"
    * entry have no shape.
@@ -49,6 +56,7 @@ export const MAP_MASKS: Record<MapMaskKey, MapMaskDefinition> = {
     isSplit: true,
     leftSvgPath: '/masks/heart1-left.svg',
     rightSvgPath: '/masks/heart1-right.svg',
+    noHalfClip: true,
   },
   'heart-single': {
     key: 'heart-single',

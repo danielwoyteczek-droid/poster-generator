@@ -122,22 +122,23 @@ export function PosterCanvas() {
           >
             {isDualMap ? (
               <>
-                {/* Left map — clip-path restricts pointer events to left half */}
+                {/* Left map — clip-path restricts pointer events to left half unless the
+                    mask explicitly extends across the midline */}
                 <div
                   className="absolute inset-0"
                   style={{
                     ...(mask.leftSvgPath ? makeMaskStyle(mask.leftSvgPath) : {}),
-                    clipPath: 'polygon(0 0, 50% 0, 50% 100%, 0 100%)',
+                    ...(mask.noHalfClip ? {} : { clipPath: 'polygon(0 0, 50% 0, 50% 100%, 0 100%)' }),
                   }}
                 >
                   <MapPreview storeSlice="primary" />
                 </div>
-                {/* Right map — clip-path restricts pointer events to right half */}
+                {/* Right map — same, but clipped to the right half */}
                 <div
                   className="absolute inset-0"
                   style={{
                     ...(mask.rightSvgPath ? makeMaskStyle(mask.rightSvgPath) : {}),
-                    clipPath: 'polygon(50% 0, 100% 0, 100% 100%, 50% 100%)',
+                    ...(mask.noHalfClip ? {} : { clipPath: 'polygon(50% 0, 100% 0, 100% 100%, 50% 100%)' }),
                   }}
                 >
                   <MapPreview storeSlice="secondary" />
@@ -145,21 +146,26 @@ export function PosterCanvas() {
               </>
             ) : isSplitPhoto && mapHalfSvg && photoHalfSvg ? (
               <>
-                {/* Primary map — clipped to the half opposite the photo, so
-                    the photo overlay doesn't steal its pointer events */}
+                {/* Primary map — clipped to its half unless the mask spans both halves */}
                 <div
                   className="absolute inset-0"
                   style={{
                     ...makeMaskStyle(mapHalfSvg),
-                    clipPath: photoIsRightZone
-                      ? 'polygon(0 0, 50% 0, 50% 100%, 0 100%)'
-                      : 'polygon(50% 0, 100% 0, 100% 100%, 50% 100%)',
+                    ...(mask.noHalfClip
+                      ? {}
+                      : { clipPath: photoIsRightZone
+                          ? 'polygon(0 0, 50% 0, 50% 100%, 0 100%)'
+                          : 'polygon(50% 0, 100% 0, 100% 100%, 50% 100%)' }),
                   }}
                 >
                   <MapPreview storeSlice="primary" />
                 </div>
                 {/* Photo on the opposite half */}
-                <SplitPhotoOverlay svgPath={photoHalfSvg} side={photoIsRightZone ? 'right' : 'left'} />
+                <SplitPhotoOverlay
+                  svgPath={photoHalfSvg}
+                  side={photoIsRightZone ? 'right' : 'left'}
+                  noHalfClip={mask.noHalfClip}
+                />
               </>
             ) : (
               <div

@@ -9,6 +9,9 @@ interface Props {
   /** Which half of the poster the photo occupies, so pointer events stay
    *  out of the opposite half and the map underneath remains draggable. */
   side: 'left' | 'right'
+  /** When true, the photo overlay covers the whole poster (used when the
+   *  mask extends across the midline and the half-clip would cut it). */
+  noHalfClip?: boolean
 }
 
 /**
@@ -16,14 +19,15 @@ interface Props {
  * assigned. The SVG mask defines the visible shape; the photo itself
  * can be panned (cropX/cropY) and zoomed (cropScale) within that shape.
  */
-export function SplitPhotoOverlay({ svgPath, side }: Props) {
+export function SplitPhotoOverlay({ svgPath, side, noHalfClip }: Props) {
   const { splitPhoto, updateSplitPhoto } = useEditorStore()
   if (!splitPhoto) return null
 
   // Restrict pointer events to the half this photo occupies, so the map
   // on the opposite half keeps working for drag + zoom.
-  const halfClip =
-    side === 'left'
+  const halfClip = noHalfClip
+    ? undefined
+    : side === 'left'
       ? 'polygon(0 0, 50% 0, 50% 100%, 0 100%)'
       : 'polygon(50% 0, 100% 0, 100% 100%, 50% 100%)'
 
@@ -34,8 +38,7 @@ export function SplitPhotoOverlay({ svgPath, side }: Props) {
     WebkitMaskRepeat: 'no-repeat',
     maskSize: '100% 100%',
     WebkitMaskSize: '100% 100%',
-    clipPath: halfClip,
-    WebkitClipPath: halfClip,
+    ...(halfClip ? { clipPath: halfClip, WebkitClipPath: halfClip } : {}),
   }
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
