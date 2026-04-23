@@ -20,7 +20,7 @@ export default function HomePage() {
   return (
     <>
       <LandingNav />
-      <main className="pt-14">
+      <main className="pt-16">
         <HeroSection />
         <FeaturesSection />
         <ExamplesSection />

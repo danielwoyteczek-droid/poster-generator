@@ -20,7 +20,7 @@ export default async function AboutPage() {
   const page = await getAboutPage()
 
   return (
-    <div className="min-h-screen flex flex-col pt-14 bg-white">
+    <div className="min-h-screen flex flex-col pt-16 bg-white">
       <LandingNav />
       <main className="flex-1">
         {page?.heroImage && (

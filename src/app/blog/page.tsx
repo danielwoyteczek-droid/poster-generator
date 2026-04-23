@@ -17,7 +17,7 @@ export default async function BlogIndexPage() {
   const posts = (await listBlogPosts()) ?? []
 
   return (
-    <div className="min-h-screen flex flex-col pt-14 bg-white">
+    <div className="min-h-screen flex flex-col pt-16 bg-white">
       <LandingNav />
       <main className="flex-1">
         <div className="max-w-5xl mx-auto px-6 py-12">

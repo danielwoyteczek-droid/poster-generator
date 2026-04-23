@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 
 export default function StarMapPage() {
   return (
-    <div className="h-screen flex flex-col overflow-hidden pt-14">
+    <div className="h-screen flex flex-col overflow-hidden pt-16">
       <LandingNav />
       <Suspense fallback={null}>
         <PresetUrlApplier posterType="star-map" />

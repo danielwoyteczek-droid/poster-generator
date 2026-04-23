@@ -30,7 +30,7 @@ export default async function FaqPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col pt-14 bg-white">
+    <div className="min-h-screen flex flex-col pt-16 bg-white">
       <LandingNav />
       {items.length > 0 && (
         <script

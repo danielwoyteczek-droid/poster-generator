@@ -48,15 +48,15 @@ export function LandingNav() {
 
   return (
     <header className="fixed top-0 inset-x-0 z-50 bg-white/90 backdrop-blur-sm border-b border-gray-200/80">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center" aria-label="petite-moment Startseite">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/brand/logo_1200x300.svg"
             alt="petite-moment"
-            className="h-9 w-auto"
-            width={192}
-            height={48}
+            className="h-10 w-auto"
+            width={224}
+            height={56}
           />
         </Link>
 
@@ -65,7 +65,7 @@ export function LandingNav() {
             <Link
               key={link.href}
               href={link.href}
-              className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
+              className="relative text-sm text-gray-600 hover:text-gray-900 transition-colors py-1 after:absolute after:left-0 after:-bottom-0.5 after:h-px after:w-full after:origin-left after:scale-x-0 after:bg-gray-900 after:transition-transform after:duration-300 after:ease-out hover:after:scale-x-100"
             >
               {link.label}
             </Link>
