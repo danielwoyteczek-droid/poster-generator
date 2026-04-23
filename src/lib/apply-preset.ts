@@ -79,12 +79,17 @@ export function applyPreset(preset: PresetLike): UndoFn {
   const editor = useEditorStore.getState()
   const snapshot = {
     styleId: editor.styleId,
+    paletteId: editor.paletteId,
+    customPaletteBase: editor.customPaletteBase,
+    streetLabelsVisible: editor.streetLabelsVisible,
     maskKey: editor.maskKey,
     marker: editor.marker,
     secondMarker: editor.secondMarker,
     secondMap: editor.secondMap,
     shapeConfig: editor.shapeConfig,
     textBlocks: editor.textBlocks,
+    splitMode: editor.splitMode,
+    splitPhotoZone: editor.splitPhotoZone,
   }
 
   useEditorStore.setState((state) => {
@@ -92,12 +97,17 @@ export function applyPreset(preset: PresetLike): UndoFn {
     return {
       ...state,
       styleId: c.styleId ?? state.styleId,
+      paletteId: c.paletteId ?? state.paletteId,
+      customPaletteBase: c.customPaletteBase ?? state.customPaletteBase,
+      streetLabelsVisible: c.streetLabelsVisible ?? state.streetLabelsVisible,
       maskKey: c.maskKey ?? state.maskKey,
       marker: c.marker ?? state.marker,
       secondMarker: c.secondMarker ?? state.secondMarker,
       secondMap: c.secondMap ? { ...state.secondMap, ...c.secondMap } : state.secondMap,
       shapeConfig: c.shapeConfig ?? state.shapeConfig,
       textBlocks: c.textBlocks ?? state.textBlocks,
+      splitMode: c.splitMode ?? state.splitMode,
+      splitPhotoZone: c.splitPhotoZone ?? state.splitPhotoZone,
     }
   })
 
