@@ -13,7 +13,14 @@ export interface ShapeConfigState {
   outer: {
     mode: OuterMode
     opacity: number // 0..1, used when mode === 'opacity'
-    margin: number  // mm from poster edge (all sides equal)
+    /** Margin in mm. When marginLocked is true this value applies to all
+     *  four sides and the per-side fields are ignored. */
+    margin: number
+    marginLocked?: boolean
+    marginTop?: number
+    marginRight?: number
+    marginBottom?: number
+    marginLeft?: number
   }
   innerFrame: {
     enabled: boolean
@@ -30,7 +37,7 @@ export interface ShapeConfigState {
 }
 
 export const DEFAULT_SHAPE_CONFIG: ShapeConfigState = {
-  outer: { mode: 'none', opacity: 0.3, margin: 10 },
+  outer: { mode: 'none', opacity: 0.3, margin: 10, marginLocked: true },
   innerFrame: { enabled: false, color: '#1a1a1a', thickness: 0.7 },
   outerFrame: { enabled: false, color: '#1a1a1a', thickness: 0.7, style: 'single', gap: 1.5 },
 }
@@ -90,6 +97,26 @@ export function parseShapeSvg(svgString: string): ShapeDefinition | null {
 }
 
 /**
+ * Resolve the four side margins (mm) from the config. If locked or the
+ * per-side fields are missing, all sides use `outer.margin`.
+ */
+function resolveSideMarginsMm(config: ShapeConfigState): {
+  top: number; right: number; bottom: number; left: number
+} {
+  const o = config.outer
+  const locked = o.marginLocked !== false
+  if (locked) {
+    return { top: o.margin, right: o.margin, bottom: o.margin, left: o.margin }
+  }
+  return {
+    top: o.marginTop ?? o.margin,
+    right: o.marginRight ?? o.margin,
+    bottom: o.marginBottom ?? o.margin,
+    left: o.marginLeft ?? o.margin,
+  }
+}
+
+/**
  * Build the final alpha-mask SVG for a given shape + config.
  * Resulting SVG uses fill-opacity to indicate map visibility per region.
  */
@@ -98,12 +125,16 @@ export function composeMaskSvg(shape: ShapeDefinition, config: ShapeConfigState)
   const { outer } = config
 
   if (outer.mode !== 'none') {
-    const m = mmToUnits(outer.margin, shape.width)
-    const w = shape.width - 2 * m
-    const h = shape.height - 2 * m
+    const sides = resolveSideMarginsMm(config)
+    const mT = mmToUnits(sides.top, shape.width)
+    const mR = mmToUnits(sides.right, shape.width)
+    const mB = mmToUnits(sides.bottom, shape.width)
+    const mL = mmToUnits(sides.left, shape.width)
+    const w = shape.width - mL - mR
+    const h = shape.height - mT - mB
     const op = outer.mode === 'full' ? 1 : outer.opacity
     parts.push(
-      `<rect x="${m}" y="${m}" width="${w}" height="${h}" fill="#fff" fill-opacity="${op}"/>`,
+      `<rect x="${mL}" y="${mT}" width="${w}" height="${h}" fill="#fff" fill-opacity="${op}"/>`,
     )
   }
 
@@ -121,21 +152,27 @@ export function composeFrameSvg(shape: ShapeDefinition, config: ShapeConfigState
   const { innerFrame, outerFrame } = config
 
   if (outerFrame.enabled) {
-    const m = mmToUnits(config.outer.margin, shape.width)
+    const sides = resolveSideMarginsMm(config)
+    const mT = mmToUnits(sides.top, shape.width)
+    const mR = mmToUnits(sides.right, shape.width)
+    const mB = mmToUnits(sides.bottom, shape.width)
+    const mL = mmToUnits(sides.left, shape.width)
     const thickness = mmToUnits(outerFrame.thickness, shape.width)
-    const w = shape.width - 2 * m
-    const h = shape.height - 2 * m
+    const w = shape.width - mL - mR
+    const h = shape.height - mT - mB
     parts.push(
-      `<rect x="${m}" y="${m}" width="${w}" height="${h}" fill="none" stroke="${outerFrame.color}" stroke-width="${thickness}"/>`,
+      `<rect x="${mL}" y="${mT}" width="${w}" height="${h}" fill="none" stroke="${outerFrame.color}" stroke-width="${thickness}"/>`,
     )
     if (outerFrame.style === 'double') {
       const gap = mmToUnits(outerFrame.gap, shape.width)
-      const innerOffset = m + thickness + gap
-      const innerW = shape.width - 2 * innerOffset
-      const innerH = shape.height - 2 * innerOffset
+      const off = thickness + gap
+      const innerX = mL + off
+      const innerY = mT + off
+      const innerW = shape.width - mL - mR - 2 * off
+      const innerH = shape.height - mT - mB - 2 * off
       if (innerW > 0 && innerH > 0) {
         parts.push(
-          `<rect x="${innerOffset}" y="${innerOffset}" width="${innerW}" height="${innerH}" fill="none" stroke="${outerFrame.color}" stroke-width="${thickness}"/>`,
+          `<rect x="${innerX}" y="${innerY}" width="${innerW}" height="${innerH}" fill="none" stroke="${outerFrame.color}" stroke-width="${thickness}"/>`,
         )
       }
     }

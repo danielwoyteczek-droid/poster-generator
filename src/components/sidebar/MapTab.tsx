@@ -533,16 +533,82 @@ export function MapTab() {
                 </div>
               )}
               {shapeConfig.outer.mode !== 'none' && (
-                <div className="space-y-1 pt-1">
+                <div className="space-y-2 pt-1">
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] text-gray-600">Abstand zum Poster-Rand</span>
-                    <span className="text-[11px] text-gray-400 tabular-nums">{shapeConfig.outer.margin} mm</span>
+                    <label className="flex items-center gap-1.5 text-[11px] text-gray-500 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={shapeConfig.outer.marginLocked !== false}
+                        onChange={(e) =>
+                          setShapeOuter({
+                            marginLocked: e.target.checked,
+                            ...(e.target.checked
+                              ? {
+                                  marginTop: shapeConfig.outer.margin,
+                                  marginRight: shapeConfig.outer.margin,
+                                  marginBottom: shapeConfig.outer.margin,
+                                  marginLeft: shapeConfig.outer.margin,
+                                }
+                              : {
+                                  marginTop: shapeConfig.outer.marginTop ?? shapeConfig.outer.margin,
+                                  marginRight: shapeConfig.outer.marginRight ?? shapeConfig.outer.margin,
+                                  marginBottom: shapeConfig.outer.marginBottom ?? shapeConfig.outer.margin,
+                                  marginLeft: shapeConfig.outer.marginLeft ?? shapeConfig.outer.margin,
+                                }),
+                          })
+                        }
+                        className="w-3 h-3"
+                      />
+                      <span>Alle Seiten gleich</span>
+                    </label>
                   </div>
-                  <Slider
-                    min={0} max={30} step={1}
-                    value={[shapeConfig.outer.margin]}
-                    onValueChange={([v]) => setShapeOuter({ margin: v })}
-                  />
+
+                  {shapeConfig.outer.marginLocked !== false ? (
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] text-gray-500">Alle Seiten</span>
+                        <span className="text-[11px] text-gray-400 tabular-nums">{shapeConfig.outer.margin} mm</span>
+                      </div>
+                      <Slider
+                        min={0} max={30} step={1}
+                        value={[shapeConfig.outer.margin]}
+                        onValueChange={([v]) =>
+                          setShapeOuter({
+                            margin: v,
+                            marginTop: v,
+                            marginRight: v,
+                            marginBottom: v,
+                            marginLeft: v,
+                          })
+                        }
+                      />
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {([
+                        { label: 'Oben', field: 'marginTop' as const },
+                        { label: 'Rechts', field: 'marginRight' as const },
+                        { label: 'Unten', field: 'marginBottom' as const },
+                        { label: 'Links', field: 'marginLeft' as const },
+                      ]).map((side) => {
+                        const v = shapeConfig.outer[side.field] ?? shapeConfig.outer.margin
+                        return (
+                          <div key={side.field} className="space-y-1">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[11px] text-gray-500">{side.label}</span>
+                              <span className="text-[11px] text-gray-400 tabular-nums">{v} mm</span>
+                            </div>
+                            <Slider
+                              min={0} max={30} step={1}
+                              value={[v]}
+                              onValueChange={([nv]) => setShapeOuter({ [side.field]: nv })}
+                            />
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
