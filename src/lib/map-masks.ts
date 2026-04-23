@@ -3,6 +3,7 @@ export type MapMaskKey =
   | 'circle'
   | 'heart'
   | 'frame1'
+  | 'text-below'
   | 'split-circles'
   | 'split-hearts'
   | 'split-halves'
@@ -61,6 +62,16 @@ export const MAP_MASKS: Record<MapMaskKey, MapMaskDefinition> = {
       viewBox: '0 0 1000 1400',
       width: 1000, height: 1400,
       markup: '<rect x="50" y="50" width="900" height="908"/>',
+    },
+  },
+  'text-below': {
+    key: 'text-below',
+    label: 'Classic',
+    svgPath: '/masks/text-below.svg',
+    shape: {
+      viewBox: '0 0 595.3 841.9',
+      width: 595.3, height: 841.9,
+      markup: '<rect x="0" y="0" width="595.3" height="589.33"/>',
     },
   },
   'split-circles': {
