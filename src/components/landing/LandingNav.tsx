@@ -49,8 +49,15 @@ export function LandingNav() {
   return (
     <header className="fixed top-0 inset-x-0 z-50 bg-white/90 backdrop-blur-sm border-b border-gray-200/80">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
-        <Link href="/" className="text-sm font-semibold tracking-tight">
-          Poster Generator
+        <Link href="/" className="flex items-center" aria-label="petite-moment Startseite">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/brand/logo_1200x300.svg"
+            alt="petite-moment"
+            className="h-6 w-auto"
+            width={160}
+            height={32}
+          />
         </Link>
 
         <nav className="hidden md:flex items-center gap-6">

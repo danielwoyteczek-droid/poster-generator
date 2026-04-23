@@ -25,7 +25,14 @@ export async function LandingFooter() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-8">
           <div>
-            <p className="text-sm font-semibold tracking-tight text-gray-900 mb-3">Poster Generator</p>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/brand/logo_1200x300.svg"
+              alt="petite-moment"
+              className="h-6 w-auto mb-3"
+              width={160}
+              height={32}
+            />
             <p className="text-xs text-gray-500 leading-relaxed">
               Individuelle Karten- und Sternenposter, die deinen Moment zeigen.
             </p>

@@ -6,8 +6,28 @@ import { GtmNoscript } from "@/components/analytics/GtmScript";
 import { ConsentBanner } from "@/components/consent/ConsentBanner";
 
 export const metadata: Metadata = {
-  title: 'petite-moment',
-  description: 'Kartenposter für Erinnerungen, die bleiben.',
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'https://petite-moment.com'),
+  title: {
+    default: 'petite-moment — Kartenposter für Erinnerungen, die bleiben',
+    template: '%s | petite-moment',
+  },
+  description: 'Personalisierte Karten- und Sternenposter. Suche einen Ort, wähle Stil und Format, ergänze deinen Text — wir drucken es für dich in Deutschland.',
+  openGraph: {
+    title: 'petite-moment — Kartenposter für besondere Orte',
+    description: 'Personalisierte Karten- und Sternenposter aus München. Gestalte einen Ort, der dir wichtig ist.',
+    url: 'https://petite-moment.com',
+    siteName: 'petite-moment',
+    locale: 'de_DE',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'petite-moment',
+    description: 'Personalisierte Karten- und Sternenposter.',
+  },
+  icons: {
+    icon: '/brand/logo_1024x1024.svg',
+  },
 };
 
 const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID
