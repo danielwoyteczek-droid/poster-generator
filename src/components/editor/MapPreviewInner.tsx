@@ -144,7 +144,17 @@ export default function MapPreviewInner({ storeSlice = 'primary' }: MapPreviewIn
           apiKey,
         })
         if (cancelled) return
-        console.log('[MapPreview] style built, layers:', (style as { layers?: unknown[] }).layers?.length)
+        try {
+          const { validateStyleMin } = await import('@maplibre/maplibre-gl-style-spec')
+          const errors = validateStyleMin(style as Parameters<typeof validateStyleMin>[0])
+          if (errors.length > 0) {
+            console.warn('[MapPreview] style validation errors:', errors)
+          } else {
+            console.log('[MapPreview] style validated OK, layers:', (style as { layers?: unknown[] }).layers?.length)
+          }
+        } catch (e) {
+          console.warn('[MapPreview] could not run validator:', e)
+        }
         map.setStyle(style as maptilersdk.StyleSpecification)
         lastStyleKeyRef.current = key
       } catch (err) {
