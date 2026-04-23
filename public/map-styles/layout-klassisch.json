@@ -45,7 +45,7 @@
     { "id": "Continent labels", "type": "symbol", "source": "maptiler_planet", "source-layer": "place", "minzoom": 0, "maxzoom": 2, "layout": { "text-field": "{name:en}", "text-font": ["Nunito Extra Bold", "Noto Sans Bold"], "text-line-height": 1.1, "text-max-width": 10, "text-size": { "stops": [[3, 18], [4, 24]] }, "text-transform": "uppercase", "visibility": "visible" }, "paint": { "text-color": "hsl(0, 0%, 0%)", "text-halo-color": "hsl(0, 100%, 100%)", "text-halo-width": 2 }, "filter": ["==", "class", "continent"] }
   ],
   "glyphs": "https://api.maptiler.com/fonts/{fontstack}/{range}.pbf?key={key}",
-  "sprite": "/map-styles/sprites/klassisch/sprite",
+  "sprite": "{origin}/map-styles/sprites/klassisch/sprite",
   "bearing": 0,
   "pitch": 0,
   "center": [0, 0],

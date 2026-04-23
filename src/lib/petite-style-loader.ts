@@ -39,7 +39,8 @@ function injectApiKey(style: unknown, apiKey: string): unknown {
     cloned.glyphs = cloned.glyphs.replace('{key}', apiKey)
   }
   if (typeof cloned.sprite === 'string') {
-    cloned.sprite = cloned.sprite.replace('{key}', apiKey)
+    const origin = typeof window !== 'undefined' ? window.location.origin : ''
+    cloned.sprite = cloned.sprite.replace('{key}', apiKey).replace('{origin}', origin)
   }
   return cloned
 }
