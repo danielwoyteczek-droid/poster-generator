@@ -65,7 +65,7 @@ export function LandingNav() {
             <Link
               key={link.href}
               href={link.href}
-              className="relative text-sm text-gray-600 hover:text-gray-900 transition-colors py-1 after:absolute after:left-0 after:-bottom-0.5 after:h-px after:w-full after:origin-left after:scale-x-0 after:bg-gray-900 after:transition-transform after:duration-300 after:ease-out hover:after:scale-x-100"
+              className="relative text-sm text-gray-600 hover:text-gray-900 transition-colors py-1 after:content-[''] after:absolute after:left-0 after:-bottom-0.5 after:h-px after:w-full after:origin-left after:scale-x-0 after:bg-gray-900 after:transition-transform after:duration-300 after:ease-out hover:after:scale-x-100"
             >
               {link.label}
             </Link>
