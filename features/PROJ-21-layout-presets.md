@@ -1,6 +1,6 @@
 # PROJ-21: Layout-Presets
 
-## Status: Planned
+## Status: Architected
 **Created:** 2026-04-24
 **Last Updated:** 2026-04-24
 
@@ -89,7 +89,108 @@ regelbaren Innenrand-Slider.
 <!-- Sections below are added by subsequent skills -->
 
 ## Tech Design (Solution Architect)
-_To be added by /architecture_
+
+### A) Component Structure (Sidebar-Erweiterung)
+
+```
+MapTab (Sidebar, linke Spalte)
++-- Kartenstil (schon vorhanden)
++-- Kartenform (schon vorhanden, ohne 'text-below')
++-- Layout (NEU)
+|   +-- Tile 'Vollflächig'
+|   +-- Tile 'Text unten 30 %'
+|   +-- Tile 'Text unten 15 %'
++-- Innenrand (NEU)
+|   +-- Slider 0–10 mm
+|   +-- Anzeige 'aktueller Wert: X mm'
++-- Farbpalette (schon vorhanden)
++-- Straßen/Marker (schon vorhanden)
+```
+
+```
+PosterCanvas (Editor-Preview)
++-- Poster-Hülle
+    +-- Innenrand-Zone (0–10 mm Padding rund herum)
+        +-- Layout-Container (entscheidet Aufteilung)
+            +-- Karten-Bereich (volle Höhe ODER 70 % ODER 85 %)
+            |   +-- Karte mit Kartenform-Mask + Fade
+            +-- Text-Bereich (nur bei Text unten 30 % / 15 %)
+                +-- Textblöcke (Headline, Koordinaten, Datum, ...)
+```
+
+### B) Data Model (Was gespeichert wird)
+
+Zwei neue Felder im Editor-State (Browser-State, kein Backend):
+
+```
+Poster-Konfiguration erweitert um:
+- Layout:        'full' | 'text-30' | 'text-15'  (Default: 'full')
+- Innenrand:     Zahl 0–10 (in Millimetern, Default: 0)
+```
+
+Beides wird zusammen mit dem restlichen Editor-Zustand im **Design-Preset
+(PROJ-8)** mitgespeichert — kein zusätzliches Datenbank-Schema nötig, die
+Preset-JSON-Struktur bekommt zwei Felder mehr.
+
+Migration: Beim Laden eines Presets ohne diese Felder (alte Presets) gelten:
+- `Layout = 'full'` (Standard)
+- `Innenrand = 0` (keine Einrückung)
+- Zusätzlich: wenn die alte `maskKey = 'text-below'` ist → automatisch auf
+  `Layout = 'text-30'` + `maskKey = 'none'` umbiegen, damit niemand sein altes
+  Poster zerschießt sieht.
+
+### C) Wie sich die Layouts unterscheiden
+
+| Layout              | Karten-Höhe | Text-Bereich | Fade am Rand |
+|---------------------|-------------|--------------|--------------|
+| Vollflächig         | 100 %       | kein fester  | wie bisher   |
+| Text unten 30 %     | 70 %        | untere 30 %  | wie bisher   |
+| Text unten 15 %     | 85 %        | untere 15 %  | wie bisher   |
+
+Der Innenrand-Slider legt sich über ALLE drei Layouts: die ganze Komposition
+(Karte + Textbereich) wird um den gewählten Millimeterwert vom Papierrand
+eingerückt. Für 0 mm gibt es keinen sichtbaren Effekt.
+
+### D) Verhalten beim Layout-Wechsel
+
+- Text-Inhalt (was der User getippt hat) bleibt **immer** erhalten
+- Text-Position wird angepasst: liegt ein Block außerhalb des neuen
+  Textbereichs, rückt er in den Textbereich ein. Liegt er bereits innerhalb,
+  bleibt er stehen
+- Beim Wechsel zu "Vollflächig" bleiben alle Blöcke an ihrer letzten Position
+  (Overlay-Optik)
+- Beim Wechsel zu einem kleineren Textbereich werden Blöcke entsprechend
+  hochgezogen
+
+### E) Tech-Entscheidungen (Warum so)
+
+- **Frontend-only**: Layouts sind reine Darstellung, kein Server-State nötig.
+  Spart Datenbank-Migration und hält die Bearbeitung flüssig.
+- **Drei feste Layouts statt freier Slider**: Designprinzip für Nicht-Designer
+  — Entscheidungen reduzieren, nicht erweitern. Der Innenrand bleibt als
+  Slider flexibel, weil dort die Nuance wichtig ist.
+- **Innenrand in Millimetern statt Prozent**: der User denkt in Papier-
+  Dimensionen (wie beim Bilderrahmen), nicht in Poster-Anteilen.
+- **Layout vom Formular (Mask) trennen**: aktuell wird 'text-below' als
+  Maske missbraucht. Die Trennung macht es künftig trivial, z.B. "Text oben"
+  oder "Text seitlich" zu ergänzen, ohne für jede Kombination eine eigene
+  SVG-Maske zu bauen.
+- **Kein neuer Preset-Typ**: die bestehende Preset-Struktur wird nur um zwei
+  Felder erweitert. Bestehende Presets laufen ohne manuellen Eingriff weiter.
+
+### F) Abhängigkeiten (Packages)
+
+Keine neuen Packages. Nutzt alles Bestehende:
+- shadcn **Slider** für den Innenrand-Regler (schon installiert)
+- Tailwind für die Layout-Tiles und die Proportionen
+- Bestehendes Mask-/Fade-Rendering (unverändert)
+
+### G) Export (PROJ-3) Kompatibilität
+
+Die Export-Pipeline (PNG/PDF) rendert denselben Komponenten-Baum wie das
+Editor-Preview. Layout und Innenrand sind in diesem Baum enthalten → im
+Export erscheint das Poster identisch zum Preview, inklusive der 5 mm
+Einrückung bei A4 oder A3.
 
 ## QA Test Results
 _To be added by /qa_
