@@ -437,7 +437,7 @@ export async function buildPosterCanvas(
     const secVS = secondMap.viewState
     const secPreviewW = secVS.viewportWidth > 0 ? secVS.viewportWidth : previewW
     const secPreviewH = secVS.viewportHeight > 0 ? secVS.viewportHeight : previewH
-    let rightCanvas = await renderMapOffscreen({ styleId: secondMap.styleId, vs: secVS, previewW: secPreviewW, previewH: secPreviewH, outputW: W, outputH: H, paletteId: store.paletteId, customPaletteBase: store.customPaletteBase, streetLabelsVisible: store.streetLabelsVisible })
+    let rightCanvas = await renderMapOffscreen({ styleId: secondMap.styleId, vs: secVS, previewW: secPreviewW, previewH: secPreviewH, outputW: W, outputH: H, paletteId: secondMap.paletteId, customPaletteBase: secondMap.customPaletteBase, streetLabelsVisible: store.streetLabelsVisible })
     if (mask.rightSvgPath) rightCanvas = await applyMask(rightCanvas, mask.rightSvgPath)
     ctx.drawImage(rightCanvas, 0, 0)
   } else if (isSplitPhoto && splitPhoto && mask.leftSvgPath && mask.rightSvgPath) {

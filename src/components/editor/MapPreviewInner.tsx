@@ -24,8 +24,8 @@ export default function MapPreviewInner({ storeSlice = 'primary' }: MapPreviewIn
   const store = useEditorStore()
 
   const styleId = storeSlice === 'primary' ? store.styleId : store.secondMap.styleId
-  const paletteId = store.paletteId
-  const customPaletteBase = store.customPaletteBase
+  const paletteId = storeSlice === 'primary' ? store.paletteId : store.secondMap.paletteId
+  const customPaletteBase = storeSlice === 'primary' ? store.customPaletteBase : store.secondMap.customPaletteBase
   const streetLabelsVisible = store.streetLabelsVisible
   const pendingCenter = storeSlice === 'primary' ? store.pendingCenter : store.secondMap.pendingCenter
   const pendingZoomDelta = storeSlice === 'primary' ? store.pendingZoomDelta : store.secondMap.pendingZoomDelta

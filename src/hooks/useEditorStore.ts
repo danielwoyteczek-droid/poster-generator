@@ -77,6 +77,8 @@ interface PendingCenter {
 export interface SecondMapState {
   enabled: boolean
   styleId: string
+  paletteId: string
+  customPaletteBase: string | null
   viewState: ViewState
   pendingCenter: PendingCenter | null
   pendingZoomDelta: number | null
@@ -143,6 +145,8 @@ export interface EditorStore {
 
   setSecondMapEnabled: (enabled: boolean) => void
   setSecondMapStyleId: (id: string) => void
+  setSecondMapPaletteId: (id: string) => void
+  setSecondMapCustomPaletteBase: (hex: string | null) => void
   flyToSecondLocation: (lng: number, lat: number, zoom?: number) => void
   clearSecondPendingCenter: () => void
   zoomInSecond: () => void
@@ -211,6 +215,8 @@ export const useEditorStore = create<EditorStore>((set) => ({
   secondMap: {
     enabled: false,
     styleId: 'streets-v2',
+    paletteId: 'mint',
+    customPaletteBase: null,
     viewState: DEFAULT_VIEW,
     pendingCenter: null,
     pendingZoomDelta: null,
@@ -275,6 +281,8 @@ export const useEditorStore = create<EditorStore>((set) => ({
 
   setSecondMapEnabled: (enabled) => set((s) => ({ secondMap: { ...s.secondMap, enabled } })),
   setSecondMapStyleId: (id) => set((s) => ({ secondMap: { ...s.secondMap, styleId: id } })),
+  setSecondMapPaletteId: (id) => set((s) => ({ secondMap: { ...s.secondMap, paletteId: id } })),
+  setSecondMapCustomPaletteBase: (hex) => set((s) => ({ secondMap: { ...s.secondMap, customPaletteBase: hex } })),
   flyToSecondLocation: (lng, lat, zoom = 13) =>
     set((s) => ({ secondMap: { ...s.secondMap, pendingCenter: { lng, lat, zoom } } })),
   clearSecondPendingCenter: () => set((s) => ({ secondMap: { ...s.secondMap, pendingCenter: null } })),

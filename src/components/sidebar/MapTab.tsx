@@ -44,7 +44,7 @@ export function MapTab() {
     setShapeOuter, setInnerFrame, setOuterFrame,
     setPaletteId, setCustomPaletteBase, setStreetLabelsVisible,
     flyToLocation, setLocationName,
-    secondMap, setSecondMapStyleId, flyToSecondLocation,
+    secondMap, setSecondMapStyleId, setSecondMapPaletteId, setSecondMapCustomPaletteBase, flyToSecondLocation,
     splitMode, setSplitMode,
     splitPhoto, splitPhotoZone, setSplitPhoto, updateSplitPhoto, setSplitPhotoZone,
   } = useEditorStore()
@@ -307,9 +307,61 @@ export function MapTab() {
                 ))}
               </div>
               {secondMap.styleId === PETITE_BASE_STYLE_ID && (
-                <p className="text-[10px] text-gray-400 leading-relaxed pt-1">
-                  Beide Karten teilen die gleiche Farbpalette und den Straßen-Toggle.
-                </p>
+                <div className="space-y-1.5 pt-2">
+                  <Label className="text-xs text-gray-500">Farbpalette (rechts)</Label>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {MAP_PALETTES.map((p) => {
+                      const c = p.colors
+                      return (
+                        <button
+                          key={p.id}
+                          onClick={() => setSecondMapPaletteId(p.id)}
+                          className={cn(
+                            'rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
+                            secondMap.paletteId === p.id
+                              ? 'border-gray-900'
+                              : 'border-gray-200 hover:border-gray-400',
+                          )}
+                          title={p.description}
+                        >
+                          <div className="flex gap-0.5">
+                            <span className="w-3 h-3 rounded-full border border-black/10" style={{ background: c.land }} />
+                            <span className="w-3 h-3 rounded-full border border-black/10" style={{ background: c.water }} />
+                            <span className="w-3 h-3 rounded-full border border-black/10" style={{ background: c.road }} />
+                            <span className="w-3 h-3 rounded-full border border-black/10" style={{ background: c.label }} />
+                          </div>
+                          <span className="text-[10px] leading-tight text-gray-700">{p.label}</span>
+                        </button>
+                      )
+                    })}
+                    <button
+                      onClick={() => setSecondMapPaletteId('custom')}
+                      className={cn(
+                        'rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
+                        secondMap.paletteId === 'custom'
+                          ? 'border-gray-900'
+                          : 'border-gray-200 hover:border-gray-400',
+                      )}
+                    >
+                      <div
+                        className="w-3 h-3 rounded-full border border-black/10"
+                        style={{ background: secondMap.customPaletteBase ?? '#84c5a6' }}
+                      />
+                      <span className="text-[10px] leading-tight text-gray-700">Eigene</span>
+                    </button>
+                  </div>
+                  {secondMap.paletteId === 'custom' && (
+                    <div className="flex items-center gap-2 pt-1">
+                      <span className="text-[11px] text-gray-500">Grundton</span>
+                      <input
+                        type="color"
+                        value={secondMap.customPaletteBase ?? '#84c5a6'}
+                        onChange={(e) => setSecondMapCustomPaletteBase(e.target.value)}
+                        className="flex-1 h-8 rounded-md border border-gray-200 cursor-pointer px-1"
+                      />
+                    </div>
+                  )}
+                </div>
               )}
             </div>
 
