@@ -280,6 +280,17 @@ export function MapTab() {
             <div className="space-y-1.5">
               <Label className="text-xs text-gray-500">Karten-Stil (rechts)</Label>
               <div className="grid grid-cols-2 gap-1.5">
+                <button
+                  onClick={() => setSecondMapStyleId(PETITE_BASE_STYLE_ID)}
+                  className={cn(
+                    'rounded-md border-2 px-2 py-2 text-left text-xs font-medium transition-all',
+                    secondMap.styleId === PETITE_BASE_STYLE_ID
+                      ? 'border-gray-900 bg-gray-900 text-white'
+                      : 'border-gray-200 text-gray-700 hover:border-gray-400'
+                  )}
+                >
+                  petite-moment
+                </button>
                 {STYLE_OPTIONS.map((style) => (
                   <button
                     key={style.id}
@@ -295,6 +306,11 @@ export function MapTab() {
                   </button>
                 ))}
               </div>
+              {secondMap.styleId === PETITE_BASE_STYLE_ID && (
+                <p className="text-[10px] text-gray-400 leading-relaxed pt-1">
+                  Beide Karten teilen die gleiche Farbpalette und den Straßen-Toggle.
+                </p>
+              )}
             </div>
 
             {/* Second marker pin */}

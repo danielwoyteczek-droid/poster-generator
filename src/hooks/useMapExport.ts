@@ -9,6 +9,7 @@ import { resolveMask } from '@/hooks/useCustomMasks'
 import { getCoordinatesText } from '@/components/editor/TextBlockOverlay'
 import { PHOTO_MASKS, type PhotoMaskKey } from '@/lib/photo-masks'
 import { filterCss } from '@/lib/photo-filters'
+import { buildPetiteStyle, isPetiteStyle } from '@/lib/petite-style-loader'
 import type { PhotoItem, SplitPhoto } from './useEditorStore'
 
 // ─── Types ─────────────────────────────────────────────────────────────────
@@ -16,6 +17,9 @@ import type { PhotoItem, SplitPhoto } from './useEditorStore'
 export interface ExportSnapshot {
   viewState: ViewState
   styleId: string
+  paletteId?: string
+  customPaletteBase?: string | null
+  streetLabelsVisible?: boolean
   maskKey: MapMaskKey
   marker: MarkerState
   secondMarker: MarkerState
@@ -232,6 +236,9 @@ async function renderMapOffscreen({
   previewH,
   outputW,
   outputH,
+  paletteId,
+  customPaletteBase,
+  streetLabelsVisible,
 }: {
   styleId: string
   vs: ViewState
@@ -239,6 +246,9 @@ async function renderMapOffscreen({
   previewH: number
   outputW: number
   outputH: number
+  paletteId?: string
+  customPaletteBase?: string | null
+  streetLabelsVisible?: boolean
 }): Promise<HTMLCanvasElement> {
   const maptilersdk = await import('@maptiler/sdk')
   const apiKey = process.env.NEXT_PUBLIC_MAPTILER_API_KEY!
@@ -249,12 +259,21 @@ async function renderMapOffscreen({
   container.style.cssText = `position:fixed;left:-99999px;top:0;width:${previewW}px;height:${previewH}px;pointer-events:none;opacity:0;`
   document.body.appendChild(container)
 
+  const resolvedStyle = isPetiteStyle(styleId)
+    ? await buildPetiteStyle({
+        paletteId: paletteId ?? 'mint',
+        customPaletteBase: customPaletteBase ?? null,
+        streetLabelsVisible: streetLabelsVisible ?? false,
+        apiKey,
+      })
+    : buildStyleUrl(styleId, apiKey)
+
   let map: any = null
   try {
     maptilersdk.config.apiKey = apiKey
     map = new maptilersdk.Map({
       container,
-      style: buildStyleUrl(styleId, apiKey),
+      style: resolvedStyle as any,
       center: [vs.lng, vs.lat],
       zoom: vs.zoom,
       attributionControl: false,
@@ -410,7 +429,7 @@ export async function buildPosterCanvas(
 
   if (isDualMap) {
     // Left map (primary)
-    let leftCanvas = await renderMapOffscreen({ styleId, vs: viewState, previewW, previewH, outputW: W, outputH: H })
+    let leftCanvas = await renderMapOffscreen({ styleId, vs: viewState, previewW, previewH, outputW: W, outputH: H, paletteId: store.paletteId, customPaletteBase: store.customPaletteBase, streetLabelsVisible: store.streetLabelsVisible })
     if (mask.leftSvgPath) leftCanvas = await applyMask(leftCanvas, mask.leftSvgPath)
     ctx.drawImage(leftCanvas, 0, 0)
 
@@ -418,19 +437,19 @@ export async function buildPosterCanvas(
     const secVS = secondMap.viewState
     const secPreviewW = secVS.viewportWidth > 0 ? secVS.viewportWidth : previewW
     const secPreviewH = secVS.viewportHeight > 0 ? secVS.viewportHeight : previewH
-    let rightCanvas = await renderMapOffscreen({ styleId: secondMap.styleId, vs: secVS, previewW: secPreviewW, previewH: secPreviewH, outputW: W, outputH: H })
+    let rightCanvas = await renderMapOffscreen({ styleId: secondMap.styleId, vs: secVS, previewW: secPreviewW, previewH: secPreviewH, outputW: W, outputH: H, paletteId: store.paletteId, customPaletteBase: store.customPaletteBase, streetLabelsVisible: store.streetLabelsVisible })
     if (mask.rightSvgPath) rightCanvas = await applyMask(rightCanvas, mask.rightSvgPath)
     ctx.drawImage(rightCanvas, 0, 0)
   } else if (isSplitPhoto && splitPhoto && mask.leftSvgPath && mask.rightSvgPath) {
     const photoIsRightZone = splitPhotoZone === 1
     const mapSideSvg = photoIsRightZone ? mask.leftSvgPath : mask.rightSvgPath
     const photoSideSvg = photoIsRightZone ? mask.rightSvgPath : mask.leftSvgPath
-    let mapCanvas = await renderMapOffscreen({ styleId, vs: viewState, previewW, previewH, outputW: W, outputH: H })
+    let mapCanvas = await renderMapOffscreen({ styleId, vs: viewState, previewW, previewH, outputW: W, outputH: H, paletteId: store.paletteId, customPaletteBase: store.customPaletteBase, streetLabelsVisible: store.streetLabelsVisible })
     mapCanvas = await applyMask(mapCanvas, mapSideSvg)
     ctx.drawImage(mapCanvas, 0, 0)
     await drawSplitPhoto(ctx, splitPhoto, photoSideSvg, W, H)
   } else {
-    let mapCanvas = await renderMapOffscreen({ styleId, vs: viewState, previewW, previewH, outputW: W, outputH: H })
+    let mapCanvas = await renderMapOffscreen({ styleId, vs: viewState, previewW, previewH, outputW: W, outputH: H, paletteId: store.paletteId, customPaletteBase: store.customPaletteBase, streetLabelsVisible: store.streetLabelsVisible })
     if (mask.shape) {
       mapCanvas = await applyComposedMask(mapCanvas)
     } else if (mask.svgPath) {
@@ -517,7 +536,7 @@ function slugify(name: string): string {
 export function useMapExport() {
   const [isExporting, setIsExporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const { viewState, styleId, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos, splitMode, splitPhoto, splitPhotoZone } =
+  const { viewState, styleId, paletteId, customPaletteBase, streetLabelsVisible, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos, splitMode, splitPhoto, splitPhotoZone } =
     useEditorStore()
 
   const run = async (format: PrintFormat, type: 'png' | 'pdf') => {
@@ -525,7 +544,7 @@ export function useMapExport() {
     setError(null)
     try {
       const snapshot: ExportSnapshot = {
-        viewState, styleId, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos, splitMode, splitPhoto, splitPhotoZone,
+        viewState, styleId, paletteId, customPaletteBase, streetLabelsVisible, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos, splitMode, splitPhoto, splitPhotoZone,
       }
       const canvas = await buildPosterCanvas(format, snapshot)
       const pngBlob = await canvasToBlob(canvas)
@@ -564,7 +583,7 @@ export function useMapExport() {
 
   const renderPreview = async (format: PrintFormat): Promise<string> => {
     const snapshot: ExportSnapshot = {
-      viewState, styleId, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos, splitMode, splitPhoto, splitPhotoZone,
+      viewState, styleId, paletteId, customPaletteBase, streetLabelsVisible, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos, splitMode, splitPhoto, splitPhotoZone,
     }
     const canvas = await buildPosterCanvas(format, snapshot)
     return canvas.toDataURL('image/png')

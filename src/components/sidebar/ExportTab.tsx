@@ -154,6 +154,9 @@ function CustomerProductView({ printFormat }: { printFormat: string }) {
         snapshot: {
           viewState: editor.viewState,
           styleId: editor.styleId,
+          paletteId: editor.paletteId,
+          customPaletteBase: editor.customPaletteBase,
+          streetLabelsVisible: editor.streetLabelsVisible,
           maskKey: editor.maskKey,
           marker: editor.marker,
           secondMarker: editor.secondMarker,
