@@ -35,6 +35,12 @@ export const MAP_LAYOUTS: MapLayoutDefinition[] = [
     description: 'Reduzierte Poster-Optik mit Urban-Flächen und feinen Straßen.',
     file: '/map-styles/layout-minimal.json',
   },
+  {
+    id: 'test',
+    label: 'Test',
+    description: 'Experimentelles Layout.',
+    file: '/map-styles/layout-test.json',
+  },
   // Additional layouts get added here once the operator exports them.
 ]
 
