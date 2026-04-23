@@ -68,6 +68,7 @@ export default function MapPreviewInner({ storeSlice = 'primary' }: MapPreviewIn
       hash: false,
       navigationControl: false,
       geolocateControl: false,
+      language: maptilersdk.Language.AUTO,
     })
 
     const emit = () => {
