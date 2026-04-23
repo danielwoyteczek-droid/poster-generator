@@ -9,7 +9,7 @@ import { resolveMask } from '@/hooks/useCustomMasks'
 import { getCoordinatesText } from '@/components/editor/TextBlockOverlay'
 import { PHOTO_MASKS, type PhotoMaskKey } from '@/lib/photo-masks'
 import { filterCss } from '@/lib/photo-filters'
-import { buildPetiteStyle, isPetiteStyle } from '@/lib/petite-style-loader'
+import { buildPetiteStyle } from '@/lib/petite-style-loader'
 import type { MapPaletteColors } from '@/lib/map-palettes'
 import type { PhotoItem, SplitPhoto } from './useEditorStore'
 
@@ -54,10 +54,6 @@ function makePinSVGUrl(type: 'classic' | 'heart', color: string): string {
       ? `<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M16 30C16 30 2 19 2 10C2 5.58 5.58 2 10 2C12.5 2 14.74 3.18 16 5C17.26 3.18 19.5 2 22 2C26.42 2 30 5.58 30 10C30 19 16 30 16 30Z" fill="${c}"/></svg>`
       : `<svg width="28" height="40" viewBox="0 0 28 40" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M14 0C6.27 0 0 6.27 0 14C0 24.5 14 40 14 40C14 40 28 24.5 28 14C28 6.27 21.73 0 14 0Z" fill="${c}"/><circle cx="14" cy="13" r="5" fill="white" fill-opacity="0.85"/></svg>`
   return 'data:image/svg+xml;charset=utf-8,' + svg
-}
-
-function buildStyleUrl(mapId: string, apiKey: string) {
-  return `https://api.maptiler.com/maps/${mapId}/style.json?key=${encodeURIComponent(apiKey)}`
 }
 
 function applyPhotoMask(
@@ -263,15 +259,14 @@ async function renderMapOffscreen({
   container.style.cssText = `position:fixed;left:-99999px;top:0;width:${previewW}px;height:${previewH}px;pointer-events:none;opacity:0;`
   document.body.appendChild(container)
 
-  const resolvedStyle = isPetiteStyle(styleId)
-    ? await buildPetiteStyle({
-        paletteId: paletteId ?? 'mint',
-        customPaletteBase: customPaletteBase ?? null,
-        customPalette: customPalette ?? null,
-        streetLabelsVisible: streetLabelsVisible ?? false,
-        apiKey,
-      })
-    : buildStyleUrl(styleId, apiKey)
+  const resolvedStyle = await buildPetiteStyle({
+    layoutId: styleId,
+    paletteId: paletteId ?? 'mint',
+    customPaletteBase: customPaletteBase ?? null,
+    customPalette: customPalette ?? null,
+    streetLabelsVisible: streetLabelsVisible ?? false,
+    apiKey,
+  })
 
   let map: any = null
   try {

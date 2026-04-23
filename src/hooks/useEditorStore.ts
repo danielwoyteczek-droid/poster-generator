@@ -211,7 +211,7 @@ export const useEditorStore = create<EditorStore>((set) => ({
   viewState: DEFAULT_VIEW,
   pendingCenter: null,
   pendingZoomDelta: null,
-  styleId: '019ce7b9-403f-703d-95e6-3936bbfe60dc',
+  styleId: 'classic',
   paletteId: 'mint',
   customPaletteBase: null,
   customPalette: null,
@@ -223,7 +223,7 @@ export const useEditorStore = create<EditorStore>((set) => ({
   shapeConfig: DEFAULT_SHAPE_CONFIG,
   secondMap: {
     enabled: false,
-    styleId: 'streets-v2',
+    styleId: 'classic',
     paletteId: 'mint',
     customPaletteBase: null,
     customPalette: null,

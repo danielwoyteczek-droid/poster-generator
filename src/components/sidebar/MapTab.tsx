@@ -15,9 +15,8 @@ import { useEditorStore } from '@/hooks/useEditorStore'
 import { useAuth } from '@/hooks/useAuth'
 import { useCustomMasks } from '@/hooks/useCustomMasks'
 import { MAP_MASK_OPTIONS, MAP_MASKS } from '@/lib/map-masks'
-import { STYLE_OPTIONS } from '@/lib/map-style-options'
-import { MAP_PALETTES, paletteFromBaseColor, type MapPaletteColors } from '@/lib/map-palettes'
-import { PETITE_BASE_STYLE_ID } from '@/lib/petite-style-loader'
+import { MAP_LAYOUTS } from '@/lib/map-layouts'
+import { MAP_PALETTES, type MapPaletteColors } from '@/lib/map-palettes'
 import { uploadPhoto, deletePhoto } from '@/lib/photo-upload'
 import { getOrCreateGuestSessionId } from '@/lib/guest-session'
 import { PHOTO_FILTERS } from '@/lib/photo-filters'
@@ -279,35 +278,25 @@ export function MapTab() {
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs text-gray-500">Karten-Stil (rechts)</Label>
+              <Label className="text-xs text-gray-500">Layout (rechts)</Label>
               <div className="grid grid-cols-2 gap-1.5">
-                <button
-                  onClick={() => setSecondMapStyleId(PETITE_BASE_STYLE_ID)}
-                  className={cn(
-                    'rounded-md border-2 px-2 py-2 text-left text-xs font-medium transition-all',
-                    secondMap.styleId === PETITE_BASE_STYLE_ID
-                      ? 'border-gray-900 bg-gray-900 text-white'
-                      : 'border-gray-200 text-gray-700 hover:border-gray-400'
-                  )}
-                >
-                  petite-moment
-                </button>
-                {STYLE_OPTIONS.map((style) => (
+                {MAP_LAYOUTS.map((layout) => (
                   <button
-                    key={style.id}
-                    onClick={() => setSecondMapStyleId(style.mapId)}
+                    key={layout.id}
+                    onClick={() => setSecondMapStyleId(layout.id)}
+                    title={layout.description}
                     className={cn(
                       'rounded-md border-2 px-2 py-2 text-left text-xs font-medium transition-all',
-                      secondMap.styleId === style.mapId
+                      secondMap.styleId === layout.id
                         ? 'border-gray-900 bg-gray-900 text-white'
                         : 'border-gray-200 text-gray-700 hover:border-gray-400'
                     )}
                   >
-                    {style.label}
+                    {layout.label}
                   </button>
                 ))}
               </div>
-              {secondMap.styleId === PETITE_BASE_STYLE_ID && (
+              {true && (
                 <div className="space-y-1.5 pt-2">
                   <Label className="text-xs text-gray-500">Farbpalette (rechts)</Label>
                   <div className="grid grid-cols-3 gap-1.5">
@@ -417,40 +406,29 @@ export function MapTab() {
 
       <Separator />
 
-      {/* Map Style — primary map */}
+      {/* Map layout — choose detail level / what's shown at which zoom */}
       <div className="space-y-1.5">
-        <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400">Karten-Stil</Label>
+        <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400">Layout</Label>
         <div className="grid grid-cols-2 gap-1.5">
-          <button
-            onClick={() => setStyleId(PETITE_BASE_STYLE_ID)}
-            className={cn(
-              'rounded-md border-2 px-2 py-2 text-left text-xs font-medium transition-all',
-              styleId === PETITE_BASE_STYLE_ID
-                ? 'border-gray-900 bg-gray-900 text-white'
-                : 'border-gray-200 text-gray-700 hover:border-gray-400'
-            )}
-          >
-            petite-moment
-          </button>
-          {STYLE_OPTIONS.map((style) => (
+          {MAP_LAYOUTS.map((layout) => (
             <button
-              key={style.id}
-              onClick={() => setStyleId(style.mapId)}
+              key={layout.id}
+              onClick={() => setStyleId(layout.id)}
+              title={layout.description}
               className={cn(
                 'rounded-md border-2 px-2 py-2 text-left text-xs font-medium transition-all',
-                styleId === style.mapId
+                styleId === layout.id
                   ? 'border-gray-900 bg-gray-900 text-white'
                   : 'border-gray-200 text-gray-700 hover:border-gray-400'
               )}
             >
-              {style.label}
+              {layout.label}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Palette — only when petite-base is active (only petite-base is recolourable) */}
-      {styleId === PETITE_BASE_STYLE_ID && (
+      {true && (
         <div className="space-y-1.5">
           <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400">Farbpalette</Label>
           <div className="grid grid-cols-3 gap-1.5">

@@ -1,21 +1,25 @@
 import { MAP_PALETTES, paletteFromBaseColor, type MapPalette, type MapPaletteColors } from './map-palettes'
+import { getLayout } from './map-layouts'
 import { transformStyle } from './map-style-transformer'
 
-export const PETITE_BASE_STYLE_ID = 'petite-base'
+const cachedBases = new Map<string, unknown>()
+const pendingBases = new Map<string, Promise<unknown>>()
 
-let cachedBase: unknown | null = null
-let cachedBasePromise: Promise<unknown> | null = null
+async function fetchLayoutStyle(layoutId: string): Promise<unknown> {
+  const existing = cachedBases.get(layoutId)
+  if (existing) return existing
+  const pending = pendingBases.get(layoutId)
+  if (pending) return pending
 
-async function fetchBaseStyle(): Promise<unknown> {
-  if (cachedBase) return cachedBase
-  if (cachedBasePromise) return cachedBasePromise
-  cachedBasePromise = fetch('/map-styles/base.json').then(async (res) => {
-    if (!res.ok) throw new Error(`Base style fetch failed: ${res.status}`)
+  const layout = getLayout(layoutId)
+  const promise = fetch(layout.file).then(async (res) => {
+    if (!res.ok) throw new Error(`Layout fetch failed (${layoutId}): ${res.status}`)
     const json = await res.json()
-    cachedBase = json
+    cachedBases.set(layoutId, json)
     return json
   })
-  return cachedBasePromise
+  pendingBases.set(layoutId, promise)
+  return promise
 }
 
 function injectApiKey(style: unknown, apiKey: string): unknown {
@@ -43,7 +47,6 @@ export function resolvePalette(
   customPalette?: MapPaletteColors | null,
 ): MapPalette {
   if (paletteId === 'custom') {
-    // Prefer explicit full palette, fall back to base-colour heuristic.
     const basis = paletteFromBaseColor(customBase ?? '#84c5a6')
     if (customPalette) {
       return { ...basis, colors: { ...basis.colors, ...customPalette } }
@@ -55,6 +58,7 @@ export function resolvePalette(
 }
 
 export interface PetiteStyleOptions {
+  layoutId: string
   paletteId: string
   customPaletteBase: string | null
   customPalette?: MapPaletteColors | null
@@ -63,15 +67,11 @@ export interface PetiteStyleOptions {
 }
 
 export async function buildPetiteStyle(opts: PetiteStyleOptions): Promise<unknown> {
-  const base = await fetchBaseStyle()
+  const base = await fetchLayoutStyle(opts.layoutId)
   const withKey = injectApiKey(base, opts.apiKey)
   const palette = resolvePalette(opts.paletteId, opts.customPaletteBase, opts.customPalette)
   return transformStyle(withKey as Parameters<typeof transformStyle>[0], {
     palette,
     streetLabelsVisible: opts.streetLabelsVisible,
   })
-}
-
-export function isPetiteStyle(styleId: string): boolean {
-  return styleId === PETITE_BASE_STYLE_ID
 }

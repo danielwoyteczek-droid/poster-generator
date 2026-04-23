@@ -6,11 +6,7 @@ import '@maptiler/sdk/dist/maptiler-sdk.css'
 import { useEditorStore } from '@/hooks/useEditorStore'
 import type { ViewState } from '@/hooks/useEditorStore'
 import { setMapInstance } from '@/hooks/useMapInstance'
-import { buildPetiteStyle, isPetiteStyle } from '@/lib/petite-style-loader'
-
-function buildStyleUrl(mapId: string, key: string) {
-  return `https://api.maptiler.com/maps/${mapId}/style.json?key=${encodeURIComponent(key)}`
-}
+import { buildPetiteStyle } from '@/lib/petite-style-loader'
 
 interface MapPreviewInnerProps {
   storeSlice?: 'primary' | 'secondary'
@@ -23,7 +19,7 @@ export default function MapPreviewInner({ storeSlice = 'primary' }: MapPreviewIn
 
   const store = useEditorStore()
 
-  const styleId = storeSlice === 'primary' ? store.styleId : store.secondMap.styleId
+  const layoutId = storeSlice === 'primary' ? store.styleId : store.secondMap.styleId
   const paletteId = storeSlice === 'primary' ? store.paletteId : store.secondMap.paletteId
   const customPaletteBase = storeSlice === 'primary' ? store.customPaletteBase : store.secondMap.customPaletteBase
   const customPalette = storeSlice === 'primary' ? store.customPalette : store.secondMap.customPalette
@@ -58,10 +54,9 @@ export default function MapPreviewInner({ storeSlice = 'primary' }: MapPreviewIn
 
     maptilersdk.config.apiKey = apiKey
 
-    // Initial style — URL for MapTiler-hosted styles, fallback JSON for petite-base
-    const initialStyle: maptilersdk.StyleSpecification | string = isPetiteStyle(styleId)
-      ? ({ version: 8, sources: {}, layers: [] } as unknown as maptilersdk.StyleSpecification)
-      : buildStyleUrl(styleId, apiKey)
+    // Start with an empty shell; the style effect below fills it with the
+    // resolved petite-moment layout + palette.
+    const initialStyle = { version: 8, sources: {}, layers: [] } as unknown as maptilersdk.StyleSpecification
 
     const map = new maptilersdk.Map({
       container: containerRef.current,
@@ -127,7 +122,7 @@ export default function MapPreviewInner({ storeSlice = 'primary' }: MapPreviewIn
     }
   }, [storeSlice]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Apply style changes (external styleId or palette/street settings for petite-base)
+  // Apply layout + palette changes
   useEffect(() => {
     const map = mapRef.current
     const apiKey = process.env.NEXT_PUBLIC_MAPTILER_API_KEY
@@ -136,35 +131,29 @@ export default function MapPreviewInner({ storeSlice = 'primary' }: MapPreviewIn
     let cancelled = false
 
     ;(async () => {
-      if (isPetiteStyle(styleId)) {
-        const key = `petite|${paletteId}|${customPaletteBase ?? ''}|${JSON.stringify(customPalette ?? null)}|${streetLabelsVisible}`
-        if (lastStyleKeyRef.current === key) return
-        try {
-          const style = await buildPetiteStyle({
-            paletteId,
-            customPaletteBase,
-            customPalette,
-            streetLabelsVisible,
-            apiKey,
-          })
-          if (cancelled) return
-          map.setStyle(style as maptilersdk.StyleSpecification)
-          lastStyleKeyRef.current = key
-        } catch (err) {
-          console.error('[MapPreview] buildPetiteStyle failed:', err)
-        }
-      } else {
-        const styleUrl = buildStyleUrl(styleId, apiKey)
-        if (lastStyleKeyRef.current === styleUrl) return
-        lastStyleKeyRef.current = styleUrl
-        map.setStyle(styleUrl)
+      const key = `${layoutId}|${paletteId}|${customPaletteBase ?? ''}|${JSON.stringify(customPalette ?? null)}|${streetLabelsVisible}`
+      if (lastStyleKeyRef.current === key) return
+      try {
+        const style = await buildPetiteStyle({
+          layoutId,
+          paletteId,
+          customPaletteBase,
+          customPalette,
+          streetLabelsVisible,
+          apiKey,
+        })
+        if (cancelled) return
+        map.setStyle(style as maptilersdk.StyleSpecification)
+        lastStyleKeyRef.current = key
+      } catch (err) {
+        console.error('[MapPreview] buildPetiteStyle failed:', err)
       }
     })()
 
     return () => { cancelled = true }
-  }, [styleId, paletteId, customPaletteBase, customPalette, streetLabelsVisible])
+  }, [layoutId, paletteId, customPaletteBase, customPalette, streetLabelsVisible])
 
-  // Toggle street labels on any style (MapTiler-hosted or petite-base)
+  // Toggle street labels on style changes
   useEffect(() => {
     const map = mapRef.current
     if (!map) return
