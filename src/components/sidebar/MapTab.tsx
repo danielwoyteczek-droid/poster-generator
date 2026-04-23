@@ -16,7 +16,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useCustomMasks } from '@/hooks/useCustomMasks'
 import { MAP_MASK_OPTIONS, MAP_MASKS } from '@/lib/map-masks'
 import { STYLE_OPTIONS } from '@/lib/map-style-options'
-import { MAP_PALETTES } from '@/lib/map-palettes'
+import { MAP_PALETTES, paletteFromBaseColor, type MapPaletteColors } from '@/lib/map-palettes'
 import { PETITE_BASE_STYLE_ID } from '@/lib/petite-style-loader'
 import { uploadPhoto, deletePhoto } from '@/lib/photo-upload'
 import { PHOTO_FILTERS } from '@/lib/photo-filters'
@@ -39,12 +39,12 @@ const ZONE_LABELS = ['Links', 'Rechts', 'Oben', 'Unten', 'Mitte']
 export function MapTab() {
   const {
     styleId, maskKey, marker, secondMarker, shapeConfig,
-    paletteId, customPaletteBase, streetLabelsVisible,
+    paletteId, customPaletteBase, customPalette, streetLabelsVisible,
     setStyleId, setMaskKey, setMarker, setSecondMarker,
     setShapeOuter, setInnerFrame, setOuterFrame,
-    setPaletteId, setCustomPaletteBase, setStreetLabelsVisible,
+    setPaletteId, setCustomPaletteBase, setCustomPalette, updateCustomPaletteColor, setStreetLabelsVisible,
     flyToLocation, setLocationName,
-    secondMap, setSecondMapStyleId, setSecondMapPaletteId, setSecondMapCustomPaletteBase, flyToSecondLocation,
+    secondMap, setSecondMapStyleId, setSecondMapPaletteId, setSecondMapCustomPaletteBase, setSecondMapCustomPalette, updateSecondMapCustomPaletteColor, flyToSecondLocation,
     splitMode, setSplitMode,
     splitPhoto, splitPhotoZone, setSplitPhoto, updateSplitPhoto, setSplitPhotoZone,
   } = useEditorStore()
@@ -335,7 +335,14 @@ export function MapTab() {
                       )
                     })}
                     <button
-                      onClick={() => setSecondMapPaletteId('custom')}
+                      onClick={() => {
+                        setSecondMapPaletteId('custom')
+                        if (!secondMap.customPalette) {
+                          const seed = (MAP_PALETTES.find((p) => p.id === secondMap.paletteId) ?? MAP_PALETTES[0]).colors
+                          setSecondMapCustomPalette({ ...seed })
+                          if (!secondMap.customPaletteBase) setSecondMapCustomPaletteBase(seed.water)
+                        }
+                      }}
                       className={cn(
                         'rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
                         secondMap.paletteId === 'custom'
@@ -345,21 +352,17 @@ export function MapTab() {
                     >
                       <div
                         className="w-3 h-3 rounded-full border border-black/10"
-                        style={{ background: secondMap.customPaletteBase ?? '#84c5a6' }}
+                        style={{ background: secondMap.customPalette?.water ?? secondMap.customPaletteBase ?? '#84c5a6' }}
                       />
                       <span className="text-[10px] leading-tight text-gray-700">Eigene</span>
                     </button>
                   </div>
                   {secondMap.paletteId === 'custom' && (
-                    <div className="flex items-center gap-2 pt-1">
-                      <span className="text-[11px] text-gray-500">Grundton</span>
-                      <input
-                        type="color"
-                        value={secondMap.customPaletteBase ?? '#84c5a6'}
-                        onChange={(e) => setSecondMapCustomPaletteBase(e.target.value)}
-                        className="flex-1 h-8 rounded-md border border-gray-200 cursor-pointer px-1"
-                      />
-                    </div>
+                    <CustomPaletteEditor
+                      colors={secondMap.customPalette}
+                      onColorChange={updateSecondMapCustomPaletteColor}
+                      onReset={() => setSecondMapCustomPalette({ ...(MAP_PALETTES[0].colors) })}
+                    />
                   )}
                 </div>
               )}
@@ -475,7 +478,14 @@ export function MapTab() {
               )
             })}
             <button
-              onClick={() => setPaletteId('custom')}
+              onClick={() => {
+                setPaletteId('custom')
+                if (!customPalette) {
+                  const seed = (MAP_PALETTES.find((p) => p.id === paletteId) ?? MAP_PALETTES[0]).colors
+                  setCustomPalette({ ...seed })
+                  if (!customPaletteBase) setCustomPaletteBase(seed.water)
+                }
+              }}
               className={cn(
                 'rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
                 paletteId === 'custom'
@@ -485,21 +495,17 @@ export function MapTab() {
             >
               <div
                 className="w-3 h-3 rounded-full border border-black/10"
-                style={{ background: customPaletteBase ?? '#84c5a6' }}
+                style={{ background: customPalette?.water ?? customPaletteBase ?? '#84c5a6' }}
               />
               <span className="text-[10px] leading-tight text-gray-700">Eigene</span>
             </button>
           </div>
           {paletteId === 'custom' && (
-            <div className="flex items-center gap-2 pt-1">
-              <span className="text-[11px] text-gray-500">Grundton</span>
-              <input
-                type="color"
-                value={customPaletteBase ?? '#84c5a6'}
-                onChange={(e) => setCustomPaletteBase(e.target.value)}
-                className="flex-1 h-8 rounded-md border border-gray-200 cursor-pointer px-1"
-              />
-            </div>
+            <CustomPaletteEditor
+              colors={customPalette}
+              onColorChange={updateCustomPaletteColor}
+              onReset={() => setCustomPalette({ ...(MAP_PALETTES[0].colors) })}
+            />
           )}
         </div>
       )}
@@ -830,6 +836,62 @@ export function MapTab() {
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+// ─── Custom palette editor ─────────────────────────────────────────────────────
+
+const PALETTE_FIELD_LABELS: Array<{ key: keyof MapPaletteColors; label: string; description: string }> = [
+  { key: 'background', label: 'Hintergrund', description: 'Poster-Grundfläche' },
+  { key: 'land', label: 'Land', description: 'Landflächen, Parks' },
+  { key: 'water', label: 'Wasser', description: 'Meer, See, Fluss' },
+  { key: 'road', label: 'Straßen', description: 'Alle Straßenlinien' },
+  { key: 'building', label: 'Gebäude', description: 'Häuser-Umrisse' },
+  { key: 'border', label: 'Grenzen', description: 'Ländergrenzen' },
+  { key: 'label', label: 'Text', description: 'Orts- und Straßennamen' },
+  { key: 'labelHalo', label: 'Text-Umrandung', description: 'Weißer Schein um den Text' },
+]
+
+function CustomPaletteEditor({
+  colors,
+  onColorChange,
+  onReset,
+}: {
+  colors: MapPaletteColors | null
+  onColorChange: (key: keyof MapPaletteColors, hex: string) => void
+  onReset: () => void
+}) {
+  const effective = colors ?? MAP_PALETTES[0].colors
+  return (
+    <div className="space-y-2 pt-2">
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] text-gray-500 uppercase tracking-wider">Alle Farben</span>
+        <button
+          type="button"
+          onClick={onReset}
+          className="text-[10px] text-gray-400 hover:text-gray-700"
+        >
+          Zurücksetzen
+        </button>
+      </div>
+      {PALETTE_FIELD_LABELS.map((field) => (
+        <div key={field.key} className="flex items-center gap-2">
+          <input
+            type="color"
+            value={effective[field.key]}
+            onChange={(e) => onColorChange(field.key, e.target.value)}
+            className="w-8 h-8 rounded-md border border-gray-200 cursor-pointer shrink-0"
+          />
+          <div className="flex-1 min-w-0">
+            <p className="text-[11px] text-gray-700 leading-tight">{field.label}</p>
+            <p className="text-[10px] text-gray-400 leading-tight">{field.description}</p>
+          </div>
+          <span className="text-[10px] text-gray-400 font-mono tabular-nums uppercase">
+            {effective[field.key]}
+          </span>
+        </div>
+      ))}
     </div>
   )
 }

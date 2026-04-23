@@ -156,6 +156,7 @@ function CustomerProductView({ printFormat }: { printFormat: string }) {
           styleId: editor.styleId,
           paletteId: editor.paletteId,
           customPaletteBase: editor.customPaletteBase,
+          customPalette: editor.customPalette,
           streetLabelsVisible: editor.streetLabelsVisible,
           maskKey: editor.maskKey,
           marker: editor.marker,

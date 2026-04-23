@@ -1,4 +1,4 @@
-import { MAP_PALETTES, paletteFromBaseColor, type MapPalette } from './map-palettes'
+import { MAP_PALETTES, paletteFromBaseColor, type MapPalette, type MapPaletteColors } from './map-palettes'
 import { transformStyle } from './map-style-transformer'
 
 export const PETITE_BASE_STYLE_ID = 'petite-base'
@@ -37,9 +37,18 @@ function injectApiKey(style: unknown, apiKey: string): unknown {
   return cloned
 }
 
-export function resolvePalette(paletteId: string, customBase: string | null): MapPalette {
-  if (paletteId === 'custom' && customBase) {
-    return paletteFromBaseColor(customBase)
+export function resolvePalette(
+  paletteId: string,
+  customBase: string | null,
+  customPalette?: MapPaletteColors | null,
+): MapPalette {
+  if (paletteId === 'custom') {
+    // Prefer explicit full palette, fall back to base-colour heuristic.
+    const basis = paletteFromBaseColor(customBase ?? '#84c5a6')
+    if (customPalette) {
+      return { ...basis, colors: { ...basis.colors, ...customPalette } }
+    }
+    return basis
   }
   const palette = MAP_PALETTES.find((p) => p.id === paletteId)
   return palette ?? MAP_PALETTES[0]
@@ -48,6 +57,7 @@ export function resolvePalette(paletteId: string, customBase: string | null): Ma
 export interface PetiteStyleOptions {
   paletteId: string
   customPaletteBase: string | null
+  customPalette?: MapPaletteColors | null
   streetLabelsVisible: boolean
   apiKey: string
 }
@@ -55,7 +65,7 @@ export interface PetiteStyleOptions {
 export async function buildPetiteStyle(opts: PetiteStyleOptions): Promise<unknown> {
   const base = await fetchBaseStyle()
   const withKey = injectApiKey(base, opts.apiKey)
-  const palette = resolvePalette(opts.paletteId, opts.customPaletteBase)
+  const palette = resolvePalette(opts.paletteId, opts.customPaletteBase, opts.customPalette)
   return transformStyle(withKey as Parameters<typeof transformStyle>[0], {
     palette,
     streetLabelsVisible: opts.streetLabelsVisible,

@@ -26,6 +26,7 @@ export default function MapPreviewInner({ storeSlice = 'primary' }: MapPreviewIn
   const styleId = storeSlice === 'primary' ? store.styleId : store.secondMap.styleId
   const paletteId = storeSlice === 'primary' ? store.paletteId : store.secondMap.paletteId
   const customPaletteBase = storeSlice === 'primary' ? store.customPaletteBase : store.secondMap.customPaletteBase
+  const customPalette = storeSlice === 'primary' ? store.customPalette : store.secondMap.customPalette
   const streetLabelsVisible = store.streetLabelsVisible
   const pendingCenter = storeSlice === 'primary' ? store.pendingCenter : store.secondMap.pendingCenter
   const pendingZoomDelta = storeSlice === 'primary' ? store.pendingZoomDelta : store.secondMap.pendingZoomDelta
@@ -136,12 +137,13 @@ export default function MapPreviewInner({ storeSlice = 'primary' }: MapPreviewIn
 
     ;(async () => {
       if (isPetiteStyle(styleId)) {
-        const key = `petite|${paletteId}|${customPaletteBase ?? ''}|${streetLabelsVisible}`
+        const key = `petite|${paletteId}|${customPaletteBase ?? ''}|${JSON.stringify(customPalette ?? null)}|${streetLabelsVisible}`
         if (lastStyleKeyRef.current === key) return
         try {
           const style = await buildPetiteStyle({
             paletteId,
             customPaletteBase,
+            customPalette,
             streetLabelsVisible,
             apiKey,
           })
@@ -160,7 +162,7 @@ export default function MapPreviewInner({ storeSlice = 'primary' }: MapPreviewIn
     })()
 
     return () => { cancelled = true }
-  }, [styleId, paletteId, customPaletteBase, streetLabelsVisible])
+  }, [styleId, paletteId, customPaletteBase, customPalette, streetLabelsVisible])
 
   // Toggle street labels on any style (MapTiler-hosted or petite-base)
   useEffect(() => {

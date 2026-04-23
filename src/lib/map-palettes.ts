@@ -1,17 +1,19 @@
+export interface MapPaletteColors {
+  background: string
+  land: string
+  water: string
+  road: string
+  building: string
+  border: string
+  label: string
+  labelHalo: string
+}
+
 export interface MapPalette {
   id: string
   label: string
   description: string
-  colors: {
-    background: string
-    land: string
-    water: string
-    road: string
-    building: string
-    border: string
-    label: string
-    labelHalo: string
-  }
+  colors: MapPaletteColors
 }
 
 export const MAP_PALETTES: MapPalette[] = [

@@ -3,6 +3,7 @@ import type { MapMaskKey } from '@/lib/map-masks'
 import type { PrintFormat } from '@/lib/print-formats'
 import { DEFAULT_SHAPE_CONFIG, type ShapeConfigState } from '@/lib/mask-composer'
 import type { PhotoMaskKey } from '@/lib/photo-masks'
+import type { MapPaletteColors } from '@/lib/map-palettes'
 
 export type { MapMaskKey, PrintFormat, ShapeConfigState }
 
@@ -79,6 +80,7 @@ export interface SecondMapState {
   styleId: string
   paletteId: string
   customPaletteBase: string | null
+  customPalette: MapPaletteColors | null
   viewState: ViewState
   pendingCenter: PendingCenter | null
   pendingZoomDelta: number | null
@@ -108,6 +110,7 @@ export interface EditorStore {
   styleId: string
   paletteId: string
   customPaletteBase: string | null
+  customPalette: MapPaletteColors | null
   streetLabelsVisible: boolean
   maskKey: MapMaskKey
   printFormat: PrintFormat
@@ -133,6 +136,8 @@ export interface EditorStore {
   setStyleId: (id: string) => void
   setPaletteId: (id: string) => void
   setCustomPaletteBase: (hex: string | null) => void
+  setCustomPalette: (colors: MapPaletteColors | null) => void
+  updateCustomPaletteColor: (key: keyof MapPaletteColors, hex: string) => void
   setStreetLabelsVisible: (visible: boolean) => void
   setMaskKey: (key: MapMaskKey) => void
   setPrintFormat: (format: PrintFormat) => void
@@ -147,6 +152,8 @@ export interface EditorStore {
   setSecondMapStyleId: (id: string) => void
   setSecondMapPaletteId: (id: string) => void
   setSecondMapCustomPaletteBase: (hex: string | null) => void
+  setSecondMapCustomPalette: (colors: MapPaletteColors | null) => void
+  updateSecondMapCustomPaletteColor: (key: keyof MapPaletteColors, hex: string) => void
   flyToSecondLocation: (lng: number, lat: number, zoom?: number) => void
   clearSecondPendingCenter: () => void
   zoomInSecond: () => void
@@ -175,12 +182,13 @@ export interface EditorConfig {
   styleId: string
   paletteId: string
   customPaletteBase: string | null
+  customPalette: MapPaletteColors | null
   streetLabelsVisible: boolean
   maskKey: MapMaskKey
   printFormat: PrintFormat
   marker: MarkerState
   secondMarker: MarkerState
-  secondMap: Pick<SecondMapState, 'enabled' | 'styleId' | 'viewState'>
+  secondMap: Pick<SecondMapState, 'enabled' | 'styleId' | 'paletteId' | 'customPaletteBase' | 'customPalette' | 'viewState'>
   shapeConfig: ShapeConfigState
   textBlocks: TextBlock[]
   locationName: string
@@ -206,6 +214,7 @@ export const useEditorStore = create<EditorStore>((set) => ({
   styleId: '019ce7b9-403f-703d-95e6-3936bbfe60dc',
   paletteId: 'mint',
   customPaletteBase: null,
+  customPalette: null,
   streetLabelsVisible: false,
   maskKey: 'none',
   printFormat: 'a4',
@@ -217,6 +226,7 @@ export const useEditorStore = create<EditorStore>((set) => ({
     styleId: 'streets-v2',
     paletteId: 'mint',
     customPaletteBase: null,
+    customPalette: null,
     viewState: DEFAULT_VIEW,
     pendingCenter: null,
     pendingZoomDelta: null,
@@ -269,6 +279,11 @@ export const useEditorStore = create<EditorStore>((set) => ({
   setStyleId: (styleId) => set({ styleId }),
   setPaletteId: (paletteId) => set({ paletteId }),
   setCustomPaletteBase: (customPaletteBase) => set({ customPaletteBase }),
+  setCustomPalette: (customPalette) => set({ customPalette }),
+  updateCustomPaletteColor: (key, hex) =>
+    set((s) => ({
+      customPalette: { ...(s.customPalette ?? ({} as MapPaletteColors)), [key]: hex },
+    })),
   setStreetLabelsVisible: (streetLabelsVisible) => set({ streetLabelsVisible }),
   setMaskKey: (maskKey) => set({ maskKey }),
   setPrintFormat: (printFormat) => set({ printFormat }),
@@ -283,6 +298,14 @@ export const useEditorStore = create<EditorStore>((set) => ({
   setSecondMapStyleId: (id) => set((s) => ({ secondMap: { ...s.secondMap, styleId: id } })),
   setSecondMapPaletteId: (id) => set((s) => ({ secondMap: { ...s.secondMap, paletteId: id } })),
   setSecondMapCustomPaletteBase: (hex) => set((s) => ({ secondMap: { ...s.secondMap, customPaletteBase: hex } })),
+  setSecondMapCustomPalette: (colors) => set((s) => ({ secondMap: { ...s.secondMap, customPalette: colors } })),
+  updateSecondMapCustomPaletteColor: (key, hex) =>
+    set((s) => ({
+      secondMap: {
+        ...s.secondMap,
+        customPalette: { ...(s.secondMap.customPalette ?? ({} as MapPaletteColors)), [key]: hex },
+      },
+    })),
   flyToSecondLocation: (lng, lat, zoom = 13) =>
     set((s) => ({ secondMap: { ...s.secondMap, pendingCenter: { lng, lat, zoom } } })),
   clearSecondPendingCenter: () => set((s) => ({ secondMap: { ...s.secondMap, pendingCenter: null } })),
@@ -346,6 +369,7 @@ export const useEditorStore = create<EditorStore>((set) => ({
     styleId: config.styleId ?? s.styleId,
     paletteId: config.paletteId ?? s.paletteId,
     customPaletteBase: config.customPaletteBase ?? s.customPaletteBase,
+    customPalette: config.customPalette ?? s.customPalette,
     streetLabelsVisible: config.streetLabelsVisible ?? s.streetLabelsVisible,
     maskKey: config.maskKey ?? s.maskKey,
     printFormat: config.printFormat ?? s.printFormat,
