@@ -28,11 +28,11 @@
 | PROJ-12 | Client-Order-Management | In Progress | [PROJ-12-client-order-management.md](PROJ-12-client-order-management.md) | 2026-04-20 |
 | PROJ-13 | Content CMS (Sanity) | In Progress | [PROJ-13-content-cms.md](PROJ-13-content-cms.md) | 2026-04-20 |
 | PROJ-14 | Blog-Publishing-Automatisierung | In Progress | [PROJ-14-blog-automation.md](PROJ-14-blog-automation.md) | 2026-04-21 |
-| PROJ-15 | Dynamische Map-Farbschemen | Architected | [PROJ-15-dynamic-map-color-schemes.md](PROJ-15-dynamic-map-color-schemes.md) | 2026-04-21 |
+| PROJ-15 | Dynamische Map-Farbschemen | In Progress | [PROJ-15-dynamic-map-color-schemes.md](PROJ-15-dynamic-map-color-schemes.md) | 2026-04-21 |
 | PROJ-16 | Marketing-Infrastruktur | Planned | [PROJ-16-marketing-infrastructure.md](PROJ-16-marketing-infrastructure.md) | 2026-04-21 |
 | PROJ-17 | Marketing-Playbook & Kampagnen | Planned | [PROJ-17-marketing-playbook.md](PROJ-17-marketing-playbook.md) | 2026-04-21 |
 | PROJ-18 | Mobile-Schnellbestellung via Presets | Planned | [PROJ-18-mobile-editor-optimization.md](PROJ-18-mobile-editor-optimization.md) | 2026-04-21 |
-| PROJ-19 | Foto-Integration im Poster | Architected | [PROJ-19-photo-integration.md](PROJ-19-photo-integration.md) | 2026-04-21 |
+| PROJ-19 | Foto-Integration im Poster | In Progress | [PROJ-19-photo-integration.md](PROJ-19-photo-integration.md) | 2026-04-21 |
 | PROJ-20 | Internationalisierung (i18n) | Planned | [PROJ-20-internationalization.md](PROJ-20-internationalization.md) | 2026-04-21 |
 
 <!-- Add features above this line -->
