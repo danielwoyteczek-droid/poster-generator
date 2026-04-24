@@ -6,6 +6,7 @@ import { useEditorStore, type TextBlock } from './useEditorStore'
 import { PRINT_FORMATS, type PrintFormat } from '@/lib/print-formats'
 import { renderStarMap, type StarEntry, type GeoFeature } from '@/lib/star-map-renderer'
 import { getCoordinatesText } from '@/components/editor/TextBlockOverlay'
+import { computeFontScale } from '@/lib/font-scale'
 
 // ─── Text helpers (mirror of useMapExport) ─────────────────────────────────
 
@@ -25,9 +26,11 @@ function drawTextBlocks(
   W: number,
   H: number,
   previewW: number,
-  fontScale = 1,
 ) {
   const scaleX = W / previewW
+  // Same font-scale used in PosterCanvas so preview / Zimmeransicht / print
+  // all render text at the same poster-relative ratio.
+  const fontScale = computeFontScale(previewW)
   for (const block of textBlocks) {
     const raw = displayTexts[block.id] ?? block.text
     const text = block.uppercase ? raw.toUpperCase() : raw
@@ -100,10 +103,7 @@ export function useStarMapExport() {
 
   const { textBlocks } = useEditorStore()
 
-  const buildCanvas = async (
-    format: PrintFormat,
-    options: { fontScale?: number } = {},
-  ): Promise<HTMLCanvasElement> => {
+  const buildCanvas = async (format: PrintFormat): Promise<HTMLCanvasElement> => {
     const fmt = PRINT_FORMATS[format]
     const W = fmt.widthPx
     const H = fmt.heightPx
@@ -135,7 +135,7 @@ export function useStarMapExport() {
         ? getCoordinatesText(lat, lng, locationName)
         : block.text
     }
-    drawTextBlocks(ctx, textBlocks, displayTexts, W, H, previewWidth, options.fontScale)
+    drawTextBlocks(ctx, textBlocks, displayTexts, W, H, previewWidth)
     return canvas
   }
 
@@ -175,10 +175,7 @@ export function useStarMapExport() {
   }
 
   const renderPreview = async (format: PrintFormat): Promise<string> => {
-    // Match PosterCanvas mobile font-scale so Zimmeransicht lines up with the
-    // live preview. Desktop (previewWidth ≥ 400) clamps to 1 — unchanged.
-    const fontScale = Math.min(1, previewWidth / 400)
-    const canvas = await buildCanvas(format, { fontScale })
+    const canvas = await buildCanvas(format)
     return canvas.toDataURL('image/png')
   }
 

@@ -274,23 +274,28 @@ Nach dem ersten Test mit echtem Mobile-Viewport kamen zwei zusätzliche Anpassun
 - `MobileEditorLayout` übergibt `padding={16}` und hat die Preview-Höhe auf **58vh** (vorher 52vh) angehoben
 - Desktop ist unverändert
 
-**2. Textblock-Font-Scale auf Mobile**
-Ohne Skalierung schlägt ein auf Desktop gesetztes `fontSize` auf Mobile durch und wird relativ zum kleineren Poster zu groß (Text wie "Dein Moment" wird zweizeilig). Fix:
-- Neue Konstante `FONT_SCALE_REFERENCE_WIDTH = 400` in `PosterCanvas`
-- `fontScale = Math.min(1, posterSize.width / 400)`
-- Auf Desktop (Preview breiter als 400 px) wird auf 1 geklemmt → **keine Änderung**
-- Auf Mobile (Preview ~300 px) ergibt sich `fontScale ≈ 0.75`
-- Weitergereicht an `TextBlockOverlay` als neue `fontScale`-Prop, dort im Style multipliziert
-- **Referenz-Wert wurde iterativ getunt**: 600 ergab zu kleine Schrift, 300 war wieder zu groß → 400 als empirischer Sweetspot
+**2. Textblock-Font-Scale — konsistent über alle Render-Pfade (Option D)**
+Ohne Skalierung schlägt ein auf Desktop gesetztes `fontSize` auf Mobile durch und wird relativ zum kleineren Poster zu groß (Text wie "Dein Moment" wird zweizeilig). Zusätzlich rendert der pre-existing Export-Pfad (`scaleX = exportW / previewW`) mobilexportierte Projekte ~2× größer als desktopexportierte. Beide Probleme lösen wir mit **einem einheitlichen Font-Scale**:
 
-**3. Font-Scale auch in Zimmeransicht (renderPreview)** — Option-1-Ansatz
-Die Zimmeransicht (über `useMapExport.renderPreview` / `useStarMapExport.renderPreview`) zeigt das Poster im Raum-Kontext und soll mit der Live-Preview übereinstimmen. Daher:
-- `buildPosterCanvas` / `buildCanvas` akzeptieren jetzt ein optionales `{ fontScale }`
-- `renderPreview` berechnet denselben `fontScale = min(1, previewW / 400)` und übergibt ihn
-- **Der eigentliche Download-Pfad (`exportPNG` / `exportPDF`) bekommt keinen fontScale** → Prints bleiben unverändert
+- Neue Shared-Utility `src/lib/font-scale.ts` mit `FONT_SCALE_REFERENCE_WIDTH = 660` und `computeFontScale(previewW)`
+- **Formel:** `fontScale = Math.min(1, previewW / 660)`
+- Angewendet in **allen** Render-Pfaden:
+  - `PosterCanvas` (Live-Preview) → via `TextBlockOverlay` `fontScale`-Prop
+  - `useMapExport.drawTextBlocks` (Zimmeransicht **und** PNG/PDF-Download)
+  - `useStarMapExport.drawTextBlocks` (gleiches Muster für Stern-Karten)
+  - `poster-from-snapshot.drawTextBlocks` (server-gerenderte Poster aus DB-Snapshots)
+- **Auf Desktop** (previewW ≥ 660) → fontScale = 1, keine Änderung gegenüber Pre-existing Verhalten
+- **Auf Desktop mit kleinem Fenster** (previewW < 660) → fontScale leicht unter 1, Text minimal kleiner — aber dafür im Druck-Verhältnis jetzt konsistent (vorher war bei kleineren Fenstern die Preview-Proportion inkorrekt)
+- **Auf Mobile** (previewW ≈ 300) → fontScale ≈ 0.45, Text visuell kleiner aber exakt im selben poster-relativen Verhältnis wie Desktop
 
-**Bewusster Trade-off (Option 1):**
-Auf Mobile zeigt die Zimmeransicht jetzt denselben (kleineren) Text wie die Live-Preview, aber das heruntergeladene PDF/PNG rendert Text in der ursprünglichen (größeren) Skala. Grund: Preview↔Zimmeransicht-Konsistenz wurde priorisiert, die Print-Output-Konsistenz zwischen Mobile und Desktop ist ein vorbestehendes Problem (scaleX = W/previewW im Export-Pfad), das wir hier bewusst **nicht** schlimmer machen, aber auch nicht lösen.
+**Konsequenz:** Preview, Zimmeransicht und Print stimmen jetzt über alle Geräte und alle Fenstergrößen überein. Ein auf Desktop gemachtes Projekt zeigt auf Mobile dieselbe Textproportion (nur kleiner in Absolut-Pixeln), und beim Druck ergeben Mobile- und Desktop-Export für dasselbe Projekt dasselbe Ergebnis.
+
+**3. iOS Safari Map-Capture Fix**
+Das WebGL-Framebuffer der offscreen-MapTiler-Instanz wird auf iOS Safari vor `getCanvas()` geleert, selbst mit `preserveDrawingBuffer:true`. Folge: leere Karte in Zimmeransicht, Cart-Thumbnail und PDF-Download. Fix in `useMapExport.renderMapOffscreen`:
+- Nach `waitForMapStable` wird `map.triggerRepaint()` aufgerufen und auf das `render`-Event gewartet, bevor der Canvas abgegriffen wird
+- 500 ms Safety-Timeout, falls das Event nicht feuert (Style bereits fertig gepaintet)
+- Zusätzlich: `opacity:0` vom Offscreen-Container entfernt (iOS skippt WebGL-Render für vollständig transparente Elemente); Container bleibt über `left:-99999px` off-screen
+- Minimale Offscreen-Container-Breite auf 800 px erhöht, sodass `pixelRatio` unter allen Bedingungen ≤ ~3× bleibt (Schutz gegen iOS-Safari-Texturlimits bei hohem pixelRatio)
 
 ### Offene Punkte für QA
 - Visuelle Prüfung der Preview-Größe bei verschiedenen Phone-Breiten (iPhone SE 375px, Android 360px, iPad 768px)
@@ -299,7 +304,8 @@ Auf Mobile zeigt die Zimmeransicht jetzt denselben (kleineren) Text wie die Live
 - Bottom-Sheet des TextTab auf sehr flachen Phones (Landscape Home Indicator)
 - Cross-Device-Test: Projekt auf Desktop speichern → auf Phone öffnen → identischer Zustand?
 - **Font-Scale-Grenzfall**: Mobile-User mit `fontSize` klein eingestellt (< 11 px nach Scale) — wird auf minimum 8 px geklemmt, aber prüfen ob lesbar
-- **Mobile PDF-Download vs. Zimmeransicht**: Bekannter Trade-off (siehe oben), QA sollte dokumentieren, ob Nutzer das irritiert
+- **Cross-Device-Konsistenz im Druck**: Dasselbe Projekt von Desktop und Mobile exportiert sollte jetzt identisch aussehen — explizit gegen-prüfen in QA
+- **Desktop mit kleinem Browser-Fenster**: Text skaliert jetzt leicht mit Fenstergröße (vorher nicht) — Regressionscheck auf „üblichen" Desktop-Größen
 
 ## QA Test Results
 _To be added by /qa_

@@ -2,6 +2,7 @@ import { PRINT_FORMATS, type PrintFormat } from './print-formats'
 import { renderStarMap, type StarEntry, type GeoFeature } from './star-map-renderer'
 import { buildPosterCanvas, type ExportSnapshot } from '@/hooks/useMapExport'
 import { getCoordinatesText } from '@/components/editor/TextBlockOverlay'
+import { computeFontScale } from './font-scale'
 import type { TextBlock } from '@/hooks/useEditorStore'
 
 export type PosterType = 'map' | 'star-map'
@@ -30,12 +31,15 @@ function drawTextBlocks(
   previewW: number,
 ) {
   const scaleX = W / previewW
+  // Same font-scale used in PosterCanvas so preview / Zimmeransicht /
+  // server-rendered snapshots all agree on the text-to-poster ratio.
+  const fontScale = computeFontScale(previewW)
   for (const block of textBlocks) {
     const raw = displayTexts[block.id] ?? block.text
     const text = block.uppercase ? raw.toUpperCase() : raw
     if (!text.trim()) continue
 
-    const scaledFontSize = Math.max(8, Math.round(block.fontSize * scaleX))
+    const scaledFontSize = Math.max(8, Math.round(block.fontSize * scaleX * fontScale))
     const weight = block.bold ? 'bold' : 'normal'
     ctx.font = `${weight} ${scaledFontSize}px "${block.fontFamily}", sans-serif`
     ctx.fillStyle = block.color

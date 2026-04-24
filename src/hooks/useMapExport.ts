@@ -10,6 +10,7 @@ import { getCoordinatesText } from '@/components/editor/TextBlockOverlay'
 import { PHOTO_MASKS, type PhotoMaskKey } from '@/lib/photo-masks'
 import { filterCss } from '@/lib/photo-filters'
 import { buildPetiteStyle } from '@/lib/petite-style-loader'
+import { computeFontScale } from '@/lib/font-scale'
 import type { MapPaletteColors } from '@/lib/map-palettes'
 import type { PhotoItem, SplitPhoto } from './useEditorStore'
 
@@ -308,6 +309,24 @@ async function renderMapOffscreen({
     map.resize()
     await waitForMapStable(map)
 
+    // iOS Safari WebGL quirk: by the time we reach getCanvas() the framebuffer
+    // may already have been cleared for compositing, even with
+    // preserveDrawingBuffer:true. Force a fresh render right before capture
+    // and wait for its 'render' event so the buffer is guaranteed populated.
+    await new Promise<void>((resolve) => {
+      let done = false
+      const finish = () => {
+        if (done) return
+        done = true
+        resolve()
+      }
+      map.once('render', finish)
+      map.triggerRepaint?.()
+      // Safety timeout in case the render event never fires (e.g. style
+      // already fully painted) — don't hang the export forever.
+      setTimeout(finish, 500)
+    })
+
     const srcCanvas = map.getCanvas() as HTMLCanvasElement
     const dst = document.createElement('canvas')
     dst.width = outputW
@@ -354,9 +373,11 @@ function drawTextBlocks(
   H: number,
   previewW: number,
   previewH: number,
-  fontScale = 1,
 ) {
   const scaleX = W / previewW
+  // Match PosterCanvas's live preview so text renders at the same
+  // poster-relative ratio on every device and every render path.
+  const fontScale = computeFontScale(previewW)
 
   for (const block of textBlocks) {
     const raw = displayTexts[block.id] ?? block.text
@@ -396,18 +417,9 @@ function drawTextBlocks(
 
 // ─── Canvas builder ────────────────────────────────────────────────────────
 
-export interface BuildPosterOptions {
-  /** Scale applied to text-block font-sizes on top of the usual preview→export
-   *  scaleX. Used by the Mobile room-view (Zimmeransicht) so it matches the
-   *  Mobile live preview. The actual PDF/PNG download path passes 1 (no scale)
-   *  so printed output stays consistent with Desktop-rendered prints. */
-  fontScale?: number
-}
-
 export async function buildPosterCanvas(
   format: PrintFormat,
   store: ExportSnapshot,
-  options: BuildPosterOptions = {},
 ): Promise<HTMLCanvasElement> {
   const fmt = PRINT_FORMATS[format]
   const W = fmt.widthPx
@@ -538,7 +550,7 @@ export async function buildPosterCanvas(
   await drawPhotos(ctx, store.photos ?? [], W, H)
 
   // Text blocks
-  drawTextBlocks(ctx, textBlocks, displayTexts, W, H, previewW, previewH, options.fontScale)
+  drawTextBlocks(ctx, textBlocks, displayTexts, W, H, previewW, previewH)
 
   // Decorative frame (inner + outer), composed from shape + shapeConfig.
   // The frame hugs the shape, so it draws into the same target rect as the map.
@@ -657,12 +669,7 @@ export function useMapExport() {
     const snapshot: ExportSnapshot = {
       viewState, styleId, paletteId, customPaletteBase, customPalette, streetLabelsVisible, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos, splitMode, splitPhoto, splitPhotoZone, layoutId, innerMarginMm,
     }
-    // Mirror PosterCanvas's mobile font-scale (ref 400 px). On Desktop previewW
-    // is ≥ 400 so scale clamps to 1 — Desktop Zimmeransicht unchanged. On Mobile
-    // the Zimmeransicht thus matches the live preview.
-    const previewW = viewState.viewportWidth > 0 ? viewState.viewportWidth : 500
-    const fontScale = Math.min(1, previewW / 400)
-    const canvas = await buildPosterCanvas(format, snapshot, { fontScale })
+    const canvas = await buildPosterCanvas(format, snapshot)
     return canvas.toDataURL('image/png')
   }
 

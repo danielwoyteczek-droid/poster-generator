@@ -3,7 +3,7 @@
 import { useRef, useEffect, useState } from 'react'
 import { Plus, Minus, LocateFixed } from 'lucide-react'
 import { useEditorStore, LAYOUT_MAP_HEIGHT } from '@/hooks/useEditorStore'
-import { useIsMobileEditor } from '@/hooks/useIsMobileEditor'
+import { computeFontScale } from '@/lib/font-scale'
 import { useCustomMasks } from '@/hooks/useCustomMasks'
 import { MAP_MASKS } from '@/lib/map-masks'
 import { composeMaskSvg, composeFrameSvg, svgToDataUrl, hasAnyFrame } from '@/lib/mask-composer'
@@ -55,22 +55,12 @@ interface PosterCanvasProps {
   textInteractive?: boolean
 }
 
-/** Reference preview width used to normalise text-block font rendering
- *  across devices. On Mobile we scale the displayed font-size by
- *  (posterSize.width / this value) so text stays readable without
- *  wrapping while still looking proportionate to the poster. Tuned by
- *  eye: 600 made mobile text too small, 300 kept it too large.  */
-const FONT_SCALE_REFERENCE_WIDTH = 400
-
 export function PosterCanvas({ padding = 64, textInteractive }: PosterCanvasProps = {}) {
   const wrapperRef = useRef<HTMLDivElement>(null)
   const posterRef = useRef<HTMLDivElement>(null)
   const [posterSize, setPosterSize] = useState({ width: 0, height: 0 })
   const [locating, setLocating] = useState(false)
-  const isMobile = useIsMobileEditor()
-  const fontScale = isMobile && posterSize.width > 0
-    ? Math.min(1, posterSize.width / FONT_SCALE_REFERENCE_WIDTH)
-    : 1
+  const fontScale = computeFontScale(posterSize.width)
 
   const { maskKey, printFormat, zoomIn, zoomOut, flyToLocation, zoomInSecond, zoomOutSecond, secondMap, marker, secondMarker, shapeConfig, viewState, setMarker, setSecondMarker, setSelectedBlockId, splitMode, splitPhoto, splitPhotoZone, layoutId, innerMarginMm } = useEditorStore()
   const mapAreaRef = useRef<HTMLDivElement>(null)
