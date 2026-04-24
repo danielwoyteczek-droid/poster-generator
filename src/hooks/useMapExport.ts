@@ -610,7 +610,7 @@ export function useMapExport() {
 
   const renderPreview = async (format: PrintFormat): Promise<string> => {
     const snapshot: ExportSnapshot = {
-      viewState, styleId, paletteId, customPaletteBase, customPalette, streetLabelsVisible, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos, splitMode, splitPhoto, splitPhotoZone,
+      viewState, styleId, paletteId, customPaletteBase, customPalette, streetLabelsVisible, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos, splitMode, splitPhoto, splitPhotoZone, layoutId, innerMarginMm,
     }
     const canvas = await buildPosterCanvas(format, snapshot)
     return canvas.toDataURL('image/png')
