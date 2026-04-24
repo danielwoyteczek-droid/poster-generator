@@ -100,9 +100,18 @@ export function MapTab() {
       toast.error('Name ist erforderlich')
       return
     }
-    if (!/^[a-z][a-z0-9-]*$/.test(savePaletteId)) {
-      toast.error('ID muss ein Slug sein (a-z, 0-9, -)')
+    if (savePaletteId.length < 2 || !/^[a-z][a-z0-9-]*$/.test(savePaletteId)) {
+      toast.error('ID braucht mindestens 2 Zeichen, nur a-z, 0-9, Bindestriche (Start mit Buchstabe)')
       return
+    }
+    // Check all 8 colours are valid hex before the server round-trip so the
+    // error points at the specific offending field.
+    const HEX = /^#([A-Fa-f0-9]{3}|[A-Fa-f0-9]{6})$/
+    for (const key of Object.keys(saveDialogColors) as (keyof MapPaletteColors)[]) {
+      if (!HEX.test(saveDialogColors[key])) {
+        toast.error(`${key}: ungültiger Hex-Wert (${saveDialogColors[key]})`)
+        return
+      }
     }
     setSavePaletteSaving(true)
     try {
@@ -116,7 +125,15 @@ export function MapTab() {
         }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? 'Speichern fehlgeschlagen')
+      if (!res.ok) {
+        // Surface the Zod flatten() field errors so we can see what the server rejected
+        const detail = data.details?.fieldErrors
+          ? Object.entries(data.details.fieldErrors)
+              .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`)
+              .join(' | ')
+          : null
+        throw new Error(detail ? `${data.error} — ${detail}` : data.error ?? 'Speichern fehlgeschlagen')
+      }
       const { invalidateMapPalettesCache } = await import('@/hooks/useMapPalettes')
       invalidateMapPalettesCache()
       toast.success('Palette als Draft gespeichert — im Admin veröffentlichen')
