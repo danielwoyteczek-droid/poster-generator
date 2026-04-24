@@ -37,9 +37,23 @@
 - MapTab-Picker iteriert jetzt `availablePalettes` statt `MAP_PALETTES`
   (primärer + sekundärer Karten-Picker, beide CustomPaletteEditor-Resets).
 
-Fehlt noch für diese Feature: Admin-UI unter `/private/admin/palettes`
-(Liste, Create/Edit-Dialog, Publish-Toggle, Delete mit Reference-Check).
-Wird über `/frontend` im nächsten Schritt gebaut.
+## Implementation Notes (Frontend)
+- Admin-Route `/private/admin/palettes` folgt dem gleichen Pattern wie Presets
+  und Masks (server-side `requireAdmin` + `redirect`, Landing-Nav, Titelblock,
+  Client-Komponente). Kein neues Auth-Pattern.
+- `AdminPalettesList` zeigt jede Palette als Zeile mit 8 Farb-Swatches, Name,
+  Slug, Status-Badge, Beschreibung und drei Icon-Buttons: Publish-Toggle
+  (Eye/EyeOff), Bearbeiten (Pencil), Löschen (Trash).
+- Create-/Edit-Dialog nutzt shadcn Dialog mit ID + Name + Beschreibung +
+  Reihenfolge + 2-spaltigem Color-Grid. Jedes Farbfeld hat sowohl
+  `<input type="color">` als auch ein monospaced Hex-Textfeld — Admin kann
+  beide frei mischen. Name → ID auto-slugify solange ID leer ist, nach
+  Anlegen ist ID dauerhaft read-only.
+- Delete-AlertDialog: bei 409-Response wird die zurückgelieferte Preset-Liste
+  im Dialog aufgeführt und der Löschen-Button ausgeblendet; Admin muss erst
+  die Referenzen beheben.
+- Beim Create / Update / Status-Wechsel wird `invalidateMapPalettesCache()`
+  gecallt, damit der Editor beim nächsten Mount die aktuelle DB-Liste holt.
 
 ## Kontext
 Die sechs vordefinierten Farbpaletten (Mint, Sand, Navy, Terracotta, Slate, Forest)
