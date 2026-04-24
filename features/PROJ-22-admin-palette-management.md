@@ -1,6 +1,6 @@
 # PROJ-22: Admin-Paletten-Verwaltung
 
-## Status: Planned
+## Status: Architected
 **Created:** 2026-04-24
 **Last Updated:** 2026-04-24
 
@@ -107,7 +107,148 @@ und der Kunde bekommt automatisch nur veröffentlichte Paletten im Picker.
 <!-- Sections below are added by subsequent skills -->
 
 ## Tech Design (Solution Architect)
-_To be added by /architecture_
+
+### A) Component Structure (Sidebar + Admin Route)
+
+```
+Sidebar (bestehend, unverändert in der Struktur)
++-- MapTab
+|   +-- Farbpalette (Picker, liest jetzt aus DB statt Hardcode)
+|       +-- "Original" / "Eigene" / DB-Paletten
+
+/private/admin/palettes  (NEU, Admin-only)
++-- Paletten-Übersicht (Tabelle)
+|   +-- Zeile pro Palette: Status-Badge | Name | Farb-Swatches (alle 8) | Aktionen
+|   +-- Filter: Draft / Published / Alle
+|   +-- Button "Neue Palette"
++-- Neu-/Edit-Dialog
+|   +-- Name (Pflicht)
+|   +-- Slug-Feld (auto-generiert aus Name, nach Anlegen gesperrt)
+|   +-- Beschreibung (optional)
+|   +-- 8 Farb-Zeilen: Label + Hex-Input + Live-Swatch
+|       - Background, Land, Water, Road, Building, Border, Label, Label-Halo
+|   +-- Reihenfolge (Nummer-Input)
+|   +-- Aktionen: Speichern / Veröffentlichen / Zurückziehen / Löschen
++-- Lösch-Bestätigung (wenn Palette noch in Presets referenziert)
+    +-- Liste der betroffenen Presets
+    +-- "Ja, löschen — Presets fallen auf Default zurück"
+```
+
+### B) Data Model (Was gespeichert wird)
+
+Eine neue Supabase-Tabelle `map_palettes` mit diesen Feldern:
+
+```
+Jede Palette hat:
+- id:          stabile Slug-ID (z.B. "mint", "herbst-rot") — nie änderbar
+- name:        sichtbarer Name im Picker (z.B. "Mint", "Herbstrot")
+- description: optionale Beschreibung für Admin-Tooltip
+- colors:      Objekt mit 8 Hex-Farbwerten
+               (background, land, water, road, building, border, label, labelHalo)
+- status:      'draft' oder 'published'
+- display_order: Ganzzahl, steuert Sortierung im Picker
+- created_at, updated_at: Zeitstempel
+
+Zugriffs-Regeln (Row Level Security):
+- Lesen: alle (auch anonym), aber nur Paletten mit status = 'published'
+- Schreiben (Insert/Update/Delete): nur User mit Admin-Rolle
+```
+
+Bestehende Presets referenzieren Paletten über ihre `paletteId` (ist der Slug).
+Die Referenz bleibt lose: wird eine Palette gelöscht, fällt der Preset-Apply
+auf die erste verfügbare Palette zurück.
+
+### C) Wie der Editor Paletten lädt
+
+```
+Beim Öffnen des Editors:
+1. React-Query/SWR-Hook `useMapPalettes` ruft GET /api/palettes auf
+2. Server liest alle veröffentlichten Paletten aus map_palettes
+3. Antwort wird clientseitig 5 Minuten gecached
+4. Picker merged: [Original-Sonderfall, ...DB-Paletten, Eigene-Sonderfall]
+
+Fallback-Kette:
+- DB nicht erreichbar → Toast + Fallback auf hardcoded MAP_PALETTES
+- paletteId aus Preset existiert nicht mehr → Fallback auf erste published
+- Palette hat weniger als 8 Felder → fehlende Felder aus MAP_PALETTES[0]
+```
+
+Die hardcoded `MAP_PALETTES` Konstante bleibt im Code als Notfall-Backup;
+der Seed stellt sicher dass die gleichen sechs Paletten auch in der DB sind,
+damit der Betreiber sie dort bearbeiten kann.
+
+### D) Admin-Workflow
+
+```
+1. Admin öffnet /private/admin/palettes
+2. Sieht Übersichtstabelle aller Paletten
+3. Klickt "Neue Palette" → Dialog
+4. Trägt Name ein, Slug wird auto-generiert (editierbar solange noch nicht gespeichert)
+5. Füllt 8 Farb-Hex-Werte, jeder mit Live-Vorschau daneben
+6. Speichert als Draft → erscheint nur im Admin, nicht im Kunden-Editor
+7. Kann mit "Im Editor probieren"-Link direkt den Editor öffnen und
+   die Draft-Palette via URL-Parameter vorauswählen (opt-in)
+8. Zufrieden → "Veröffentlichen" → status wechselt auf 'published'
+9. Editor-Hook revalidiert beim nächsten Focus, Palette erscheint für Kunden
+```
+
+### E) API-Endpunkte (nicht Implementierung, nur Überblick)
+
+```
+Öffentlich (liest nur published):
+  GET  /api/palettes           → Liste aller publizierten Paletten
+
+Admin-only (hinter isAdmin-Check):
+  GET    /api/admin/palettes       → Liste inkl. Drafts
+  POST   /api/admin/palettes       → Neue Palette anlegen
+  PATCH  /api/admin/palettes/[id]  → Farben/Name/Status ändern
+  DELETE /api/admin/palettes/[id]  → Löschen (mit Preset-Check)
+```
+
+### F) Migration: Hardcode → DB
+
+```
+Einmaliger Seed beim nächsten Deploy:
+- SQL-Migration liest die sechs MAP_PALETTES aus dem TS-Code (manuell in SQL
+  übertragen) und schreibt sie als 'published' in map_palettes
+- display_order folgt der aktuellen Reihenfolge (Mint=1, Sand=2, ...)
+- hardcoded MAP_PALETTES bleibt im Code als Fallback wenn DB down ist
+```
+
+### G) Tech-Entscheidungen (Warum so)
+
+- **Slug-IDs statt UUIDs**: Presets referenzieren Paletten per ID. Slug ist
+  lesbar (`mint` statt `3f2a-…`) und bleibt stabil auch bei Umbenennung des
+  Anzeigenamens. Senkt die Gefahr "plötzlich alle Presets kaputt".
+- **Status-Feld statt separate Draft-Tabelle**: eine Tabelle mit einem
+  Enum-Feld ist simpler zu warten als zwei getrennte Tabellen oder eine
+  Versionshistorie.
+- **Kunden-Fetch via Hook mit Cache**: 5-Minuten-Cache reicht für ein UI-Set
+  dass sich selten ändert, vermeidet unnötige DB-Last.
+- **Hardcoded-Fallback erhalten**: schlechter DB-Tag darf den Editor nicht
+  komplett blockieren. Sechs bekannte Paletten reichen im Worst-Case aus.
+- **Gleicher Admin-Pattern wie Presets/Masks**: Admin-Pages unter
+  `/private/admin/`, API unter `/api/admin/`, Service-Role-Key serverseitig.
+  Null neue Patterns, maximale Konsistenz, minimaler Review-Aufwand.
+- **Lösch-Schutz mit Preset-Liste**: Paletten sind wertvoll (wurden
+  hand-tuned) — ein unbedachter Klick darf nicht mehrere Presets brechen.
+
+### H) Dependencies (keine neuen Packages)
+
+Alles nutzt was schon installiert ist:
+- Supabase-Client für DB-Zugriff
+- shadcn/ui für Dialog, Table, Input, Badge, Button, Tabs
+- SWR (bereits im Projekt) für Palette-Fetch mit Cache
+- Zod (bereits im Projekt) für Eingabe-Validierung serverseitig
+
+### I) Abgrenzung
+
+- **Kein Farb-Picker-Widget**: Hex-Text-Input reicht, dazu ein kleiner
+  `<input type="color">` als Fallback-Helfer
+- **Keine Versionshistorie**: wenn Admin experimentiert und sich verirrt,
+  einfach neue Draft-Palette anlegen und alte unverändert lassen
+- **Keine Palette-Kategorien/Tags**: `display_order` reicht, alles in einer
+  flachen Liste
 
 ## QA Test Results
 _To be added by /qa_
