@@ -31,6 +31,10 @@ interface Props {
   viewState: ViewState  // triggers re-render on map pan
   defaultX: string // CSS percentage, e.g. '50%' or '25%'
   onMove: (lat: number, lng: number) => void
+  /** When false, disables pointer interaction so the pin is only visible.
+   *  Used on Mobile to keep the pin non-draggable from tabs other than
+   *  Marker. Defaults to true (Desktop behaviour unchanged). */
+  interactive?: boolean
 }
 
 /**
@@ -39,7 +43,7 @@ interface Props {
  */
 export function DraggablePin({
   slice, containerRef, markerLat, markerLng, markerType, markerColor,
-  viewState, defaultX, onMove,
+  viewState, defaultX, onMove, interactive = true,
 }: Props) {
   const [dragging, setDragging] = useState(false)
   const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(null)
@@ -105,16 +109,21 @@ export function DraggablePin({
   return (
     <div
       ref={pinRef}
-      className="absolute cursor-grab active:cursor-grabbing touch-none select-none"
+      className={
+        interactive
+          ? 'absolute cursor-grab active:cursor-grabbing touch-none select-none'
+          : 'absolute select-none'
+      }
       style={{
         left: pos.left,
         top: pos.top,
         transform: 'translateX(-50%) translateY(-100%)',
         zIndex: 10,
         opacity: dragging ? 0.85 : 1,
+        pointerEvents: interactive ? 'auto' : 'none',
       }}
-      onPointerDown={handlePointerDown}
-      title="Pin verschieben"
+      onPointerDown={interactive ? handlePointerDown : undefined}
+      title={interactive ? 'Pin verschieben' : undefined}
     >
       {markerType === 'heart' ? <HeartPin color={markerColor} /> : <ClassicPin color={markerColor} />}
     </div>

@@ -52,7 +52,7 @@ Die Lösung: **Feste Vorschau oben, Tab-Bar darunter, scrollbarer Tool-Inhalt un
 - [ ] Aktiver Tab durch Akzentfarbe + fettere Schrift oder Unterstreichung markiert.
 - [ ] Selektion in Karten-Grids (Layouts, Farbpaletten) durch farbigen Rand um die aktive Karte.
 - [ ] Karte reagiert auf Pinch-to-Zoom und Pan — Zentrum und Zoom-Level sind Teil des Projekt-Snapshots.
-- [ ] Drag-and-Drop von Textblöcken ist **nur im aktiven Text-Tab** erlaubt. In allen anderen Tabs sind Blöcke durch `pointer-events: none` gegen versehentliches Verschieben geschützt.
+- [ ] **Touch-Isolation pro Tab** auf Mobile: Karte pan/zoom nur im Karte-Tab, Textblöcke verschiebbar nur im Text-Tab, Fotos verschiebbar nur im Fotos-Tab, Marker verschiebbar nur im Marker-Tab. Alle anderen Overlays blockieren `pointer-events`, damit Fingerberührungen sich nicht überlagern. Desktop bleibt voll interaktiv (alle Overlays gleichzeitig).
 
 ### Cross-Device-Konsistenz
 - [ ] Ein auf Mobile gespeichertes Projekt öffnet sich 1:1 auf Desktop und umgekehrt — kein Feature-Verlust in beide Richtungen.

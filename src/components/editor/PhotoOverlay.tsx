@@ -16,16 +16,21 @@ function photoHeightFraction(photo: PhotoItem, posterRatio: number): number {
 
 interface Props {
   posterRef: React.RefObject<HTMLDivElement | null>
+  /** When false, photos render but cannot be dragged/selected. Used on Mobile
+   *  so that only the Photo tab grants photo interaction. Defaults to true. */
+  interactive?: boolean
 }
 
 function PhotoItemView({
   photo,
   posterRef,
   posterRatio,
+  interactive,
 }: {
   photo: PhotoItem
   posterRef: React.RefObject<HTMLDivElement | null>
   posterRatio: number
+  interactive: boolean
 }) {
   const { updatePhoto, selectedBlockId, setSelectedBlockId } = useEditorStore()
   const mask = PHOTO_MASKS[photo.maskKey]
@@ -96,17 +101,17 @@ function PhotoItemView({
 
   return (
     <div
-      className="absolute pointer-events-auto"
+      className={interactive ? 'absolute pointer-events-auto' : 'absolute pointer-events-none'}
       style={{
         left: `${photo.x * 100}%`,
         top: `${photo.y * 100}%`,
         width: `${photo.scale * 100}%`,
         height: `${heightFrac * 100}%`,
-        cursor: 'move',
+        cursor: interactive ? 'move' : 'default',
         outline: isSelected ? '1px dashed #3b82f6' : 'none',
         outlineOffset: '2px',
       }}
-      onPointerDown={handlePointerDown}
+      onPointerDown={interactive ? handlePointerDown : undefined}
     >
       <div
         className="relative w-full h-full overflow-hidden"
@@ -125,7 +130,7 @@ function PhotoItemView({
         />
       </div>
 
-      {isSelected && (
+      {isSelected && interactive && (
         <div
           className="absolute -right-1 -bottom-1 w-3 h-3 bg-white border border-blue-500 rounded-sm cursor-nwse-resize"
           onPointerDown={handleResizePointerDown}
@@ -135,7 +140,7 @@ function PhotoItemView({
   )
 }
 
-export function PhotoOverlay({ posterRef }: Props) {
+export function PhotoOverlay({ posterRef, interactive = true }: Props) {
   const { photos, selectedBlockId, updatePhoto, removePhoto } = useEditorStore()
 
   useEffect(() => {
@@ -189,6 +194,7 @@ export function PhotoOverlay({ posterRef }: Props) {
           photo={photo}
           posterRef={posterRef}
           posterRatio={posterRatio}
+          interactive={interactive}
         />
       ))}
     </div>

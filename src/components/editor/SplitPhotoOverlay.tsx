@@ -12,6 +12,9 @@ interface Props {
   /** When true, the photo overlay covers the whole poster (used when the
    *  mask extends across the midline and the half-clip would cut it). */
   noHalfClip?: boolean
+  /** When false, photo is rendered but cannot be dragged/scaled. Used on
+   *  Mobile so that only the Photo tab grants interaction. Defaults true. */
+  interactive?: boolean
 }
 
 /**
@@ -19,7 +22,7 @@ interface Props {
  * assigned. The SVG mask defines the visible shape; the photo itself
  * can be panned (cropX/cropY) and zoomed (cropScale) within that shape.
  */
-export function SplitPhotoOverlay({ svgPath, side, noHalfClip }: Props) {
+export function SplitPhotoOverlay({ svgPath, side, noHalfClip, interactive = true }: Props) {
   const { splitPhoto, updateSplitPhoto } = useEditorStore()
   if (!splitPhoto) return null
 
@@ -79,10 +82,14 @@ export function SplitPhotoOverlay({ svgPath, side, noHalfClip }: Props) {
 
   return (
     <div
-      className="absolute inset-0 pointer-events-auto cursor-move"
+      className={
+        interactive
+          ? 'absolute inset-0 pointer-events-auto cursor-move'
+          : 'absolute inset-0 pointer-events-none'
+      }
       style={maskStyle}
-      onPointerDown={handlePointerDown}
-      onWheel={handleWheel}
+      onPointerDown={interactive ? handlePointerDown : undefined}
+      onWheel={interactive ? handleWheel : undefined}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img

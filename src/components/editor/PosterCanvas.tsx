@@ -44,23 +44,40 @@ function makeMaskStyle(svgPath: string) {
   }
 }
 
+export type MobileEditorTool =
+  | 'map'
+  | 'layout'
+  | 'text'
+  | 'marker'
+  | 'photo'
+  | 'export'
+
 interface PosterCanvasProps {
   /** Total horizontal + vertical padding subtracted from wrapper before
    *  computing the poster size. Desktop default is 64 (32 px each side);
    *  Mobile can pass a smaller value to maximize preview real estate. */
   padding?: number
-  /** Forwards an explicit interactive override to TextBlockOverlay. Mobile
-   *  layouts set this to `true` only while the Text tab is active so users
-   *  can reposition blocks. Desktop leaves it undefined (always editable). */
-  textInteractive?: boolean
+  /** On Mobile, which tab is currently active. Controls which overlay (map,
+   *  text, photo, marker) responds to touches — exactly one at a time — so
+   *  fingers don't conflict on a small screen. Undefined on Desktop, where
+   *  everything is interactive simultaneously. */
+  activeMobileTool?: MobileEditorTool
 }
 
-export function PosterCanvas({ padding = 64, textInteractive }: PosterCanvasProps = {}) {
+export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasProps = {}) {
   const wrapperRef = useRef<HTMLDivElement>(null)
   const posterRef = useRef<HTMLDivElement>(null)
   const [posterSize, setPosterSize] = useState({ width: 0, height: 0 })
   const [locating, setLocating] = useState(false)
   const fontScale = computeFontScale(posterSize.width)
+
+  // On Mobile exactly one overlay is interactive at a time, matched to the
+  // active tab. On Desktop (activeMobileTool === undefined) every overlay
+  // is interactive simultaneously — unchanged pre-existing behaviour.
+  const mapInteractive = activeMobileTool === undefined || activeMobileTool === 'map'
+  const textInteractive = activeMobileTool === undefined || activeMobileTool === 'text'
+  const photoInteractive = activeMobileTool === undefined || activeMobileTool === 'photo'
+  const markerInteractive = activeMobileTool === undefined || activeMobileTool === 'marker'
 
   const { maskKey, printFormat, zoomIn, zoomOut, flyToLocation, zoomInSecond, zoomOutSecond, secondMap, marker, secondMarker, shapeConfig, viewState, setMarker, setSecondMarker, setSelectedBlockId, splitMode, splitPhoto, splitPhotoZone, layoutId, innerMarginMm } = useEditorStore()
   const mapAreaRef = useRef<HTMLDivElement>(null)
@@ -151,6 +168,10 @@ export function PosterCanvas({ padding = 64, textInteractive }: PosterCanvasProp
                 left: marginPx,
                 right: marginPx,
                 height: `calc((100% - ${marginPx * 2}px) * ${mapHeightFactor})`,
+                // Disable map pan/zoom gestures on Mobile tabs that aren't
+                // the Map tab. Child overlays (markers, split-photo) re-enable
+                // their own pointer-events via `interactive` props below.
+                pointerEvents: mapInteractive ? 'auto' : 'none',
               }}
             >
             {isDualMap ? (() => {
@@ -208,6 +229,7 @@ export function PosterCanvas({ padding = 64, textInteractive }: PosterCanvasProp
                   svgPath={photoHalfSvg}
                   side={photoIsRightZone ? 'right' : 'left'}
                   noHalfClip={mask.noHalfClip}
+                  interactive={photoInteractive}
                 />
               </>
             ) : (
@@ -248,6 +270,7 @@ export function PosterCanvas({ padding = 64, textInteractive }: PosterCanvasProp
                 viewState={viewState}
                 defaultX={isDualMap ? '25%' : '50%'}
                 onMove={(lat, lng) => setMarker({ lat, lng })}
+                interactive={markerInteractive}
               />
             )}
 
@@ -263,13 +286,14 @@ export function PosterCanvas({ padding = 64, textInteractive }: PosterCanvasProp
                 viewState={secondMap.viewState}
                 defaultX="75%"
                 onMove={(lat, lng) => setSecondMarker({ lat, lng })}
+                interactive={markerInteractive}
               />
             )}
             </div>
             {/* End of map area — photos and text use full poster coords */}
 
             {/* Photo overlay */}
-            <PhotoOverlay posterRef={posterRef} />
+            <PhotoOverlay posterRef={posterRef} interactive={photoInteractive} />
 
             {/* Text blocks overlay */}
             <TextBlockOverlay fontScale={fontScale} interactive={textInteractive} />

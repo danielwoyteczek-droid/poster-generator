@@ -32,10 +32,12 @@ export function MobileEditorLayout() {
     <div className="flex flex-col h-full overflow-hidden">
       {/* Preview — fixed height, always visible. Reduced padding so the
           poster fills as much of the preview area as possible on narrow
-          mobile viewports. Text-block dragging is only enabled while the
-          Text tab is active (variable font-sizes require repositioning). */}
+          mobile viewports. `activeMobileTool` routes touch interactivity
+          to exactly one overlay at a time (map / text / photo / marker),
+          matched to the active tab — so fingers don't fight each other
+          on a small screen. */}
       <div className="h-[58vh] shrink-0 flex min-h-0 border-b border-gray-200">
-        <PosterCanvas padding={16} textInteractive={activeTab === 'text'} />
+        <PosterCanvas padding={16} activeMobileTool={activeTab} />
       </div>
 
       {/* Tab bar — fixed under preview */}
