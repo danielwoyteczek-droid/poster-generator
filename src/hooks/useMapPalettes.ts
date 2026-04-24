@@ -32,7 +32,9 @@ function rowToPalette(row: PaletteRow): MapPalette {
 async function loadOnce(): Promise<MapPalette[]> {
   if (cache) return cache
   if (inflight) return inflight
-  inflight = fetch('/api/palettes')
+  // Bypass the HTTP cache so a freshly-published palette from the admin UI
+  // shows up in the editor immediately after invalidateMapPalettesCache().
+  inflight = fetch('/api/palettes', { cache: 'no-store' })
     .then((r) => r.json())
     .then((d) => {
       const rows = (d.palettes ?? []) as PaletteRow[]
