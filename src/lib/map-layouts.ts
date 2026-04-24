@@ -41,6 +41,12 @@ export const MAP_LAYOUTS: MapLayoutDefinition[] = [
     description: 'Experimentelles Layout.',
     file: '/map-styles/layout-test.json',
   },
+  {
+    id: 'detail',
+    label: 'Detailliert',
+    description: 'Hoher Detailgrad ab z13 — schwarze Gebäude, hellblaues Wasser, weiße Straßen.',
+    file: '/map-styles/layout-detail.json',
+  },
   // Additional layouts get added here once the operator exports them.
 ]
 
