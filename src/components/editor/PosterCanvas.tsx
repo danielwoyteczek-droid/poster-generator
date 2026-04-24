@@ -49,6 +49,10 @@ interface PosterCanvasProps {
    *  computing the poster size. Desktop default is 64 (32 px each side);
    *  Mobile can pass a smaller value to maximize preview real estate. */
   padding?: number
+  /** Forwards an explicit interactive override to TextBlockOverlay. Mobile
+   *  layouts set this to `true` only while the Text tab is active so users
+   *  can reposition blocks. Desktop leaves it undefined (always editable). */
+  textInteractive?: boolean
 }
 
 /** Reference preview width used to normalise text-block font rendering
@@ -58,7 +62,7 @@ interface PosterCanvasProps {
  *  eye: 600 made mobile text too small, 300 kept it too large.  */
 const FONT_SCALE_REFERENCE_WIDTH = 400
 
-export function PosterCanvas({ padding = 64 }: PosterCanvasProps = {}) {
+export function PosterCanvas({ padding = 64, textInteractive }: PosterCanvasProps = {}) {
   const wrapperRef = useRef<HTMLDivElement>(null)
   const posterRef = useRef<HTMLDivElement>(null)
   const [posterSize, setPosterSize] = useState({ width: 0, height: 0 })
@@ -278,7 +282,7 @@ export function PosterCanvas({ padding = 64 }: PosterCanvasProps = {}) {
             <PhotoOverlay posterRef={posterRef} />
 
             {/* Text blocks overlay */}
-            <TextBlockOverlay fontScale={fontScale} />
+            <TextBlockOverlay fontScale={fontScale} interactive={textInteractive} />
           </div>
 
           {isDualMap ? (

@@ -42,7 +42,7 @@ Die Lösung: **Feste Vorschau oben, Tab-Bar darunter, scrollbarer Tool-Inhalt un
 ### Tab-Inhalte (sechs feingranulare Tabs)
 - [ ] **Karte**: Basis-Stil-Wahl (Minimal / Detailliert), Farbpaletten-Grid (aus PROJ-15), Straßennamen-Toggle.
 - [ ] **Layout**: Formkontur als Karten-Grid (3×2, z. B. Polar / Classic / Halo / Quadrat / Card / Architekt mit Icons), Rand-Chips (Weiß / Einfach / Doppelt / Ohne).
-- [ ] **Text**: Liste aller Textblöcke des gewählten Layouts. Tap auf einen Block öffnet einen Inline-Editor (Sheet) für Inhalt, Schrift, Größe, Farbe. **Kein Dragging, kein Verschieben.** Positionen der Blöcke werden vom gewählten Layout-Preset bestimmt.
+- [ ] **Text**: Liste aller Textblöcke des gewählten Layouts. Tap auf einen Block öffnet einen Inline-Editor (Sheet) für Inhalt, Schrift, Größe, Farbe. **Dragging ist nur im Text-Tab aktiv** (da Schriftgrößen stark variieren und manuelles Nachjustieren der Position nötig sein kann). In allen anderen Tabs sind Textblöcke nicht verschiebbar, damit versehentliche Finger-Berührungen die Position nicht verändern.
 - [ ] **Marker**: Liste aller Marker auf der Karte. Hinzufügen per Tap auf die Karte oder per Adress-Suche. Bearbeiten/Löschen per Tap auf den Marker in der Liste.
 - [ ] **Fotos**: Foto-Integration analog Desktop (PROJ-19) — Upload, Zuschnitt, Platzierung in den Foto-Slots des gewählten Layouts.
 - [ ] **Export**: Format-Toggle (A4 / A3), Produkt-Kacheln (Download / Poster / Rahmen), führt in denselben Stripe-Checkout wie Desktop.
@@ -52,7 +52,7 @@ Die Lösung: **Feste Vorschau oben, Tab-Bar darunter, scrollbarer Tool-Inhalt un
 - [ ] Aktiver Tab durch Akzentfarbe + fettere Schrift oder Unterstreichung markiert.
 - [ ] Selektion in Karten-Grids (Layouts, Farbpaletten) durch farbigen Rand um die aktive Karte.
 - [ ] Karte reagiert auf Pinch-to-Zoom und Pan — Zentrum und Zoom-Level sind Teil des Projekt-Snapshots.
-- [ ] Kein Drag-and-Drop von Textblöcken — weder auf der Canvas noch im Text-Tab.
+- [ ] Drag-and-Drop von Textblöcken ist **nur im aktiven Text-Tab** erlaubt. In allen anderen Tabs sind Blöcke durch `pointer-events: none` gegen versehentliches Verschieben geschützt.
 
 ### Cross-Device-Konsistenz
 - [ ] Ein auf Mobile gespeichertes Projekt öffnet sich 1:1 auf Desktop und umgekehrt — kein Feature-Verlust in beide Richtungen.
@@ -69,7 +69,7 @@ Die Lösung: **Feste Vorschau oben, Tab-Bar darunter, scrollbarer Tool-Inhalt un
 - **User ohne Login**: Gleicher anonymer Flow wie Desktop — Projekt lokal, Checkout erzwingt Login/Checkout-Mail.
 
 ## Non-Goals
-- **Kein Drag-and-Drop von Textblöcken** auf Mobile — bewusst ausgeschlossen wegen Fingerungenauigkeit.
+- **Kein Drag-and-Drop außerhalb des Text-Tabs** — nach einem ersten Mobile-Test wurde Dragging innerhalb des Text-Tabs zugelassen, weil stark variable Schriftgrößen manuelles Nachjustieren nötig machen. Außerhalb des Text-Tabs bleibt Dragging deaktiviert.
 - **Keine mobile-only Features**, die auf Desktop nicht existieren — Parität ist das Ziel.
 - **Keine Änderungen am Desktop-Editor** durch dieses Feature.
 - **Keine Native App** — bleibt Web/PWA.

@@ -171,12 +171,18 @@ interface TextBlockOverlayProps {
    *  width (~600 px), so we scale it down proportionally on smaller
    *  viewports. Desktop passes 1 (no change). */
   fontScale?: number
+  /** Explicit override for drag/resize interaction. When undefined, falls
+   *  back to "interactive on Desktop, non-interactive on Mobile". Mobile
+   *  passes `true` while the Text tab is active so users can reposition
+   *  blocks, and `false` otherwise to keep other-tab taps from grabbing
+   *  a block by accident. */
+  interactive?: boolean
 }
 
-export function TextBlockOverlay({ coordinatesSource, fontScale = 1 }: TextBlockOverlayProps = {}) {
+export function TextBlockOverlay({ coordinatesSource, fontScale = 1, interactive: interactiveProp }: TextBlockOverlayProps = {}) {
   const overlayRef = useRef<HTMLDivElement>(null)
   const isMobile = useIsMobileEditor()
-  const interactive = !isMobile
+  const interactive = interactiveProp ?? !isMobile
   const {
     textBlocks,
     selectedBlockId,
