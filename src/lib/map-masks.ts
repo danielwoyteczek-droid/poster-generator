@@ -64,10 +64,10 @@ export const MAP_MASKS: Record<MapMaskKey, MapMaskDefinition> = {
     label: 'Herz',
     svgPath: '/masks/heart-single.svg',
     shape: {
-      viewBox: '0 0 526 744',
-      width: 526, height: 744,
-      markup: '<path d="M263 625 C 175 560, 33 430, 33 270 C 33 180, 99 120, 175 120 C 227 120, 263 150, 263 200 C 263 150, 299 120, 351 120 C 427 120, 493 180, 493 270 C 493 430, 351 560, 263 625 Z"/>',
-      bottomFraction: 0.84,
+      viewBox: '0 0 595.3 841.9',
+      width: 595.3, height: 841.9,
+      markup: '<path d="M298 543 C 298 543, 48 375, 48 228 C 48 108, 198 60, 298 178 C 398 60, 548 108, 548 228 C 548 375, 298 543, 298 543 Z"/>',
+      bottomFraction: 0.645,
     },
   },
   frame1: {
