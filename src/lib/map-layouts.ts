@@ -36,12 +36,6 @@ export const MAP_LAYOUTS: MapLayoutDefinition[] = [
     file: '/map-styles/layout-minimal.json',
   },
   {
-    id: 'test',
-    label: 'Test',
-    description: 'Experimentelles Layout.',
-    file: '/map-styles/layout-test.json',
-  },
-  {
     id: 'detail',
     label: 'Detailliert',
     description: 'Hoher Detailgrad ab z13 — schwarze Gebäude, hellblaues Wasser, weiße Straßen.',
