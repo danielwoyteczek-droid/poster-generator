@@ -1,6 +1,6 @@
 # PROJ-22: Admin-Paletten-Verwaltung
 
-## Status: Architected
+## Status: In Progress
 **Created:** 2026-04-24
 **Last Updated:** 2026-04-24
 
@@ -8,6 +8,38 @@
 - Requires: PROJ-4 (User Authentication) — Admin-Check über `useAuth().isAdmin`
 - Requires: PROJ-15 (Dynamische Map-Farbschemen) — die Palette-Architektur (`MAP_PALETTES`, `MapPaletteColors`, Transformer) existiert bereits
 - Beeinflusst: PROJ-8 (Design-Presets) — Presets referenzieren `paletteId`; gelöschte/umbenannte Paletten müssen sauber behandelt werden
+
+## Implementation Notes (Backend)
+- Supabase-Migration `create_map_palettes`: Tabelle mit Slug-ID (TEXT PK),
+  8-Farben-JSONB + CHECK-Constraint dass alle acht Felder gesetzt sind,
+  Status-Enum draft/published, display_order, Timestamps. Index auf
+  (status, display_order) für den Picker-Lookup.
+- RLS: `Public reads published palettes` — anon + authenticated dürfen nur
+  `status = 'published'` lesen. Admin-Schreibzugriffe laufen ausschließlich
+  über die Service-Role-API (kein client-seitiger Write-Pfad).
+- Zweite Migration `seed_map_palettes` schreibt die sechs bestehenden
+  hardcoded Paletten (Mint … Forest) einmalig als `published` in die DB.
+- API-Routen folgen exakt dem `/api/admin/presets`-Pattern:
+  - `GET /api/palettes` (public, cached 60 s/300 s s-maxage) liefert nur
+    published Paletten mit festgelegter Sortierung
+  - `GET/POST /api/admin/palettes` (admin-gated) + `GET/PATCH/DELETE
+    /api/admin/palettes/[id]` für CRUD
+  - DELETE prüft vorher `presets.config_json->>paletteId` auf Referenzen
+    und liefert bei Treffern 409 mit betroffener Preset-Liste
+- Zod-Validierung mit Hex-Regex für alle acht Farben und Slug-Regex für
+  die ID (`/^[a-z][a-z0-9-]*$/`).
+- Neuer Hook `useMapPalettes` mit Modul-Level-Cache + In-Flight-Promise,
+  liefert beim ersten Render direkt `MAP_PALETTES` als Safety-Net und
+  tauscht nach erfolgreichem Fetch gegen die DB-Version.
+- `resolvePalette` in `petite-style-loader` versucht zuerst den warmen
+  Hook-Cache über `getCachedPalettes()`, fällt sonst auf `MAP_PALETTES`
+  zurück — so profitiert auch der Export von der Admin-Bearbeitung.
+- MapTab-Picker iteriert jetzt `availablePalettes` statt `MAP_PALETTES`
+  (primärer + sekundärer Karten-Picker, beide CustomPaletteEditor-Resets).
+
+Fehlt noch für diese Feature: Admin-UI unter `/private/admin/palettes`
+(Liste, Create/Edit-Dialog, Publish-Toggle, Delete mit Reference-Check).
+Wird über `/frontend` im nächsten Schritt gebaut.
 
 ## Kontext
 Die sechs vordefinierten Farbpaletten (Mint, Sand, Navy, Terracotta, Slate, Forest)

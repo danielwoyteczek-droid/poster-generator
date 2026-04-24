@@ -58,8 +58,20 @@ export function resolvePalette(
     }
     return basis
   }
-  const palette = MAP_PALETTES.find((p) => p.id === paletteId)
-  return palette ?? MAP_PALETTES[0]
+  // Prefer the admin-managed set if the editor has already warmed the cache;
+  // otherwise fall back to the hardcoded safety net.
+  let list: MapPalette[] = MAP_PALETTES
+  if (typeof window !== 'undefined') {
+    // Lazy import so the server bundle doesn't pull the client hook
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { getCachedPalettes } = require('@/hooks/useMapPalettes') as typeof import('@/hooks/useMapPalettes')
+      const cached = getCachedPalettes()
+      if (cached && cached.length > 0) list = cached
+    } catch { /* ignore and use fallback */ }
+  }
+  const palette = list.find((p) => p.id === paletteId)
+  return palette ?? list[0] ?? MAP_PALETTES[0]
 }
 
 export interface PetiteStyleOptions {

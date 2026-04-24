@@ -17,6 +17,7 @@ import { useCustomMasks } from '@/hooks/useCustomMasks'
 import { MAP_MASK_OPTIONS, MAP_MASKS } from '@/lib/map-masks'
 import { MAP_LAYOUTS } from '@/lib/map-layouts'
 import { MAP_PALETTES, type MapPaletteColors } from '@/lib/map-palettes'
+import { useMapPalettes } from '@/hooks/useMapPalettes'
 import { uploadPhoto, deletePhoto } from '@/lib/photo-upload'
 import { getOrCreateGuestSessionId } from '@/lib/guest-session'
 import { PHOTO_FILTERS } from '@/lib/photo-filters'
@@ -61,6 +62,8 @@ export function MapTab() {
     splitMode, setSplitMode,
     splitPhoto, splitPhotoZone, setSplitPhoto, updateSplitPhoto, setSplitPhotoZone,
   } = useEditorStore()
+  const { palettes: availablePalettes } = useMapPalettes()
+  const defaultColors = availablePalettes[0]?.colors ?? MAP_PALETTES[0].colors
   const { user, isAdmin } = useAuth()
   const { masks: customMasks } = useCustomMasks()
 
@@ -326,7 +329,7 @@ export function MapTab() {
                       <div className="w-3 h-3 rounded-full border border-black/10 bg-gradient-to-br from-gray-200 via-gray-400 to-gray-600" />
                       <span className="text-[10px] leading-tight text-gray-700">Original</span>
                     </button>
-                    {MAP_PALETTES.map((p) => {
+                    {availablePalettes.map((p) => {
                       const c = p.colors
                       return (
                         <button
@@ -354,7 +357,7 @@ export function MapTab() {
                       onClick={() => {
                         setSecondMapPaletteId('custom')
                         if (!secondMap.customPalette) {
-                          const seed = (MAP_PALETTES.find((p) => p.id === secondMap.paletteId) ?? MAP_PALETTES[0]).colors
+                          const seed = (availablePalettes.find((p) => p.id === secondMap.paletteId) ?? availablePalettes[0] ?? MAP_PALETTES[0]).colors
                           setSecondMapCustomPalette({ ...seed })
                           if (!secondMap.customPaletteBase) setSecondMapCustomPaletteBase(seed.water)
                         }
@@ -377,7 +380,7 @@ export function MapTab() {
                     <CustomPaletteEditor
                       colors={secondMap.customPalette}
                       onColorChange={updateSecondMapCustomPaletteColor}
-                      onReset={() => setSecondMapCustomPalette({ ...(MAP_PALETTES[0].colors) })}
+                      onReset={() => setSecondMapCustomPalette({ ...defaultColors })}
                     />
                   )}
                 </div>
@@ -471,7 +474,7 @@ export function MapTab() {
               <div className="w-3 h-3 rounded-full border border-black/10 bg-gradient-to-br from-gray-200 via-gray-400 to-gray-600" />
               <span className="text-[10px] leading-tight text-gray-700">Original</span>
             </button>
-            {MAP_PALETTES.map((p) => {
+            {availablePalettes.map((p) => {
               const c = p.colors
               return (
                 <button
@@ -499,7 +502,7 @@ export function MapTab() {
               onClick={() => {
                 setPaletteId('custom')
                 if (!customPalette) {
-                  const seed = (MAP_PALETTES.find((p) => p.id === paletteId) ?? MAP_PALETTES[0]).colors
+                  const seed = (availablePalettes.find((p) => p.id === paletteId) ?? availablePalettes[0] ?? MAP_PALETTES[0]).colors
                   setCustomPalette({ ...seed })
                   if (!customPaletteBase) setCustomPaletteBase(seed.water)
                 }
@@ -522,7 +525,7 @@ export function MapTab() {
             <CustomPaletteEditor
               colors={customPalette}
               onColorChange={updateCustomPaletteColor}
-              onReset={() => setCustomPalette({ ...(MAP_PALETTES[0].colors) })}
+              onReset={() => setCustomPalette({ ...defaultColors })}
             />
           )}
         </div>
