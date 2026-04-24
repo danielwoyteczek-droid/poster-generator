@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Menu, X, LogOut, Settings, Package, FolderOpen, Star, Map, ShoppingCart, LayoutTemplate } from 'lucide-react'
+import { Menu, X, LogOut, Settings, Package, FolderOpen, Star, Map, ShoppingCart, LayoutTemplate, Palette } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -155,6 +155,12 @@ export function LandingNav() {
                       <Link href="/private/admin/masks" className="cursor-pointer">
                         <LayoutTemplate className="w-4 h-4 mr-2" />
                         Masken-Bibliothek
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/private/admin/palettes" className="cursor-pointer">
+                        <Palette className="w-4 h-4 mr-2" />
+                        Farbpaletten
                       </Link>
                     </DropdownMenuItem>
                   </>
