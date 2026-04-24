@@ -316,15 +316,22 @@ export const useEditorStore = create<EditorStore>((set) => ({
   setInnerFrame: (updates) => set((s) => ({ shapeConfig: { ...s.shapeConfig, innerFrame: { ...s.shapeConfig.innerFrame, ...updates } } })),
   setOuterFrame: (updates) => set((s) => ({ shapeConfig: { ...s.shapeConfig, outerFrame: { ...s.shapeConfig.outerFrame, ...updates } } })),
   setLayoutId: (id) => set((s) => {
+    // Layout is top-level. Changing it resets Formkontur (innerMarginMm) and
+    // the decorative Rand so the new layout's visual change is immediately
+    // obvious instead of being masked by leftover decorations.
+    const resetInnerFrame = { ...s.shapeConfig.innerFrame, enabled: false }
+    const resetShapeConfig = { ...s.shapeConfig, innerFrame: resetInnerFrame }
+
     // Reposition text blocks that sit above the new text area so they don't
     // get clipped off-canvas. Keeps all typed text intact; only y changes.
     // Leave a 5 % bottom buffer so repositioned blocks don't overshoot the
     // poster edge once their own height is added.
     const textAreaStart = LAYOUT_MAP_HEIGHT[id]
     const textAreaEnd = 0.95
-    if (textAreaStart >= textAreaEnd) return { layoutId: id }
+    if (textAreaStart >= textAreaEnd) {
+      return { layoutId: id, innerMarginMm: 0, shapeConfig: resetShapeConfig }
+    }
     const outsideCount = s.textBlocks.filter((b) => b.y < textAreaStart).length
-    if (outsideCount === 0) return { layoutId: id }
     const gap = (textAreaEnd - textAreaStart) / (outsideCount + 1)
     let placed = 0
     const textBlocks = s.textBlocks.map((b) => {
@@ -332,7 +339,7 @@ export const useEditorStore = create<EditorStore>((set) => ({
       placed += 1
       return { ...b, y: textAreaStart + gap * placed }
     })
-    return { layoutId: id, textBlocks }
+    return { layoutId: id, innerMarginMm: 0, shapeConfig: resetShapeConfig, textBlocks }
   }),
   setInnerMarginMm: (mm) => set({ innerMarginMm: Math.max(0, Math.min(10, mm)) }),
 
