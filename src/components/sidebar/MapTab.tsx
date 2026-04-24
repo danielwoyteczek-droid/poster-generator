@@ -10,6 +10,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator'
 import { Slider } from '@/components/ui/slider'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { PresetPicker } from '@/components/editor/PresetPicker'
 import { useEditorStore } from '@/hooks/useEditorStore'
 import { useAuth } from '@/hooks/useAuth'
@@ -70,6 +79,54 @@ export function MapTab() {
   const splitPhotoInputRef = useRef<HTMLInputElement>(null)
   const [splitUploading, setSplitUploading] = useState(false)
   const [splitProgress, setSplitProgress] = useState(0)
+
+  // Save-as-palette dialog state (admin-only, triggered from CustomPaletteEditor)
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false)
+  const [saveDialogColors, setSaveDialogColors] = useState<MapPaletteColors | null>(null)
+  const [savePaletteName, setSavePaletteName] = useState('')
+  const [savePaletteId, setSavePaletteId] = useState('')
+  const [savePaletteSaving, setSavePaletteSaving] = useState(false)
+
+  const openSavePaletteDialog = (colors: MapPaletteColors) => {
+    setSaveDialogColors(colors)
+    setSavePaletteName('')
+    setSavePaletteId('')
+    setSaveDialogOpen(true)
+  }
+
+  const submitSavePalette = async () => {
+    if (!saveDialogColors) return
+    if (!savePaletteName.trim()) {
+      toast.error('Name ist erforderlich')
+      return
+    }
+    if (!/^[a-z][a-z0-9-]*$/.test(savePaletteId)) {
+      toast.error('ID muss ein Slug sein (a-z, 0-9, -)')
+      return
+    }
+    setSavePaletteSaving(true)
+    try {
+      const res = await fetch('/api/admin/palettes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: savePaletteId,
+          name: savePaletteName.trim(),
+          colors: saveDialogColors,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Speichern fehlgeschlagen')
+      const { invalidateMapPalettesCache } = await import('@/hooks/useMapPalettes')
+      invalidateMapPalettesCache()
+      toast.success('Palette als Draft gespeichert — im Admin veröffentlichen')
+      setSaveDialogOpen(false)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Fehler')
+    } finally {
+      setSavePaletteSaving(false)
+    }
+  }
 
   type SplitMode = 'none' | 'second-map' | 'photo'
 
@@ -381,6 +438,7 @@ export function MapTab() {
                       colors={secondMap.customPalette}
                       onColorChange={updateSecondMapCustomPaletteColor}
                       onReset={() => setSecondMapCustomPalette({ ...defaultColors })}
+                      onSaveAsPalette={isAdmin ? openSavePaletteDialog : undefined}
                     />
                   )}
                 </div>
@@ -526,6 +584,7 @@ export function MapTab() {
               colors={customPalette}
               onColorChange={updateCustomPaletteColor}
               onReset={() => setCustomPalette({ ...defaultColors })}
+              onSaveAsPalette={isAdmin ? openSavePaletteDialog : undefined}
             />
           )}
         </div>
@@ -903,6 +962,59 @@ export function MapTab() {
           </div>
         )}
       </div>
+
+      {/* Admin: save the current custom palette to the DB as a new Draft. */}
+      <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Palette speichern</DialogTitle>
+            <DialogDescription>
+              Die aktuelle Farbkombination wird als Draft in der Paletten-Bibliothek angelegt.
+              Du kannst sie anschließend im Admin unter &quot;Farbpaletten&quot; veröffentlichen.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="save-pal-name">Name</Label>
+              <Input
+                id="save-pal-name"
+                value={savePaletteName}
+                onChange={(e) => {
+                  const v = e.target.value
+                  setSavePaletteName(v)
+                  if (!savePaletteId) {
+                    setSavePaletteId(
+                      v.toLowerCase()
+                        .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
+                        .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
+                    )
+                  }
+                }}
+                placeholder="z.B. Herbstrot"
+                disabled={savePaletteSaving}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="save-pal-id">ID (Slug)</Label>
+              <Input
+                id="save-pal-id"
+                value={savePaletteId}
+                onChange={(e) => setSavePaletteId(e.target.value)}
+                placeholder="z.B. herbstrot"
+                disabled={savePaletteSaving}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSaveDialogOpen(false)} disabled={savePaletteSaving}>
+              Abbrechen
+            </Button>
+            <Button onClick={submitSavePalette} disabled={savePaletteSaving}>
+              {savePaletteSaving ? 'Speichere…' : 'Als Draft speichern'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
@@ -924,10 +1036,12 @@ function CustomPaletteEditor({
   colors,
   onColorChange,
   onReset,
+  onSaveAsPalette,
 }: {
   colors: MapPaletteColors | null
   onColorChange: (key: keyof MapPaletteColors, hex: string) => void
   onReset: () => void
+  onSaveAsPalette?: (colors: MapPaletteColors) => void
 }) {
   const effective = colors ?? MAP_PALETTES[0].colors
   return (
@@ -959,6 +1073,15 @@ function CustomPaletteEditor({
           </span>
         </div>
       ))}
+      {onSaveAsPalette && (
+        <button
+          type="button"
+          onClick={() => onSaveAsPalette(effective)}
+          className="w-full mt-2 h-8 rounded-md border border-dashed border-amber-400 text-[11px] text-amber-700 hover:bg-amber-50 transition-colors"
+        >
+          Als Palette speichern <span className="text-amber-500">(Admin)</span>
+        </button>
+      )}
     </div>
   )
 }
