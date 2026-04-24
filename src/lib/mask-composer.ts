@@ -141,8 +141,10 @@ export function composeMaskSvg(
   // ratio — and anchor it at the top of the viewBox.
   const bottom = shape.bottomFraction ?? 1
   const shapeScale = bottom > layoutMapHeight ? layoutMapHeight / bottom : 1
+  const translateX = +((shape.width * (1 - shapeScale)) / 2).toFixed(2)
+  const scaleStr = shapeScale.toFixed(4)
   const shapeTransform = shapeScale < 1
-    ? ` transform="translate(${(shape.width * (1 - shapeScale)) / 2} 0) scale(${shapeScale})"`
+    ? ` transform="translate(${translateX} 0) scale(${scaleStr})"`
     : ''
 
   if (outer.mode !== 'none') {
@@ -175,8 +177,10 @@ export function composeFrameSvg(
 ): string {
   const bottom = shape.bottomFraction ?? 1
   const shapeScale = bottom > layoutMapHeight ? layoutMapHeight / bottom : 1
+  const frameTranslateX = +((shape.width * (1 - shapeScale)) / 2).toFixed(2)
+  const frameScaleStr = shapeScale.toFixed(4)
   const frameTransform = shapeScale < 1
-    ? ` transform="translate(${(shape.width * (1 - shapeScale)) / 2} 0) scale(${shapeScale})"`
+    ? ` transform="translate(${frameTranslateX} 0) scale(${frameScaleStr})"`
     : ''
   const parts: string[] = []
   const { innerFrame, outerFrame } = config

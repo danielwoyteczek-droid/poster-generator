@@ -318,11 +318,14 @@ export const useEditorStore = create<EditorStore>((set) => ({
   setLayoutId: (id) => set((s) => {
     // Reposition text blocks that sit above the new text area so they don't
     // get clipped off-canvas. Keeps all typed text intact; only y changes.
+    // Leave a 5 % bottom buffer so repositioned blocks don't overshoot the
+    // poster edge once their own height is added.
     const textAreaStart = LAYOUT_MAP_HEIGHT[id]
-    if (textAreaStart >= 1) return { layoutId: id }
+    const textAreaEnd = 0.95
+    if (textAreaStart >= textAreaEnd) return { layoutId: id }
     const outsideCount = s.textBlocks.filter((b) => b.y < textAreaStart).length
     if (outsideCount === 0) return { layoutId: id }
-    const gap = (1 - textAreaStart) / (outsideCount + 1)
+    const gap = (textAreaEnd - textAreaStart) / (outsideCount + 1)
     let placed = 0
     const textBlocks = s.textBlocks.map((b) => {
       if (b.y >= textAreaStart) return b
