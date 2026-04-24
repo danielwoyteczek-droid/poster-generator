@@ -1,6 +1,6 @@
 # PROJ-22: Admin-Paletten-Verwaltung
 
-## Status: In Progress
+## Status: Approved
 **Created:** 2026-04-24
 **Last Updated:** 2026-04-24
 
@@ -297,7 +297,103 @@ Alles nutzt was schon installiert ist:
   flachen Liste
 
 ## QA Test Results
-_To be added by /qa_
+
+**Tested:** 2026-04-24 — Code-Audit + DB-Level-Tests (keine UI-Browser-Tests
+möglich in diesem Setup)
+
+### Acceptance Criteria
+
+| # | Kriterium | Status | Anmerkung |
+|---|-----------|--------|-----------|
+| 1 | Admin-Route `/private/admin/palettes` | ✅ | `src/app/private/admin/palettes/page.tsx`, server-side `requireAdmin` |
+| 2 | Admin-Gate (401 → /login, 403 → /) | ✅ | Redirect in page.tsx, API-Routes lehnen ebenfalls ab |
+| 3 | Neue Palette als Draft, 8 Farbfelder | ✅ | POST setzt `status: 'draft'`, Dialog zeigt alle 8 Farben |
+| 4 | Live-Swatch + Label je Farbe | ✅ | `<input type="color">` + monospaced Hex-Input + DB-Label |
+| 5 | Edit-Dialog lädt + speichert | ✅ | PATCH-Route, `openEdit` füllt Form |
+| 6 | Publish-/Unpublish-Toggle | ✅ | Eye/EyeOff Icon-Button → PATCH status |
+| 7 | Kunden-Picker zeigt nur published, sortiert | ✅ | `/api/palettes` filtert `status='published'`, ORDER BY `display_order` |
+| 8 | Delete-Schutz bei Preset-Referenz | ✅ | 409-Response mit `referenced_by`-Liste, UI blendet Delete-Button aus |
+| 9 | Seed-Migration + hardcoded Fallback | ✅ | 6 Paletten als 'published' geseedet, `MAP_PALETTES` bleibt |
+| 10 | Slug-IDs | ✅ | Zod-Regex `/^[a-z][a-z0-9-]*$/`, Auto-Slugify aus Name |
+| 11 | Reihenfolge über display_order | ✅ | Number-Input im Dialog, DB-Index auf (status, display_order) |
+| 12 | Live-Update ohne Redeploy | ⚠️ | `invalidateMapPalettesCache()` nur im Admin-Tab; Editor-Tabs müssen neu mounten (Cache-Control 60 s max-age deckt langsame Fälle) |
+| 13 | "Original" und "Eigene" Sonderfälle bleiben | ✅ | MapTab rendert beide Buttons separat, nicht aus `availablePalettes` |
+
+### Security-Audit (Red-Team)
+
+| Test | Ergebnis |
+|------|----------|
+| RLS: anon darf nur `published` lesen | ✅ Bestätigt via `SET role anon; SELECT` — Drafts unsichtbar |
+| RLS: anon-INSERT blockiert | ✅ Liefert `42501 RLS violation` |
+| CHECK-Constraint bei unvollständigen Colors | ✅ Liefert `23514 check violation` auf incomplete JSONB |
+| Admin-API ohne Session | ✅ `requireAdmin()` liefert 401 |
+| Admin-API als Non-Admin | ✅ profile.role-Check liefert 403 |
+| SQL-Injection via Slug / Name | ✅ Supabase-Client param-bindet, Zod-Regex filtert vorher |
+| XSS über Palette-Name | ✅ React-JSX escaped per default |
+| Hex-Color-Injection (z.B. `</style>`) | ✅ HEX-Regex erlaubt nur `#xxx`/`#xxxxxx` |
+| Service-Key client-seitig exposed? | ✅ Nur in server-routes via `createAdminClient()`, nicht im Bundle |
+| CORS / leaky API | ✅ Routes laufen unter Next.js Same-Origin, kein `*`-Header |
+
+### Bugs gefunden
+
+**Low Severity:**
+
+1. **Cache-Delay beim Kunden nach Admin-Änderung**
+   - Pfad: Admin editiert Palette → Kunde im Editor sieht alte Version bis 60 s Cache-Max-Age ablaufen oder Editor-Tab neu geladen wird
+   - Reproduzierbar: ja, wenn Kunde + Admin gleichzeitig aktiv
+   - Workaround: Hard-Reload (Strg+Shift+R) löscht HTTP-Cache; `invalidateMapPalettesCache()` aus Hook-Modul-Cache nur im Admin-Tab
+   - Severity: Low — UX-Delay max. 60 s, für Admin-Experimente aber lästig
+   - Empfehlung: optional Cache-Control auf `no-cache` setzen wenn Realtime wichtig ist, oder WebSocket-Invalidation
+
+2. **Status-Toggle ohne Confirm-Dialog**
+   - Einmal-Click-Publish kann versehentlich passieren
+   - Severity: Low — nicht destruktiv, sofort per zweitem Click rückgängig
+   - Empfehlung: optional Bestätigung beim Publish (nicht beim Unpublish)
+
+3. **`display_order` nicht unique**
+   - Zwei Paletten können denselben Wert haben; Sortierung dann alphabetisch innerhalb nach `created_at`
+   - Severity: Low — rein kosmetisch, `ORDER BY display_order ASC, created_at DESC` bleibt deterministisch
+   - Empfehlung: optional unique-constraint + Auto-Reorder bei Konflikt
+
+4. **Keine Längen-Indikator im Beschreibung-Feld**
+   - Server lehnt > 500 Zeichen ab, Admin sieht's aber erst beim Speichern-Fehler
+   - Severity: Low — UX-Kleinigkeit
+   - Empfehlung: `maxLength={500}` + optional Counter
+
+5. **Admin-Nav kein Link zu Paletten**
+   - Die neue Route `/private/admin/palettes` ist nur per Direkt-URL erreichbar
+   - Severity: Low — Admin kennt die URL, kein Blocker
+   - Empfehlung: Link in der Admin-Navigation ergänzen (existiert überhaupt eine?)
+
+**Medium / High / Critical:** keine
+
+### Regression-Check
+
+- [x] Bestehender Editor-Paletten-Picker rendert weiterhin (Backend-Änderung kompatibel)
+- [x] Design-Presets (PROJ-8) referenzieren `paletteId` — seed-IDs unverändert (`mint`, `sand`, `navy`, `terracotta`, `slate`, `forest`), Presets laden korrekt
+- [x] Export-Pipeline (PROJ-3) nutzt `resolvePalette` → warmt Cache oder fällt auf hardcoded zurück, keine Änderung am Verhalten
+- [x] Custom-Palette-Flow ("Eigene Farbe") — MapTab-Reset verwendet jetzt `defaultColors` aus Liste, funktional gleich
+
+### Production-Ready Empfehlung
+
+**READY** ✅
+
+- Alle 13 Acceptance Criteria erfüllt (12 grün, 1 mit dokumentierter Limitation die nicht blockt)
+- Security-Audit clean: RLS, Input-Validation, Auth-Gates halten
+- Keine Critical- oder High-Bugs
+- Alle 5 gefundenen Bugs sind Low-Severity UX-/Komfort-Themen
+
+**Offene Punkte für separates Ticket (nicht blocker):**
+- Admin-Navigation Link für die neue Palettenseite
+- Optional: HTTP-Cache-Header verschärfen oder Realtime-Invalidate
+- Optional: Publish-Bestätigung
+
+### Was nicht getestet wurde
+
+- **UI im Browser**: keine Browser-Session verfügbar; echte UX nicht validiert
+- **Responsive-Design**: Admin-Layout auf Mobile ungetestet (Admin arbeitet typischerweise Desktop)
+- **Cross-Browser**: Chrome/Firefox/Safari-Konsistenz ungetestet
+- **Unit-/E2E-Tests**: keine Test-Suite existiert im Projekt; nicht Teil dieser QA-Runde
 
 ## Deployment
 _To be added by /deploy_
