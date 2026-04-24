@@ -52,12 +52,11 @@ export const MAP_MASKS: Record<MapMaskKey, MapMaskDefinition> = {
   },
   heart: {
     key: 'heart',
-    label: 'Herzen',
+    label: 'Herz geteilt',
     svgPath: '/masks/heart1.svg',
     isSplit: true,
     leftSvgPath: '/masks/heart1-left.svg',
     rightSvgPath: '/masks/heart1-right.svg',
-    noHalfClip: true,
   },
   'heart-single': {
     key: 'heart-single',
