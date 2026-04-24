@@ -85,12 +85,14 @@ export function MapTab() {
   const [saveDialogColors, setSaveDialogColors] = useState<MapPaletteColors | null>(null)
   const [savePaletteName, setSavePaletteName] = useState('')
   const [savePaletteId, setSavePaletteId] = useState('')
+  const [savePaletteSlugTouched, setSavePaletteSlugTouched] = useState(false)
   const [savePaletteSaving, setSavePaletteSaving] = useState(false)
 
   const openSavePaletteDialog = (colors: MapPaletteColors) => {
     setSaveDialogColors(colors)
     setSavePaletteName('')
     setSavePaletteId('')
+    setSavePaletteSlugTouched(false)
     setSaveDialogOpen(true)
   }
 
@@ -999,7 +1001,8 @@ export function MapTab() {
                 onChange={(e) => {
                   const v = e.target.value
                   setSavePaletteName(v)
-                  if (!savePaletteId) {
+                  // Keep slug in sync with name until the user manually edits the slug
+                  if (!savePaletteSlugTouched) {
                     setSavePaletteId(
                       v.toLowerCase()
                         .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
@@ -1016,7 +1019,10 @@ export function MapTab() {
               <Input
                 id="save-pal-id"
                 value={savePaletteId}
-                onChange={(e) => setSavePaletteId(e.target.value)}
+                onChange={(e) => {
+                  setSavePaletteId(e.target.value)
+                  setSavePaletteSlugTouched(true)
+                }}
                 placeholder="z.B. herbstrot"
                 disabled={savePaletteSaving}
               />
