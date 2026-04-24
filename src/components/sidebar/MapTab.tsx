@@ -612,7 +612,7 @@ export function MapTab() {
       {/* Inner margin — how much the whole poster content is inset */}
       <div className="space-y-1.5">
         <div className="flex items-center justify-between">
-          <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400">Innenrand</Label>
+          <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400">Formkontur</Label>
           <span className="text-[11px] text-gray-400 tabular-nums">{innerMarginMm} mm</span>
         </div>
         <Slider
@@ -751,10 +751,10 @@ export function MapTab() {
               )}
             </div>
 
-            {/* Innerer Rahmen (um die Form) */}
+            {/* Rand (um die Form) */}
             <div className="space-y-2 pt-2 border-t border-gray-100">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-gray-700">Innerer Rahmen</span>
+                <span className="text-xs font-medium text-gray-700">Rand</span>
                 <Switch
                   checked={shapeConfig.innerFrame.enabled}
                   onCheckedChange={(enabled) => setInnerFrame({ enabled })}
