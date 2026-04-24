@@ -469,7 +469,11 @@ export function MapTab() {
               <Label className="text-xs text-gray-500">Marker-Pin (rechts)</Label>
               <Switch
                 checked={secondMarker.enabled}
-                onCheckedChange={(enabled) => setSecondMarker({ enabled })}
+                onCheckedChange={(enabled) =>
+                  enabled && !secondMarker.enabled
+                    ? setSecondMarker({ enabled: true, lat: null, lng: null })
+                    : setSecondMarker({ enabled })
+                }
               />
             </div>
             {secondMarker.enabled && (
@@ -949,7 +953,14 @@ export function MapTab() {
           <Switch
             id="marker-switch"
             checked={marker.enabled}
-            onCheckedChange={(enabled) => setMarker({ enabled })}
+            onCheckedChange={(enabled) =>
+              enabled && !marker.enabled
+                ? // Re-activating: reset lat/lng so the pin lands at the
+                  // default center again, guarding against a prior
+                  // map pan/zoom pushing it off-canvas.
+                  setMarker({ enabled: true, lat: null, lng: null })
+                : setMarker({ enabled })
+            }
           />
         </div>
         {marker.enabled && (

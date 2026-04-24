@@ -25,7 +25,14 @@ export function MobileMarkerTab() {
           <Switch
             id="mobile-marker-switch"
             checked={marker.enabled}
-            onCheckedChange={(enabled) => setMarker({ enabled })}
+            onCheckedChange={(enabled) =>
+              enabled && !marker.enabled
+                ? // Re-activating: snap pin back to default center so it is
+                  // guaranteed visible if a prior map pan/zoom pushed the
+                  // stored lat/lng off-canvas.
+                  setMarker({ enabled: true, lat: null, lng: null })
+                : setMarker({ enabled })
+            }
           />
         </div>
 
@@ -76,7 +83,11 @@ export function MobileMarkerTab() {
               <Switch
                 id="mobile-second-marker-switch"
                 checked={secondMarker.enabled}
-                onCheckedChange={(enabled) => setSecondMarker({ enabled })}
+                onCheckedChange={(enabled) =>
+                  enabled && !secondMarker.enabled
+                    ? setSecondMarker({ enabled: true, lat: null, lng: null })
+                    : setSecondMarker({ enabled })
+                }
               />
             </div>
 
