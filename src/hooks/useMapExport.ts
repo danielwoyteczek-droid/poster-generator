@@ -256,21 +256,12 @@ async function renderMapOffscreen({
   const maptilersdk = await import('@maptiler/sdk')
   const apiKey = process.env.NEXT_PUBLIC_MAPTILER_API_KEY!
 
-  // iOS Safari blanks out WebGL canvases whose backing buffer exceeds its
-  // per-context texture limits. With a small Mobile previewW (~300 px) the
-  // pixelRatio needed to hit outputW (~2480 px) climbs past 8 and the map
-  // renders blank in the Zimmeransicht. Enforcing a minimum offscreen
-  // container width keeps pixelRatio around 3× regardless of device while
-  // still producing an outputW-sized buffer for the poster canvas.
-  const MIN_OFFSCREEN_W = 800
-  const containerW = Math.max(previewW, MIN_OFFSCREEN_W)
-  const containerH = Math.round(previewH * (containerW / previewW))
-  const pixelRatio = (outputW / containerW + outputH / containerH) / 2
+  const pixelRatio = (outputW / previewW + outputH / previewH) / 2
 
   const container = document.createElement('div')
   // Keep the element off-screen but do NOT use opacity:0 — iOS Safari may
   // skip WebGL rendering for fully transparent elements.
-  container.style.cssText = `position:fixed;left:-99999px;top:0;width:${containerW}px;height:${containerH}px;pointer-events:none;`
+  container.style.cssText = `position:fixed;left:-99999px;top:0;width:${previewW}px;height:${previewH}px;pointer-events:none;`
   document.body.appendChild(container)
 
   const resolvedStyle = await buildPetiteStyle({

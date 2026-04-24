@@ -295,7 +295,8 @@ Das WebGL-Framebuffer der offscreen-MapTiler-Instanz wird auf iOS Safari vor `ge
 - Nach `waitForMapStable` wird `map.triggerRepaint()` aufgerufen und auf das `render`-Event gewartet, bevor der Canvas abgegriffen wird
 - 500 ms Safety-Timeout, falls das Event nicht feuert (Style bereits fertig gepaintet)
 - Zusätzlich: `opacity:0` vom Offscreen-Container entfernt (iOS skippt WebGL-Render für vollständig transparente Elemente); Container bleibt über `left:-99999px` off-screen
-- Minimale Offscreen-Container-Breite auf 800 px erhöht, sodass `pixelRatio` unter allen Bedingungen ≤ ~3× bleibt (Schutz gegen iOS-Safari-Texturlimits bei hohem pixelRatio)
+
+**Wichtiger Hinweis:** Der Offscreen-Container behält bewusst die Breite der Live-Preview (`previewW` aus `viewState.viewportWidth`). Ein größerer Container würde bei gleichem Zoom-Level mehr Geografie zeigen und damit den Export-Ausschnitt vom Live-Preview entkoppeln. Eine frühere Version dieses Fixes nutzte `Math.max(previewW, 800)` gegen iOS-Texturlimits — das führte aber dazu, dass Zimmeransicht und Download einen größeren Map-Ausschnitt als die Live-Preview zeigten und wurde verworfen.
 
 ### Offene Punkte für QA
 - Visuelle Prüfung der Preview-Größe bei verschiedenen Phone-Breiten (iPhone SE 375px, Android 360px, iPad 768px)
