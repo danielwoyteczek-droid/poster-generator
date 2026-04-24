@@ -33,6 +33,8 @@ export interface ExportSnapshot {
   splitMode?: 'none' | 'second-map' | 'photo'
   splitPhoto?: SplitPhoto | null
   splitPhotoZone?: number
+  layoutId?: import('./useEditorStore').PosterLayoutId
+  innerMarginMm?: number
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
@@ -398,6 +400,18 @@ export async function buildPosterCanvas(
   const isDualMap = mask.isSplit && splitMode === 'second-map'
   const isSplitPhoto = mask.isSplit && splitMode === 'photo' && splitPhoto != null
 
+  // Layout + Innenrand (PROJ-21) — compute the target rectangle for the map
+  // area within the full poster canvas. Photos and text still use the full
+  // poster coords; only the map area gets resized.
+  const LAYOUT_FACTORS = { full: 1.0, 'text-30': 0.7, 'text-15': 0.85 }
+  const layoutFactor = LAYOUT_FACTORS[store.layoutId ?? 'full']
+  const mmToPx = W / fmt.widthMm
+  const marginPx = Math.max(0, (store.innerMarginMm ?? 0) * mmToPx)
+  const mapTargetX = marginPx
+  const mapTargetY = marginPx
+  const mapTargetW = W - 2 * marginPx
+  const mapTargetH = (H - 2 * marginPx) * layoutFactor
+
   // Build a dynamic mask from shape + shapeConfig for non-split masks.
   // Split masks fall back to their baked SVG files (no composition).
   async function applyComposedMask(srcCanvas: HTMLCanvasElement): Promise<HTMLCanvasElement> {
@@ -431,7 +445,7 @@ export async function buildPosterCanvas(
     // Left map (primary)
     let leftCanvas = await renderMapOffscreen({ styleId, vs: viewState, previewW, previewH, outputW: W, outputH: H, paletteId: store.paletteId, customPaletteBase: store.customPaletteBase, customPalette: store.customPalette, streetLabelsVisible: store.streetLabelsVisible })
     if (mask.leftSvgPath) leftCanvas = await applyMask(leftCanvas, mask.leftSvgPath)
-    ctx.drawImage(leftCanvas, 0, 0)
+    ctx.drawImage(leftCanvas, 0, 0, W, H, mapTargetX, mapTargetY, mapTargetW, mapTargetH)
 
     // Right map (secondary)
     const secVS = secondMap.viewState
@@ -439,15 +453,22 @@ export async function buildPosterCanvas(
     const secPreviewH = secVS.viewportHeight > 0 ? secVS.viewportHeight : previewH
     let rightCanvas = await renderMapOffscreen({ styleId: secondMap.styleId, vs: secVS, previewW: secPreviewW, previewH: secPreviewH, outputW: W, outputH: H, paletteId: secondMap.paletteId, customPaletteBase: secondMap.customPaletteBase, customPalette: secondMap.customPalette, streetLabelsVisible: store.streetLabelsVisible })
     if (mask.rightSvgPath) rightCanvas = await applyMask(rightCanvas, mask.rightSvgPath)
-    ctx.drawImage(rightCanvas, 0, 0)
+    ctx.drawImage(rightCanvas, 0, 0, W, H, mapTargetX, mapTargetY, mapTargetW, mapTargetH)
   } else if (isSplitPhoto && splitPhoto && mask.leftSvgPath && mask.rightSvgPath) {
     const photoIsRightZone = splitPhotoZone === 1
     const mapSideSvg = photoIsRightZone ? mask.leftSvgPath : mask.rightSvgPath
     const photoSideSvg = photoIsRightZone ? mask.rightSvgPath : mask.leftSvgPath
     let mapCanvas = await renderMapOffscreen({ styleId, vs: viewState, previewW, previewH, outputW: W, outputH: H, paletteId: store.paletteId, customPaletteBase: store.customPaletteBase, customPalette: store.customPalette, streetLabelsVisible: store.streetLabelsVisible })
     mapCanvas = await applyMask(mapCanvas, mapSideSvg)
-    ctx.drawImage(mapCanvas, 0, 0)
-    await drawSplitPhoto(ctx, splitPhoto, photoSideSvg, W, H)
+    ctx.drawImage(mapCanvas, 0, 0, W, H, mapTargetX, mapTargetY, mapTargetW, mapTargetH)
+    // Split photo is drawn into a full-poster offscreen canvas, then scaled
+    // into the same target rect so the split halves stay aligned.
+    const photoCanvas = document.createElement('canvas')
+    photoCanvas.width = W
+    photoCanvas.height = H
+    const photoCtx = photoCanvas.getContext('2d')!
+    await drawSplitPhoto(photoCtx, splitPhoto, photoSideSvg, W, H)
+    ctx.drawImage(photoCanvas, 0, 0, W, H, mapTargetX, mapTargetY, mapTargetW, mapTargetH)
   } else {
     let mapCanvas = await renderMapOffscreen({ styleId, vs: viewState, previewW, previewH, outputW: W, outputH: H, paletteId: store.paletteId, customPaletteBase: store.customPaletteBase, customPalette: store.customPalette, streetLabelsVisible: store.streetLabelsVisible })
     if (mask.shape) {
@@ -455,7 +476,7 @@ export async function buildPosterCanvas(
     } else if (mask.svgPath) {
       mapCanvas = await applyMask(mapCanvas, mask.svgPath)
     }
-    ctx.drawImage(mapCanvas, 0, 0)
+    ctx.drawImage(mapCanvas, 0, 0, W, H, mapTargetX, mapTargetY, mapTargetW, mapTargetH)
   }
 
   // Build display texts for coordinate blocks — pin position takes precedence over map center
@@ -474,15 +495,21 @@ export async function buildPosterCanvas(
   // Text blocks
   drawTextBlocks(ctx, textBlocks, displayTexts, W, H, previewW, previewH)
 
-  // Decorative frame (inner + outer), composed from shape + shapeConfig
+  // Decorative frame (inner + outer), composed from shape + shapeConfig.
+  // The frame hugs the shape, so it draws into the same target rect as the map.
   if (!isDualMap && mask.shape && shapeConfig && hasAnyFrame(shapeConfig)) {
     const frameSvg = composeFrameSvg(mask.shape, shapeConfig)
     const frameImg = await loadImage(svgToDataUrl(frameSvg))
-    ctx.drawImage(frameImg, 0, 0, W, H)
+    ctx.drawImage(frameImg, mapTargetX, mapTargetY, mapTargetW, mapTargetH)
   }
 
-  // Marker pins — position from marker.lat/lng when dragged, else centered above mask
+  // Marker pins — position from marker.lat/lng when dragged, else centered above mask.
+  // Pins live inside the map target rect, so transform full-poster coords into it.
   const pinScale = W / previewW
+  const scaleX = mapTargetW / W
+  const scaleY = mapTargetH / H
+  const toTargetX = (x: number) => mapTargetX + x * scaleX
+  const toTargetY = (y: number) => mapTargetY + y * scaleY
   if (marker.enabled) {
     const pinImg = await loadImage(makePinSVGUrl(marker.type, marker.color))
     const [pw, ph] = marker.type === 'heart' ? [32, 32] : [28, 40]
@@ -492,7 +519,7 @@ export async function buildPosterCanvas(
       const pt = projectLngLat(marker.lng, marker.lat, viewState.bounds, W, H)
       cx = pt.x; cy = pt.y
     }
-    ctx.drawImage(pinImg, cx - (pw * pinScale) / 2, cy - ph * pinScale, pw * pinScale, ph * pinScale)
+    ctx.drawImage(pinImg, toTargetX(cx) - (pw * pinScale) / 2, toTargetY(cy) - ph * pinScale, pw * pinScale, ph * pinScale)
   }
   if (isDualMap && secondMarker.enabled) {
     const pinImg = await loadImage(makePinSVGUrl(secondMarker.type, secondMarker.color))
@@ -507,7 +534,7 @@ export async function buildPosterCanvas(
       cx = 0.5 * W + pt.x * 0.5  // right map lives in the 0.5..1.0 x-range
       cy = pt.y
     }
-    ctx.drawImage(pinImg, cx - (pw * pinScale) / 2, cy - ph * pinScale, pw * pinScale, ph * pinScale)
+    ctx.drawImage(pinImg, toTargetX(cx) - (pw * pinScale) / 2, toTargetY(cy) - ph * pinScale, pw * pinScale, ph * pinScale)
   }
 
   return canvas
@@ -536,7 +563,7 @@ function slugify(name: string): string {
 export function useMapExport() {
   const [isExporting, setIsExporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const { viewState, styleId, paletteId, customPaletteBase, customPalette, streetLabelsVisible, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos, splitMode, splitPhoto, splitPhotoZone } =
+  const { viewState, styleId, paletteId, customPaletteBase, customPalette, streetLabelsVisible, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos, splitMode, splitPhoto, splitPhotoZone, layoutId, innerMarginMm } =
     useEditorStore()
 
   const run = async (format: PrintFormat, type: 'png' | 'pdf') => {
@@ -544,7 +571,7 @@ export function useMapExport() {
     setError(null)
     try {
       const snapshot: ExportSnapshot = {
-        viewState, styleId, paletteId, customPaletteBase, customPalette, streetLabelsVisible, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos, splitMode, splitPhoto, splitPhotoZone,
+        viewState, styleId, paletteId, customPaletteBase, customPalette, streetLabelsVisible, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos, splitMode, splitPhoto, splitPhotoZone, layoutId, innerMarginMm,
       }
       const canvas = await buildPosterCanvas(format, snapshot)
       const pngBlob = await canvasToBlob(canvas)

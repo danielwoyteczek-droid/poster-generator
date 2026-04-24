@@ -30,6 +30,8 @@ function getConfig(): EditorConfig {
       viewState: s.secondMap.viewState,
     },
     shapeConfig: s.shapeConfig,
+    layoutId: s.layoutId,
+    innerMarginMm: s.innerMarginMm,
     textBlocks: s.textBlocks,
     locationName: s.locationName,
     photos: s.photos,

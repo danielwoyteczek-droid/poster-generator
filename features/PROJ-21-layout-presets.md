@@ -1,6 +1,6 @@
 # PROJ-21: Layout-Presets
 
-## Status: Architected
+## Status: In Progress
 **Created:** 2026-04-24
 **Last Updated:** 2026-04-24
 
@@ -8,6 +8,26 @@
 - Requires: PROJ-1 (Karten-Editor Core) — Basis-Canvas, Mask-System, Fade-Logik
 - Requires: PROJ-2 (Textblock-Editor) — Textblöcke mit Default-Content (Headline, Koordinaten, Datum)
 - Beeinflusst: PROJ-8 (Design-Presets) — Layout-Wert muss mitgespeichert werden
+
+## Implementation Notes (Frontend)
+- `useEditorStore` erweitert um `layoutId` ('full' / 'text-30' / 'text-15') und
+  `innerMarginMm` (0–10 mm). Beide haben Setter und fließen in `EditorConfig`
+  (Preset + Draft-Sync).
+- `setLayoutId` rückt Textblöcke, die bei Layout-Wechsel außerhalb des neuen
+  Textbereichs landen, in diesen ein. Getippter Inhalt bleibt erhalten.
+- `MapTab` bekommt eine neue Sidebar-Sektion "Layout" (3 Tiles mit Mini-
+  Visualisierung) und eine Sektion "Innenrand" (shadcn Slider 0–10 mm).
+  Form-Picker heißt jetzt "Kartenform"; `text-below` ist aus der Auswahl raus.
+- `PosterCanvas` wrappt die Karten-Ebene in einen eigenen Container mit
+  `top/left/right = marginPx` und `height = (posterHeight - 2*margin) * layoutFactor`.
+  Marker (DraggablePin) referenzieren diesen neuen Container, damit Pins beim
+  Schrumpfen der Karte mitrutschen. Text/Fotos behalten Poster-Koords.
+- `useMapExport` (buildPosterCanvas) skaliert die Offscreen-Map-Canvas beim
+  `drawImage` in den gleichen Target-Rect wie im Preview und transformiert
+  Marker-Koordinaten entsprechend; der dekorative Frame folgt auch.
+- `apply-preset` migriert alte Presets mit `maskKey === 'text-below'` automatisch
+  auf `maskKey = 'none'` + `layoutId = 'text-30'`. Neue Felder werden in
+  `SaveAsPresetButton` persistiert.
 
 ## Kontext
 Aktuell gibt es eine "Form"-Auswahl im Sidebar, die Kartenform und Text-Layout vermischt.

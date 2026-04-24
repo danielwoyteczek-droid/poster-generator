@@ -26,7 +26,18 @@ const MASK_INITIAL_VISIBLE = 3
 
 
 const SPLIT_MASK_OPTIONS = MAP_MASK_OPTIONS.filter((m) => m.isSplit)
-const SINGLE_MASK_OPTIONS = MAP_MASK_OPTIONS.filter((m) => !m.isSplit)
+// 'text-below' moved to the Layout section (PROJ-21). Hide from the
+// Kartenform picker but keep the mask definition so legacy presets render
+// until apply-preset migration runs.
+const SINGLE_MASK_OPTIONS = MAP_MASK_OPTIONS.filter(
+  (m) => !m.isSplit && m.key !== 'text-below',
+)
+
+const LAYOUT_OPTIONS: { id: 'full' | 'text-30' | 'text-15'; label: string; description: string }[] = [
+  { id: 'full', label: 'Vollflächig', description: 'Karte füllt das gesamte Poster' },
+  { id: 'text-30', label: 'Text unten 30 %', description: 'Karte oben 70 %, unten 30 % Text' },
+  { id: 'text-15', label: 'Text unten 15 %', description: 'Karte oben 85 %, unten 15 % Text' },
+]
 
 // Zones per split mask — later multi-part masks can declare 3+ zones here
 const ZONE_COUNT_BY_MASK: Record<string, number> = {
@@ -40,8 +51,10 @@ export function MapTab() {
   const {
     styleId, maskKey, marker, secondMarker, shapeConfig,
     paletteId, customPaletteBase, customPalette, streetLabelsVisible,
+    layoutId, innerMarginMm,
     setStyleId, setMaskKey, setMarker, setSecondMarker,
     setShapeOuter, setInnerFrame, setOuterFrame,
+    setLayoutId, setInnerMarginMm,
     setPaletteId, setCustomPaletteBase, setCustomPalette, updateCustomPaletteColor, setStreetLabelsVisible,
     flyToLocation, setLocationName,
     secondMap, setSecondMapStyleId, setSecondMapPaletteId, setSecondMapCustomPaletteBase, setSecondMapCustomPalette, updateSecondMapCustomPaletteColor, flyToSecondLocation,
@@ -528,7 +541,7 @@ export function MapTab() {
 
       {/* Mask / Shape — filtered to split-only when second map is active */}
       <div className="space-y-1.5">
-        <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400">Form</Label>
+        <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400">Kartenform</Label>
         <div className="grid grid-cols-3 gap-1.5">
           {(masksExpanded ? visibleMasks : visibleMasks.slice(0, MASK_INITIAL_VISIBLE)).map((mask) => (
             <button
@@ -563,6 +576,52 @@ export function MapTab() {
             {masksExpanded ? 'Weniger anzeigen' : `Mehr anzeigen (${visibleMasks.length - MASK_INITIAL_VISIBLE})`}
           </button>
         )}
+      </div>
+
+      <Separator />
+
+      {/* Layout — where the text sits on the poster */}
+      <div className="space-y-1.5">
+        <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400">Layout</Label>
+        <div className="grid grid-cols-3 gap-1.5">
+          {LAYOUT_OPTIONS.map((opt) => (
+            <button
+              key={opt.id}
+              onClick={() => setLayoutId(opt.id)}
+              title={opt.description}
+              className={cn(
+                'rounded-md border-2 py-2 px-1 transition-all flex flex-col items-center gap-1',
+                layoutId === opt.id
+                  ? 'border-gray-900 bg-gray-50'
+                  : 'border-gray-200 hover:border-gray-400',
+              )}
+            >
+              {/* Miniature: grey block = map area, white band = text area */}
+              <div className="w-8 h-10 rounded-sm border border-gray-300 bg-white flex flex-col overflow-hidden">
+                <div
+                  className="bg-gray-400"
+                  style={{ height: opt.id === 'full' ? '100%' : opt.id === 'text-30' ? '70%' : '85%' }}
+                />
+              </div>
+              <span className="text-[9px] leading-tight text-center text-gray-600">{opt.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Inner margin — how much the whole poster content is inset */}
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between">
+          <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400">Innenrand</Label>
+          <span className="text-[11px] text-gray-400 tabular-nums">{innerMarginMm} mm</span>
+        </div>
+        <Slider
+          min={0}
+          max={10}
+          step={1}
+          value={[innerMarginMm]}
+          onValueChange={([v]) => setInnerMarginMm(v)}
+        />
       </div>
 
       {/* Design composition — Admin only */}

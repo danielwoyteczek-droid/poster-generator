@@ -92,7 +92,18 @@ export function applyPreset(preset: PresetLike): UndoFn {
     splitMode: editor.splitMode,
     splitPhotoZone: editor.splitPhotoZone,
     splitPhoto: editor.splitPhoto,
+    layoutId: editor.layoutId,
+    innerMarginMm: editor.innerMarginMm,
     pendingCenter: editor.pendingCenter,
+  }
+
+  // Legacy migration (PROJ-21): presets created before the Layout dimension
+  // existed encoded 'Text unten' as maskKey === 'text-below'. Treat those as
+  // Kartenform = 'none' + Layout = 'text-30' so the composition looks the same.
+  const rawConfig = config as Partial<EditorStore> & { maskKey?: string; layoutId?: string }
+  if (rawConfig.maskKey === 'text-below' && !rawConfig.layoutId) {
+    rawConfig.maskKey = 'none'
+    rawConfig.layoutId = 'text-30'
   }
 
   type MapConfigExtras = { zoom?: number; secondMapZoom?: number }
@@ -115,6 +126,8 @@ export function applyPreset(preset: PresetLike): UndoFn {
         ? { ...newSecondMap, pendingCenter: { lng: state.secondMap.viewState.lng, lat: state.secondMap.viewState.lat, zoom: secondZoom } }
         : newSecondMap,
       shapeConfig: c.shapeConfig ?? state.shapeConfig,
+      layoutId: c.layoutId ?? state.layoutId,
+      innerMarginMm: c.innerMarginMm ?? state.innerMarginMm,
       textBlocks: c.textBlocks ?? state.textBlocks,
       splitMode: c.splitMode ?? state.splitMode,
       splitPhotoZone: c.splitPhotoZone ?? state.splitPhotoZone,

@@ -10,6 +10,20 @@ export type { MapMaskKey, PrintFormat, ShapeConfigState }
 export type PhotoFilter = 'none' | 'grayscale' | 'sepia'
 
 /**
+ * Poster layouts split the canvas into a map area + optional text area.
+ * 'full'    — map fills the whole poster, text blocks float on top.
+ * 'text-30' — map takes the upper 70%, bottom 30% reserved for text.
+ * 'text-15' — map takes the upper 85%, bottom 15% reserved for text.
+ */
+export type PosterLayoutId = 'full' | 'text-30' | 'text-15'
+
+export const LAYOUT_MAP_HEIGHT: Record<PosterLayoutId, number> = {
+  full: 1.0,
+  'text-30': 0.7,
+  'text-15': 0.85,
+}
+
+/**
  * A photo that occupies the "opposite" half of a split map mask.
  * When a split mask is active on the primary map, exactly one of
  * secondMap.enabled or splitPhoto is active at a time.
@@ -118,6 +132,8 @@ export interface EditorStore {
   secondMap: SecondMapState
   secondMarker: MarkerState
   shapeConfig: ShapeConfigState
+  layoutId: PosterLayoutId
+  innerMarginMm: number
   locationName: string
   textBlocks: TextBlock[]
   selectedBlockId: string | null
@@ -147,6 +163,8 @@ export interface EditorStore {
   setShapeOuter: (updates: Partial<ShapeConfigState['outer']>) => void
   setInnerFrame: (updates: Partial<ShapeConfigState['innerFrame']>) => void
   setOuterFrame: (updates: Partial<ShapeConfigState['outerFrame']>) => void
+  setLayoutId: (id: PosterLayoutId) => void
+  setInnerMarginMm: (mm: number) => void
 
   setSecondMapEnabled: (enabled: boolean) => void
   setSecondMapStyleId: (id: string) => void
@@ -190,6 +208,8 @@ export interface EditorConfig {
   secondMarker: MarkerState
   secondMap: Pick<SecondMapState, 'enabled' | 'styleId' | 'paletteId' | 'customPaletteBase' | 'customPalette' | 'viewState'>
   shapeConfig: ShapeConfigState
+  layoutId: PosterLayoutId
+  innerMarginMm: number
   textBlocks: TextBlock[]
   locationName: string
   photos: PhotoItem[]
@@ -221,6 +241,8 @@ export const useEditorStore = create<EditorStore>((set) => ({
   marker: { enabled: false, type: 'classic', color: '#e63946' },
   secondMarker: { enabled: false, type: 'classic', color: '#e63946' },
   shapeConfig: DEFAULT_SHAPE_CONFIG,
+  layoutId: 'full',
+  innerMarginMm: 0,
   secondMap: {
     enabled: false,
     styleId: 'klassisch',
@@ -293,6 +315,23 @@ export const useEditorStore = create<EditorStore>((set) => ({
   setShapeOuter: (updates) => set((s) => ({ shapeConfig: { ...s.shapeConfig, outer: { ...s.shapeConfig.outer, ...updates } } })),
   setInnerFrame: (updates) => set((s) => ({ shapeConfig: { ...s.shapeConfig, innerFrame: { ...s.shapeConfig.innerFrame, ...updates } } })),
   setOuterFrame: (updates) => set((s) => ({ shapeConfig: { ...s.shapeConfig, outerFrame: { ...s.shapeConfig.outerFrame, ...updates } } })),
+  setLayoutId: (id) => set((s) => {
+    // Reposition text blocks that sit above the new text area so they don't
+    // get clipped off-canvas. Keeps all typed text intact; only y changes.
+    const textAreaStart = LAYOUT_MAP_HEIGHT[id]
+    if (textAreaStart >= 1) return { layoutId: id }
+    const outsideCount = s.textBlocks.filter((b) => b.y < textAreaStart).length
+    if (outsideCount === 0) return { layoutId: id }
+    const gap = (1 - textAreaStart) / (outsideCount + 1)
+    let placed = 0
+    const textBlocks = s.textBlocks.map((b) => {
+      if (b.y >= textAreaStart) return b
+      placed += 1
+      return { ...b, y: textAreaStart + gap * placed }
+    })
+    return { layoutId: id, textBlocks }
+  }),
+  setInnerMarginMm: (mm) => set({ innerMarginMm: Math.max(0, Math.min(10, mm)) }),
 
   setSecondMapEnabled: (enabled) => set((s) => ({ secondMap: { ...s.secondMap, enabled } })),
   setSecondMapStyleId: (id) => set((s) => ({ secondMap: { ...s.secondMap, styleId: id } })),
@@ -376,6 +415,8 @@ export const useEditorStore = create<EditorStore>((set) => ({
     marker: config.marker ?? s.marker,
     secondMarker: config.secondMarker ?? s.secondMarker,
     shapeConfig: config.shapeConfig ?? s.shapeConfig,
+    layoutId: config.layoutId ?? s.layoutId,
+    innerMarginMm: config.innerMarginMm ?? s.innerMarginMm,
     secondMap: config.secondMap
       ? { ...s.secondMap, ...config.secondMap, pendingCenter: null, pendingZoomDelta: null }
       : s.secondMap,

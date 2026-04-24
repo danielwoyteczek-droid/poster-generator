@@ -2,7 +2,7 @@
 
 import { useRef, useEffect, useState } from 'react'
 import { Plus, Minus, LocateFixed } from 'lucide-react'
-import { useEditorStore } from '@/hooks/useEditorStore'
+import { useEditorStore, LAYOUT_MAP_HEIGHT } from '@/hooks/useEditorStore'
 import { useCustomMasks } from '@/hooks/useCustomMasks'
 import { MAP_MASKS } from '@/lib/map-masks'
 import { composeMaskSvg, composeFrameSvg, svgToDataUrl, hasAnyFrame } from '@/lib/mask-composer'
@@ -49,7 +49,8 @@ export function PosterCanvas() {
   const [posterSize, setPosterSize] = useState({ width: 0, height: 0 })
   const [locating, setLocating] = useState(false)
 
-  const { maskKey, printFormat, zoomIn, zoomOut, flyToLocation, zoomInSecond, zoomOutSecond, secondMap, marker, secondMarker, shapeConfig, viewState, setMarker, setSecondMarker, setSelectedBlockId, splitMode, splitPhoto, splitPhotoZone } = useEditorStore()
+  const { maskKey, printFormat, zoomIn, zoomOut, flyToLocation, zoomInSecond, zoomOutSecond, secondMap, marker, secondMarker, shapeConfig, viewState, setMarker, setSecondMarker, setSelectedBlockId, splitMode, splitPhoto, splitPhotoZone, layoutId, innerMarginMm } = useEditorStore()
+  const mapAreaRef = useRef<HTMLDivElement>(null)
   const { masks: customMasks } = useCustomMasks()
   const mask =
     (MAP_MASKS as Record<string, typeof MAP_MASKS['none']>)[maskKey] ??
@@ -112,7 +113,11 @@ export function PosterCanvas() {
 
   return (
     <div ref={wrapperRef} className="flex-1 relative bg-gray-100 min-h-0 overflow-hidden flex items-center justify-center">
-      {posterSize.width > 0 && (
+      {posterSize.width > 0 && (() => {
+        const mmToPx = posterSize.width / format.widthMm
+        const marginPx = innerMarginMm * mmToPx
+        const mapHeightFactor = LAYOUT_MAP_HEIGHT[layoutId]
+        return (
         <>
           <div
             ref={posterRef}
@@ -120,6 +125,16 @@ export function PosterCanvas() {
             style={{ width: posterSize.width, height: posterSize.height }}
             onPointerDown={() => setSelectedBlockId(null)}
           >
+            <div
+              ref={mapAreaRef}
+              className="absolute"
+              style={{
+                top: marginPx,
+                left: marginPx,
+                right: marginPx,
+                height: `calc((100% - ${marginPx * 2}px) * ${mapHeightFactor})`,
+              }}
+            >
             {isDualMap ? (
               <>
                 {/* Left map — clip-path restricts pointer events to left half unless the
@@ -197,7 +212,7 @@ export function PosterCanvas() {
             {marker.enabled && (
               <DraggablePin
                 slice="primary"
-                containerRef={posterRef}
+                containerRef={mapAreaRef}
                 markerLat={marker.lat}
                 markerLng={marker.lng}
                 markerType={marker.type}
@@ -212,7 +227,7 @@ export function PosterCanvas() {
             {isDualMap && secondMarker.enabled && (
               <DraggablePin
                 slice="secondary"
-                containerRef={posterRef}
+                containerRef={mapAreaRef}
                 markerLat={secondMarker.lat}
                 markerLng={secondMarker.lng}
                 markerType={secondMarker.type}
@@ -222,6 +237,8 @@ export function PosterCanvas() {
                 onMove={(lat, lng) => setSecondMarker({ lat, lng })}
               />
             )}
+            </div>
+            {/* End of map area — photos and text use full poster coords */}
 
             {/* Photo overlay */}
             <PhotoOverlay posterRef={posterRef} />
@@ -330,7 +347,8 @@ export function PosterCanvas() {
             </div>
           )}
         </>
-      )}
+        )
+      })()}
     </div>
   )
 }
