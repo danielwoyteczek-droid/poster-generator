@@ -402,9 +402,12 @@ export async function buildPosterCanvas(
 
   // Layout + Innenrand (PROJ-21) — compute the target rectangle for the map
   // area within the full poster canvas. Photos and text still use the full
-  // poster coords; only the map area gets resized.
+  // poster coords. Layout only shrinks the map container for plain
+  // rectangles — shapes (circle, heart, splits) already sit in the upper
+  // portion of the poster and would look squashed if the container shrank.
   const LAYOUT_FACTORS = { full: 1.0, 'text-30': 0.7, 'text-15': 0.85 }
-  const layoutFactor = LAYOUT_FACTORS[store.layoutId ?? 'full']
+  const isPlainRectangle = !mask.shape && !mask.isSplit
+  const layoutFactor = isPlainRectangle ? LAYOUT_FACTORS[store.layoutId ?? 'full'] : 1.0
   const mmToPx = W / fmt.widthMm
   const marginPx = Math.max(0, (store.innerMarginMm ?? 0) * mmToPx)
   const mapTargetX = marginPx

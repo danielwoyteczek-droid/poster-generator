@@ -116,7 +116,12 @@ export function PosterCanvas() {
       {posterSize.width > 0 && (() => {
         const mmToPx = posterSize.width / format.widthMm
         const marginPx = innerMarginMm * mmToPx
-        const mapHeightFactor = LAYOUT_MAP_HEIGHT[layoutId]
+        // Layout only shrinks the map when the user has no shape (plain
+        // rectangle). Circles, hearts and splits already position themselves
+        // in the upper part of the poster, so scaling the container would
+        // squash them vertically. Shapes handle their own framing.
+        const isPlainRectangle = !mask.shape && !mask.isSplit
+        const mapHeightFactor = isPlainRectangle ? LAYOUT_MAP_HEIGHT[layoutId] : 1.0
         return (
         <>
           <div
