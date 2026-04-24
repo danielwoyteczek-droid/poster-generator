@@ -186,13 +186,26 @@ export function LandingNav() {
           )}
         </div>
 
-        {/* Mobile hamburger */}
-        <Sheet open={open} onOpenChange={setOpen}>
-          <SheetTrigger asChild>
-            <button className="md:hidden p-2 -mr-2" aria-label="Menü öffnen">
-              {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </button>
-          </SheetTrigger>
+        {/* Mobile: cart + hamburger */}
+        <div className="flex md:hidden items-center gap-1">
+          <Link
+            href="/cart"
+            className="relative p-2 rounded-md hover:bg-gray-100 transition-colors"
+            aria-label="Warenkorb"
+          >
+            <ShoppingCart className="w-5 h-5 text-gray-700" />
+            {hydrated && cartCount > 0 && (
+              <span className="absolute top-0 right-0 min-w-[18px] h-[18px] px-1 rounded-full bg-gray-900 text-white text-[10px] font-semibold flex items-center justify-center">
+                {cartCount}
+              </span>
+            )}
+          </Link>
+          <Sheet open={open} onOpenChange={setOpen}>
+            <SheetTrigger asChild>
+              <button className="p-2 -mr-2" aria-label="Menü öffnen">
+                {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </button>
+            </SheetTrigger>
           <SheetContent side="right" className="w-64 pt-12">
             <nav className="flex flex-col gap-1">
               {NAV_LINKS.map((link) => (
@@ -228,7 +241,8 @@ export function LandingNav() {
               </div>
             </nav>
           </SheetContent>
-        </Sheet>
+          </Sheet>
+        </div>
       </div>
       <EmailConfirmBanner />
     </header>
