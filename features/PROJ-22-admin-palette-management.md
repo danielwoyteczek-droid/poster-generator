@@ -1,6 +1,6 @@
 # PROJ-22: Admin-Paletten-Verwaltung
 
-## Status: Approved
+## Status: Deployed
 **Created:** 2026-04-24
 **Last Updated:** 2026-04-24
 
@@ -396,4 +396,25 @@ möglich in diesem Setup)
 - **Unit-/E2E-Tests**: keine Test-Suite existiert im Projekt; nicht Teil dieser QA-Runde
 
 ## Deployment
-_To be added by /deploy_
+
+- **Deployed:** 2026-04-24
+- **Production URL (Admin):** https://petite-moment.com/private/admin/palettes
+- **Public API:** https://petite-moment.com/api/palettes
+- **Commits auf `main`:**
+  - Backend (`ba46bfe`) — DB-Migrationen `create_map_palettes` + `seed_map_palettes`, Public- und Admin-API-Routen, `useMapPalettes` Hook, MapTab-Verdrahtung
+  - Frontend (`35e3f81`) — `/private/admin/palettes` Route, `AdminPalettesList`-Komponente
+  - QA (`3cf8fbc`) — Test-Ergebnisse im Spec
+- **Vercel:** auto-deploy on push to `main` — Live sobald Vercel die commits verarbeitet hat
+- **Supabase-Migrationen:** `create_map_palettes`, `seed_map_palettes` (bereits auf Production-Projekt `statqcmffemzxcerydgw` angewandt)
+- **Build-Check:** `npm run build` erfolgreich, `/private/admin/palettes` als dynamische Route registriert
+
+### Post-Deployment Smoke-Test (manuell durchzuführen)
+
+Nach dem Vercel-Deploy:
+1. `/private/admin/palettes` aufrufen (eingeloggt als Admin) → Liste der sechs geseedeten Paletten sichtbar
+2. "Neue Palette" → anlegen als Draft → erscheint in der Liste mit Draft-Badge
+3. Publish-Toggle → Status wechselt auf `published`
+4. `/api/palettes` direkt aufrufen (z.B. via Browser) → JSON enthält die neu veröffentlichte Palette
+5. Editor (`/map`) öffnen → die neue Palette erscheint im Farbpaletten-Picker
+6. Palette wieder zurückziehen → im Editor nach Reload verschwunden
+7. Delete probieren auf geseedeter Palette (`mint` ist typischerweise in Design-Presets referenziert) → 409-Dialog mit Preset-Liste
