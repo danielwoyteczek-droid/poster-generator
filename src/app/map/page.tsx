@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
-import { EditorLayout } from '@/components/editor/EditorLayout'
+import { EditorShell } from '@/components/editor/EditorShell'
 import { LandingNav } from '@/components/landing/LandingNav'
 import { PresetUrlApplier } from '@/components/editor/PresetUrlApplier'
 
@@ -16,7 +16,7 @@ export default function MapPage() {
         <PresetUrlApplier posterType="map" />
       </Suspense>
       <div className="flex-1 min-h-0">
-        <EditorLayout />
+        <EditorShell />
       </div>
     </div>
   )

@@ -25,6 +25,7 @@ function drawTextBlocks(
   W: number,
   H: number,
   previewW: number,
+  fontScale = 1,
 ) {
   const scaleX = W / previewW
   for (const block of textBlocks) {
@@ -32,7 +33,7 @@ function drawTextBlocks(
     const text = block.uppercase ? raw.toUpperCase() : raw
     if (!text.trim()) continue
 
-    const scaledFontSize = Math.max(8, Math.round(block.fontSize * scaleX))
+    const scaledFontSize = Math.max(8, Math.round(block.fontSize * scaleX * fontScale))
     const weight = block.bold ? 'bold' : 'normal'
     ctx.font = `${weight} ${scaledFontSize}px "${block.fontFamily}", sans-serif`
     ctx.fillStyle = block.color
@@ -99,7 +100,10 @@ export function useStarMapExport() {
 
   const { textBlocks } = useEditorStore()
 
-  const buildCanvas = async (format: PrintFormat): Promise<HTMLCanvasElement> => {
+  const buildCanvas = async (
+    format: PrintFormat,
+    options: { fontScale?: number } = {},
+  ): Promise<HTMLCanvasElement> => {
     const fmt = PRINT_FORMATS[format]
     const W = fmt.widthPx
     const H = fmt.heightPx
@@ -131,7 +135,7 @@ export function useStarMapExport() {
         ? getCoordinatesText(lat, lng, locationName)
         : block.text
     }
-    drawTextBlocks(ctx, textBlocks, displayTexts, W, H, previewWidth)
+    drawTextBlocks(ctx, textBlocks, displayTexts, W, H, previewWidth, options.fontScale)
     return canvas
   }
 
@@ -171,7 +175,10 @@ export function useStarMapExport() {
   }
 
   const renderPreview = async (format: PrintFormat): Promise<string> => {
-    const canvas = await buildCanvas(format)
+    // Match PosterCanvas mobile font-scale so Zimmeransicht lines up with the
+    // live preview. Desktop (previewWidth ≥ 400) clamps to 1 — unchanged.
+    const fontScale = Math.min(1, previewWidth / 400)
+    const canvas = await buildCanvas(format, { fontScale })
     return canvas.toDataURL('image/png')
   }
 

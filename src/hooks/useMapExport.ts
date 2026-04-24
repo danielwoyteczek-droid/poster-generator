@@ -343,6 +343,7 @@ function drawTextBlocks(
   H: number,
   previewW: number,
   previewH: number,
+  fontScale = 1,
 ) {
   const scaleX = W / previewW
 
@@ -351,7 +352,7 @@ function drawTextBlocks(
     const text = block.uppercase ? raw.toUpperCase() : raw
     if (!text.trim()) continue
 
-    const scaledFontSize = Math.max(8, Math.round(block.fontSize * scaleX))
+    const scaledFontSize = Math.max(8, Math.round(block.fontSize * scaleX * fontScale))
     const weight = block.bold ? 'bold' : 'normal'
     ctx.font = `${weight} ${scaledFontSize}px "${block.fontFamily}", sans-serif`
     ctx.fillStyle = block.color
@@ -384,9 +385,18 @@ function drawTextBlocks(
 
 // ─── Canvas builder ────────────────────────────────────────────────────────
 
+export interface BuildPosterOptions {
+  /** Scale applied to text-block font-sizes on top of the usual preview→export
+   *  scaleX. Used by the Mobile room-view (Zimmeransicht) so it matches the
+   *  Mobile live preview. The actual PDF/PNG download path passes 1 (no scale)
+   *  so printed output stays consistent with Desktop-rendered prints. */
+  fontScale?: number
+}
+
 export async function buildPosterCanvas(
   format: PrintFormat,
   store: ExportSnapshot,
+  options: BuildPosterOptions = {},
 ): Promise<HTMLCanvasElement> {
   const fmt = PRINT_FORMATS[format]
   const W = fmt.widthPx
@@ -517,7 +527,7 @@ export async function buildPosterCanvas(
   await drawPhotos(ctx, store.photos ?? [], W, H)
 
   // Text blocks
-  drawTextBlocks(ctx, textBlocks, displayTexts, W, H, previewW, previewH)
+  drawTextBlocks(ctx, textBlocks, displayTexts, W, H, previewW, previewH, options.fontScale)
 
   // Decorative frame (inner + outer), composed from shape + shapeConfig.
   // The frame hugs the shape, so it draws into the same target rect as the map.
@@ -636,7 +646,12 @@ export function useMapExport() {
     const snapshot: ExportSnapshot = {
       viewState, styleId, paletteId, customPaletteBase, customPalette, streetLabelsVisible, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos, splitMode, splitPhoto, splitPhotoZone, layoutId, innerMarginMm,
     }
-    const canvas = await buildPosterCanvas(format, snapshot)
+    // Mirror PosterCanvas's mobile font-scale (ref 400 px). On Desktop previewW
+    // is ≥ 400 so scale clamps to 1 — Desktop Zimmeransicht unchanged. On Mobile
+    // the Zimmeransicht thus matches the live preview.
+    const previewW = viewState.viewportWidth > 0 ? viewState.viewportWidth : 500
+    const fontScale = Math.min(1, previewW / 400)
+    const canvas = await buildPosterCanvas(format, snapshot, { fontScale })
     return canvas.toDataURL('image/png')
   }
 

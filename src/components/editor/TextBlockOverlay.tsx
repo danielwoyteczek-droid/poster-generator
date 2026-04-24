@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react'
 import { Lock } from 'lucide-react'
 import { useEditorStore, type TextBlock } from '@/hooks/useEditorStore'
+import { useIsMobileEditor } from '@/hooks/useIsMobileEditor'
 
 function toDMS(deg: number, isLat: boolean): string {
   const dir = isLat ? (deg >= 0 ? 'N' : 'S') : (deg >= 0 ? 'E' : 'W')
@@ -23,9 +24,11 @@ interface BlockItemProps {
   isSelected: boolean
   overlayRef: React.RefObject<HTMLDivElement | null>
   displayText: string
+  interactive: boolean
+  fontScale: number
 }
 
-function BlockItem({ block, isSelected, overlayRef, displayText }: BlockItemProps) {
+function BlockItem({ block, isSelected, overlayRef, displayText, interactive, fontScale }: BlockItemProps) {
   const { updateTextBlock, setSelectedBlockId } = useEditorStore()
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -113,21 +116,21 @@ function BlockItem({ block, isSelected, overlayRef, displayText }: BlockItemProp
   return (
     <div
       data-block-id={block.id}
-      className="absolute pointer-events-auto"
+      className={interactive ? 'absolute pointer-events-auto' : 'absolute pointer-events-none'}
       style={{
         left: `${block.x * 100}%`,
         top: `${block.y * 100}%`,
         width: `${block.width * 100}%`,
-        cursor: block.locked ? 'default' : 'move',
+        cursor: interactive && !block.locked ? 'move' : 'default',
         outline: isSelected ? '1px dashed #3b82f6' : 'none',
         outlineOffset: '2px',
       }}
-      onPointerDown={handlePointerDown}
+      onPointerDown={interactive ? handlePointerDown : undefined}
     >
       <div
         style={{
           fontFamily: block.fontFamily,
-          fontSize: block.fontSize,
+          fontSize: block.fontSize * fontScale,
           color: block.color,
           textAlign: block.align,
           fontWeight: block.bold ? 'bold' : 'normal',
@@ -149,7 +152,7 @@ function BlockItem({ block, isSelected, overlayRef, displayText }: BlockItemProp
         </div>
       )}
 
-      {isSelected && !block.locked && (
+      {isSelected && !block.locked && interactive && (
         <div
           className="absolute top-0 right-0 w-2 h-full cursor-ew-resize"
           style={{ transform: 'translateX(50%)' }}
@@ -162,10 +165,18 @@ function BlockItem({ block, isSelected, overlayRef, displayText }: BlockItemProp
 
 interface TextBlockOverlayProps {
   coordinatesSource?: { lat: number; lng: number; locationName: string }
+  /** Multiplier applied to each block's fontSize in the preview. Used on
+   *  Mobile to compensate for the smaller poster preview — the stored
+   *  fontSize is in preview-pixels and looks correct at desktop preview
+   *  width (~600 px), so we scale it down proportionally on smaller
+   *  viewports. Desktop passes 1 (no change). */
+  fontScale?: number
 }
 
-export function TextBlockOverlay({ coordinatesSource }: TextBlockOverlayProps = {}) {
+export function TextBlockOverlay({ coordinatesSource, fontScale = 1 }: TextBlockOverlayProps = {}) {
   const overlayRef = useRef<HTMLDivElement>(null)
+  const isMobile = useIsMobileEditor()
+  const interactive = !isMobile
   const {
     textBlocks,
     selectedBlockId,
@@ -253,6 +264,8 @@ export function TextBlockOverlay({ coordinatesSource }: TextBlockOverlayProps = 
             isSelected={block.id === selectedBlockId}
             overlayRef={overlayRef}
             displayText={displayText}
+            interactive={interactive}
+            fontScale={fontScale}
           />
         )
       })}

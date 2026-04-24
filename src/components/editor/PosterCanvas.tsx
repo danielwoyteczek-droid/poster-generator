@@ -3,6 +3,7 @@
 import { useRef, useEffect, useState } from 'react'
 import { Plus, Minus, LocateFixed } from 'lucide-react'
 import { useEditorStore, LAYOUT_MAP_HEIGHT } from '@/hooks/useEditorStore'
+import { useIsMobileEditor } from '@/hooks/useIsMobileEditor'
 import { useCustomMasks } from '@/hooks/useCustomMasks'
 import { MAP_MASKS } from '@/lib/map-masks'
 import { composeMaskSvg, composeFrameSvg, svgToDataUrl, hasAnyFrame } from '@/lib/mask-composer'
@@ -43,11 +44,29 @@ function makeMaskStyle(svgPath: string) {
   }
 }
 
-export function PosterCanvas() {
+interface PosterCanvasProps {
+  /** Total horizontal + vertical padding subtracted from wrapper before
+   *  computing the poster size. Desktop default is 64 (32 px each side);
+   *  Mobile can pass a smaller value to maximize preview real estate. */
+  padding?: number
+}
+
+/** Reference preview width used to normalise text-block font rendering
+ *  across devices. On Mobile we scale the displayed font-size by
+ *  (posterSize.width / this value) so text stays readable without
+ *  wrapping while still looking proportionate to the poster. Tuned by
+ *  eye: 600 made mobile text too small, 300 kept it too large.  */
+const FONT_SCALE_REFERENCE_WIDTH = 400
+
+export function PosterCanvas({ padding = 64 }: PosterCanvasProps = {}) {
   const wrapperRef = useRef<HTMLDivElement>(null)
   const posterRef = useRef<HTMLDivElement>(null)
   const [posterSize, setPosterSize] = useState({ width: 0, height: 0 })
   const [locating, setLocating] = useState(false)
+  const isMobile = useIsMobileEditor()
+  const fontScale = isMobile && posterSize.width > 0
+    ? Math.min(1, posterSize.width / FONT_SCALE_REFERENCE_WIDTH)
+    : 1
 
   const { maskKey, printFormat, zoomIn, zoomOut, flyToLocation, zoomInSecond, zoomOutSecond, secondMap, marker, secondMarker, shapeConfig, viewState, setMarker, setSecondMarker, setSelectedBlockId, splitMode, splitPhoto, splitPhotoZone, layoutId, innerMarginMm } = useEditorStore()
   const mapAreaRef = useRef<HTMLDivElement>(null)
@@ -80,10 +99,9 @@ export function PosterCanvas() {
 
   useEffect(() => {
     if (!wrapperRef.current) return
-    const PADDING = 64
     const compute = (width: number, height: number) => {
-      const availW = width - PADDING
-      const availH = height - PADDING
+      const availW = width - padding
+      const availH = height - padding
       if (availW <= 0 || availH <= 0) return
       if (availW / ratio <= availH) {
         setPosterSize({ width: availW, height: availW / ratio })
@@ -98,7 +116,7 @@ export function PosterCanvas() {
     observer.observe(wrapperRef.current)
     compute(wrapperRef.current.clientWidth, wrapperRef.current.clientHeight)
     return () => observer.disconnect()
-  }, [ratio])
+  }, [ratio, padding])
 
   const handleLocate = () => {
     if (!navigator.geolocation) return
@@ -260,7 +278,7 @@ export function PosterCanvas() {
             <PhotoOverlay posterRef={posterRef} />
 
             {/* Text blocks overlay */}
-            <TextBlockOverlay />
+            <TextBlockOverlay fontScale={fontScale} />
           </div>
 
           {isDualMap ? (
