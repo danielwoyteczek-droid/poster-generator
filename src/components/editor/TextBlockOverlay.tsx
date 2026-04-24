@@ -36,6 +36,12 @@ function BlockItem({ block, isSelected, overlayRef, displayText }: BlockItemProp
     const rect = overlayRef.current?.getBoundingClientRect()
     if (!rect) return
 
+    // Measure the block's rendered height so we can clamp the bottom edge
+    // inside the poster (not just the top-left). Fallback to font-based
+    // estimate if the element isn't mounted for some reason.
+    const blockEl = e.currentTarget as HTMLDivElement
+    const blockHeightPx = blockEl.getBoundingClientRect().height || (block.fontSize * 1.4)
+
     const startX = e.clientX
     const startY = e.clientY
     const startBlockX = block.x
@@ -52,10 +58,11 @@ function BlockItem({ block, isSelected, overlayRef, displayText }: BlockItemProp
       const snapX = Math.round((rawX * rect.width) / 10) * 10 / rect.width
       const snapY = Math.round((rawY * rect.height) / 10) * 10 / rect.height
 
-      // Clamp inside poster bounds
+      // Clamp inside poster bounds — keep the whole block on the paper
       const maxX = 1 - blockWidthPx / rect.width
+      const maxY = 1 - blockHeightPx / rect.height
       const clampedX = Math.max(0, Math.min(maxX, snapX))
-      const clampedY = Math.max(0, Math.min(0.98, snapY))
+      const clampedY = Math.max(0, Math.min(maxY, snapY))
 
       updateTextBlock(block.id, { x: clampedX, y: clampedY })
     }
@@ -104,6 +111,7 @@ function BlockItem({ block, isSelected, overlayRef, displayText }: BlockItemProp
 
   return (
     <div
+      data-block-id={block.id}
       className="absolute pointer-events-auto"
       style={{
         left: `${block.x * 100}%`,
@@ -211,7 +219,12 @@ export function TextBlockOverlay({ coordinatesSource }: TextBlockOverlayProps = 
       } else if (e.key === 'ArrowDown') {
         e.preventDefault()
         if (!block.locked) {
-          updateTextBlock(block.id, { y: Math.min(0.98, block.y + stepY) })
+          // Measure the rendered block height so the arrow-down clamp matches
+          // the pointer-drag clamp and keeps the whole block on the paper.
+          const blockEl = document.querySelector(`[data-block-id="${block.id}"]`) as HTMLElement | null
+          const blockHeightPx = blockEl?.getBoundingClientRect().height ?? block.fontSize * 1.4
+          const maxY = 1 - blockHeightPx / rect.height
+          updateTextBlock(block.id, { y: Math.min(maxY, block.y + stepY) })
         }
       } else if (e.key === 'Backspace' || e.key === 'Delete') {
         e.preventDefault()
