@@ -70,11 +70,12 @@ export function PosterCanvas() {
     ? (photoIsRightZone ? mask.rightSvgPath : mask.leftSvgPath)
     : null
   const useComposedMask = !!mask.shape && !isDualMap && !isSplitPhoto
+  const layoutMapHeight = LAYOUT_MAP_HEIGHT[layoutId]
   const composedMaskDataUrl = useComposedMask && mask.shape
-    ? svgToDataUrl(composeMaskSvg(mask.shape, shapeConfig))
+    ? svgToDataUrl(composeMaskSvg(mask.shape, shapeConfig, layoutMapHeight))
     : null
   const composedFrameDataUrl = useComposedMask && mask.shape && hasAnyFrame(shapeConfig)
-    ? svgToDataUrl(composeFrameSvg(mask.shape, shapeConfig))
+    ? svgToDataUrl(composeFrameSvg(mask.shape, shapeConfig, layoutMapHeight))
     : null
 
   useEffect(() => {

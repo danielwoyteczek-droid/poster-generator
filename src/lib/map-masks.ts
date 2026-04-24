@@ -47,6 +47,7 @@ export const MAP_MASKS: Record<MapMaskKey, MapMaskDefinition> = {
       viewBox: '0 0 595.3 841.9',
       width: 595.3, height: 841.9,
       markup: '<circle cx="297.6" cy="297.6" r="266.5"/>',
+      bottomFraction: 0.67,
     },
   },
   heart: {
@@ -66,6 +67,7 @@ export const MAP_MASKS: Record<MapMaskKey, MapMaskDefinition> = {
       viewBox: '0 0 526 744',
       width: 526, height: 744,
       markup: '<path d="M263 625 C 175 560, 33 430, 33 270 C 33 180, 99 120, 175 120 C 227 120, 263 150, 263 200 C 263 150, 299 120, 351 120 C 427 120, 493 180, 493 270 C 493 430, 351 560, 263 625 Z"/>',
+      bottomFraction: 0.84,
     },
   },
   frame1: {
@@ -76,6 +78,7 @@ export const MAP_MASKS: Record<MapMaskKey, MapMaskDefinition> = {
       viewBox: '0 0 1000 1400',
       width: 1000, height: 1400,
       markup: '<rect x="50" y="50" width="900" height="908"/>',
+      bottomFraction: 0.684,
     },
   },
   'text-below': {

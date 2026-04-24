@@ -47,6 +47,13 @@ export interface ShapeDefinition {
   width: number      // viewBox width in SVG units
   height: number     // viewBox height in SVG units
   markup: string     // inner shape elements, e.g. '<circle cx=".." cy=".." r=".."/>'
+  /**
+   * Fraction of viewBox height at which the shape's visible bottom sits.
+   * Used by the Layout system to decide whether the shape needs to be
+   * scaled down so it doesn't intrude into the text area. Default 1.0
+   * (treat as filling the whole viewBox; no scaling).
+   */
+  bottomFraction?: number
 }
 
 /**
@@ -120,9 +127,23 @@ function resolveSideMarginsMm(config: ShapeConfigState): {
  * Build the final alpha-mask SVG for a given shape + config.
  * Resulting SVG uses fill-opacity to indicate map visibility per region.
  */
-export function composeMaskSvg(shape: ShapeDefinition, config: ShapeConfigState): string {
+export function composeMaskSvg(
+  shape: ShapeDefinition,
+  config: ShapeConfigState,
+  layoutMapHeight: number = 1,
+): string {
   const parts: string[] = []
   const { outer } = config
+
+  // Layout-aware scaling: if the shape's natural bottom sits lower than the
+  // map area allows (e.g. heart-single bottoms at 84 % but the layout only
+  // grants 70 %), scale it down uniformly so it fits — preserving aspect
+  // ratio — and anchor it at the top of the viewBox.
+  const bottom = shape.bottomFraction ?? 1
+  const shapeScale = bottom > layoutMapHeight ? layoutMapHeight / bottom : 1
+  const shapeTransform = shapeScale < 1
+    ? ` transform="translate(${(shape.width * (1 - shapeScale)) / 2} 0) scale(${shapeScale})"`
+    : ''
 
   if (outer.mode !== 'none') {
     const sides = resolveSideMarginsMm(config)
@@ -139,7 +160,7 @@ export function composeMaskSvg(shape: ShapeDefinition, config: ShapeConfigState)
   }
 
   // Shape always drawn at full opacity on top (unless mode=full made it redundant)
-  parts.push(`<g fill="#fff" fill-opacity="1">${shape.markup}</g>`)
+  parts.push(`<g fill="#fff" fill-opacity="1"${shapeTransform}>${shape.markup}</g>`)
 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${shape.viewBox}">${parts.join('')}</svg>`
 }
@@ -147,7 +168,16 @@ export function composeMaskSvg(shape: ShapeDefinition, config: ShapeConfigState)
 /**
  * Build the decorative frame SVG (strokes). Returns empty SVG if nothing enabled.
  */
-export function composeFrameSvg(shape: ShapeDefinition, config: ShapeConfigState): string {
+export function composeFrameSvg(
+  shape: ShapeDefinition,
+  config: ShapeConfigState,
+  layoutMapHeight: number = 1,
+): string {
+  const bottom = shape.bottomFraction ?? 1
+  const shapeScale = bottom > layoutMapHeight ? layoutMapHeight / bottom : 1
+  const frameTransform = shapeScale < 1
+    ? ` transform="translate(${(shape.width * (1 - shapeScale)) / 2} 0) scale(${shapeScale})"`
+    : ''
   const parts: string[] = []
   const { innerFrame, outerFrame } = config
 
@@ -180,8 +210,11 @@ export function composeFrameSvg(shape: ShapeDefinition, config: ShapeConfigState
 
   if (innerFrame.enabled) {
     const thickness = mmToUnits(innerFrame.thickness, shape.width)
+    // Compensate stroke thickness so the outline doesn't thicken when the
+    // shape is scaled down by the layout transform.
+    const scaledThickness = thickness / (shapeScale || 1)
     parts.push(
-      `<g fill="none" stroke="${innerFrame.color}" stroke-width="${thickness}" stroke-linejoin="round">${shape.markup}</g>`,
+      `<g fill="none" stroke="${innerFrame.color}" stroke-width="${scaledThickness}" stroke-linejoin="round"${frameTransform}>${shape.markup}</g>`,
     )
   }
 

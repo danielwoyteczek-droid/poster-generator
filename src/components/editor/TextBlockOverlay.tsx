@@ -37,10 +37,11 @@ function BlockItem({ block, isSelected, overlayRef, displayText }: BlockItemProp
     if (!rect) return
 
     // Measure the block's rendered height so we can clamp the bottom edge
-    // inside the poster (not just the top-left). Fallback to font-based
-    // estimate if the element isn't mounted for some reason.
+    // inside the poster (not just the top-left). Add a small 2 px safety
+    // margin so line-height slop and outline never push the block over.
     const blockEl = e.currentTarget as HTMLDivElement
-    const blockHeightPx = blockEl.getBoundingClientRect().height || (block.fontSize * 1.4)
+    const measuredH = blockEl.getBoundingClientRect().height
+    const blockHeightPx = (measuredH > 0 ? measuredH : block.fontSize * 1.4) + 2
 
     const startX = e.clientX
     const startY = e.clientY

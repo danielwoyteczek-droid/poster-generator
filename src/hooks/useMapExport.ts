@@ -406,8 +406,12 @@ export async function buildPosterCanvas(
   // rectangles — shapes (circle, heart, splits) already sit in the upper
   // portion of the poster and would look squashed if the container shrank.
   const LAYOUT_FACTORS = { full: 1.0, 'text-30': 0.7, 'text-15': 0.85 }
+  const rawLayoutFactor = LAYOUT_FACTORS[store.layoutId ?? 'full']
   const isPlainRectangle = !mask.shape && !mask.isSplit
-  const layoutFactor = isPlainRectangle ? LAYOUT_FACTORS[store.layoutId ?? 'full'] : 1.0
+  // Plain rectangles crop the map container directly; shapes keep the
+  // container at full poster size and scale the shape SVG itself inside.
+  const layoutFactor = isPlainRectangle ? rawLayoutFactor : 1.0
+  const layoutMapHeightForShape = mask.shape ? rawLayoutFactor : 1.0
   const mmToPx = W / fmt.widthMm
   const marginPx = Math.max(0, (store.innerMarginMm ?? 0) * mmToPx)
   const mapTargetX = marginPx
@@ -419,7 +423,7 @@ export async function buildPosterCanvas(
   // Split masks fall back to their baked SVG files (no composition).
   async function applyComposedMask(srcCanvas: HTMLCanvasElement): Promise<HTMLCanvasElement> {
     if (!mask.shape || !shapeConfig) return srcCanvas
-    const maskSvg = composeMaskSvg(mask.shape, shapeConfig)
+    const maskSvg = composeMaskSvg(mask.shape, shapeConfig, layoutMapHeightForShape)
     const out = document.createElement('canvas')
     out.width = srcCanvas.width
     out.height = srcCanvas.height
@@ -501,7 +505,7 @@ export async function buildPosterCanvas(
   // Decorative frame (inner + outer), composed from shape + shapeConfig.
   // The frame hugs the shape, so it draws into the same target rect as the map.
   if (!isDualMap && mask.shape && shapeConfig && hasAnyFrame(shapeConfig)) {
-    const frameSvg = composeFrameSvg(mask.shape, shapeConfig)
+    const frameSvg = composeFrameSvg(mask.shape, shapeConfig, layoutMapHeightForShape)
     const frameImg = await loadImage(svgToDataUrl(frameSvg))
     ctx.drawImage(frameImg, mapTargetX, mapTargetY, mapTargetW, mapTargetH)
   }
