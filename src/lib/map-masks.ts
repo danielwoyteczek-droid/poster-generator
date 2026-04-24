@@ -6,7 +6,6 @@ export type MapMaskKey =
   | 'frame1'
   | 'text-below'
   | 'split-circles'
-  | 'split-hearts'
   | 'split-halves'
   // Custom masks (uploaded via admin UI) get keys like 'custom-abc12345'.
   // The (string & {}) intersection keeps autocomplete for built-ins while
@@ -98,15 +97,7 @@ export const MAP_MASKS: Record<MapMaskKey, MapMaskDefinition> = {
     leftSvgPath: '/masks/split-circles-left.svg',
     rightSvgPath: '/masks/split-circles-right.svg',
   },
-  'split-hearts': {
-    key: 'split-hearts',
-    label: 'Herz geteilt',
-    svgPath: '/masks/split-hearts-preview.svg',
-    isSplit: true,
-    leftSvgPath: '/masks/split-hearts-left.svg',
-    rightSvgPath: '/masks/split-hearts-right.svg',
-  },
-  'split-halves': {
+'split-halves': {
     key: 'split-halves',
     label: '2× Hälfte',
     svgPath: '/masks/split-halves-preview.svg',

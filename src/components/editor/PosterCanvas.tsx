@@ -141,7 +141,16 @@ export function PosterCanvas() {
                 height: `calc((100% - ${marginPx * 2}px) * ${mapHeightFactor})`,
               }}
             >
-            {isDualMap ? (
+            {isDualMap ? (() => {
+              // 2 mm visual separation between the two map halves, converted
+              // from poster millimetres to on-screen pixels so it stays true
+              // to scale regardless of preview size.
+              const gapHalfPx = mmToPx * 1
+              const leftEdge = `calc(50% - ${gapHalfPx}px)`
+              const rightEdge = `calc(50% + ${gapHalfPx}px)`
+              const leftClip = `polygon(0 0, ${leftEdge} 0, ${leftEdge} 100%, 0 100%)`
+              const rightClip = `polygon(${rightEdge} 0, 100% 0, 100% 100%, ${rightEdge} 100%)`
+              return (
               <>
                 {/* Left map — clip-path restricts pointer events to left half unless the
                     mask explicitly extends across the midline */}
@@ -149,7 +158,7 @@ export function PosterCanvas() {
                   className="absolute inset-0"
                   style={{
                     ...(mask.leftSvgPath ? makeMaskStyle(mask.leftSvgPath) : {}),
-                    ...(mask.noHalfClip ? {} : { clipPath: 'polygon(0 0, 50% 0, 50% 100%, 0 100%)' }),
+                    ...(mask.noHalfClip ? {} : { clipPath: leftClip }),
                   }}
                 >
                   <MapPreview storeSlice="primary" />
@@ -159,13 +168,14 @@ export function PosterCanvas() {
                   className="absolute inset-0"
                   style={{
                     ...(mask.rightSvgPath ? makeMaskStyle(mask.rightSvgPath) : {}),
-                    ...(mask.noHalfClip ? {} : { clipPath: 'polygon(50% 0, 100% 0, 100% 100%, 50% 100%)' }),
+                    ...(mask.noHalfClip ? {} : { clipPath: rightClip }),
                   }}
                 >
                   <MapPreview storeSlice="secondary" />
                 </div>
               </>
-            ) : isSplitPhoto && mapHalfSvg && photoHalfSvg ? (
+              )
+            })() : isSplitPhoto && mapHalfSvg && photoHalfSvg ? (
               <>
                 {/* Primary map — clipped to its half unless the mask spans both halves */}
                 <div

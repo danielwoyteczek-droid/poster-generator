@@ -449,10 +449,22 @@ export async function buildPosterCanvas(
   ctx.fillRect(0, 0, W, H)
 
   if (isDualMap) {
+    // 2 mm visual split between the two halves, matching the preview clip-path
+    const splitGapHalfPx = (mmToPx * 1)
+    const midlineX = mapTargetX + mapTargetW / 2
+    const leftClipW = midlineX - splitGapHalfPx - mapTargetX
+    const rightClipX = midlineX + splitGapHalfPx
+    const rightClipW = mapTargetX + mapTargetW - rightClipX
+
     // Left map (primary)
     let leftCanvas = await renderMapOffscreen({ styleId, vs: viewState, previewW, previewH, outputW: W, outputH: H, paletteId: store.paletteId, customPaletteBase: store.customPaletteBase, customPalette: store.customPalette, streetLabelsVisible: store.streetLabelsVisible })
     if (mask.leftSvgPath) leftCanvas = await applyMask(leftCanvas, mask.leftSvgPath)
+    ctx.save()
+    ctx.beginPath()
+    ctx.rect(mapTargetX, mapTargetY, leftClipW, mapTargetH)
+    ctx.clip()
     ctx.drawImage(leftCanvas, 0, 0, W, H, mapTargetX, mapTargetY, mapTargetW, mapTargetH)
+    ctx.restore()
 
     // Right map (secondary)
     const secVS = secondMap.viewState
@@ -460,7 +472,12 @@ export async function buildPosterCanvas(
     const secPreviewH = secVS.viewportHeight > 0 ? secVS.viewportHeight : previewH
     let rightCanvas = await renderMapOffscreen({ styleId: secondMap.styleId, vs: secVS, previewW: secPreviewW, previewH: secPreviewH, outputW: W, outputH: H, paletteId: secondMap.paletteId, customPaletteBase: secondMap.customPaletteBase, customPalette: secondMap.customPalette, streetLabelsVisible: store.streetLabelsVisible })
     if (mask.rightSvgPath) rightCanvas = await applyMask(rightCanvas, mask.rightSvgPath)
+    ctx.save()
+    ctx.beginPath()
+    ctx.rect(rightClipX, mapTargetY, rightClipW, mapTargetH)
+    ctx.clip()
     ctx.drawImage(rightCanvas, 0, 0, W, H, mapTargetX, mapTargetY, mapTargetW, mapTargetH)
+    ctx.restore()
   } else if (isSplitPhoto && splitPhoto && mask.leftSvgPath && mask.rightSvgPath) {
     const photoIsRightZone = splitPhotoZone === 1
     const mapSideSvg = photoIsRightZone ? mask.leftSvgPath : mask.rightSvgPath
