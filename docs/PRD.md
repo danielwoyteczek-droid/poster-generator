@@ -26,6 +26,7 @@ Ein webbasierter Karten-Poster-Generator, mit dem Nutzer ohne Designkenntnisse p
 | P1 | Layout-Presets (Textposition + Innenrand) | Planned |
 | P1 | Admin-Paletten-Verwaltung | Planned |
 | P1 | Design-System & Brand-Styling (Fonts, Palette, UI-Tokens) | Planned |
+| P1 | Localized Storefront Content (Presets + Hero/Beispiel-Bilder pro Locale) | Planned |
 
 ## Success Metrics
 - Conversion Rate: >5% der anonymen Nutzer erstellen ein Konto

@@ -1,9 +1,7 @@
 'use client'
 
-import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { useTranslatedLabel } from '@/lib/i18n-catalog'
-import { ChevronDown, ChevronUp } from 'lucide-react'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Separator } from '@/components/ui/separator'
@@ -13,8 +11,6 @@ import { useAuth } from '@/hooks/useAuth'
 import { useCustomMasks } from '@/hooks/useCustomMasks'
 import { MAP_MASK_OPTIONS, MAP_MASKS } from '@/lib/map-masks'
 import { cn } from '@/lib/utils'
-
-const MASK_INITIAL_VISIBLE = 6
 
 const SPLIT_MASK_OPTIONS = MAP_MASK_OPTIONS.filter((m) => m.isSplit)
 const SINGLE_MASK_OPTIONS = MAP_MASK_OPTIONS.filter(
@@ -54,23 +50,23 @@ export function MobileLayoutTab() {
     ? SPLIT_MASK_OPTIONS
     : [...SINGLE_MASK_OPTIONS, ...adminMasks]
 
-  const [masksExpanded, setMasksExpanded] = useState(false)
-
   return (
     <div className="space-y-5 p-4">
-      {/* Kartenform */}
+      {/* Kartenform — horizontal scroll on Mobile so the user can swipe
+          through every mask. Bleed-edge -mx-4 lets a peek of the next
+          item show, signalling that more options are available. */}
       <div className="space-y-1.5">
         <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">{t('mapShape')}</Label>
-        <div className="grid grid-cols-3 gap-1.5">
-          {(masksExpanded ? visibleMasks : visibleMasks.slice(0, MASK_INITIAL_VISIBLE)).map((mask) => (
+        <div className="flex gap-1.5 overflow-x-auto snap-x snap-mandatory -mx-4 px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {visibleMasks.map((mask) => (
             <button
               key={mask.key}
               onClick={() => setMaskKey(mask.key)}
               className={cn(
-                'rounded-md border-2 py-3 px-1 transition-all flex flex-col items-center gap-1',
+                'shrink-0 w-20 snap-start rounded-md border-2 py-3 px-1 transition-all flex flex-col items-center gap-1',
                 maskKey === mask.key
                   ? 'border-primary bg-muted'
-                  : 'border-border hover:border-muted-foreground'
+                  : 'border-border'
               )}
             >
               <div className="w-10 h-10 flex items-center justify-center">
@@ -85,33 +81,23 @@ export function MobileLayoutTab() {
             </button>
           ))}
         </div>
-        {visibleMasks.length > MASK_INITIAL_VISIBLE && (
-          <button
-            type="button"
-            onClick={() => setMasksExpanded((v) => !v)}
-            className="w-full h-9 text-xs text-muted-foreground hover:text-foreground flex items-center justify-center gap-1"
-          >
-            {masksExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-            {masksExpanded ? t('mapShowLess') : t('mapShowMore', { n: visibleMasks.length - MASK_INITIAL_VISIBLE })}
-          </button>
-        )}
       </div>
 
       <Separator />
 
-      {/* Layout */}
+      {/* Layout — horizontal scroll matches the Kartenform pattern. */}
       <div className="space-y-1.5">
         <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">{t('mapLayout')}</Label>
-        <div className="grid grid-cols-3 gap-1.5">
+        <div className="flex gap-1.5 overflow-x-auto snap-x snap-mandatory -mx-4 px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {LAYOUT_OPTIONS.map((opt) => (
             <button
               key={opt.id}
               onClick={() => setLayoutId(opt.id)}
               className={cn(
-                'rounded-md border-2 py-3 px-1 transition-all flex flex-col items-center gap-1',
+                'shrink-0 w-20 snap-start rounded-md border-2 py-3 px-1 transition-all flex flex-col items-center gap-1',
                 layoutId === opt.id
                   ? 'border-primary bg-muted'
-                  : 'border-border hover:border-muted-foreground',
+                  : 'border-border',
               )}
             >
               <div className="w-9 h-12 rounded-sm border border-border bg-white flex flex-col overflow-hidden">

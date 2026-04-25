@@ -287,14 +287,14 @@ export function MobileMapTab() {
 
               <div className="space-y-1.5 pt-2">
                 <Label className="text-xs text-muted-foreground">{t('mapSecondPalette')}</Label>
-                <div className="grid grid-cols-3 gap-1.5">
+                <div className="flex gap-1.5 overflow-x-auto snap-x snap-mandatory -mx-4 px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                   <button
                     onClick={() => setSecondMapPaletteId('original')}
                     className={cn(
-                      'rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
+                      'shrink-0 w-20 snap-start rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
                       secondMap.paletteId === 'original'
                         ? 'border-primary'
-                        : 'border-border hover:border-muted-foreground',
+                        : 'border-border',
                     )}
                     title={t('mapPaletteOriginalTitle')}
                   >
@@ -308,10 +308,10 @@ export function MobileMapTab() {
                         key={p.id}
                         onClick={() => setSecondMapPaletteId(p.id)}
                         className={cn(
-                          'rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
+                          'shrink-0 w-20 snap-start rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
                           secondMap.paletteId === p.id
                             ? 'border-primary'
-                            : 'border-border hover:border-muted-foreground',
+                            : 'border-border',
                         )}
                       >
                         <div className="flex gap-0.5">
@@ -334,10 +334,10 @@ export function MobileMapTab() {
                       }
                     }}
                     className={cn(
-                      'rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
+                      'shrink-0 w-20 snap-start rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
                       secondMap.paletteId === 'custom'
                         ? 'border-primary'
-                        : 'border-border hover:border-muted-foreground',
+                        : 'border-border',
                     )}
                   >
                     <div
@@ -388,17 +388,19 @@ export function MobileMapTab() {
         </div>
       </div>
 
-      {/* Farbpalette */}
+      {/* Farbpalette — horizontal scroll on Mobile so the user can swipe
+          through every palette without an "expand" toggle and immediately
+          sees a peek of the next item via the bleed-edge negative margin. */}
       <div className="space-y-1.5">
         <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">{t('mapPalette')}</Label>
-        <div className="grid grid-cols-3 gap-1.5">
+        <div className="flex gap-1.5 overflow-x-auto snap-x snap-mandatory -mx-4 px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <button
             onClick={() => setPaletteId('original')}
             className={cn(
-              'rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
+              'shrink-0 w-20 snap-start rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
               paletteId === 'original'
                 ? 'border-primary'
-                : 'border-border hover:border-muted-foreground',
+                : 'border-border',
             )}
             title={t('mapPaletteOriginalTitle')}
           >
@@ -412,10 +414,10 @@ export function MobileMapTab() {
                 key={p.id}
                 onClick={() => setPaletteId(p.id)}
                 className={cn(
-                  'rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
+                  'shrink-0 w-20 snap-start rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
                   paletteId === p.id
                     ? 'border-primary'
-                    : 'border-border hover:border-muted-foreground',
+                    : 'border-border',
                 )}
               >
                 <div className="flex gap-0.5">
@@ -438,10 +440,10 @@ export function MobileMapTab() {
               }
             }}
             className={cn(
-              'rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
+              'shrink-0 w-20 snap-start rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
               paletteId === 'custom'
                 ? 'border-primary'
-                : 'border-border hover:border-muted-foreground',
+                : 'border-border',
             )}
           >
             <div

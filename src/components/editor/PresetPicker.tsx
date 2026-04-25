@@ -6,6 +6,7 @@ import { Loader2, LayoutTemplate, ChevronDown, ChevronUp } from 'lucide-react'
 import { toast } from 'sonner'
 import { Label } from '@/components/ui/label'
 import { invalidateCustomMasksCache } from '@/hooks/useCustomMasks'
+import { useIsMobileEditor } from '@/hooks/useIsMobileEditor'
 import { applyPreset } from '@/lib/apply-preset'
 import { cn } from '@/lib/utils'
 
@@ -30,6 +31,7 @@ export function PresetPicker({ posterType }: Props) {
   const [loading, setLoading] = useState(true)
   const [appliedId, setAppliedId] = useState<string | null>(null)
   const [expanded, setExpanded] = useState(false)
+  const isMobile = useIsMobileEditor()
 
   useEffect(() => {
     fetch(`/api/presets?poster_type=${posterType}`)
@@ -64,6 +66,51 @@ export function PresetPicker({ posterType }: Props) {
 
   const visible = expanded ? presets : presets.slice(0, INITIAL_VISIBLE)
   const hasMore = presets.length > INITIAL_VISIBLE
+
+  // On Mobile show every preset in a horizontally swipeable row instead of a
+  // 3-column grid with an expand toggle. The bleed-out (-mx-4 px-4) lets the
+  // strip extend into the parent's edge padding so users see a "next item
+  // peeking" cue and know they can swipe.
+  if (isMobile) {
+    return (
+      <div className="space-y-1.5">
+        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">Designs</Label>
+        <div className="flex gap-2 overflow-x-auto snap-x snap-mandatory -mx-4 px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {presets.map((preset) => (
+            <button
+              key={preset.id}
+              type="button"
+              onClick={() => apply(preset)}
+              className={cn(
+                'relative shrink-0 w-24 aspect-[2/3] rounded-md border-2 overflow-hidden transition-all bg-muted snap-start',
+                appliedId === preset.id
+                  ? 'border-primary ring-2 ring-gray-900/20'
+                  : 'border-border',
+              )}
+              title={preset.description || preset.name}
+            >
+              {preset.preview_image_url ? (
+                <Image
+                  src={preset.preview_image_url}
+                  alt={preset.name}
+                  fill
+                  sizes="96px"
+                  className="object-cover"
+                />
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center text-muted-foreground/40">
+                  <LayoutTemplate className="w-6 h-6" />
+                </div>
+              )}
+              <span className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent text-white text-[9px] font-medium px-1 py-1 text-center leading-tight truncate">
+                {preset.name}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-1.5">
