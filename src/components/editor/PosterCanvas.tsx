@@ -108,6 +108,23 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
     ? svgToDataUrl(composeFrameSvg(mask.shape, shapeConfig, layoutMapHeight))
     : null
 
+  // For dual-map / split-photo modes, the mask itself has no `shape`, so the
+  // shape-bound frame composer doesn't fire. Render the OUTER frame here too
+  // — synthesised against a full-poster rectangle so it wraps both halves.
+  // Inner-frame ("Rand") is intentionally suppressed because there's no
+  // single silhouette to hug in split modes.
+  const outerFrameForSplit = (isDualMap || isSplitPhoto) && shapeConfig.outerFrame.enabled
+    ? svgToDataUrl(composeFrameSvg(
+        {
+          viewBox: '0 0 595.3 841.9',
+          width: 595.3, height: 841.9,
+          markup: '<rect x="0" y="0" width="595.3" height="841.9"/>',
+        },
+        { ...shapeConfig, innerFrame: { ...shapeConfig.innerFrame, enabled: false } },
+        1,
+      ))
+    : null
+
   useEffect(() => {
     if (!wrapperRef.current) return
     const compute = (width: number, height: number) => {
@@ -252,6 +269,16 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={composedFrameDataUrl}
+                alt=""
+                className="absolute inset-0 w-full h-full pointer-events-none"
+                style={{ objectFit: 'fill' }}
+              />
+            )}
+            {/* Outer frame for dual-map / split-photo modes (no single shape) */}
+            {outerFrameForSplit && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={outerFrameForSplit}
                 alt=""
                 className="absolute inset-0 w-full h-full pointer-events-none"
                 style={{ objectFit: 'fill' }}

@@ -709,8 +709,9 @@ export function MapTab() {
         />
       </div>
 
-      {/* Design composition — Admin only */}
-      {isAdmin && shapeSupported && (
+      {/* Design composition — Admin only. In split modes only the outer
+           frame is meaningful (no single shape to fade or trace). */}
+      {isAdmin && (shapeSupported || isSplitActive) && (
         <>
           <Separator />
           <div className="space-y-4">
@@ -718,7 +719,8 @@ export function MapTab() {
               Design <span className="text-[9px] normal-case text-amber-600 ml-1">Admin</span>
             </Label>
 
-            {/* Außenbereich */}
+            {/* Außenbereich (shape-only) */}
+            {shapeSupported && (
             <div className="space-y-2">
               <span className="text-xs font-medium text-foreground/70">Außenbereich</span>
               <div className="grid grid-cols-3 gap-1">
@@ -835,8 +837,10 @@ export function MapTab() {
                 </div>
               )}
             </div>
+            )}
 
-            {/* Rand (um die Form) */}
+            {/* Rand (shape-only — hugs the silhouette) */}
+            {shapeSupported && (
             <div className="space-y-2 pt-2 border-t border-border">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-medium text-foreground/70">Rand</span>
@@ -870,9 +874,12 @@ export function MapTab() {
                 </div>
               )}
             </div>
+            )}
 
-            {/* Äußerer Rahmen (um das Rechteck) */}
-            {shapeConfig.outer.mode !== 'none' && (
+            {/* Äußerer Rahmen — Rechteck am Poster-Rand. Auch in Split/Dual
+                Modi verfügbar; dort wird er über ein synthetisches Poster-
+                Rechteck gerendert. */}
+            {(shapeConfig.outer.mode !== 'none' || isSplitActive) && (
               <div className="space-y-2 pt-2 border-t border-border">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-medium text-foreground/70">Äußerer Rahmen</span>

@@ -544,9 +544,24 @@ export async function buildPosterCanvas(
   drawTextBlocks(ctx, textBlocks, displayTexts, W, H, previewW, previewH)
 
   // Decorative frame (inner + outer), composed from shape + shapeConfig.
-  // The frame hugs the shape, so it draws into the same target rect as the map.
-  if (!isDualMap && mask.shape && shapeConfig && hasAnyFrame(shapeConfig)) {
+  // For shape masks the frame hugs the silhouette and draws into the map
+  // target rect. For dual/split modes there's no single shape, so use a
+  // synthetic full-poster rectangle and skip the inner frame.
+  if (!isDualMap && !isSplitPhoto && mask.shape && shapeConfig && hasAnyFrame(shapeConfig)) {
     const frameSvg = composeFrameSvg(mask.shape, shapeConfig, layoutMapHeightForShape)
+    const frameImg = await loadImage(svgToDataUrl(frameSvg))
+    ctx.drawImage(frameImg, mapTargetX, mapTargetY, mapTargetW, mapTargetH)
+  } else if ((isDualMap || isSplitPhoto) && shapeConfig && shapeConfig.outerFrame.enabled) {
+    const syntheticShape = {
+      viewBox: '0 0 595.3 841.9',
+      width: 595.3, height: 841.9,
+      markup: '<rect x="0" y="0" width="595.3" height="841.9"/>',
+    }
+    const frameSvg = composeFrameSvg(
+      syntheticShape,
+      { ...shapeConfig, innerFrame: { ...shapeConfig.innerFrame, enabled: false } },
+      1,
+    )
     const frameImg = await loadImage(svgToDataUrl(frameSvg))
     ctx.drawImage(frameImg, mapTargetX, mapTargetY, mapTargetW, mapTargetH)
   }
