@@ -1,14 +1,18 @@
 import type { Metadata } from 'next'
+import { getLocale, getTranslations } from 'next-intl/server'
 import { LegalLayout } from '@/components/legal/LegalLayout'
 
-export const metadata: Metadata = {
-  title: 'Impressum',
-  description: 'Impressum der UMOI GmbH, Anbieter von petite-moment.com — individuelle Karten- und Sternenposter.',
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations('legal')
+  return {
+    title: t('imprintTitle'),
+    description: t('imprintMeta'),
+  }
 }
 
-export default function ImpressumPage() {
+function ImpressumDE() {
   return (
-    <LegalLayout title="Impressum">
+    <>
       <h2>Angaben gemäß § 5 TMG</h2>
       <p>
         UMOI GmbH<br />
@@ -58,6 +62,76 @@ export default function ImpressumPage() {
         Wir sind nicht bereit oder verpflichtet, an Streitbeilegungsverfahren vor einer
         Verbraucherschlichtungsstelle teilzunehmen.
       </p>
+    </>
+  )
+}
+
+function ImprintEN() {
+  return (
+    <>
+      <h2>Information pursuant to § 5 TMG</h2>
+      <p>
+        UMOI GmbH<br />
+        Seefelder Straße 4<br />
+        81377 Munich<br />
+        Germany
+      </p>
+
+      <h2>Represented by</h2>
+      <p>Daniel Woyteczek (Managing Director)</p>
+
+      <h2>Contact</h2>
+      <p>
+        Email: <a href="mailto:love@petite-moment.com">love@petite-moment.com</a>
+      </p>
+
+      <h2>Commercial register</h2>
+      <p>
+        Registered in the commercial register<br />
+        Registering court: Local Court of Munich (Amtsgericht München)<br />
+        Registration number: HRB 291299
+      </p>
+
+      <h2>VAT ID</h2>
+      <p>
+        Value-added tax identification number pursuant to § 27 a of the German VAT Act:<br />
+        DE367277198
+      </p>
+
+      <h2>Editorial responsibility</h2>
+      <p>
+        Daniel Woyteczek<br />
+        Seefelder Straße 4, 81377 Munich
+      </p>
+
+      <h2>EU online dispute resolution</h2>
+      <p>
+        The European Commission provides a platform for online dispute resolution (ODR):{' '}
+        <a href="https://ec.europa.eu/consumers/odr/" target="_blank" rel="noopener noreferrer">
+          https://ec.europa.eu/consumers/odr/
+        </a>
+        . Our email address is provided above.
+      </p>
+
+      <h2>Consumer dispute resolution</h2>
+      <p>
+        We are neither willing nor obligated to participate in dispute resolution proceedings
+        before a consumer arbitration board.
+      </p>
+    </>
+  )
+}
+
+export default async function ImpressumPage() {
+  const locale = await getLocale()
+  const t = await getTranslations('legal')
+  const isEnglish = locale === 'en'
+  return (
+    <LegalLayout
+      title={t('imprintTitle')}
+      showCourtesyNotice={isEnglish}
+    >
+      {isEnglish ? <ImprintEN /> : <ImpressumDE />}
     </LegalLayout>
   )
 }

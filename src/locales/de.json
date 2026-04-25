@@ -245,6 +245,20 @@
     "textEditBlock": "Textblock bearbeiten",
     "textDeleteBlock": "Textblock löschen"
   },
+  "legal": {
+    "updatedAt": "Stand:",
+    "courtesyNotice": "Diese deutschsprachige Fassung ist die rechtsverbindliche Version.",
+    "imprintTitle": "Impressum",
+    "imprintMeta": "Impressum der UMOI GmbH, Anbieter von petite-moment.com — individuelle Karten- und Sternenposter.",
+    "privacyTitle": "Datenschutzerklärung",
+    "privacyMeta": "Wie wir mit deinen personenbezogenen Daten bei petite-moment.com umgehen — transparent und DSGVO-konform.",
+    "termsTitle": "Allgemeine Geschäftsbedingungen",
+    "termsMeta": "Allgemeine Geschäftsbedingungen für Bestellungen über petite-moment.com.",
+    "withdrawalTitle": "Widerrufsbelehrung",
+    "withdrawalMeta": "Informationen zu deinem Widerrufsrecht bei Bestellungen auf petite-moment.com.",
+    "cookiesTitle": "Cookie-Richtlinie",
+    "cookiesMeta": "Welche Cookies und ähnlichen Technologien wir bei petite-moment.com einsetzen — transparent und DSGVO-konform."
+  },
   "blog": {
     "title": "Blog",
     "metaDescription": "Geschichten, Tipps & Inspiration rund um individuelle Poster.",

@@ -245,6 +245,20 @@
     "textEditBlock": "Edit text block",
     "textDeleteBlock": "Delete text block"
   },
+  "legal": {
+    "updatedAt": "Last updated:",
+    "courtesyNotice": "This English version is provided for convenience only. The German version is legally binding.",
+    "imprintTitle": "Imprint",
+    "imprintMeta": "Imprint of UMOI GmbH, operator of petite-moment.com — custom city and star posters.",
+    "privacyTitle": "Privacy policy",
+    "privacyMeta": "How we handle your personal data at petite-moment.com — transparent and GDPR-compliant.",
+    "termsTitle": "Terms and conditions",
+    "termsMeta": "Terms and conditions for orders placed through petite-moment.com.",
+    "withdrawalTitle": "Right of withdrawal",
+    "withdrawalMeta": "Information on your right of withdrawal for orders at petite-moment.com.",
+    "cookiesTitle": "Cookie policy",
+    "cookiesMeta": "Which cookies and similar technologies we use at petite-moment.com — transparent and GDPR-compliant."
+  },
   "blog": {
     "title": "Blog",
     "metaDescription": "Stories, tips & inspiration around custom posters.",

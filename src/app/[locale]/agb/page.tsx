@@ -1,14 +1,18 @@
 import type { Metadata } from 'next'
+import { getLocale, getTranslations } from 'next-intl/server'
 import { LegalLayout } from '@/components/legal/LegalLayout'
 
-export const metadata: Metadata = {
-  title: 'Allgemeine Geschäftsbedingungen',
-  description: 'AGB der UMOI GmbH für den Vertrieb individueller Karten- und Sternenposter über petite-moment.com.',
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations('legal')
+  return {
+    title: t('termsTitle'),
+    description: t('termsMeta'),
+  }
 }
 
-export default function AGBPage() {
+function TermsDE() {
   return (
-    <LegalLayout title="Allgemeine Geschäftsbedingungen (AGB)" updatedAt="20. April 2026">
+    <>
       <h2>§ 1 Geltungsbereich und Anbieter</h2>
       <p>
         (1) Diese Allgemeinen Geschäftsbedingungen (AGB) gelten für alle Verträge, die zwischen
@@ -213,6 +217,231 @@ export default function AGBPage() {
         (3) Sollten einzelne Bestimmungen dieses Vertrages unwirksam oder undurchführbar sein
         oder werden, wird dadurch die Wirksamkeit der übrigen Bestimmungen nicht berührt.
       </p>
+    </>
+  )
+}
+
+function TermsEN() {
+  return (
+    <>
+      <h2>§ 1 Scope and provider</h2>
+      <p>
+        (1) These General Terms and Conditions (T&amp;Cs) apply to all contracts concluded
+        between
+      </p>
+      <p>
+        UMOI GmbH<br />
+        Seefelder Straße 4<br />
+        81377 Munich, Germany<br />
+        (hereinafter &quot;we&quot; or &quot;the provider&quot;)
+      </p>
+      <p>
+        and the customer (hereinafter &quot;the customer&quot;) via the online shop at{' '}
+        <a href="https://petite-moment.com">petite-moment.com</a>.
+      </p>
+      <p>
+        (2) A consumer within the meaning of these T&amp;Cs is any natural person who concludes
+        a legal transaction for purposes that are predominantly outside their trade, business
+        or profession (§ 13 BGB). An entrepreneur is any natural or legal person or
+        partnership with legal capacity that, when concluding a legal transaction, acts in the
+        exercise of its trade, business or profession (§ 14 BGB).
+      </p>
+      <p>
+        (3) Deviating, conflicting or supplementary general terms and conditions of the
+        customer become part of the contract only if and to the extent that we have expressly
+        agreed to their validity in writing.
+      </p>
+
+      <h2>§ 2 Subject matter of the contract</h2>
+      <p>
+        (1) We offer customisable posters, in particular city and star posters, in the
+        following variants:
+      </p>
+      <ul>
+        <li><strong>Digital download</strong> — PNG and PDF file in print quality</li>
+        <li><strong>Poster</strong> — physical print on photo paper</li>
+        <li><strong>Framed poster</strong> — physical print in a wooden frame</li>
+      </ul>
+      <p>
+        (2) The products on offer are individually configured by the customer using our editor.
+        Final design is the customer&apos;s responsibility.
+      </p>
+
+      <h2>§ 3 Conclusion of contract</h2>
+      <p>
+        (1) The presentation of products in our online shop does not constitute a legally
+        binding offer but rather an invitation to submit an offer.
+      </p>
+      <p>
+        (2) By selecting a product, configuring it in the editor and confirming the purchase
+        in the Stripe checkout, the customer submits a binding offer to conclude a contract
+        of sale.
+      </p>
+      <p>
+        (3) The contract is concluded by the order confirmation sent by email automatically
+        immediately after successful payment.
+      </p>
+      <p>
+        (4) The contract text (order data and T&amp;Cs) is stored by us and can be viewed by
+        the customer at any time in the customer account.
+      </p>
+
+      <h2>§ 4 Prices and shipping costs</h2>
+      <p>
+        (1) The prices stated on the product page include statutory VAT and other price
+        components.
+      </p>
+      <p>
+        (2) Shipping costs for physical products are shown separately during checkout and are
+        payable by the customer in addition to the purchase price.
+      </p>
+      <p>
+        (3) No shipping costs apply to digital downloads.
+      </p>
+
+      <h2>§ 5 Payment</h2>
+      <p>
+        (1) Payment is processed via the external payment provider Stripe Payments Europe
+        Ltd., Dublin, Ireland. Available methods include credit card (Visa, Mastercard,
+        American Express), SEPA direct debit, Apple Pay and Google Pay. The methods available
+        in each case are shown during checkout.
+      </p>
+      <p>
+        (2) The purchase price is due for payment immediately upon completion of the order.
+      </p>
+
+      <h2>§ 6 Delivery</h2>
+      <p>
+        (1) Physical products are shipped within Germany, Austria and Switzerland. Delivery
+        time is generally 3–5 business days after receipt of payment but may be longer
+        depending on the destination country and shipping carrier.
+      </p>
+      <p>
+        (2) Digital downloads are made available to the customer immediately after receipt of
+        payment in the customer account or via the link contained in the order confirmation.
+      </p>
+
+      <h2>§ 7 Right of withdrawal and exclusion</h2>
+      <p>
+        (1) <strong>Exclusion for personalised products:</strong> All posters offered by us
+        (city posters, star posters and the derived product formats: download, poster, framed
+        poster) are made according to the customer&apos;s individual configuration (location,
+        coordinates, date, text blocks, colors, shape, framing). They are goods that are not
+        pre-fabricated and for the production of which an individual selection or
+        determination by the consumer is decisive, or which are clearly tailored to the
+        personal needs of the consumer. The right of withdrawal is therefore{' '}
+        <strong>excluded under § 312g (2) No. 1 BGB</strong>.
+      </p>
+      <p>
+        (2) <strong>Early expiry for digital content:</strong> Where a customer purchases a
+        digital download, any right of withdrawal also expires early under § 356 (5) BGB if
+        the customer (a) expressly consents to performance starting before the withdrawal
+        period expires, and (b) confirms awareness that, by giving consent, they lose their
+        right of withdrawal once performance begins. This consent is explicitly requested
+        during checkout.
+      </p>
+      <p>
+        (3) Details of the exclusion and the model withdrawal form for cases in which a right
+        of withdrawal does exceptionally exist are provided in our{' '}
+        <a href="/widerrufsbelehrung">Right of withdrawal</a> page.
+      </p>
+      <p>
+        (4) The exclusion of the right of withdrawal does not affect the customer&apos;s
+        statutory warranty rights (§ 9 of these T&amp;Cs).
+      </p>
+
+      <h2>§ 8 Retention of title</h2>
+      <p>
+        Delivered goods remain our property until full payment has been received.
+      </p>
+
+      <h2>§ 9 Warranty</h2>
+      <p>(1) Statutory warranty rights apply.</p>
+      <p>
+        (2) Obvious defects must be reported in writing or by email within a reasonable time
+        after receipt of the goods. Failure to report has no consequences for the consumer&apos;s
+        statutory rights.
+      </p>
+      <p>
+        (3) Differences between print results and on-screen display may occur due to
+        technical conditions (e.g. color profiles of different monitors) and do not constitute
+        a defect.
+      </p>
+
+      <h2>§ 10 Liability</h2>
+      <p>
+        (1) We are liable without limitation for intent and gross negligence as well as for
+        damages arising from injury to life, body or health.
+      </p>
+      <p>
+        (2) In the case of slight negligence, we are liable only for breach of essential
+        contractual obligations (cardinal obligations) and limited to the foreseeable damage
+        typical of the contract.
+      </p>
+      <p>
+        (3) Any further liability is excluded. Liability under the German Product Liability
+        Act remains unaffected.
+      </p>
+
+      <h2>§ 11 Copyright</h2>
+      <p>
+        (1) By purchasing a poster (physical or digital) the customer acquires a simple,
+        non-transferable right of use for private use. Commercial use, transfer or
+        reproduction requires our prior written consent.
+      </p>
+      <p>
+        (2) The customer warrants that the content they enter (locations, texts) does not
+        infringe third-party rights. The customer indemnifies us against any third-party
+        claims arising from a breach of this warranty.
+      </p>
+
+      <h2>§ 12 Data protection</h2>
+      <p>
+        Personal data is processed in accordance with our{' '}
+        <a href="/datenschutz">privacy policy</a>.
+      </p>
+
+      <h2>§ 13 Online dispute resolution</h2>
+      <p>
+        The European Commission provides a platform for online dispute resolution:{' '}
+        <a href="https://ec.europa.eu/consumers/odr/" target="_blank" rel="noopener noreferrer">
+          https://ec.europa.eu/consumers/odr/
+        </a>
+        . We are neither willing nor obliged to participate in dispute resolution proceedings
+        before a consumer arbitration board.
+      </p>
+
+      <h2>§ 14 Final provisions</h2>
+      <p>
+        (1) The law of the Federal Republic of Germany applies, excluding the UN Convention
+        on Contracts for the International Sale of Goods. For consumers, this choice of law
+        applies only to the extent that the protection granted by mandatory provisions of the
+        law of the state in which the consumer has their habitual residence is not thereby
+        withdrawn.
+      </p>
+      <p>
+        (2) The exclusive place of jurisdiction for all disputes arising from this contract
+        with entrepreneurs is Munich.
+      </p>
+      <p>
+        (3) Should individual provisions of this contract be or become invalid or
+        unenforceable, the validity of the remaining provisions shall not be affected.
+      </p>
+    </>
+  )
+}
+
+export default async function AGBPage() {
+  const locale = await getLocale()
+  const t = await getTranslations('legal')
+  const isEnglish = locale === 'en'
+  return (
+    <LegalLayout
+      title={isEnglish ? 'Terms and Conditions' : 'Allgemeine Geschäftsbedingungen (AGB)'}
+      updatedAt={isEnglish ? 'April 20, 2026' : '20. April 2026'}
+      showCourtesyNotice={isEnglish}
+    >
+      {isEnglish ? <TermsEN /> : <TermsDE />}
     </LegalLayout>
   )
 }

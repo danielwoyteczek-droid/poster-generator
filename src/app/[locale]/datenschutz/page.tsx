@@ -1,14 +1,18 @@
 import type { Metadata } from 'next'
+import { getLocale, getTranslations } from 'next-intl/server'
 import { LegalLayout } from '@/components/legal/LegalLayout'
 
-export const metadata: Metadata = {
-  title: 'Datenschutzerklärung',
-  description: 'Wie wir deine personenbezogenen Daten bei petite-moment.com verarbeiten und welche Rechte dir zustehen.',
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations('legal')
+  return {
+    title: t('privacyTitle'),
+    description: t('privacyMeta'),
+  }
 }
 
-export default function DatenschutzPage() {
+function PrivacyDE() {
   return (
-    <LegalLayout title="Datenschutzerklärung" updatedAt="21. April 2026">
+    <>
       <h2>1. Verantwortlicher</h2>
       <p>
         Verantwortlicher im Sinne der DSGVO und anderer nationaler Datenschutzgesetze ist:
@@ -216,6 +220,234 @@ export default function DatenschutzPage() {
         Rechtslagen oder bei Änderungen unserer Dienste anzupassen. Die aktuelle Version findest
         du jederzeit auf dieser Seite.
       </p>
+    </>
+  )
+}
+
+function PrivacyEN() {
+  return (
+    <>
+      <h2>1. Controller</h2>
+      <p>
+        The controller within the meaning of the GDPR and other national data protection laws is:
+      </p>
+      <p>
+        UMOI GmbH<br />
+        Seefelder Straße 4<br />
+        81377 Munich<br />
+        Germany<br />
+        Email: <a href="mailto:love@petite-moment.com">love@petite-moment.com</a>
+      </p>
+      <p>Represented by managing director Daniel Woyteczek.</p>
+
+      <h2>2. Hosting and provision of the website</h2>
+      <p>
+        Our website is hosted by <strong>Vercel Inc.</strong>, 440 N Barranca Ave #4133, Covina,
+        CA 91723, USA. When you visit our website, the following data is automatically recorded
+        in server logs: IP address, date and time of access, amount of data transferred,
+        referrer URL, user agent. This data is technically necessary and is automatically
+        deleted after a short time.
+      </p>
+      <p>
+        Legal basis: Art. 6 (1) lit. f GDPR (legitimate interest in stable and secure
+        operation).
+      </p>
+      <p>
+        We have a data processing agreement (DPA) with Vercel pursuant to Art. 28 GDPR, as well
+        as the EU Standard Contractual Clauses for data transfers to the USA.
+      </p>
+
+      <h2>3. Registration and user account</h2>
+      <p>
+        When you create an account, we process your email address and your encrypted (hashed)
+        password. The data is stored at <strong>Supabase Inc.</strong> (servers in the EU).
+      </p>
+      <p>Legal basis: Art. 6 (1) lit. b GDPR (performance of contract).</p>
+      <p>
+        Storage period: until you delete your account. You can request deletion of your account
+        at any time by emailing{' '}
+        <a href="mailto:love@petite-moment.com">love@petite-moment.com</a>.
+      </p>
+
+      <h2>4. Orders and payment processing</h2>
+      <p>For each order, we process:</p>
+      <ul>
+        <li>your email address (for order confirmation and contact)</li>
+        <li>for physical products: name and shipping address (for delivery)</li>
+        <li>contents of your order including poster configuration (for production and delivery)</li>
+      </ul>
+      <p>
+        <strong>Payment processing</strong> is handled exclusively through{' '}
+        <strong>Stripe Payments Europe Ltd.</strong> (Dublin, Ireland). Card details and bank
+        information are collected directly by Stripe and are never known to us. Stripe is
+        PCI-DSS certified. Stripe&apos;s privacy policy:{' '}
+        <a href="https://stripe.com/privacy" target="_blank" rel="noopener noreferrer">
+          stripe.com/privacy
+        </a>
+        .
+      </p>
+      <p>
+        Legal basis: Art. 6 (1) lit. b GDPR (performance of contract) and Art. 6 (1) lit. c
+        GDPR (statutory tax and commercial retention obligations).
+      </p>
+      <p>
+        Storage period: order data is retained according to statutory retention periods (6 or
+        10 years under the German Tax Code (AO) and Commercial Code (HGB)).
+      </p>
+
+      <h2>5. Email communication</h2>
+      <p>
+        For sending transactional emails (order confirmation, shipping notification) we use{' '}
+        <strong>Resend (Inbound Technology Inc.)</strong>, USA. Your email address and the
+        email content are transmitted to Resend.
+      </p>
+      <p>
+        We have a data processing agreement with Resend, as well as the EU Standard
+        Contractual Clauses for data transfers to the USA. Privacy policy:{' '}
+        <a href="https://resend.com/legal/privacy-policy" target="_blank" rel="noopener noreferrer">
+          resend.com/legal/privacy-policy
+        </a>
+        .
+      </p>
+      <p>Legal basis: Art. 6 (1) lit. b GDPR (performance of contract).</p>
+
+      <h2>6. Map and location data</h2>
+      <p>
+        For displaying map sections and location search we use the service{' '}
+        <strong>MapTiler AG</strong>, Baarerstrasse 10, 6300 Zug, Switzerland. When a map is
+        loaded, your IP address and any search queries are transmitted to MapTiler.
+      </p>
+      <p>
+        Switzerland has an EU adequacy decision (Art. 45 GDPR).
+      </p>
+      <p>
+        MapTiler privacy policy:{' '}
+        <a href="https://www.maptiler.com/privacy-policy/" target="_blank" rel="noopener noreferrer">
+          maptiler.com/privacy-policy
+        </a>
+        .
+      </p>
+      <p>
+        Legal basis: Art. 6 (1) lit. b GDPR (performance of contract) and Art. 6 (1) lit. f
+        GDPR (legitimate interest in functional map display).
+      </p>
+
+      <h2>7. Content management</h2>
+      <p>
+        Our editorial content (blog, FAQ, About) is managed with{' '}
+        <strong>Sanity.io</strong> (Sanity AS, Rosenkrantzgaten 11, 0159 Oslo, Norway). When
+        visiting our content pages, technical request data is transmitted to Sanity. Norway
+        has an EU adequacy decision.
+      </p>
+      <p>
+        Sanity privacy policy:{' '}
+        <a href="https://www.sanity.io/legal/privacy" target="_blank" rel="noopener noreferrer">
+          sanity.io/legal/privacy
+        </a>
+        .
+      </p>
+
+      <h2>8. Cookies and local storage</h2>
+      <p>
+        Strictly necessary cookies and local storage (sign-in, cart, poster drafts) are always
+        used. Analytics and marketing cookies are only loaded after your{' '}
+        <strong>explicit consent</strong> via our cookie banner. You can revoke your consent
+        at any time via the &quot;Cookie settings&quot; link in the footer. Details are
+        provided in our <a href="/cookie-richtlinie">Cookie policy</a>.
+      </p>
+      <p>
+        Legal basis for necessary cookies: § 25 (2) No. 2 TTDSG and Art. 6 (1) lit. f GDPR.
+        Legal basis for analytics and marketing cookies: § 25 (1) TTDSG and Art. 6 (1) lit. a
+        GDPR (consent).
+      </p>
+
+      <h2>9. Google Tag Manager</h2>
+      <p>
+        We use <strong>Google Tag Manager</strong> by Google Ireland Limited, Gordon House,
+        Barrow Street, Dublin 4, Ireland. The Tag Manager itself does not collect personal
+        data; it serves only to manage the analytics and marketing tags we use. It only loads
+        them if you have consented accordingly.
+      </p>
+
+      <h2>10. Google Analytics 4</h2>
+      <p>
+        With your consent we use <strong>Google Analytics 4</strong> (Google Ireland Limited)
+        to statistically analyse the use of our website. Pseudonymised usage data (e.g. pages
+        visited, clicks, device information) is processed. IP addresses are truncated by
+        Google before storage.
+      </p>
+      <p>
+        Google may also transfer the data to the USA. EU Standard Contractual Clauses pursuant
+        to Art. 46 GDPR are in place.
+      </p>
+      <p>
+        Legal basis: Art. 6 (1) lit. a GDPR (consent), § 25 (1) TTDSG.
+      </p>
+      <p>
+        Storage period: maximum 14 months. Privacy policy:{' '}
+        <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">
+          policies.google.com/privacy
+        </a>
+        . You can revoke consent at any time via the cookie banner.
+      </p>
+
+      <h2>11. Your rights</h2>
+      <p>You have the right at any time to:</p>
+      <ul>
+        <li><strong>access</strong> the data stored about you (Art. 15 GDPR)</li>
+        <li><strong>correct</strong> inaccurate data (Art. 16 GDPR)</li>
+        <li>
+          <strong>delete</strong> your data (Art. 17 GDPR), unless statutory retention
+          obligations prevent this
+        </li>
+        <li><strong>restrict processing</strong> (Art. 18 GDPR)</li>
+        <li><strong>data portability</strong> (Art. 20 GDPR)</li>
+        <li><strong>object</strong> to processing (Art. 21 GDPR)</li>
+      </ul>
+      <p>
+        For all enquiries please email us at{' '}
+        <a href="mailto:love@petite-moment.com">love@petite-moment.com</a>.
+      </p>
+
+      <h2>12. Right to lodge a complaint</h2>
+      <p>
+        You have the right to lodge a complaint with a data protection supervisory authority.
+        The competent authority for us is:
+      </p>
+      <p>
+        Bavarian State Office for Data Protection Supervision (BayLDA)<br />
+        Promenade 18, 91522 Ansbach, Germany<br />
+        <a href="https://www.lda.bayern.de" target="_blank" rel="noopener noreferrer">
+          www.lda.bayern.de
+        </a>
+      </p>
+
+      <h2>13. No automated decision-making</h2>
+      <p>
+        We do not use automated decision-making or profiling within the meaning of Art. 22
+        GDPR.
+      </p>
+
+      <h2>14. Updates to this policy</h2>
+      <p>
+        We reserve the right to amend this privacy policy to reflect changes in the legal
+        situation or in our services. The current version is always available on this page.
+      </p>
+    </>
+  )
+}
+
+export default async function DatenschutzPage() {
+  const locale = await getLocale()
+  const t = await getTranslations('legal')
+  const isEnglish = locale === 'en'
+  return (
+    <LegalLayout
+      title={t('privacyTitle')}
+      updatedAt={isEnglish ? 'April 21, 2026' : '21. April 2026'}
+      showCourtesyNotice={isEnglish}
+    >
+      {isEnglish ? <PrivacyEN /> : <PrivacyDE />}
     </LegalLayout>
   )
 }

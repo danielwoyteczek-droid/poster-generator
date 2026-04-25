@@ -1,9 +1,11 @@
+import { getTranslations } from 'next-intl/server'
 import { LandingNav } from '@/components/landing/LandingNav'
 import { LandingFooter } from '@/components/landing/LandingFooter'
 
 interface Props {
   title: string
   updatedAt?: string
+  showCourtesyNotice?: boolean
   children: React.ReactNode
 }
 
@@ -11,7 +13,8 @@ interface Props {
  * Shared layout for hardcoded legal pages — provides nav, footer,
  * styled content area consistent with Sanity-backed content pages.
  */
-export function LegalLayout({ title, updatedAt, children }: Props) {
+export async function LegalLayout({ title, updatedAt, showCourtesyNotice, children }: Props) {
+  const t = await getTranslations('legal')
   return (
     <div className="min-h-screen flex flex-col pt-16 bg-white">
       <LandingNav />
@@ -19,7 +22,12 @@ export function LegalLayout({ title, updatedAt, children }: Props) {
         <div className="max-w-3xl mx-auto px-6 py-12">
           <h1 className="text-3xl font-bold text-foreground mb-2">{title}</h1>
           {updatedAt && (
-            <p className="text-sm text-muted-foreground mb-8">Stand: {updatedAt}</p>
+            <p className="text-sm text-muted-foreground mb-4">{t('updatedAt')} {updatedAt}</p>
+          )}
+          {showCourtesyNotice && (
+            <p className="text-xs text-muted-foreground bg-muted border border-border rounded-md px-3 py-2 mb-8">
+              {t('courtesyNotice')}
+            </p>
           )}
           <article className="prose prose-gray max-w-none
             prose-headings:font-semibold prose-headings:text-foreground
