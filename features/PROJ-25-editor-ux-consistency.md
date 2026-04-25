@@ -36,6 +36,7 @@ Während der i18n-Arbeit (PROJ-20) und der Mobile-Editor-Anpassungen (PROJ-18) s
 - [ ] Statt komplettem Ausblenden bei unpassender Konfiguration konsequent ausgrauen — auch im Split-Modus etc.
 - [ ] Desktop und Mobile zeigen dieselbe Menge an Optionen mit identischen Labels (i18n-Keys teilen)
 - [ ] Control-Reihenfolge ist auf beiden Layouts identisch
+- [ ] **Zweiter Marker-Pin im Split-Map-Modus**: Wenn `splitMode === 'second-map'` aktiv ist, erscheint im Marker-Tab eine zweite Marker-Sektion (analog zum primären Marker — Position, Icon, Farbe, Label) für die zweite Karte. In allen anderen Modi (`none`, `photo`) bleibt die Sektion ausgegraut/ausgeblendet konsistent zur Regel oben. Der Zustand `secondMarker` existiert bereits im Editor-Store, hat aber aktuell keine UI im Split-Modus.
 
 ## Edge Cases
 
@@ -48,6 +49,7 @@ Während der i18n-Arbeit (PROJ-20) und der Mobile-Editor-Anpassungen (PROJ-18) s
 - Mobile zeigt 4 Maskenformen, Desktop 3 — Quelle prüfen (`MAP_MASK_OPTIONS` Filter unterscheidet sich)
 - Layout-Picker bleibt bedienbar bei Herz-Maske, hat aber keine Wirkung
 - Innenabstand-Slider wurde in einer separaten Korrektur entfernt (war redundant mit Außenbereich-Margin)
+- **Zweiter Marker fehlt im Split-Map-Modus**: Beim Aktivieren der zweiten Karte gibt es kein UI, um einen Marker-Pin auf der zweiten Karte zu setzen. Der `secondMarker`-Zustand existiert im Editor-Store, der Render-Code im Canvas/Export auch — nur die Sidebar-UI fehlt. Findings vom 2026-04-25.
 
 ## Dependencies
 
