@@ -1,15 +1,18 @@
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import Link from 'next/link'
+import { getTranslations } from 'next-intl/server'
 import { ProjectDashboard } from '@/components/projects/ProjectDashboard'
 import { LandingNav } from '@/components/landing/LandingNav'
 import { ConfirmedToast } from '@/components/ConfirmedToast'
 
-export const metadata: Metadata = {
-  title: 'Meine Poster | Poster Generator',
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations('projects')
+  return { title: t('pageTitle') }
 }
 
-export default function PrivatePage() {
+export default async function PrivatePage() {
+  const t = await getTranslations('projects')
   return (
     <div className="h-screen flex flex-col overflow-hidden pt-16">
       <LandingNav />
@@ -23,13 +26,13 @@ export default function PrivatePage() {
               href="/private"
               className="pb-3 text-sm font-medium text-foreground border-b-2 border-primary -mb-px"
             >
-              Meine Poster
+              {t('tabPosters')}
             </Link>
             <Link
               href="/private/orders"
               className="pb-3 text-sm font-medium text-muted-foreground hover:text-foreground"
             >
-              Meine Bestellungen
+              {t('tabOrders')}
             </Link>
           </div>
           <ProjectDashboard />

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { Plus } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ProjectCard } from './ProjectCard'
@@ -17,6 +18,7 @@ interface Project {
 }
 
 export function ProjectDashboard() {
+  const t = useTranslations('projects')
   const router = useRouter()
   // Selectors prevent re-renders from unrelated store changes
   const projectId = useEditorStore((s) => s.projectId)
@@ -63,7 +65,7 @@ export function ProjectDashboard() {
           className="h-40 rounded-xl border-2 border-dashed border-border hover:border-muted-foreground hover:bg-white transition-colors flex flex-col items-center justify-center gap-2 text-muted-foreground/70 hover:text-muted-foreground"
         >
           <Plus className="w-6 h-6" />
-          <span className="text-sm font-medium">Neues Poster</span>
+          <span className="text-sm font-medium">{t('newPoster')}</span>
         </button>
 
         {projects.map((project) => (
@@ -78,7 +80,7 @@ export function ProjectDashboard() {
 
       {projects.length === 0 && (
         <p className="mt-8 text-sm text-muted-foreground text-center">
-          Noch keine Poster gespeichert. Erstelle dein erstes Poster!
+          {t('empty')}
         </p>
       )}
     </div>

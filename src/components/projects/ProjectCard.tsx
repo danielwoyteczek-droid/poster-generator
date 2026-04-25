@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useLocale, useTranslations } from 'next-intl'
 import { MapPin, Pencil, Trash2, Lock, Copy } from 'lucide-react'
 import { toast } from 'sonner'
 import { Card, CardContent } from '@/components/ui/card'
@@ -34,7 +35,18 @@ interface ProjectCardProps {
   onDuplicate: (id: string) => void
 }
 
+const DATE_LOCALES: Record<string, string> = {
+  de: 'de-DE',
+  en: 'en-US',
+  fr: 'fr-FR',
+  it: 'it-IT',
+  es: 'es-ES',
+}
+
 export function ProjectCard({ project, onDelete, onDuplicate }: ProjectCardProps) {
+  const t = useTranslations('projects')
+  const tCommon = useTranslations('common')
+  const locale = useLocale()
   const router = useRouter()
   const { setProjectId, loadFromConfig } = useEditorStore()
   const [deleting, setDeleting] = useState(false)
@@ -55,9 +67,9 @@ export function ProjectCard({ project, onDelete, onDuplicate }: ProjectCardProps
     try {
       const res = await fetch(`/api/projects/${project.id}/duplicate`, { method: 'POST' })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Duplizieren fehlgeschlagen')
+      if (!res.ok) throw new Error(data.error || t('duplicateFailed'))
       onDuplicate(data.id)
-      toast.success('Kopie erstellt – du kannst sie jetzt bearbeiten')
+      toast.success(t('duplicateSuccess'))
       // Open the duplicate in the editor
       const loadRes = await fetch(`/api/projects/${data.id}`)
       if (loadRes.ok) {
@@ -67,7 +79,7 @@ export function ProjectCard({ project, onDelete, onDuplicate }: ProjectCardProps
       }
       router.push('/map')
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Duplizieren fehlgeschlagen')
+      toast.error(err instanceof Error ? err.message : t('duplicateFailed'))
     } finally {
       setDuplicating(false)
     }
@@ -78,7 +90,8 @@ export function ProjectCard({ project, onDelete, onDuplicate }: ProjectCardProps
     await onDelete(project.id)
   }
 
-  const updatedDate = new Date(project.updated_at).toLocaleDateString('de-DE', {
+  const dateLocale = DATE_LOCALES[locale] ?? 'de-DE'
+  const updatedDate = new Date(project.updated_at).toLocaleDateString(dateLocale, {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
@@ -93,10 +106,10 @@ export function ProjectCard({ project, onDelete, onDuplicate }: ProjectCardProps
             {project.is_locked && (
               <span
                 className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded shrink-0"
-                title="Dieses Projekt wurde gekauft und ist schreibgeschützt"
+                title={t('lockedTooltip')}
               >
                 <Lock className="w-3 h-3" />
-                Gekauft
+                {t('lockedBadge')}
               </span>
             )}
           </div>
@@ -106,7 +119,7 @@ export function ProjectCard({ project, onDelete, onDuplicate }: ProjectCardProps
               <span className="text-xs text-muted-foreground truncate">{project.location_name}</span>
             </div>
           )}
-          <p className="text-xs text-muted-foreground/70 mt-1">Bearbeitet: {updatedDate}</p>
+          <p className="text-xs text-muted-foreground/70 mt-1">{t('editedAt', { date: updatedDate })}</p>
         </div>
 
         <div className="flex items-center gap-2 mt-3">
@@ -119,7 +132,7 @@ export function ProjectCard({ project, onDelete, onDuplicate }: ProjectCardProps
               disabled={duplicating}
             >
               <Copy className="w-3 h-3 mr-1.5" />
-              {duplicating ? 'Wird kopiert…' : 'Duplizieren'}
+              {duplicating ? t('duplicating') : t('duplicate')}
             </Button>
           ) : (
             <Button
@@ -129,7 +142,7 @@ export function ProjectCard({ project, onDelete, onDuplicate }: ProjectCardProps
               onClick={handleEdit}
             >
               <Pencil className="w-3 h-3 mr-1.5" />
-              Bearbeiten
+              {t('edit')}
             </Button>
           )}
 
@@ -146,18 +159,18 @@ export function ProjectCard({ project, onDelete, onDuplicate }: ProjectCardProps
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Poster löschen?</AlertDialogTitle>
+                <AlertDialogTitle>{t('deleteTitle')}</AlertDialogTitle>
                 <AlertDialogDescription>
-                  „{project.title}" wird dauerhaft gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.
+                  {t('deleteConfirm', { title: project.title })}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+                <AlertDialogCancel>{tCommon('cancel')}</AlertDialogCancel>
                 <AlertDialogAction
                   onClick={handleDelete}
                   className="bg-red-600 hover:bg-red-700"
                 >
-                  Löschen
+                  {tCommon('delete')}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>

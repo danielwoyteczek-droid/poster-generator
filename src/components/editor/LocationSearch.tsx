@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import { useTranslations } from 'next-intl'
 import { Search, MapPin } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 
@@ -12,11 +13,13 @@ type GeoResult = {
 
 export function LocationSearch({
   onSelect,
-  placeholder = 'Stadt, Straße, Ort…',
+  placeholder,
 }: {
   onSelect: (lng: number, lat: number, name: string) => void
   placeholder?: string
 }) {
+  const t = useTranslations('editor')
+  const effectivePlaceholder = placeholder ?? t('locationSearchPlaceholder')
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<GeoResult[]>([])
   const [showResults, setShowResults] = useState(false)
@@ -54,7 +57,7 @@ export function LocationSearch({
       <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/70 pointer-events-none" />
       <Input
         className="pl-8 h-9 text-sm"
-        placeholder={placeholder}
+        placeholder={effectivePlaceholder}
         value={query}
         onChange={(e) => handleSearch(e.target.value)}
         onBlur={() => setTimeout(() => setShowResults(false), 150)}

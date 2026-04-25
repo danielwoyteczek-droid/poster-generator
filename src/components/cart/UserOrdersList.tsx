@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useLocale, useTranslations } from 'next-intl'
 import { useTranslatedLabel } from '@/lib/i18n-catalog'
 import { Loader2, Package, FileImage, FileText, ChevronRight, ShoppingBag } from 'lucide-react'
 import { toast } from 'sonner'
@@ -28,11 +29,19 @@ interface Order {
   exports: Array<{ id: string; item_index: number; file_type: 'png' | 'pdf' }>
 }
 
-const FULFILLMENT_LABELS: Record<string, string> = {
-  new: 'Offen',
-  in_production: 'In Produktion',
-  shipped: 'Versendet',
-  completed: 'Abgeschlossen',
+const FULFILLMENT_KEYS: Record<string, string> = {
+  new: 'fulfillmentNew',
+  in_production: 'fulfillmentInProduction',
+  shipped: 'fulfillmentShipped',
+  completed: 'fulfillmentCompleted',
+}
+
+const DATE_LOCALES: Record<string, string> = {
+  de: 'de-DE',
+  en: 'en-US',
+  fr: 'fr-FR',
+  it: 'it-IT',
+  es: 'es-ES',
 }
 
 function formatLabel(id: string) {
@@ -40,6 +49,10 @@ function formatLabel(id: string) {
 }
 
 export function UserOrdersList() {
+  const t = useTranslations('projects')
+  const tOrder = useTranslations('order')
+  const locale = useLocale()
+  const dateLocale = DATE_LOCALES[locale] ?? 'de-DE'
   const productI18n = useTranslatedLabel('products')
   const productLabel = (id: string) =>
     productI18n(`${id}Label`, PRODUCTS.find((p) => p.id === id)?.label ?? id)
@@ -59,7 +72,7 @@ export function UserOrdersList() {
     )
     const data = await res.json()
     if (!res.ok) {
-      toast.error(data.error || 'Download fehlgeschlagen')
+      toast.error(data.error || t('orderDownloadFailed'))
       return
     }
     window.location.href = data.url
@@ -77,9 +90,9 @@ export function UserOrdersList() {
     return (
       <div className="rounded-xl border border-dashed border-border bg-white px-6 py-16 text-center">
         <ShoppingBag className="w-10 h-10 mx-auto text-muted-foreground/40 mb-4" />
-        <p className="text-muted-foreground mb-6">Du hast noch keine Bestellungen.</p>
+        <p className="text-muted-foreground mb-6">{t('ordersEmpty')}</p>
         <Button asChild>
-          <Link href="/map">Jetzt Poster erstellen</Link>
+          <Link href="/map">{t('ordersCreateCta')}</Link>
         </Button>
       </div>
     )
@@ -96,7 +109,7 @@ export function UserOrdersList() {
                 <div>
                   <div className="font-mono text-xs text-muted-foreground">#{order.id.slice(0, 8)}</div>
                   <div className="text-xs text-muted-foreground/70 mt-0.5">
-                    {new Date(order.created_at).toLocaleDateString('de-DE', {
+                    {new Date(order.created_at).toLocaleDateString(dateLocale, {
                       day: '2-digit', month: 'long', year: 'numeric',
                     })}
                   </div>
@@ -104,7 +117,9 @@ export function UserOrdersList() {
                 {isPhysical && (
                   <span className="text-xs font-medium text-foreground/70 bg-white border border-border rounded-full px-2.5 py-1">
                     <Package className="w-3 h-3 inline mr-1" />
-                    {FULFILLMENT_LABELS[order.fulfillment_status] ?? order.fulfillment_status}
+                    {FULFILLMENT_KEYS[order.fulfillment_status]
+                      ? t(FULFILLMENT_KEYS[order.fulfillment_status] as 'fulfillmentNew' | 'fulfillmentInProduction' | 'fulfillmentShipped' | 'fulfillmentCompleted')
+                      : order.fulfillment_status}
                   </span>
                 )}
               </div>
@@ -121,7 +136,7 @@ export function UserOrdersList() {
                   <li key={idx} className="px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-4">
                     <div className="flex-1 min-w-0">
                       <p className="text-xs uppercase tracking-wider text-muted-foreground/70">
-                        {item.posterType === 'star-map' ? 'Sternenposter' : 'Stadtposter'}
+                        {item.posterType === 'star-map' ? tOrder('starPoster') : tOrder('cityPoster')}
                       </p>
                       <h3 className="text-sm font-semibold text-foreground truncate mt-0.5">{item.title}</h3>
                       <p className="text-xs text-muted-foreground mt-1">
@@ -162,7 +177,7 @@ export function UserOrdersList() {
                 href={`/orders/${order.id}?token=${order.access_token}`}
                 className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
               >
-                Bestelldetails öffnen
+                {t('orderDetailsLink')}
                 <ChevronRight className="w-3 h-3" />
               </Link>
             </div>

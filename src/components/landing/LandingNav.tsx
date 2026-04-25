@@ -25,6 +25,7 @@ import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 
 export function LandingNav() {
   const t = useTranslations('nav')
+  const tAria = useTranslations('navAria')
   const { user, loading, isAdmin } = useAuth()
   const [open, setOpen] = useState(false)
   const [hydrated, setHydrated] = useState(false)
@@ -55,7 +56,7 @@ export function LandingNav() {
   return (
     <header className="fixed top-0 inset-x-0 z-50 bg-background/90 backdrop-blur-sm border-b border-border/80">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-        <Link href="/" className="flex items-center" aria-label="petite-moment Startseite">
+        <Link href="/" className="flex items-center" aria-label={tAria('brandHome')}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/brand/logo_1200x300.svg"
@@ -87,7 +88,7 @@ export function LandingNav() {
           <Link
             href="/cart"
             className="relative p-1.5 rounded-md hover:bg-muted transition-colors"
-            aria-label="Warenkorb"
+            aria-label={tAria('cart')}
           >
             <ShoppingCart className="w-5 h-5 text-foreground/70" />
             {hydrated && cartCount > 0 && (
@@ -199,7 +200,7 @@ export function LandingNav() {
           <Link
             href="/cart"
             className="relative p-2 rounded-md hover:bg-muted transition-colors"
-            aria-label="Warenkorb"
+            aria-label={tAria('cart')}
           >
             <ShoppingCart className="w-5 h-5 text-foreground/70" />
             {hydrated && cartCount > 0 && (
@@ -210,7 +211,7 @@ export function LandingNav() {
           </Link>
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
-              <button className="p-2 -mr-2" aria-label="Menü öffnen">
+              <button className="p-2 -mr-2" aria-label={tAria('menuOpen')}>
                 {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
               </button>
             </SheetTrigger>

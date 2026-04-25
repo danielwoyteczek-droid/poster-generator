@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { Cloud, CloudOff, Loader2, Save } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -23,14 +24,9 @@ function StatusIcon({ status }: { status: SaveStatus }) {
   return <Save className="w-3.5 h-3.5" />
 }
 
-function statusLabel(status: SaveStatus) {
-  if (status === 'saving') return 'Speichern...'
-  if (status === 'saved') return 'Gespeichert'
-  if (status === 'error') return 'Fehler'
-  return 'Speichern'
-}
-
 export function SaveButton() {
+  const t = useTranslations('editor')
+  const tCommon = useTranslations('common')
   const { user } = useAuth()
   const locationName = useEditorStore((s) => s.locationName)
   const { saveStatus, saveToCloud, hasProject } = useProjectSync()
@@ -38,6 +34,13 @@ export function SaveButton() {
   const [title, setTitle] = useState('')
 
   if (!user) return null
+
+  const statusLabel = (status: SaveStatus) => {
+    if (status === 'saving') return t('saveStatusSaving')
+    if (status === 'saved') return t('saveStatusSaved')
+    if (status === 'error') return t('saveStatusError')
+    return t('saveStatusIdle')
+  }
 
   const handleClick = () => {
     if (hasProject) {
@@ -50,7 +53,7 @@ export function SaveButton() {
 
   const handleConfirm = async () => {
     setDialogOpen(false)
-    await saveToCloud(title.trim() || locationName || 'Mein Poster')
+    await saveToCloud(title.trim() || locationName || t('savePosterDefaultName'))
   }
 
   return (
@@ -69,10 +72,10 @@ export function SaveButton() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>Poster speichern</DialogTitle>
+            <DialogTitle>{t('savePosterDialogTitle')}</DialogTitle>
           </DialogHeader>
           <div className="py-2">
-            <Label htmlFor="poster-title" className="text-sm">Name</Label>
+            <Label htmlFor="poster-title" className="text-sm">{t('savePosterNameLabel')}</Label>
             <Input
               id="poster-title"
               className="mt-1.5"
@@ -84,10 +87,10 @@ export function SaveButton() {
           </div>
           <DialogFooter>
             <Button variant="outline" size="sm" onClick={() => setDialogOpen(false)}>
-              Abbrechen
+              {tCommon('cancel')}
             </Button>
             <Button size="sm" onClick={handleConfirm} disabled={!title.trim()}>
-              Speichern
+              {tCommon('save')}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -13,6 +13,9 @@ export const aboutPage = defineType({
         list: [
           { title: 'Deutsch', value: 'de' },
           { title: 'English', value: 'en' },
+          { title: 'Français', value: 'fr' },
+          { title: 'Italiano', value: 'it' },
+          { title: 'Español', value: 'es' },
         ],
         layout: 'radio',
       },

@@ -1,18 +1,22 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import { getTranslations } from 'next-intl/server'
 import { LandingNav } from '@/components/landing/LandingNav'
 import { UserOrdersList } from '@/components/cart/UserOrdersList'
 import { createClient } from '@/lib/supabase-server'
 
-export const metadata: Metadata = {
-  title: 'Meine Bestellungen | Poster Generator',
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations('projects')
+  return { title: t('ordersPageTitle') }
 }
 
 export default async function PrivateOrdersPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  const t = await getTranslations('projects')
 
   return (
     <div className="min-h-screen flex flex-col pt-16 bg-muted">
@@ -24,13 +28,13 @@ export default async function PrivateOrdersPage() {
               href="/private"
               className="pb-3 text-sm font-medium text-muted-foreground hover:text-foreground"
             >
-              Meine Poster
+              {t('tabPosters')}
             </Link>
             <Link
               href="/private/orders"
               className="pb-3 text-sm font-medium text-foreground border-b-2 border-primary -mb-px"
             >
-              Meine Bestellungen
+              {t('tabOrders')}
             </Link>
           </div>
           <UserOrdersList />
