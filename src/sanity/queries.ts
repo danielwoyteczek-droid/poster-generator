@@ -52,6 +52,20 @@ export interface SiteSettings {
   footerNote?: string
 }
 
+export interface HomepageExample {
+  image: SanityImage
+  label?: string
+  href?: string
+}
+
+export interface Homepage {
+  _id: string
+  language: string
+  heroImageDesktop?: SanityImage
+  heroImageMobile?: SanityImage
+  examplesImages?: HomepageExample[]
+}
+
 async function safeFetch<T>(query: string, params?: Record<string, unknown>, fallback: T | null = null): Promise<T | null> {
   if (!isConfigured) return fallback
   try {
@@ -109,3 +123,35 @@ export const getSiteSettings = () =>
   safeFetch<SiteSettings>(
     groq`*[_type == "siteSettings"][0]{ contactEmail, socialLinks, footerNote }`,
   )
+
+/**
+ * Liefert das Homepage-Dokument für die angefragte Locale, mit Per-Field-Fallback
+ * auf das DE-Dokument: einzelne leere Felder werden vom DE-Default ergänzt, ohne
+ * dass das ganze Dokument durchfällt. Wenn weder Locale-Doc noch DE-Doc
+ * existieren, wird `null` zurückgegeben — der Caller muss dann auf hardcoded
+ * Defaults aus `/public/` zurückfallen.
+ */
+export const getHomepage = async (locale: string = 'de'): Promise<Homepage | null> => {
+  const projection = groq`{ _id, language, heroImageDesktop, heroImageMobile, examplesImages[]{ image, label, href } }`
+  const requested = await safeFetch<Homepage>(
+    groq`*[_type == "homepage" && language == $locale][0]${projection}`,
+    { locale },
+  )
+  if (locale === 'de' || requested?.heroImageDesktop && requested?.heroImageMobile && (requested?.examplesImages?.length ?? 0) > 0) {
+    return requested
+  }
+  const fallback = await safeFetch<Homepage>(
+    groq`*[_type == "homepage" && language == "de"][0]${projection}`,
+  )
+  if (!fallback) return requested
+  if (!requested) return fallback
+  return {
+    ...requested,
+    heroImageDesktop: requested.heroImageDesktop ?? fallback.heroImageDesktop,
+    heroImageMobile: requested.heroImageMobile ?? fallback.heroImageMobile,
+    examplesImages:
+      requested.examplesImages && requested.examplesImages.length > 0
+        ? requested.examplesImages
+        : fallback.examplesImages,
+  }
+}

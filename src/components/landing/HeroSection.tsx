@@ -1,24 +1,43 @@
 import Image from 'next/image'
 import Link from 'next/link'
-import { useTranslations } from 'next-intl'
+import { getTranslations, getLocale } from 'next-intl/server'
 import { Button } from '@/components/ui/button'
 import { ArrowRight } from 'lucide-react'
+import { getHomepage } from '@/sanity/queries'
+import { urlFor } from '@/sanity/client'
 
-export function HeroSection() {
-  const t = useTranslations('hero')
+const FALLBACK_DESKTOP = '/hero-desktop.webp'
+const FALLBACK_MOBILE = '/hero-mobile.webp'
+
+export async function HeroSection() {
+  const t = await getTranslations('hero')
+  const locale = await getLocale().catch(() => 'de')
+  const homepage = await getHomepage(locale)
+
+  const desktopSrc = homepage?.heroImageDesktop
+    ? urlFor(homepage.heroImageDesktop).width(2000).format('webp').url()
+    : FALLBACK_DESKTOP
+  const mobileSrc = homepage?.heroImageMobile
+    ? urlFor(homepage.heroImageMobile).width(900).format('webp').url()
+    : homepage?.heroImageDesktop
+      ? urlFor(homepage.heroImageDesktop).width(900).format('webp').url()
+      : FALLBACK_MOBILE
+  const desktopAlt = homepage?.heroImageDesktop?.alt ?? 'Poster Generator Hero'
+  const mobileAlt = homepage?.heroImageMobile?.alt ?? desktopAlt
+
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
       {/* Background images */}
       <Image
-        src="/hero-desktop.webp"
-        alt="Poster Generator Hero"
+        src={desktopSrc}
+        alt={desktopAlt}
         fill
         className="object-cover hidden md:block"
         priority
       />
       <Image
-        src="/hero-mobile.webp"
-        alt="Poster Generator Hero"
+        src={mobileSrc}
+        alt={mobileAlt}
         fill
         className="object-cover md:hidden"
         priority
