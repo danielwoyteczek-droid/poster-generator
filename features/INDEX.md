@@ -38,10 +38,11 @@
 | PROJ-22 | Admin-Paletten-Verwaltung | Deployed | [PROJ-22-admin-palette-management.md](PROJ-22-admin-palette-management.md) | 2026-04-24 |
 | PROJ-23 | Design-System & Brand-Styling | In Progress | [PROJ-23-design-system-brand-styling.md](PROJ-23-design-system-brand-styling.md) | 2026-04-24 |
 | PROJ-24 | Localized Storefront Content | In Progress | [PROJ-24-localized-storefront-content.md](PROJ-24-localized-storefront-content.md) | 2026-04-25 |
+| PROJ-25 | Editor UX Consistency Pass | Planned | [PROJ-25-editor-ux-consistency.md](PROJ-25-editor-ux-consistency.md) | 2026-04-25 |
 
 <!-- Add features above this line -->
 
-## Next Available ID: PROJ-25
+## Next Available ID: PROJ-26
 
 ## Recommended Build Order
 1. **PROJ-1** — Karten-Editor Core (Fundament der App)
