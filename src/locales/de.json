@@ -26,6 +26,7 @@
     "adminOrders": "Bestellverwaltung",
     "adminPresets": "Design-Presets",
     "adminMasks": "Masken-Bibliothek",
-    "adminPalettes": "Farbpaletten"
+    "adminPalettes": "Farbpaletten",
+    "createPoster": "Poster erstellen"
   }
 }

@@ -18,6 +18,13 @@ const CartItemSchema = z.object({
 const CheckoutBodySchema = z.object({
   items: z.array(CartItemSchema).min(1).max(20),
   digitalConsent: z.boolean().optional(),
+  /**
+   * Active editor locale at checkout time (PROJ-20). Stored on the order
+   * so post-purchase mails (confirmation, shipping, review request) go
+   * out in the same language the customer bought in. Falls back to the
+   * NEXT_LOCALE cookie or 'de' when the client hasn't passed it.
+   */
+  locale: z.enum(['de', 'en']).optional(),
 })
 
 export async function POST(req: NextRequest) {
@@ -59,6 +66,11 @@ export async function POST(req: NextRequest) {
     )
   }
 
+  // Pick locale from explicit body field, then NEXT_LOCALE cookie, then DE
+  const cookieLocale = req.cookies.get('NEXT_LOCALE')?.value
+  const locale = parsed.data.locale
+    ?? (cookieLocale === 'en' ? 'en' : cookieLocale === 'de' ? 'de' : 'de')
+
   const admin = createAdminClient()
   const { data: order, error: insertErr } = await admin
     .from('orders')
@@ -68,6 +80,7 @@ export async function POST(req: NextRequest) {
       total_cents: totalCents,
       currency: 'eur',
       items,
+      locale,
       digital_consent_at: hasDigital ? new Date().toISOString() : null,
     })
     .select('id, access_token')
@@ -82,13 +95,13 @@ export async function POST(req: NextRequest) {
   try {
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
-      locale: 'de',
+      locale,
       line_items: items.map((item) => ({
         quantity: 1,
         price: item.stripePriceId,
       })),
-      success_url: `${origin}/orders/${order.id}?token=${order.access_token}&success=1`,
-      cancel_url: `${origin}/cart`,
+      success_url: `${origin}/${locale}/orders/${order.id}?token=${order.access_token}&success=1`,
+      cancel_url: `${origin}/${locale}/cart`,
       customer_email: user?.email,
       allow_promotion_codes: true,
       shipping_address_collection: hasPhysical

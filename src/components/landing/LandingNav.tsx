@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { Menu, X, LogOut, Settings, Package, FolderOpen, Star, Map, ShoppingCart, LayoutTemplate, Palette } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
@@ -22,22 +23,26 @@ import { useCartStore } from '@/hooks/useCartStore'
 import { EmailConfirmBanner } from '@/components/EmailConfirmBanner'
 import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 
-const NAV_LINKS = [
-  { label: 'Stadtposter', href: '/map' },
-  { label: 'Sternenposter', href: '/star-map' },
-  { label: 'Features', href: '/#features' },
-  { label: 'Beispiele', href: '/#examples' },
-  { label: 'Preise', href: '/#pricing' },
-]
-
 export function LandingNav() {
+  const t = useTranslations('nav')
   const { user, loading, isAdmin } = useAuth()
   const [open, setOpen] = useState(false)
   const [hydrated, setHydrated] = useState(false)
   const pathname = usePathname()
-  const isEditor = pathname === '/map' || pathname === '/star-map'
+  const isEditor = pathname.endsWith('/map') || pathname.endsWith('/star-map')
   const cartCount = useCartStore((s) => s.items.length)
   useEffect(() => { setHydrated(true) }, [])
+
+  // Locale-prefixed when active. usePathname already includes the locale
+  // because next-intl rewrites our route, so /#features etc. anchor links
+  // need to keep the leading slash; section anchors stay locale-relative.
+  const NAV_LINKS = [
+    { label: t('cityPoster'), href: '/map' },
+    { label: t('starPoster'), href: '/star-map' },
+    { label: t('features'), href: '/#features' },
+    { label: t('examples'), href: '/#examples' },
+    { label: t('pricing'), href: '/#pricing' },
+  ]
 
   const initials = user?.email ? user.email.slice(0, 2).toUpperCase() : '?'
 
@@ -114,29 +119,29 @@ export function LandingNav() {
                 <DropdownMenuItem asChild>
                   <Link href="/private" className="cursor-pointer">
                     <FolderOpen className="w-4 h-4 mr-2" />
-                    Meine Poster
+                    {t('myPosters')}
                   </Link>
                 </DropdownMenuItem>
-                {pathname !== '/map' && (
+                {!pathname.endsWith('/map') && (
                   <DropdownMenuItem asChild>
                     <Link href="/map" className="cursor-pointer">
                       <Map className="w-4 h-4 mr-2" />
-                      Stadtposter
+                      {t('cityPoster')}
                     </Link>
                   </DropdownMenuItem>
                 )}
-                {pathname !== '/star-map' && (
+                {!pathname.endsWith('/star-map') && (
                   <DropdownMenuItem asChild>
                     <Link href="/star-map" className="cursor-pointer">
                       <Star className="w-4 h-4 mr-2" />
-                      Sternenposter
+                      {t('starPoster')}
                     </Link>
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuItem asChild>
                   <Link href="/private/orders" className="cursor-pointer">
                     <Package className="w-4 h-4 mr-2" />
-                    Meine Bestellungen
+                    {t('myOrders')}
                   </Link>
                 </DropdownMenuItem>
                 {isAdmin && (
@@ -145,25 +150,25 @@ export function LandingNav() {
                     <DropdownMenuItem asChild>
                       <Link href="/private/admin/orders" className="cursor-pointer">
                         <Settings className="w-4 h-4 mr-2" />
-                        Bestellverwaltung
+                        {t('adminOrders')}
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                       <Link href="/private/admin/presets" className="cursor-pointer">
                         <LayoutTemplate className="w-4 h-4 mr-2" />
-                        Design-Presets
+                        {t('adminPresets')}
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                       <Link href="/private/admin/masks" className="cursor-pointer">
                         <LayoutTemplate className="w-4 h-4 mr-2" />
-                        Masken-Bibliothek
+                        {t('adminMasks')}
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                       <Link href="/private/admin/palettes" className="cursor-pointer">
                         <Palette className="w-4 h-4 mr-2" />
-                        Farbpaletten
+                        {t('adminPalettes')}
                       </Link>
                     </DropdownMenuItem>
                   </>
@@ -171,18 +176,18 @@ export function LandingNav() {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-red-600 focus:text-red-600">
                   <LogOut className="w-4 h-4 mr-2" />
-                  Abmelden
+                  {t('logout')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
             <>
               <Button variant="ghost" size="sm" asChild>
-                <Link href={`/login?next=${encodeURIComponent(pathname)}`}>Anmelden</Link>
+                <Link href={`/login?next=${encodeURIComponent(pathname)}`}>{t('login')}</Link>
               </Button>
               {!isEditor && (
                 <Button size="sm" asChild>
-                  <Link href="/map">Poster erstellen</Link>
+                  <Link href="/map">{t('createPoster')}</Link>
                 </Button>
               )}
             </>
@@ -226,19 +231,19 @@ export function LandingNav() {
                 {user ? (
                   <>
                     <Button variant="outline" size="sm" asChild>
-                      <Link href="/private" onClick={() => setOpen(false)}>Meine Poster</Link>
+                      <Link href="/private" onClick={() => setOpen(false)}>{t('myPosters')}</Link>
                     </Button>
                     <Button variant="ghost" size="sm" onClick={handleLogout}>
-                      Abmelden
+                      {t('logout')}
                     </Button>
                   </>
                 ) : (
                   <>
                     <Button variant="outline" size="sm" asChild>
-                      <Link href={`/login?next=${encodeURIComponent(pathname)}`} onClick={() => setOpen(false)}>Anmelden</Link>
+                      <Link href={`/login?next=${encodeURIComponent(pathname)}`} onClick={() => setOpen(false)}>{t('login')}</Link>
                     </Button>
                     <Button size="sm" asChild>
-                      <Link href="/map" onClick={() => setOpen(false)}>Poster erstellen</Link>
+                      <Link href="/map" onClick={() => setOpen(false)}>{t('createPoster')}</Link>
                     </Button>
                   </>
                 )}

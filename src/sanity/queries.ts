@@ -62,42 +62,47 @@ async function safeFetch<T>(query: string, params?: Record<string, unknown>, fal
   }
 }
 
-export const getLegalPage = (slug: string) =>
+// Locale-aware queries: prefer the requested locale, fall back to DE if no
+// match exists yet (so partially-translated content still renders).
+const LOCALE_FILTER = `(language == $locale || (!defined(language) && $locale == "de"))`
+
+export const getLegalPage = (slug: string, locale: string = 'de') =>
   safeFetch<LegalPage>(
-    groq`*[_type == "legalPage" && slug.current == $slug][0]{ _id, title, slug, metaDescription, body, updatedAt }`,
-    { slug },
+    groq`*[_type == "legalPage" && slug.current == $slug && ${LOCALE_FILTER}][0]{ _id, title, slug, metaDescription, body, updatedAt }`,
+    { slug, locale },
   )
 
-export const listLegalPages = () =>
+export const listLegalPages = (locale: string = 'de') =>
   safeFetch<LegalPage[]>(
-    groq`*[_type == "legalPage"]{ _id, title, slug }`,
-    {},
+    groq`*[_type == "legalPage" && ${LOCALE_FILTER}]{ _id, title, slug }`,
+    { locale },
     [],
   )
 
-export const listBlogPosts = () =>
+export const listBlogPosts = (locale: string = 'de') =>
   safeFetch<BlogPost[]>(
-    groq`*[_type == "blogPost"] | order(publishedAt desc){ _id, title, slug, excerpt, coverImage, tags, publishedAt }`,
-    {},
+    groq`*[_type == "blogPost" && ${LOCALE_FILTER}] | order(publishedAt desc){ _id, title, slug, excerpt, coverImage, tags, publishedAt }`,
+    { locale },
     [],
   )
 
-export const getBlogPost = (slug: string) =>
+export const getBlogPost = (slug: string, locale: string = 'de') =>
   safeFetch<BlogPost>(
-    groq`*[_type == "blogPost" && slug.current == $slug][0]{ _id, title, slug, excerpt, coverImage, tags, publishedAt, body }`,
-    { slug },
+    groq`*[_type == "blogPost" && slug.current == $slug && ${LOCALE_FILTER}][0]{ _id, title, slug, excerpt, coverImage, tags, publishedAt, body }`,
+    { slug, locale },
   )
 
-export const listFaqItems = () =>
+export const listFaqItems = (locale: string = 'de') =>
   safeFetch<FaqItem[]>(
-    groq`*[_type == "faqItem"] | order(coalesce(displayOrder, 0) asc, question asc){ _id, question, answer, category, displayOrder }`,
-    {},
+    groq`*[_type == "faqItem" && ${LOCALE_FILTER}] | order(coalesce(displayOrder, 0) asc, question asc){ _id, question, answer, category, displayOrder }`,
+    { locale },
     [],
   )
 
-export const getAboutPage = () =>
+export const getAboutPage = (locale: string = 'de') =>
   safeFetch<AboutPage>(
-    groq`*[_type == "aboutPage"][0]{ _id, title, metaDescription, heroImage, body }`,
+    groq`*[_type == "aboutPage" && ${LOCALE_FILTER}][0]{ _id, title, metaDescription, heroImage, body }`,
+    { locale },
   )
 
 export const getSiteSettings = () =>
