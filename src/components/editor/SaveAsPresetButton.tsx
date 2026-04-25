@@ -105,17 +105,38 @@ export function SaveAsPresetButton() {
     }
   }
 
-  const renderAndUploadPreview = async (): Promise<string> => {
-    const renderer = posterType === 'star-map' ? starMapExport.renderPreview : mapExport.renderPreview
-    const fullDataUrl = await renderer(editor.printFormat)
-    const smallDataUrl = await downsizeDataURL(fullDataUrl, 600, 0.85)
-    const blob = dataURLtoBlob(smallDataUrl)
-    const form = new FormData()
-    form.append('file', blob, 'preview.jpg')
-    const uploadRes = await fetch('/api/admin/presets/upload-preview', { method: 'POST', body: form })
-    const uploadData = await uploadRes.json()
-    if (!uploadRes.ok) throw new Error(uploadData.error || 'Upload fehlgeschlagen')
-    return uploadData.url as string
+  const PREVIEW_RENDER_TIMEOUT_MS = 15_000
+
+  /**
+   * Attempts to render + upload a fresh preview. Returns null when the render
+   * times out or fails (typically Map.setStyle problems with custom palettes).
+   * Caller falls back to the existing preview_image_url so the save itself
+   * still goes through — losing work because the preview hangs is the worst
+   * possible outcome.
+   */
+  const tryRenderAndUploadPreview = async (): Promise<string | null> => {
+    try {
+      const renderer = posterType === 'star-map' ? starMapExport.renderPreview : mapExport.renderPreview
+      const renderPromise = renderer(editor.printFormat)
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(
+          () => reject(new Error('PREVIEW_RENDER_TIMEOUT')),
+          PREVIEW_RENDER_TIMEOUT_MS,
+        ),
+      )
+      const fullDataUrl = await Promise.race([renderPromise, timeoutPromise])
+      const smallDataUrl = await downsizeDataURL(fullDataUrl, 600, 0.85)
+      const blob = dataURLtoBlob(smallDataUrl)
+      const form = new FormData()
+      form.append('file', blob, 'preview.jpg')
+      const uploadRes = await fetch('/api/admin/presets/upload-preview', { method: 'POST', body: form })
+      const uploadData = await uploadRes.json()
+      if (!uploadRes.ok) throw new Error(uploadData.error || 'Upload fehlgeschlagen')
+      return uploadData.url as string
+    } catch (err) {
+      console.warn('[SaveAsPresetButton] preview render/upload failed:', err)
+      return null
+    }
   }
 
   const handleSaveAsNew = async () => {
@@ -126,22 +147,30 @@ export function SaveAsPresetButton() {
     setSaving(true)
     setSavingMode('new')
     try {
-      const previewUrl = await renderAndUploadPreview()
+      const previewUrl = await tryRenderAndUploadPreview()
+      const body: Record<string, unknown> = {
+        name: name.trim(),
+        description: description.trim() || undefined,
+        poster_type: posterType,
+        config_json: buildConfigJson(),
+      }
+      if (previewUrl) body.preview_image_url = previewUrl
+
       const createRes = await fetch('/api/admin/presets', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: name.trim(),
-          description: description.trim() || undefined,
-          poster_type: posterType,
-          config_json: buildConfigJson(),
-          preview_image_url: previewUrl,
-        }),
+        body: JSON.stringify(body),
       })
       const createData = await createRes.json()
       if (!createRes.ok) throw new Error(createData.error || 'Erstellen fehlgeschlagen')
 
-      toast.success('Preset als Draft gespeichert')
+      if (previewUrl) {
+        toast.success('Preset als Draft gespeichert')
+      } else {
+        toast.success('Preset als Draft gespeichert', {
+          description: 'Vorschaubild konnte nicht erzeugt werden — Preset wurde ohne neues Bild angelegt.',
+        })
+      }
       setEditingPreset(null)
       setOpen(false)
       setName('')
@@ -163,21 +192,29 @@ export function SaveAsPresetButton() {
     setSaving(true)
     setSavingMode('update')
     try {
-      const previewUrl = await renderAndUploadPreview()
+      const previewUrl = await tryRenderAndUploadPreview()
+      const body: Record<string, unknown> = {
+        name: name.trim(),
+        description: description.trim() || null,
+        config_json: buildConfigJson(),
+      }
+      if (previewUrl) body.preview_image_url = previewUrl
+
       const patchRes = await fetch(`/api/admin/presets/${editingPreset.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: name.trim(),
-          description: description.trim() || null,
-          config_json: buildConfigJson(),
-          preview_image_url: previewUrl,
-        }),
+        body: JSON.stringify(body),
       })
       const patchData = await patchRes.json()
       if (!patchRes.ok) throw new Error(patchData.error || 'Aktualisieren fehlgeschlagen')
 
-      toast.success(`Preset „${name.trim()}" aktualisiert`)
+      if (previewUrl) {
+        toast.success(`Preset „${name.trim()}" aktualisiert`)
+      } else {
+        toast.success(`Preset „${name.trim()}" aktualisiert`, {
+          description: 'Vorschaubild konnte nicht erneuert werden — altes Bild bleibt erhalten.',
+        })
+      }
       setEditingPreset({
         id: editingPreset.id,
         name: name.trim(),
