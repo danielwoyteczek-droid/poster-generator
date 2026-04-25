@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { requireAdmin } from '@/lib/admin-auth'
 import { createAdminClient } from '@/lib/supabase-admin'
+import { TargetLocalesSchema } from '@/lib/preset-locales'
 
 const PatchSchema = z.object({
   name: z.string().trim().min(1).max(200).optional(),
@@ -10,6 +11,7 @@ const PatchSchema = z.object({
   preview_image_url: z.string().url().nullable().optional(),
   status: z.enum(['draft', 'published']).optional(),
   display_order: z.number().int().optional(),
+  target_locales: TargetLocalesSchema.optional(),
 })
 
 export async function GET(_req: NextRequest, context: { params: Promise<{ id: string }> }) {

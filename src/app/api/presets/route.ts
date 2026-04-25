@@ -1,18 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase-admin'
+import { LocaleSchema } from '@/lib/preset-locales'
 
 export async function GET(req: NextRequest) {
   const posterType = req.nextUrl.searchParams.get('poster_type')
+  const localeParam = req.nextUrl.searchParams.get('locale')
 
   const admin = createAdminClient()
   let query = admin
     .from('presets')
-    .select('id, name, description, poster_type, preview_image_url, config_json, display_order')
+    .select('id, name, description, poster_type, preview_image_url, config_json, display_order, target_locales')
     .eq('status', 'published')
     .order('display_order', { ascending: true })
     .limit(100)
 
   if (posterType) query = query.eq('poster_type', posterType)
+
+  if (localeParam) {
+    const parsed = LocaleSchema.safeParse(localeParam)
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Invalid locale' }, { status: 400 })
+    }
+    query = query.contains('target_locales', [parsed.data])
+  }
 
   const { data, error } = await query
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

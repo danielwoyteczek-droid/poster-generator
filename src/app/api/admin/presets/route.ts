@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { requireAdmin } from '@/lib/admin-auth'
 import { createAdminClient } from '@/lib/supabase-admin'
+import { LocaleSchema, TargetLocalesSchema } from '@/lib/preset-locales'
 
 const CreatePresetSchema = z.object({
   name: z.string().trim().min(1).max(200),
@@ -10,6 +11,7 @@ const CreatePresetSchema = z.object({
   config_json: z.record(z.string(), z.unknown()),
   preview_image_url: z.string().url().optional(),
   display_order: z.number().int().optional(),
+  target_locales: TargetLocalesSchema.optional(),
 })
 
 export async function GET(req: NextRequest) {
@@ -18,17 +20,26 @@ export async function GET(req: NextRequest) {
 
   const status = req.nextUrl.searchParams.get('status')
   const posterType = req.nextUrl.searchParams.get('poster_type')
+  const localeParam = req.nextUrl.searchParams.get('locale')
 
   const admin = createAdminClient()
   let query = admin
     .from('presets')
-    .select('id, name, description, poster_type, preview_image_url, status, display_order, created_at, updated_at, published_at')
+    .select('id, name, description, poster_type, preview_image_url, status, display_order, target_locales, created_at, updated_at, published_at')
     .order('display_order', { ascending: true })
     .order('created_at', { ascending: false })
     .limit(200)
 
   if (status && status !== 'all') query = query.eq('status', status)
   if (posterType && posterType !== 'all') query = query.eq('poster_type', posterType)
+
+  if (localeParam) {
+    const parsed = LocaleSchema.safeParse(localeParam)
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Invalid locale' }, { status: 400 })
+    }
+    query = query.contains('target_locales', [parsed.data])
+  }
 
   const { data, error } = await query
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
