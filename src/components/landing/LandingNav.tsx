@@ -195,8 +195,9 @@ export function LandingNav() {
           )}
         </div>
 
-        {/* Mobile: cart + hamburger */}
+        {/* Mobile: language + cart + hamburger */}
         <div className="flex md:hidden items-center gap-1">
+          <LanguageSwitcher />
           <Link
             href="/cart"
             className="relative p-2 rounded-md hover:bg-muted transition-colors"
@@ -228,7 +229,6 @@ export function LandingNav() {
                 </Link>
               ))}
               <div className="mt-4 pt-4 border-t border-border flex flex-col gap-2">
-                <LanguageSwitcher variant="full" />
                 {user ? (
                   <>
                     <Button variant="outline" size="sm" asChild>
