@@ -1,9 +1,24 @@
 import type { Metadata } from "next";
 import Script from "next/script";
+import { Cormorant_Garamond, Inter } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { GtmNoscript } from "@/components/analytics/GtmScript";
 import { ConsentBanner } from "@/components/consent/ConsentBanner";
+
+const cormorant = Cormorant_Garamond({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-serif",
+  display: "swap",
+});
+
+const inter = Inter({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-sans",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'https://petite-moment.com'),
@@ -38,8 +53,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="de">
-      <body className="antialiased">
+    <html lang="de" className={`${cormorant.variable} ${inter.variable}`}>
+      <body className="antialiased font-sans bg-background text-foreground">
         {GTM_ID && (
           <>
             <Script id="gtm-consent-defaults" strategy="beforeInteractive">

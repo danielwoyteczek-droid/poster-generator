@@ -10,9 +10,15 @@ const config: Config = {
   ],
   theme: {
   	extend: {
+  		fontFamily: {
+  			sans: ['var(--font-sans)', 'system-ui', 'sans-serif'],
+  			serif: ['var(--font-serif)', 'Georgia', 'serif'],
+  		},
   		colors: {
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
+  			surface: 'hsl(var(--surface))',
+  			'brand-accent': 'hsl(var(--brand-accent))',
   			card: {
   				DEFAULT: 'hsl(var(--card))',
   				foreground: 'hsl(var(--card-foreground))'
