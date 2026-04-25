@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Script from "next/script";
 import { Cormorant_Garamond, Inter } from "next/font/google";
 import "./globals.css";
+import { NextIntlClientProvider } from 'next-intl'
+import { getLocale, getMessages } from 'next-intl/server'
 import { Toaster } from "@/components/ui/sonner";
 import { GtmNoscript } from "@/components/analytics/GtmScript";
 import { ConsentBanner } from "@/components/consent/ConsentBanner";
@@ -52,11 +54,12 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Locale is read from the request inside the [locale] segment via
-  // next-intl. For routes that live outside the prefix (api, auth,
-  // private, studio) the html lang stays at the project default.
-  const { getLocale } = await import('next-intl/server')
+  // Wrap the entire tree in NextIntlClientProvider so /private, /api
+  // and other routes outside the [locale] segment can still call
+  // useTranslations() (LandingNav, ConsentBanner, etc.). Locale is
+  // detected server-side; falls back to DE for non-localised routes.
   const locale = await getLocale().catch(() => 'de')
+  const messages = await getMessages().catch(() => ({}))
   return (
     <html lang={locale} className={`${cormorant.variable} ${inter.variable}`}>
       <body className="antialiased font-sans bg-background text-foreground">
@@ -88,9 +91,11 @@ export default async function RootLayout({
           </>
         )}
         <GtmNoscript />
-        {children}
-        <ConsentBanner />
-        <Toaster position="bottom-right" />
+        <NextIntlClientProvider locale={locale} messages={messages}>
+          {children}
+          <ConsentBanner />
+          <Toaster position="bottom-right" />
+        </NextIntlClientProvider>
       </body>
     </html>
   );

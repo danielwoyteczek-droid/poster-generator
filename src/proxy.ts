@@ -1,30 +1,35 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import createIntlMiddleware from 'next-intl/middleware'
-import { routing } from './src/i18n/routing'
+import { routing } from './i18n/routing'
 
 const intlMiddleware = createIntlMiddleware(routing)
 
 const PRIVATE_PREFIX = '/private'
 const ADMIN_PREFIX = '/private/admin'
 
-export async function middleware(request: NextRequest) {
+/**
+ * Next.js 16 renames `middleware.ts` to `proxy.ts`. The behaviour is the same:
+ * runs on every matched request before the route handler.
+ *
+ * Decision tree:
+ * 1. Static / framework paths (/api, /auth, /_next, files with an extension,
+ *    /studio) → pass through untouched.
+ * 2. /private and /private/admin → run the existing Supabase auth gate
+ *    BEFORE intl can redirect, so the login flow is preserved.
+ * 3. Everything else → next-intl middleware: detects locale (cookie or
+ *    Accept-Language), rewrites/redirects to /{locale}/...
+ */
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // /api, /auth, /private, /studio, /icon.svg etc. stay outside the locale
-  // prefix. Everything else flows through next-intl which adds the prefix
-  // and writes the NEXT_LOCALE cookie based on Accept-Language.
   const skipsLocale =
     pathname.startsWith('/api') ||
     pathname.startsWith('/auth') ||
-    pathname.startsWith('/private') ||
     pathname.startsWith('/studio') ||
     pathname.startsWith('/_next') ||
     /\.[a-z0-9]+$/i.test(pathname)
 
-  // Auth gate for /private (kept identical to pre-i18n behaviour). We
-  // need it BEFORE the intl middleware redirects so the login redirect
-  // still works.
   if (pathname.startsWith(PRIVATE_PREFIX)) {
     let supabaseResponse = NextResponse.next({ request })
 
@@ -67,6 +72,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // Run on every path except the static asset / image-optim paths.
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|brand|masks|map-styles).*)'],
+  matcher: '/((?!_next|_vercel|.*\\..*).*)',
 }
