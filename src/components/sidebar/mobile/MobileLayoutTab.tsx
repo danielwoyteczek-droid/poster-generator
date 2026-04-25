@@ -129,8 +129,11 @@ export function MobileLayoutTab() {
         />
       </div>
 
-      {/* Admin-only Design composition */}
-      {isAdmin && shapeSupported && (
+      {/* Admin-only Design composition. In Split/Dual modes only the Äußerer
+          Rahmen is meaningful (no single shape to fade or hug), so the
+          Außenbereich + Rand sub-sections wrap themselves in `shapeSupported`
+          while the outer frame uses `|| isSplitActive` to stay visible. */}
+      {isAdmin && (shapeSupported || isSplitActive) && (
         <>
           <Separator />
           <div className="space-y-4">
@@ -138,7 +141,8 @@ export function MobileLayoutTab() {
               Design <span className="text-[10px] normal-case text-amber-600 ml-1">Admin</span>
             </Label>
 
-            {/* Außenbereich */}
+            {/* Außenbereich (shape-only) */}
+            {shapeSupported && (
             <div className="space-y-2">
               <span className="text-xs font-medium text-foreground/70">Außenbereich</span>
               <div className="grid grid-cols-3 gap-1">
@@ -255,8 +259,10 @@ export function MobileLayoutTab() {
                 </div>
               )}
             </div>
+            )}
 
-            {/* Rand (Inner Frame) */}
+            {/* Rand (shape-only — hugs the silhouette) */}
+            {shapeSupported && (
             <div className="space-y-2 pt-2 border-t border-border">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-medium text-foreground/70">Rand</span>
@@ -290,9 +296,12 @@ export function MobileLayoutTab() {
                 </div>
               )}
             </div>
+            )}
 
-            {/* Äußerer Rahmen */}
-            {shapeConfig.outer.mode !== 'none' && (
+            {/* Äußerer Rahmen — Rechteck am Poster-Rand. Auch in Split/Dual
+                Modi verfügbar; dort wird er über ein synthetisches Poster-
+                Rechteck gerendert. */}
+            {(shapeConfig.outer.mode !== 'none' || isSplitActive) && (
               <div className="space-y-2 pt-2 border-t border-border">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-medium text-foreground/70">Äußerer Rahmen</span>
