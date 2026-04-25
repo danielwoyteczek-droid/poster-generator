@@ -4,6 +4,8 @@ import { PRODUCTS, formatPrice } from './products'
 
 const FROM = 'petite-moment <noreply@petite-moment.com>'
 
+type Locale = 'de' | 'en'
+
 function getResend(): Resend {
   const key = process.env.RESEND_API_KEY
   if (!key) throw new Error('RESEND_API_KEY ist nicht gesetzt')
@@ -25,6 +27,46 @@ interface OrderConfirmationInput {
   items: OrderItemInput[]
   totalCents: number
   origin: string
+  locale?: Locale
+}
+
+const STRINGS = {
+  de: {
+    confirmSubject: 'Deine Bestellung bei petite-moment',
+    confirmHeading: 'Vielen Dank für deinen Kauf!',
+    confirmIntro: 'Deine Bestellung ist eingegangen. Du kannst sie jederzeit über den Link unten einsehen.',
+    confirmCta: 'Zur Bestellung',
+    confirmTotal: 'Gesamt',
+    confirmDigitalNote: 'Deine digitalen Dateien (PNG + PDF) stehen auf der Bestellseite zum Download bereit.',
+    confirmPhysicalNote: 'Physische Produkte werden innerhalb von 3–5 Werktagen versendet.',
+    confirmReply: 'Bei Fragen einfach auf diese E-Mail antworten.',
+    posterTypeStar: 'Sternenposter',
+    posterTypeMap: 'Stadtposter',
+    shipmentSubject: (tn: string) => `Deine Bestellung ist unterwegs – ${tn}`,
+    shipmentHeading: 'Deine Bestellung ist unterwegs!',
+    shipmentBody: 'Dein Paket wurde versendet. Mit folgender Sendungsnummer kannst du es verfolgen:',
+    shipmentCta: 'Zur Bestellung',
+  },
+  en: {
+    confirmSubject: 'Your order at petite-moment',
+    confirmHeading: 'Thank you for your purchase!',
+    confirmIntro: 'Your order has been received. You can view it at any time via the link below.',
+    confirmCta: 'View order',
+    confirmTotal: 'Total',
+    confirmDigitalNote: 'Your digital files (PNG + PDF) are available for download on the order page.',
+    confirmPhysicalNote: 'Physical products ship within 3–5 business days.',
+    confirmReply: 'For questions, just reply to this email.',
+    posterTypeStar: 'Star poster',
+    posterTypeMap: 'City poster',
+    shipmentSubject: (tn: string) => `Your order is on its way – ${tn}`,
+    shipmentHeading: 'Your order is on its way!',
+    shipmentBody: 'Your package has been shipped. Use the tracking number below to follow it:',
+    shipmentCta: 'View order',
+  },
+} as const
+
+function strings(locale: Locale = 'de') {
+  return STRINGS[locale]
 }
 
 function productLabel(id: string) {
@@ -35,13 +77,15 @@ function formatLabel(id: string) {
 }
 
 function renderHtml(input: OrderConfirmationInput): string {
-  const orderUrl = `${input.origin}/orders/${input.orderId}?token=${input.accessToken}`
+  const locale = input.locale ?? 'de'
+  const s = strings(locale)
+  const orderUrl = `${input.origin}/${locale}/orders/${input.orderId}?token=${input.accessToken}`
   const hasDigital = input.items.some((i) => i.productId === 'download')
   const hasPhysical = input.items.some((i) => i.productId !== 'download')
 
   const rows = input.items
     .map((item) => {
-      const typeLabel = item.posterType === 'star-map' ? 'Sternenposter' : 'Stadtposter'
+      const typeLabel = item.posterType === 'star-map' ? s.posterTypeStar : s.posterTypeMap
       return `
         <tr>
           <td style="padding:12px 16px;border-bottom:1px solid #eee;">
@@ -59,28 +103,28 @@ function renderHtml(input: OrderConfirmationInput): string {
 
   const cta = [
     hasDigital
-      ? '<p style="margin:16px 0 0 0;font-size:14px;color:#444;">Deine digitalen Dateien (PNG + PDF) stehen auf der Bestellseite zum Download bereit.</p>'
+      ? `<p style="margin:16px 0 0 0;font-size:14px;color:#444;">${s.confirmDigitalNote}</p>`
       : '',
     hasPhysical
-      ? '<p style="margin:8px 0 0 0;font-size:14px;color:#444;">Physische Produkte werden innerhalb von 3–5 Werktagen versendet.</p>'
+      ? `<p style="margin:8px 0 0 0;font-size:14px;color:#444;">${s.confirmPhysicalNote}</p>`
       : '',
   ].join('')
 
   return `<!doctype html>
-<html lang="de">
+<html lang="${locale}">
 <body style="margin:0;padding:0;background:#f5f5f4;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
   <div style="max-width:560px;margin:0 auto;padding:32px 16px;">
     <div style="background:#fff;border-radius:12px;overflow:hidden;border:1px solid #eee;">
       <div style="padding:32px 24px 16px;">
-        <h1 style="margin:0;font-size:20px;color:#111;">Vielen Dank für deinen Kauf!</h1>
+        <h1 style="margin:0;font-size:20px;color:#111;">${s.confirmHeading}</h1>
         <p style="margin:12px 0 0;font-size:14px;color:#555;line-height:1.5;">
-          Deine Bestellung ist eingegangen. Du kannst sie jederzeit über den Link unten einsehen.
+          ${s.confirmIntro}
         </p>
       </div>
       <table style="width:100%;border-collapse:collapse;border-top:1px solid #eee;">
         ${rows}
         <tr>
-          <td style="padding:14px 16px;font-size:14px;color:#111;font-weight:600;">Gesamt</td>
+          <td style="padding:14px 16px;font-size:14px;color:#111;font-weight:600;">${s.confirmTotal}</td>
           <td style="padding:14px 16px;text-align:right;font-size:14px;color:#111;font-weight:700;">
             ${formatPrice(input.totalCents)}
           </td>
@@ -88,13 +132,13 @@ function renderHtml(input: OrderConfirmationInput): string {
       </table>
       <div style="padding:24px;text-align:center;">
         <a href="${orderUrl}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;font-size:14px;font-weight:600;padding:12px 24px;border-radius:8px;">
-          Zur Bestellung
+          ${s.confirmCta}
         </a>
         ${cta}
       </div>
     </div>
     <p style="margin:24px 0 0;text-align:center;font-size:12px;color:#999;">
-      Bei Fragen einfach auf diese E-Mail antworten.
+      ${s.confirmReply}
     </p>
   </div>
 </body>
@@ -107,6 +151,7 @@ interface ShipmentNotificationInput {
   accessToken: string
   trackingNumber: string
   origin: string
+  locale?: Locale
 }
 
 interface AdminNotificationInput {
@@ -121,22 +166,24 @@ interface AdminNotificationInput {
 }
 
 function renderShipmentHtml(input: ShipmentNotificationInput): string {
-  const orderUrl = `${input.origin}/orders/${input.orderId}?token=${input.accessToken}`
+  const locale = input.locale ?? 'de'
+  const s = strings(locale)
+  const orderUrl = `${input.origin}/${locale}/orders/${input.orderId}?token=${input.accessToken}`
   return `<!doctype html>
-<html lang="de">
+<html lang="${locale}">
 <body style="margin:0;padding:0;background:#f5f5f4;font-family:-apple-system,BlinkMacSystemFont,sans-serif;">
   <div style="max-width:560px;margin:0 auto;padding:32px 16px;">
     <div style="background:#fff;border-radius:12px;padding:32px 24px;border:1px solid #eee;">
-      <h1 style="margin:0;font-size:20px;color:#111;">Deine Bestellung ist unterwegs!</h1>
+      <h1 style="margin:0;font-size:20px;color:#111;">${s.shipmentHeading}</h1>
       <p style="margin:12px 0 0;font-size:14px;color:#555;line-height:1.6;">
-        Dein Paket wurde versendet. Mit folgender Sendungsnummer kannst du es verfolgen:
+        ${s.shipmentBody}
       </p>
       <div style="margin:20px 0;padding:16px;background:#f5f5f4;border-radius:8px;font-family:monospace;font-size:16px;color:#111;font-weight:600;letter-spacing:0.03em;">
         ${input.trackingNumber}
       </div>
       <div style="text-align:center;margin-top:8px;">
         <a href="${orderUrl}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;font-size:14px;font-weight:600;padding:12px 24px;border-radius:8px;">
-          Zur Bestellung
+          ${s.shipmentCta}
         </a>
       </div>
     </div>
@@ -146,6 +193,7 @@ function renderShipmentHtml(input: ShipmentNotificationInput): string {
 }
 
 function renderAdminHtml(input: AdminNotificationInput): string {
+  // Admin emails stay in German per project decision (admin UI is DE-only).
   const rows = input.items
     .map((item) => `
       <tr>
@@ -191,10 +239,11 @@ function renderAdminHtml(input: AdminNotificationInput): string {
 }
 
 export async function sendShipmentNotification(input: ShipmentNotificationInput) {
+  const s = strings(input.locale ?? 'de')
   const result = await getResend().emails.send({
     from: FROM,
     to: input.to,
-    subject: `Deine Bestellung ist unterwegs – ${input.trackingNumber}`,
+    subject: s.shipmentSubject(input.trackingNumber),
     html: renderShipmentHtml(input),
   })
   if (result.error) throw new Error(result.error.message || 'Shipment email failed')
@@ -213,11 +262,12 @@ export async function sendAdminNewOrderNotification(input: AdminNotificationInpu
 }
 
 export async function sendOrderConfirmation(input: OrderConfirmationInput) {
+  const s = strings(input.locale ?? 'de')
   const html = renderHtml(input)
   const result = await getResend().emails.send({
     from: FROM,
     to: input.to,
-    subject: 'Deine Bestellung bei petite-moment',
+    subject: s.confirmSubject,
     html,
   })
   if (result.error) {

@@ -1,9 +1,11 @@
 import Image from 'next/image'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import { ArrowRight } from 'lucide-react'
 
 export function HeroSection() {
+  const t = useTranslations('hero')
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
       {/* Background images */}
@@ -28,15 +30,15 @@ export function HeroSection() {
       {/* Content */}
       <div className="relative z-10 text-center text-white px-4 max-w-3xl mx-auto">
         <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight leading-tight">
-          Dein Lieblingsort.<br />Als Poster.
+          {t('titleLine1')}<br />{t('titleLine2')}
         </h1>
         <p className="mt-6 text-lg sm:text-xl text-white/80 max-w-xl mx-auto leading-relaxed">
-          Erstelle in wenigen Minuten ein individuelles Kartenposter von jedem Ort der Welt — ohne Designkenntnisse.
+          {t('subtitle')}
         </p>
         <div className="mt-10 flex flex-col sm:flex-row gap-3 justify-center">
           <Button size="lg" className="bg-white text-foreground hover:bg-muted text-base px-8" asChild>
             <Link href="/map">
-              Poster erstellen
+              {t('ctaCreate')}
               <ArrowRight className="w-4 h-4 ml-2" />
             </Link>
           </Button>
@@ -46,7 +48,7 @@ export function HeroSection() {
             className="border-white/60 text-white hover:bg-white/10 text-base px-8 bg-transparent"
             asChild
           >
-            <a href="#examples">Beispiele ansehen</a>
+            <a href="#examples">{t('ctaExamples')}</a>
           </Button>
         </div>
       </div>

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 import { Download, ImageIcon, Frame, ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { PRODUCTS, formatPrice } from '@/lib/products'
@@ -22,6 +23,7 @@ const PRODUCT_ICONS = {
 }
 
 export function PricingSection() {
+  const t = useTranslations('pricing')
   const [format, setFormat] = useState<PrintFormat>('a4')
   const { products: catalog, loading } = useProductCatalog()
 
@@ -30,10 +32,10 @@ export function PricingSection() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <div className="text-center mb-12">
           <h2 className="text-3xl sm:text-4xl font-serif font-medium text-foreground">
-            Einfache Preise
+            {t('heading')}
           </h2>
           <p className="mt-4 text-muted-foreground text-lg max-w-xl mx-auto">
-            Wähle dein Format und das passende Produkt.
+            {t('subtitle')}
           </p>
 
           <div className="mt-8 inline-flex rounded-full border border-border p-1 bg-muted">
@@ -107,7 +109,7 @@ export function PricingSection() {
                     variant={isHighlighted ? 'secondary' : 'outline'}
                   >
                     <Link href="/map">
-                      Jetzt erstellen
+                      {t('ctaCreate')}
                       <ArrowRight className="w-4 h-4 ml-2" />
                     </Link>
                   </Button>

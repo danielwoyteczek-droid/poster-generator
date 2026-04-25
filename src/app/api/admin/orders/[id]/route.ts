@@ -58,7 +58,7 @@ export async function PATCH(
     .from('orders')
     .update(updates)
     .eq('id', id)
-    .select('id, email, items, total_cents, tracking_number, fulfillment_status, access_token')
+    .select('id, email, items, total_cents, tracking_number, fulfillment_status, access_token, locale')
     .single()
 
   if (error || !order) {
@@ -79,6 +79,7 @@ export async function PATCH(
         accessToken: order.access_token,
         trackingNumber: order.tracking_number,
         origin: baseUrl,
+        locale: ((order as { locale?: 'de' | 'en' }).locale ?? 'de'),
       })
     } catch (err) {
       console.error('[admin] shipment email failed:', err)

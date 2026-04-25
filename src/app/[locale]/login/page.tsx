@@ -3,6 +3,7 @@
 import { Suspense, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 import { Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase-browser'
 import { Button } from '@/components/ui/button'
@@ -12,6 +13,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Separator } from '@/components/ui/separator'
 
 function LoginForm() {
+  const t = useTranslations('auth')
   const router = useRouter()
   const searchParams = useSearchParams()
   const next = searchParams.get('next') ?? '/private'
@@ -32,7 +34,7 @@ function LoginForm() {
 
     if (error) {
       setError(error.message === 'Invalid login credentials'
-        ? 'E-Mail oder Passwort ist falsch.'
+        ? t('invalidCredentials')
         : error.message)
       setLoading(false)
       return
@@ -54,8 +56,8 @@ function LoginForm() {
     <div className="min-h-screen bg-muted flex items-center justify-center p-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-xl">Anmelden</CardTitle>
-          <CardDescription>Melde dich mit deinem Konto an</CardDescription>
+          <CardTitle className="text-xl">{t('signInTitle')}</CardTitle>
+          <CardDescription>{t('signInDescription')}</CardDescription>
         </CardHeader>
 
         <CardContent className="space-y-4">
@@ -76,23 +78,23 @@ function LoginForm() {
                 <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
               </svg>
             )}
-            <span className="ml-2">Mit Google anmelden</span>
+            <span className="ml-2">{t('signInWithGoogle')}</span>
           </Button>
 
           <div className="relative">
             <Separator />
             <span className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-2 text-xs text-muted-foreground/70">
-              oder
+              {t('or')}
             </span>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-3">
             <div className="space-y-1.5">
-              <Label htmlFor="email">E-Mail</Label>
+              <Label htmlFor="email">{t('email')}</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="name@beispiel.de"
+                placeholder={t('emailPlaceholder')}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -101,9 +103,9 @@ function LoginForm() {
             </div>
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <Label htmlFor="password">Passwort</Label>
+                <Label htmlFor="password">{t('password')}</Label>
                 <Link href="/forgot-password" className="text-xs text-muted-foreground hover:text-foreground">
-                  Passwort vergessen?
+                  {t('passwordForgot')}
                 </Link>
               </div>
               <Input
@@ -124,16 +126,16 @@ function LoginForm() {
             )}
 
             <Button type="submit" className="w-full" disabled={loading || googleLoading}>
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Anmelden'}
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : t('signInButton')}
             </Button>
           </form>
         </CardContent>
 
         <CardFooter className="justify-center">
           <p className="text-sm text-muted-foreground">
-            Noch kein Konto?{' '}
+            {t('noAccount')}{' '}
             <Link href={`/signup${next !== '/private' ? `?next=${encodeURIComponent(next)}` : ''}`} className="text-foreground font-medium hover:underline">
-              Registrieren
+              {t('signUpLink')}
             </Link>
           </p>
         </CardFooter>

@@ -1,24 +1,27 @@
 import Link from 'next/link'
+import { getTranslations } from 'next-intl/server'
 import { getSiteSettings } from '@/sanity/queries'
 import { CookieSettingsLink } from '@/components/consent/CookieSettingsLink'
 
-const LEGAL_LINKS = [
-  { label: 'Impressum', href: '/impressum' },
-  { label: 'Datenschutz', href: '/datenschutz' },
-  { label: 'AGB', href: '/agb' },
-  { label: 'Widerrufsbelehrung', href: '/widerrufsbelehrung' },
-  { label: 'Cookie-Richtlinie', href: '/cookie-richtlinie' },
-]
-
-const NAV_LINKS = [
-  { label: 'Über uns', href: '/about' },
-  { label: 'Blog', href: '/blog' },
-  { label: 'FAQ', href: '/faq' },
-]
-
 export async function LandingFooter() {
+  const t = await getTranslations('footer')
+  const tNav = await getTranslations('nav')
   const settings = await getSiteSettings()
   const year = new Date().getFullYear()
+
+  const legalLinks = [
+    { label: t('imprint'), href: '/impressum' },
+    { label: t('privacy'), href: '/datenschutz' },
+    { label: t('terms'), href: '/agb' },
+    { label: t('withdrawal'), href: '/widerrufsbelehrung' },
+    { label: t('cookies'), href: '/cookie-richtlinie' },
+  ]
+
+  const navLinks = [
+    { label: t('about'), href: '/about' },
+    { label: t('blog'), href: '/blog' },
+    { label: t('faq'), href: '/faq' },
+  ]
 
   return (
     <footer className="border-t border-border bg-white py-12 mt-auto">
@@ -34,20 +37,20 @@ export async function LandingFooter() {
               height={56}
             />
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Individuelle Karten- und Sternenposter, die deinen Moment zeigen.
+              {t('tagline')}
             </p>
           </div>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70 mb-3">Produkte</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70 mb-3">{t('products')}</p>
             <ul className="space-y-2">
-              <li><Link href="/map" className="text-sm text-muted-foreground hover:text-foreground">Stadtposter</Link></li>
-              <li><Link href="/star-map" className="text-sm text-muted-foreground hover:text-foreground">Sternenposter</Link></li>
+              <li><Link href="/map" className="text-sm text-muted-foreground hover:text-foreground">{tNav('cityPoster')}</Link></li>
+              <li><Link href="/star-map" className="text-sm text-muted-foreground hover:text-foreground">{tNav('starPoster')}</Link></li>
             </ul>
           </div>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70 mb-3">Info</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70 mb-3">{t('info')}</p>
             <ul className="space-y-2">
-              {NAV_LINKS.map((link) => (
+              {navLinks.map((link) => (
                 <li key={link.href}>
                   <Link href={link.href} className="text-sm text-muted-foreground hover:text-foreground">{link.label}</Link>
                 </li>
@@ -55,16 +58,16 @@ export async function LandingFooter() {
               {settings?.contactEmail && (
                 <li>
                   <a href={`mailto:${settings.contactEmail}`} className="text-sm text-muted-foreground hover:text-foreground">
-                    Kontakt
+                    {t('contact')}
                   </a>
                 </li>
               )}
             </ul>
           </div>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70 mb-3">Rechtliches</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70 mb-3">{t('legal')}</p>
             <ul className="space-y-2">
-              {LEGAL_LINKS.map((link) => (
+              {legalLinks.map((link) => (
                 <li key={link.href}>
                   <Link href={link.href} className="text-sm text-muted-foreground hover:text-foreground">{link.label}</Link>
                 </li>
@@ -78,7 +81,7 @@ export async function LandingFooter() {
 
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-6 border-t border-border">
           <p className="text-xs text-muted-foreground/70">
-            {settings?.footerNote ?? `© ${year} Poster Generator`}
+            {settings?.footerNote ?? t('fallbackCopyright', { year })}
           </p>
           {settings?.socialLinks && settings.socialLinks.length > 0 && (
             <div className="flex gap-4">

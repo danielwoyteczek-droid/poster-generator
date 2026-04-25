@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 import { Loader2, Mail } from 'lucide-react'
 import { createClient } from '@/lib/supabase-browser'
 import { Button } from '@/components/ui/button'
@@ -10,6 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 
 export default function ForgotPasswordPage() {
+  const t = useTranslations('auth')
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -43,15 +45,14 @@ export default function ForgotPasswordPage() {
             <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-2">
               <Mail className="w-5 h-5 text-foreground/70" />
             </div>
-            <CardTitle className="text-xl">E-Mail ist unterwegs</CardTitle>
+            <CardTitle className="text-xl">{t('forgotEmailSentTitle')}</CardTitle>
             <CardDescription>
-              Wir haben dir einen Link zum Zurücksetzen an <strong>{email}</strong> geschickt.
-              Der Link ist 60 Minuten gültig.
+              {t('forgotEmailSentBody', { email })}
             </CardDescription>
           </CardHeader>
           <CardFooter className="justify-center">
             <Link href="/login" className="text-sm text-foreground font-medium hover:underline">
-              Zurück zum Login
+              {t('backToSignIn')}
             </Link>
           </CardFooter>
         </Card>
@@ -63,20 +64,20 @@ export default function ForgotPasswordPage() {
     <div className="min-h-screen bg-muted flex items-center justify-center p-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-xl">Passwort zurücksetzen</CardTitle>
+          <CardTitle className="text-xl">{t('forgotTitle')}</CardTitle>
           <CardDescription>
-            Gib deine E-Mail-Adresse ein. Wir schicken dir einen Link, um ein neues Passwort zu setzen.
+            {t('forgotDescription')}
           </CardDescription>
         </CardHeader>
 
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-3">
             <div className="space-y-1.5">
-              <Label htmlFor="email">E-Mail</Label>
+              <Label htmlFor="email">{t('email')}</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="name@beispiel.de"
+                placeholder={t('emailPlaceholder')}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -92,14 +93,14 @@ export default function ForgotPasswordPage() {
             )}
 
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Link senden'}
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : t('forgotButton')}
             </Button>
           </form>
         </CardContent>
 
         <CardFooter className="justify-center">
           <Link href="/login" className="text-sm text-muted-foreground hover:text-foreground">
-            Zurück zum Login
+            {t('backToSignIn')}
           </Link>
         </CardFooter>
       </Card>

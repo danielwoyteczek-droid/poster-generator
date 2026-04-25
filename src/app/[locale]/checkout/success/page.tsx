@@ -1,9 +1,11 @@
 import type { Metadata } from 'next'
+import { getTranslations } from 'next-intl/server'
 import { LandingNav } from '@/components/landing/LandingNav'
 import { CheckoutSuccessView } from '@/components/cart/CheckoutSuccessView'
 
-export const metadata: Metadata = {
-  title: 'Zahlung erfolgreich | Poster Generator',
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations('checkoutSuccess')
+  return { title: t('pageTitle') }
 }
 
 export default function CheckoutSuccessPage() {

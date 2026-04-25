@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 import { Loader2, CheckCircle2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase-browser'
 import { Button } from '@/components/ui/button'
@@ -10,6 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 
 export default function ResetPasswordPage() {
+  const t = useTranslations('auth')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [loading, setLoading] = useState(false)
@@ -21,20 +23,20 @@ export default function ResetPasswordPage() {
     const supabase = createClient()
     supabase.auth.getSession().then(({ data }) => {
       if (!data.session) {
-        setError('Link ist ungültig oder abgelaufen. Bitte fordere einen neuen Link an.')
+        setError(t('resetLinkExpired'))
       }
       setAuthReady(true)
     })
-  }, [])
+  }, [t])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (password.length < 8) {
-      setError('Das Passwort muss mindestens 8 Zeichen lang sein.')
+      setError(t('resetPasswordTooShort'))
       return
     }
     if (password !== confirm) {
-      setError('Die beiden Passwörter stimmen nicht überein.')
+      setError(t('resetPasswordsMismatch'))
       return
     }
     setLoading(true)
@@ -61,14 +63,14 @@ export default function ResetPasswordPage() {
             <div className="mx-auto w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mb-2">
               <CheckCircle2 className="w-6 h-6 text-green-600" />
             </div>
-            <CardTitle className="text-xl">Passwort aktualisiert</CardTitle>
+            <CardTitle className="text-xl">{t('resetSuccessTitle')}</CardTitle>
             <CardDescription>
-              Dein neues Passwort ist aktiv. Du kannst dich jetzt damit anmelden.
+              {t('resetSuccessBody')}
             </CardDescription>
           </CardHeader>
           <CardFooter className="justify-center">
             <Button asChild>
-              <Link href="/login">Zum Login</Link>
+              <Link href="/login">{t('resetGoToLogin')}</Link>
             </Button>
           </CardFooter>
         </Card>
@@ -80,14 +82,14 @@ export default function ResetPasswordPage() {
     <div className="min-h-screen bg-muted flex items-center justify-center p-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-xl">Neues Passwort setzen</CardTitle>
-          <CardDescription>Wähle ein starkes Passwort — mindestens 8 Zeichen.</CardDescription>
+          <CardTitle className="text-xl">{t('resetTitle')}</CardTitle>
+          <CardDescription>{t('resetDescription')}</CardDescription>
         </CardHeader>
 
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-3">
             <div className="space-y-1.5">
-              <Label htmlFor="password">Neues Passwort</Label>
+              <Label htmlFor="password">{t('newPassword')}</Label>
               <Input
                 id="password"
                 type="password"
@@ -100,7 +102,7 @@ export default function ResetPasswordPage() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="confirm">Passwort bestätigen</Label>
+              <Label htmlFor="confirm">{t('confirmPassword')}</Label>
               <Input
                 id="confirm"
                 type="password"
@@ -119,14 +121,14 @@ export default function ResetPasswordPage() {
             )}
 
             <Button type="submit" className="w-full" disabled={loading || !authReady}>
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Passwort speichern'}
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : t('resetButton')}
             </Button>
           </form>
         </CardContent>
 
         <CardFooter className="justify-center">
           <Link href="/login" className="text-sm text-muted-foreground hover:text-foreground">
-            Zurück zum Login
+            {t('backToSignIn')}
           </Link>
         </CardFooter>
       </Card>

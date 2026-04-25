@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { CheckCircle2, Loader2, FileImage, FileText, Package, AlertTriangle } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -55,6 +56,7 @@ function formatLabel(id: string) {
 }
 
 export function OrderView({ orderId, token, showSuccessBanner }: Props) {
+  const t = useTranslations('order')
   const [order, setOrder] = useState<OrderData | null>(null)
   const [exports, setExports] = useState<OrderExport[]>([])
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -88,7 +90,7 @@ export function OrderView({ orderId, token, showSuccessBanner }: Props) {
     const res = await fetch(`/api/orders/${orderId}?token=${encodeURIComponent(token)}`)
     const data = await res.json()
     if (!res.ok) {
-      setLoadError(data.error || 'Bestellung konnte nicht geladen werden.')
+      setLoadError(data.error || t('loadFailed'))
       return
     }
     setOrder(data.order)
@@ -114,14 +116,14 @@ export function OrderView({ orderId, token, showSuccessBanner }: Props) {
         body: JSON.stringify({ item_index: itemIndex, file_type: fileType, token }),
       })
       const init = await initRes.json()
-      if (!initRes.ok) throw new Error(init.error || 'Upload-URL fehlgeschlagen')
+      if (!initRes.ok) throw new Error(init.error || t('uploadUrlFailed'))
 
       const putRes = await fetch(init.uploadUrl, {
         method: 'PUT',
         body: blob,
         headers: { 'Content-Type': fileType === 'png' ? 'image/png' : 'application/pdf' },
       })
-      if (!putRes.ok) throw new Error('Storage-Upload fehlgeschlagen')
+      if (!putRes.ok) throw new Error(t('storageUploadFailed'))
 
       const commitRes = await fetch(`/api/orders/${orderId}/exports`, {
         method: 'PATCH',
@@ -135,9 +137,9 @@ export function OrderView({ orderId, token, showSuccessBanner }: Props) {
         }),
       })
       const commit = await commitRes.json()
-      if (!commitRes.ok) throw new Error(commit.error || 'Commit fehlgeschlagen')
+      if (!commitRes.ok) throw new Error(commit.error || t('commitFailed'))
     },
-    [orderId, token],
+    [orderId, token, t],
   )
 
   const prepareExports = useCallback(
@@ -156,15 +158,15 @@ export function OrderView({ orderId, token, showSuccessBanner }: Props) {
         await uploadExport(itemIndex, 'pdf', pdfBlob)
         console.log('[order] step 6: PDF uploaded')
         await fetchOrder()
-        toast.success(`Download für "${item.title}" bereit`)
+        toast.success(t('downloadReady', { title: item.title }))
       } catch (err) {
         console.error('[order] prepareExports failed:', err)
-        toast.error(err instanceof Error ? err.message : 'Vorbereitung fehlgeschlagen')
+        toast.error(err instanceof Error ? err.message : t('preparationFailed'))
       } finally {
         setPreparing((p) => ({ ...p, [itemIndex]: false }))
       }
     },
-    [uploadExport, fetchOrder],
+    [uploadExport, fetchOrder, t],
   )
 
   const handleDownload = async (exportId: string) => {
@@ -173,7 +175,7 @@ export function OrderView({ orderId, token, showSuccessBanner }: Props) {
     )
     const data = await res.json()
     if (!res.ok) {
-      toast.error(data.error || 'Download fehlgeschlagen')
+      toast.error(data.error || t('downloadFailed'))
       return
     }
     window.location.href = data.url
@@ -197,7 +199,7 @@ export function OrderView({ orderId, token, showSuccessBanner }: Props) {
       <div className="rounded-xl bg-white border border-red-200 p-6 text-red-700 flex gap-3">
         <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
         <div>
-          <p className="font-medium">Bestellung nicht gefunden</p>
+          <p className="font-medium">{t('notFoundTitle')}</p>
           <p className="text-sm mt-1 text-red-600">{loadError}</p>
         </div>
       </div>
@@ -208,7 +210,7 @@ export function OrderView({ orderId, token, showSuccessBanner }: Props) {
     return (
       <div className="text-center text-muted-foreground py-20">
         <Loader2 className="w-6 h-6 animate-spin mx-auto mb-3" />
-        <p className="text-sm">Bestellung wird geladen…</p>
+        <p className="text-sm">{t('loading')}</p>
       </div>
     )
   }
@@ -219,9 +221,9 @@ export function OrderView({ orderId, token, showSuccessBanner }: Props) {
         <div className="rounded-xl bg-green-50 border border-green-200 p-5 flex gap-3">
           <CheckCircle2 className="w-5 h-5 text-green-600 shrink-0 mt-0.5" />
           <div>
-            <p className="font-semibold text-green-900">Vielen Dank für deinen Kauf!</p>
+            <p className="font-semibold text-green-900">{t('successBannerTitle')}</p>
             <p className="text-sm text-green-800 mt-1">
-              Deine Bestellung wurde erfolgreich bezahlt. Die digitalen Dateien werden gleich für dich vorbereitet.
+              {t('successBannerBody')}
             </p>
           </div>
         </div>
@@ -231,9 +233,9 @@ export function OrderView({ orderId, token, showSuccessBanner }: Props) {
         <div className="rounded-xl bg-amber-50 border border-amber-200 p-5 flex gap-3">
           <Loader2 className="w-5 h-5 text-amber-600 animate-spin shrink-0 mt-0.5" />
           <div>
-            <p className="font-semibold text-amber-900">Zahlung wird verarbeitet</p>
+            <p className="font-semibold text-amber-900">{t('pendingTitle')}</p>
             <p className="text-sm text-amber-800 mt-1">
-              Wir warten auf die Bestätigung deiner Zahlung. Diese Seite aktualisiert sich automatisch.
+              {t('pendingBody')}
             </p>
           </div>
         </div>
@@ -242,8 +244,8 @@ export function OrderView({ orderId, token, showSuccessBanner }: Props) {
       <div className="rounded-xl bg-white border border-border">
         <div className="p-5 border-b border-border flex items-center justify-between">
           <div>
-            <h2 className="text-sm font-semibold text-foreground">Bestellung</h2>
-            <p className="text-xs text-muted-foreground mt-0.5">ID {order.id.slice(0, 8)}…</p>
+            <h2 className="text-sm font-semibold text-foreground">{t('orderHeading')}</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">{t('orderId', { id: order.id.slice(0, 8) })}</p>
           </div>
           <div className="text-sm font-semibold text-foreground">
             {formatPrice(order.total_cents)}
@@ -261,7 +263,7 @@ export function OrderView({ orderId, token, showSuccessBanner }: Props) {
                 <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                   <div className="flex-1 min-w-0">
                     <p className="text-xs uppercase tracking-wider text-muted-foreground/70">
-                      {item.posterType === 'star-map' ? 'Sternenposter' : 'Stadtposter'}
+                      {item.posterType === 'star-map' ? t('starPoster') : t('cityPoster')}
                     </p>
                     <h3 className="text-sm font-semibold text-foreground truncate mt-0.5">{item.title}</h3>
                     <p className="text-xs text-muted-foreground mt-1">
@@ -274,7 +276,7 @@ export function OrderView({ orderId, token, showSuccessBanner }: Props) {
                       {isPreparing && (!png || !pdf) ? (
                         <div className="flex items-center gap-2 text-xs text-muted-foreground px-3 py-2">
                           <Loader2 className="w-4 h-4 animate-spin" />
-                          Wird vorbereitet…
+                          {t('preparing')}
                         </div>
                       ) : (
                         <>
@@ -305,7 +307,7 @@ export function OrderView({ orderId, token, showSuccessBanner }: Props) {
                 {order.status === 'paid' && isPhysical && (
                   <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted rounded-md px-3 py-2">
                     <Package className="w-4 h-4" />
-                    Wird innerhalb von 3–5 Werktagen versendet — die Datei kannst du zusätzlich hier herunterladen.
+                    {t('shippingNote')}
                   </div>
                 )}
               </li>

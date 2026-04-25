@@ -3,6 +3,7 @@
 import { Suspense, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 import { Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase-browser'
 import { Button } from '@/components/ui/button'
@@ -12,6 +13,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Separator } from '@/components/ui/separator'
 
 function SignupForm() {
+  const t = useTranslations('auth')
   const searchParams = useSearchParams()
   const next = searchParams.get('next') ?? '/private'
 
@@ -25,7 +27,7 @@ function SignupForm() {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()
     if (password.length < 6) {
-      setError('Das Passwort muss mindestens 6 Zeichen lang sein.')
+      setError(t('passwordTooShort'))
       return
     }
     setLoading(true)
@@ -43,7 +45,7 @@ function SignupForm() {
 
     if (error) {
       setError(error.message.includes('already registered')
-        ? 'Diese E-Mail ist bereits registriert.'
+        ? t('alreadyRegistered')
         : error.message)
       setLoading(false)
       return
@@ -73,15 +75,14 @@ function SignupForm() {
       <div className="min-h-screen bg-muted flex items-center justify-center p-4">
         <Card className="w-full max-w-sm text-center">
           <CardHeader>
-            <CardTitle className="text-xl">Fast geschafft!</CardTitle>
+            <CardTitle className="text-xl">{t('almostDone')}</CardTitle>
             <CardDescription>
-              Wir haben dir eine Bestätigungs-E-Mail an <strong>{email}</strong> geschickt.
-              Klick auf den Link in der E-Mail, um dein Konto zu aktivieren.
+              {t('confirmEmailSent', { email })}
             </CardDescription>
           </CardHeader>
           <CardFooter className="justify-center">
             <Link href="/login" className="text-sm text-foreground font-medium hover:underline">
-              Zurück zum Login
+              {t('backToLogin')}
             </Link>
           </CardFooter>
         </Card>
@@ -93,8 +94,8 @@ function SignupForm() {
     <div className="min-h-screen bg-muted flex items-center justify-center p-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-xl">Konto erstellen</CardTitle>
-          <CardDescription>Erstelle dein kostenloses Konto</CardDescription>
+          <CardTitle className="text-xl">{t('signUpTitle')}</CardTitle>
+          <CardDescription>{t('signUpDescription')}</CardDescription>
         </CardHeader>
 
         <CardContent className="space-y-4">
@@ -115,23 +116,23 @@ function SignupForm() {
                 <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
               </svg>
             )}
-            <span className="ml-2">Mit Google registrieren</span>
+            <span className="ml-2">{t('signUpWithGoogle')}</span>
           </Button>
 
           <div className="relative">
             <Separator />
             <span className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-2 text-xs text-muted-foreground/70">
-              oder
+              {t('or')}
             </span>
           </div>
 
           <form onSubmit={handleSignup} className="space-y-3">
             <div className="space-y-1.5">
-              <Label htmlFor="email">E-Mail</Label>
+              <Label htmlFor="email">{t('email')}</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="name@beispiel.de"
+                placeholder={t('emailPlaceholder')}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -139,11 +140,11 @@ function SignupForm() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="password">Passwort</Label>
+              <Label htmlFor="password">{t('password')}</Label>
               <Input
                 id="password"
                 type="password"
-                placeholder="Mindestens 6 Zeichen"
+                placeholder={t('passwordPlaceholderMin')}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -159,16 +160,16 @@ function SignupForm() {
             )}
 
             <Button type="submit" className="w-full" disabled={loading || googleLoading}>
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Konto erstellen'}
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : t('signUpButton')}
             </Button>
           </form>
         </CardContent>
 
         <CardFooter className="justify-center">
           <p className="text-sm text-muted-foreground">
-            Bereits ein Konto?{' '}
+            {t('haveAccount')}{' '}
             <Link href="/login" className="text-foreground font-medium hover:underline">
-              Anmelden
+              {t('signInLink')}
             </Link>
           </p>
         </CardFooter>

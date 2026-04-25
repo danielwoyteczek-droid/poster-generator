@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import Image from 'next/image'
+import { getLocale, getTranslations } from 'next-intl/server'
 import { LandingNav } from '@/components/landing/LandingNav'
 import { LandingFooter } from '@/components/landing/LandingFooter'
 import { listBlogPosts } from '@/sanity/queries'
@@ -8,12 +9,18 @@ import { urlFor } from '@/sanity/client'
 
 export const revalidate = 60
 
-export const metadata: Metadata = {
-  title: 'Blog',
-  description: 'Geschichten, Tipps & Inspiration rund um individuelle Poster.',
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations('blog')
+  return {
+    title: t('title'),
+    description: t('metaDescription'),
+  }
 }
 
 export default async function BlogIndexPage() {
+  const t = await getTranslations('blog')
+  const locale = await getLocale()
+  const dateLocale = locale === 'en' ? 'en-US' : 'de-DE'
   const posts = (await listBlogPosts()) ?? []
 
   return (
@@ -21,12 +28,12 @@ export default async function BlogIndexPage() {
       <LandingNav />
       <main className="flex-1">
         <div className="max-w-5xl mx-auto px-6 py-12">
-          <h1 className="text-4xl font-bold text-foreground mb-2">Blog</h1>
-          <p className="text-muted-foreground mb-10">Geschichten, Tipps & Inspiration.</p>
+          <h1 className="text-4xl font-bold text-foreground mb-2">{t('title')}</h1>
+          <p className="text-muted-foreground mb-10">{t('subtitle')}</p>
 
           {posts.length === 0 ? (
             <div className="text-center py-20 text-muted-foreground text-sm">
-              Noch keine Artikel. Leg deinen ersten Beitrag im Sanity Studio an.
+              {t('empty')}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -48,7 +55,7 @@ export default async function BlogIndexPage() {
                     )}
                     <div>
                       <p className="text-xs text-muted-foreground/70">
-                        {new Date(post.publishedAt).toLocaleDateString('de-DE', {
+                        {new Date(post.publishedAt).toLocaleDateString(dateLocale, {
                           day: '2-digit', month: 'long', year: 'numeric',
                         })}
                       </p>

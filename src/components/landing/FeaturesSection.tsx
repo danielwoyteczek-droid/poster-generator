@@ -1,43 +1,28 @@
+import { useTranslations } from 'next-intl'
 import { Map, Type, Printer, Download } from 'lucide-react'
 
-const FEATURES = [
-  {
-    icon: Map,
-    title: 'Jeder Ort der Welt',
-    description: 'Suche jeden Ort, zoome und panne die Karte bis der Ausschnitt perfekt sitzt.',
-  },
-  {
-    icon: Type,
-    title: 'Dein Text, dein Stil',
-    description: 'Füge Titel, Namen oder Koordinaten hinzu und wähle aus verschiedenen Schriftarten.',
-  },
-  {
-    icon: Printer,
-    title: 'Druckfertige Formate',
-    description: 'A4 und A3 — alle Formate werden in voller Druckauflösung (300 dpi) exportiert.',
-  },
-  {
-    icon: Download,
-    title: 'Sofort verfügbar',
-    description: 'Lade dein Poster als PNG oder PDF herunter, oder bestelle es direkt gedruckt und gerahmt.',
-  },
-]
-
 export function FeaturesSection() {
+  const t = useTranslations('features')
+  const items = [
+    { icon: Map, title: t('f1Title'), description: t('f1Description') },
+    { icon: Type, title: t('f2Title'), description: t('f2Description') },
+    { icon: Printer, title: t('f3Title'), description: t('f3Description') },
+    { icon: Download, title: t('f4Title'), description: t('f4Description') },
+  ]
   return (
     <section id="features" className="py-24 bg-white">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <div className="text-center mb-16">
           <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
-            Alles, was du brauchst
+            {t('heading')}
           </h2>
           <p className="mt-4 text-muted-foreground text-lg max-w-xl mx-auto">
-            Von der Kartenauswahl bis zum fertigen Druck — in wenigen Minuten.
+            {t('subtitle')}
           </p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-          {FEATURES.map((feature) => {
+          {items.map((feature) => {
             const Icon = feature.icon
             return (
               <div key={feature.title} className="flex flex-col items-start">

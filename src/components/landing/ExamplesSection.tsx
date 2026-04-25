@@ -1,26 +1,27 @@
 import Image from 'next/image'
 import Link from 'next/link'
-
-const EXAMPLES = [
-  { label: 'Stadtposter', src: '/example-1.webp', href: '/map' },
-  { label: 'Sternenposter', src: '/example-2.webp', href: '/star-map' },
-]
+import { useTranslations } from 'next-intl'
 
 export function ExamplesSection() {
+  const t = useTranslations('examples')
+  const examples = [
+    { label: t('cityPoster'), src: '/example-1.webp', href: '/map' },
+    { label: t('starPoster'), src: '/example-2.webp', href: '/star-map' },
+  ]
   return (
     <section id="examples" className="py-24 bg-muted">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <div className="text-center mb-16">
           <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
-            Echte Beispiele
+            {t('heading')}
           </h2>
           <p className="mt-4 text-muted-foreground text-lg max-w-xl mx-auto">
-            So könnten deine Poster aussehen.
+            {t('subtitle')}
           </p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 max-w-3xl mx-auto">
-          {EXAMPLES.map((ex) => (
+          {examples.map((ex) => (
             <Link
               key={ex.src}
               href={ex.href}

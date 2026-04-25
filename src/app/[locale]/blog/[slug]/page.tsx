@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Image from 'next/image'
 import { notFound } from 'next/navigation'
+import { getLocale, getTranslations } from 'next-intl/server'
 import { LandingNav } from '@/components/landing/LandingNav'
 import { LandingFooter } from '@/components/landing/LandingFooter'
 import { PortableTextRenderer } from '@/components/sanity/PortableTextRenderer'
@@ -16,7 +17,8 @@ interface Props {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params
   const post = await getBlogPost(slug)
-  if (!post) return { title: 'Artikel nicht gefunden' }
+  const t = await getTranslations('blog')
+  if (!post) return { title: t('notFound') }
   return {
     title: post.title,
     description: post.excerpt,
@@ -41,6 +43,8 @@ export default async function BlogPostPage({ params }: Props) {
   const { slug } = await params
   const post = await getBlogPost(slug)
   if (!post) notFound()
+  const locale = await getLocale()
+  const dateLocale = locale === 'en' ? 'en-US' : 'de-DE'
 
   return (
     <div className="min-h-screen flex flex-col pt-16 bg-white">
@@ -48,7 +52,7 @@ export default async function BlogPostPage({ params }: Props) {
       <main className="flex-1">
         <article className="max-w-3xl mx-auto px-6 py-12">
           <p className="text-sm text-muted-foreground/70 mb-2">
-            {new Date(post.publishedAt).toLocaleDateString('de-DE', {
+            {new Date(post.publishedAt).toLocaleDateString(dateLocale, {
               day: '2-digit', month: 'long', year: 'numeric',
             })}
           </p>

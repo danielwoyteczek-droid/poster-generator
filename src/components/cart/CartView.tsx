@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 import { X, ShoppingCart, CreditCard, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useCartStore } from '@/hooks/useCartStore'
@@ -20,6 +21,7 @@ function formatLabel(format: string) {
 }
 
 export function CartView() {
+  const t = useTranslations('cart')
   const [hydrated, setHydrated] = useState(false)
   const [isCheckingOut, setIsCheckingOut] = useState(false)
   const [digitalConsent, setDigitalConsent] = useState(false)
@@ -32,7 +34,7 @@ export function CartView() {
 
   const handleCheckout = async () => {
     if (hasDigital && !digitalConsent) {
-      toast.error('Bitte stimme der sofortigen Ausführung zu, damit der Download bereitgestellt werden kann.')
+      toast.error(t('digitalConsentRequired'))
       return
     }
     setIsCheckingOut(true)
@@ -58,30 +60,30 @@ export function CartView() {
       })
       const data = await res.json()
       if (!res.ok || !data.url) {
-        throw new Error(data.error || 'Checkout fehlgeschlagen')
+        throw new Error(data.error || t('checkoutFailed'))
       }
       window.location.href = data.url
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Checkout fehlgeschlagen')
+      toast.error(err instanceof Error ? err.message : t('checkoutFailed'))
       setIsCheckingOut(false)
     }
   }
 
   if (!hydrated) {
-    return <div className="text-sm text-muted-foreground/70">Lädt…</div>
+    return <div className="text-sm text-muted-foreground/70">{t('loading')}</div>
   }
 
   if (items.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-border bg-white px-6 py-16 text-center">
         <ShoppingCart className="w-10 h-10 mx-auto text-muted-foreground/40 mb-4" />
-        <p className="text-muted-foreground mb-6">Dein Warenkorb ist leer.</p>
+        <p className="text-muted-foreground mb-6">{t('empty')}</p>
         <div className="flex gap-3 justify-center">
           <Button asChild variant="outline">
-            <Link href="/map">Stadtposter erstellen</Link>
+            <Link href="/map">{t('createCityPoster')}</Link>
           </Button>
           <Button asChild>
-            <Link href="/star-map">Sternenposter erstellen</Link>
+            <Link href="/star-map">{t('createStarPoster')}</Link>
           </Button>
         </div>
       </div>
@@ -105,7 +107,7 @@ export function CartView() {
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-xs text-muted-foreground/70 uppercase tracking-wider">
-                    {item.posterType === 'star-map' ? 'Sternenposter' : 'Stadtposter'}
+                    {item.posterType === 'star-map' ? t('starPoster') : t('cityPoster')}
                   </p>
                   <h3 className="text-sm font-semibold text-foreground truncate mt-0.5">{item.title}</h3>
                   <p className="text-xs text-muted-foreground mt-1">
@@ -113,7 +115,7 @@ export function CartView() {
                   </p>
                   {item.productId !== 'download' && (
                     <p className="text-xs text-green-700 mt-1.5 font-medium">
-                      + Digitaler Download (PNG & PDF) inklusive
+                      {t('downloadIncluded')}
                     </p>
                   )}
                 </div>
@@ -121,7 +123,7 @@ export function CartView() {
                   type="button"
                   onClick={() => removeItem(item.id)}
                   className="text-muted-foreground/70 hover:text-foreground/70 p-1 -m-1"
-                  aria-label="Entfernen"
+                  aria-label={t('removeAria')}
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -135,22 +137,22 @@ export function CartView() {
       </div>
 
       <aside className="lg:sticky lg:top-20 h-fit rounded-xl bg-white border border-border p-5 space-y-4">
-        <h2 className="text-sm font-semibold text-foreground">Zusammenfassung</h2>
+        <h2 className="text-sm font-semibold text-foreground">{t('summaryTitle')}</h2>
         <div className="space-y-2 text-sm">
           <div className="flex justify-between text-muted-foreground">
-            <span>Artikel</span>
+            <span>{t('items')}</span>
             <span>{items.length}</span>
           </div>
           <div className="flex justify-between text-muted-foreground">
-            <span>Zwischensumme</span>
+            <span>{t('subtotal')}</span>
             <span>{formatPrice(totalCents)}</span>
           </div>
           <div className="flex justify-between text-muted-foreground">
-            <span>Versand</span>
-            <span>wird im Checkout berechnet</span>
+            <span>{t('shipping')}</span>
+            <span>{t('shippingValue')}</span>
           </div>
           <div className="border-t border-border pt-2 flex justify-between text-base font-semibold text-foreground">
-            <span>Gesamt</span>
+            <span>{t('total')}</span>
             <span>{formatPrice(totalCents)}</span>
           </div>
         </div>
@@ -163,10 +165,7 @@ export function CartView() {
               className="mt-0.5"
             />
             <span className="text-xs text-amber-900 leading-relaxed">
-              Ich stimme ausdrücklich zu, dass mit der Ausführung des Vertrags vor Ablauf der
-              Widerrufsfrist begonnen wird. Ich bestätige meine Kenntnis davon, dass ich durch
-              meine Zustimmung mit Beginn der Ausführung des Vertrags ein etwaiges Widerrufsrecht
-              verliere.
+              {t('digitalConsent')}
             </span>
           </label>
         )}
@@ -182,10 +181,10 @@ export function CartView() {
           ) : (
             <CreditCard className="w-4 h-4 mr-2" />
           )}
-          {isCheckingOut ? 'Weiterleitung…' : 'Zur Kasse'}
+          {isCheckingOut ? t('checkoutRedirecting') : t('checkoutCta')}
         </Button>
         <p className="text-xs text-muted-foreground/70 leading-relaxed">
-          Sichere Zahlung über Stripe. Keine Registrierung nötig.
+          {t('secureNote')}
         </p>
       </aside>
     </div>
