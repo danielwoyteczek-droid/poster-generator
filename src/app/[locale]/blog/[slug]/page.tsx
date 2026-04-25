@@ -44,7 +44,7 @@ export default async function BlogPostPage({ params }: Props) {
   const post = await getBlogPost(slug)
   if (!post) notFound()
   const locale = await getLocale()
-  const dateLocale = locale === 'en' ? 'en-US' : 'de-DE'
+  const dateLocale = ({ de: 'de-DE', en: 'en-US', fr: 'fr-FR', it: 'it-IT', es: 'es-ES' } as const)[locale as 'de' | 'en' | 'fr' | 'it' | 'es'] ?? 'de-DE'
 
   return (
     <div className="min-h-screen flex flex-col pt-16 bg-white">

@@ -4,7 +4,7 @@ import { PRODUCTS, formatPrice } from './products'
 
 const FROM = 'petite-moment <noreply@petite-moment.com>'
 
-type Locale = 'de' | 'en'
+type Locale = 'de' | 'en' | 'fr' | 'it' | 'es'
 
 function getResend(): Resend {
   const key = process.env.RESEND_API_KEY
@@ -62,6 +62,54 @@ const STRINGS = {
     shipmentHeading: 'Your order is on its way!',
     shipmentBody: 'Your package has been shipped. Use the tracking number below to follow it:',
     shipmentCta: 'View order',
+  },
+  fr: {
+    confirmSubject: 'Votre commande chez petite-moment',
+    confirmHeading: 'Merci pour votre achat !',
+    confirmIntro: 'Votre commande a bien été reçue. Vous pouvez la consulter à tout moment via le lien ci-dessous.',
+    confirmCta: 'Voir la commande',
+    confirmTotal: 'Total',
+    confirmDigitalNote: 'Vos fichiers numériques (PNG + PDF) sont disponibles au téléchargement sur la page de commande.',
+    confirmPhysicalNote: 'Les produits physiques sont expédiés sous 3 à 5 jours ouvrés.',
+    confirmReply: 'Pour toute question, il suffit de répondre à cet e-mail.',
+    posterTypeStar: 'Poster étoilé',
+    posterTypeMap: 'Poster carte',
+    shipmentSubject: (tn: string) => `Votre commande est en route – ${tn}`,
+    shipmentHeading: 'Votre commande est en route !',
+    shipmentBody: 'Votre colis a été expédié. Vous pouvez le suivre avec le numéro ci-dessous :',
+    shipmentCta: 'Voir la commande',
+  },
+  it: {
+    confirmSubject: 'Il tuo ordine su petite-moment',
+    confirmHeading: 'Grazie per il tuo acquisto!',
+    confirmIntro: 'Abbiamo ricevuto il tuo ordine. Puoi consultarlo in qualsiasi momento tramite il link qui sotto.',
+    confirmCta: 'Vai all\'ordine',
+    confirmTotal: 'Totale',
+    confirmDigitalNote: 'I tuoi file digitali (PNG + PDF) sono disponibili per il download nella pagina dell\'ordine.',
+    confirmPhysicalNote: 'I prodotti fisici vengono spediti entro 3–5 giorni lavorativi.',
+    confirmReply: 'Per qualsiasi domanda, basta rispondere a questa e-mail.',
+    posterTypeStar: 'Poster stellato',
+    posterTypeMap: 'Poster cartografico',
+    shipmentSubject: (tn: string) => `Il tuo ordine è in viaggio – ${tn}`,
+    shipmentHeading: 'Il tuo ordine è in viaggio!',
+    shipmentBody: 'Il tuo pacco è stato spedito. Puoi seguirlo con il numero di tracciamento qui sotto:',
+    shipmentCta: 'Vai all\'ordine',
+  },
+  es: {
+    confirmSubject: 'Tu pedido en petite-moment',
+    confirmHeading: '¡Gracias por tu compra!',
+    confirmIntro: 'Hemos recibido tu pedido. Puedes consultarlo en cualquier momento mediante el enlace de abajo.',
+    confirmCta: 'Ver pedido',
+    confirmTotal: 'Total',
+    confirmDigitalNote: 'Tus archivos digitales (PNG + PDF) están disponibles para descargar en la página del pedido.',
+    confirmPhysicalNote: 'Los productos físicos se envían en 3–5 días laborables.',
+    confirmReply: 'Para cualquier pregunta, simplemente responde a este correo.',
+    posterTypeStar: 'Póster estelar',
+    posterTypeMap: 'Póster del mapa',
+    shipmentSubject: (tn: string) => `Tu pedido está en camino – ${tn}`,
+    shipmentHeading: '¡Tu pedido está en camino!',
+    shipmentBody: 'Tu paquete ha sido enviado. Puedes seguirlo con el número de seguimiento de abajo:',
+    shipmentCta: 'Ver pedido',
   },
 } as const
 

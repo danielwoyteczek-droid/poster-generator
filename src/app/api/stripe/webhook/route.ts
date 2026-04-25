@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
           new URL(req.url).origin
         const baseUrl = origin.startsWith('http') ? origin : `https://${origin}`
         try {
-          const orderLocale = (updated as { locale?: 'de' | 'en' }).locale ?? 'de'
+          const orderLocale = (updated as { locale?: 'de' | 'en' | 'fr' | 'it' | 'es' }).locale ?? 'de'
           await sendOrderConfirmation({
             to: updated.email,
             orderId: updated.id,

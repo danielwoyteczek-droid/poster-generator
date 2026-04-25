@@ -24,7 +24,7 @@ const CheckoutBodySchema = z.object({
    * out in the same language the customer bought in. Falls back to the
    * NEXT_LOCALE cookie or 'de' when the client hasn't passed it.
    */
-  locale: z.enum(['de', 'en']).optional(),
+  locale: z.enum(['de', 'en', 'fr', 'it', 'es']).optional(),
 })
 
 export async function POST(req: NextRequest) {

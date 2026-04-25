@@ -79,7 +79,7 @@ export async function PATCH(
         accessToken: order.access_token,
         trackingNumber: order.tracking_number,
         origin: baseUrl,
-        locale: ((order as { locale?: 'de' | 'en' }).locale ?? 'de'),
+        locale: ((order as { locale?: 'de' | 'en' | 'fr' | 'it' | 'es' }).locale ?? 'de'),
       })
     } catch (err) {
       console.error('[admin] shipment email failed:', err)
