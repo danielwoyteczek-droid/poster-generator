@@ -1,6 +1,6 @@
 # PROJ-18: Mobile-Editor (Feature-Parität, touch-optimiert)
 
-## Status: Approved
+## Status: Deployed
 **Created:** 2026-04-21
 **Last Updated:** 2026-04-25
 
@@ -433,4 +433,47 @@ Diese Punkte konnte ich code-seitig nicht abdecken — bitte einmal durchklicken
 - **Empfehlung für Folge-Session**: Spec-Text aktualisieren (Punkte 1–5 oben), dabei automatisierte Playwright-Tests für die kritischen Mobile-Flows nachziehen — derzeit gibt es null Test-Coverage für PROJ-18.
 
 ## Deployment
-_To be added by /deploy_
+
+**Production URL:** https://petite-moment.com (Vercel auto-deploy from `main`)
+**Deployed:** 2026-04-25
+**Git Tag:** `v1.0-PROJ-18`
+
+### Deployment-Verlauf
+Iteratives Deployment über mehrere Commits — jeder Push auf `main` löste eine Vercel-Build aus. Die produktive Funktionalität wurde während der iterativen Test-Session **direkt am Produktivsystem verifiziert** (statt Staging), weil das Mobile-Verhalten nur auf realen Geräten geprüft werden konnte.
+
+Schlüsselt-Commits:
+- `c6f4566` — initialer Mobile-Editor (6 Tabs, Touch-Isolation-Architektur)
+- `0426ba7` — Drag-on-Canvas im Text-Tab freigeschaltet
+- `440ba9a` — Cart auf Mobile-Nav + erste iOS-Map-Capture-Versuche
+- `95ce3af` — Font-Scale-Vereinheitlichung über alle Render-Pfade
+- `981bc38` — Map-Ausschnitt Preview ↔ Export gleichgezogen
+- `bbf8cd5` — Touch-Isolation pro Tab final
+- `e269e24` — Marker-Reset via Toggle
+- `6bac323` — Horizontale Swipe-Picker für Designs/Paletten/Layout
+- `7d0b6a3` — Eye-Button für Zimmeransicht aus jedem Tab
+- `6767bdf` — Eye-Button-Position oben links (Konflikt mit Zoom-Controls behoben)
+- `616a23c` — fehlende PROJ-24-Dateien nachgereicht (Build-Fix für `@/lib/preset-locales`)
+- `ef5fbcd` — Playwright-Smoke-Tests + Approved-Status
+
+### Nach-Deploy verifiziert
+- ✅ Production-Domain lädt ohne Fehler
+- ✅ Mobile-Layout rendert auf iPhone Safari (durch Nutzer real getestet)
+- ✅ Eye-Button ist sichtbar und öffnet Zimmeransicht
+- ✅ Karten-Render in Zimmeransicht + Cart-Thumbnail + PDF funktioniert auf iOS (nach `triggerRepaint`-Fix)
+- ✅ Cart-Icon auf Mobile-Nav sichtbar
+- ✅ Build auf Vercel grün, Funktions-Logs ohne Fehler
+- ✅ Playwright-Smoke-Tests `npm run test:e2e` lokal grün
+
+### Production-Readiness-Checklist
+- ✅ `npm run build` lokal erfolgreich (mehrfach während der Session ausgeführt)
+- ⚠️ `npm run lint` — bestehender Issue im Repo: `next lint` ist in Next 16 deprecated, würde unabhängig von PROJ-18 nachgezogen werden müssen
+- ✅ Keine Secrets im Repo, alle Env-Vars aus existierender `.env.local.example`
+- ✅ Keine neuen Datenbank-Migrationen für PROJ-18 (Frontend-only Feature)
+- ✅ Code committed und gepusht
+- ⚠️ Lighthouse-Mobile-Score nicht gemessen — manuelle Verifikation auf Production durch Nutzer empfohlen
+- ⚠️ Sentry / Error-Tracking nicht eingerichtet (übergreifende Aufgabe, nicht PROJ-18-spezifisch)
+
+### Bekannte Caveats nach Deploy
+- **Cookie-Consent-Banner überlagert Mobile-Tab-Bar**: Auf realen Mobile-Sessions verdeckt der `fixed bottom-0`-Banner einen Teil der Tab-Bar. Tests umgehen es via localStorage-Pre-Seed, aber für echte Nutzer ist es ein UX-Problem. → eigener Folge-Fix.
+- **Mobile-Only-Presets** (Nutzer-Anfrage): Datenmodell-Erweiterung (`mobile_only`-Flag auf Presets) ist noch offen.
+- **`/star-map` Mobile-Variante**: Bewusst aus PROJ-18 ausgeklammert — eigenes Folge-Ticket.
