@@ -33,7 +33,7 @@
 | PROJ-17 | Marketing-Playbook & Kampagnen | Planned | [PROJ-17-marketing-playbook.md](PROJ-17-marketing-playbook.md) | 2026-04-21 |
 | PROJ-18 | Mobile-Editor (Feature-Parität) | In Progress | [PROJ-18-mobile-editor-optimization.md](PROJ-18-mobile-editor-optimization.md) | 2026-04-21 |
 | PROJ-19 | Foto-Integration im Poster | In Progress | [PROJ-19-photo-integration.md](PROJ-19-photo-integration.md) | 2026-04-21 |
-| PROJ-20 | Internationalisierung (i18n) | Planned | [PROJ-20-internationalization.md](PROJ-20-internationalization.md) | 2026-04-21 |
+| PROJ-20 | Internationalisierung (i18n) | Architected | [PROJ-20-internationalization.md](PROJ-20-internationalization.md) | 2026-04-21 |
 | PROJ-21 | Layout-Presets | In Progress | [PROJ-21-layout-presets.md](PROJ-21-layout-presets.md) | 2026-04-24 |
 | PROJ-22 | Admin-Paletten-Verwaltung | Deployed | [PROJ-22-admin-palette-management.md](PROJ-22-admin-palette-management.md) | 2026-04-24 |
 | PROJ-23 | Design-System & Brand-Styling | In Progress | [PROJ-23-design-system-brand-styling.md](PROJ-23-design-system-brand-styling.md) | 2026-04-24 |

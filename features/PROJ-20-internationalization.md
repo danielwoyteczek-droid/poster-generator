@@ -1,6 +1,6 @@
 # PROJ-20: Internationalisierung (i18n)
 
-## Status: Planned
+## Status: Architected
 **Created:** 2026-04-21
 **Last Updated:** 2026-04-21
 
@@ -100,7 +100,185 @@ Das Spec baut das Framework für beliebige Sprachen, aktiviert aber initial nur 
 <!-- Sections below are added by subsequent skills -->
 
 ## Tech Design (Solution Architect)
-_To be added by /architecture_
+
+### Geklärte Entscheidungen
+- **Default-Sprache**: Deutsch. `/` redirected auf `/de`, außer der Browser
+  meldet `Accept-Language: en-*` — dann auf `/en`.
+- **Admin-UI** (`/private/admin/*`): bleibt auf Deutsch, einsprachig.
+- **Sanity-Pattern**: Plugin `i18n-schemas` mit lokalisierten Feldern (ein
+  Dokument pro Inhalt, je Feld eine Sprach-Variante).
+
+### A) Routing-Struktur (URL-Layout)
+
+```
+Vorher (heute):
+  /             → Landing
+  /map          → Editor Stadt
+  /star-map     → Editor Sterne
+  /blog         → Blog-Liste
+  /blog/[slug]  → Blog-Artikel
+  /datenschutz  → Rechts-Texte
+  /private/...  → Login-only Bereiche
+  /private/admin/... → Admin-only Bereiche
+
+Nachher:
+  /                    → Server-Redirect auf /de (oder /en bei Accept-Language en-*)
+  /de/                 → Landing DE
+  /de/map              → Editor DE
+  /de/blog/[slug]      → Blog DE
+  /de/datenschutz      → Rechts-Texte DE
+  /en/                 → Landing EN
+  /en/map              → Editor EN
+  /en/blog/[slug]      → Blog EN
+
+  /private/...         → bleibt UNVERÄNDERT (kein Sprach-Präfix)
+  /private/admin/...   → bleibt UNVERÄNDERT (Admin = nur DE)
+  /api/...             → bleibt UNVERÄNDERT (technische Endpunkte)
+```
+
+Hinweis: Login-Seiten (`/login`, `/signup`) wandern unter Sprach-Präfix
+(`/de/login` etc.), damit Login-Flow lokalisiert ist. Bestehende E-Mails
+mit alten Reset-Links bleiben gültig durch Catch-All-Redirect.
+
+### B) Komponenten-Struktur (Sprach-Wechsler)
+
+```
+LandingNav (bestehend)
++-- Logo
++-- Nav-Links (lokalisierte Labels)
++-- Sprach-Wechsler  (NEU)
+|   +-- Dropdown-Button "DE ▾"
+|   +-- Optionen: Deutsch (DE) | English (EN)
+|   +-- Klick wechselt nur das Sprach-Präfix, der weitere Pfad bleibt
++-- User-Avatar / Login-Button
+
+Mobile-Menü (Sheet)
++-- Nav-Links
++-- Sprach-Wechsler (gleicher Mechanismus, größer dargestellt)
++-- Login / User
+```
+
+### C) Datenmodell-Erweiterungen (was sich in DB / Sanity ändert)
+
+```
+Sanity-Schemas (Blog, About, FAQ):
+- Vorher:  title (string), body (PortableText), excerpt (string), slug (slug)
+- Nachher: alle Text-Felder werden zu  localeString  oder  localeText
+           Sanity-Studio zeigt Tabs "DE" / "EN" pro Feld
+           Frontend-Query filtert je nach aktiver Sprache
+
+Bestellungen (orders) — neue Spalte:
+- locale: TEXT, default 'de', Werte 'de' | 'en'
+  → Bestätigungs-Mail wird in dieser Sprache verschickt
+
+User-Profile (profiles) — neue Spalte:
+- preferred_locale: TEXT, optional
+  → wird beim Anmelden gesetzt (aus aktiver Browser-Sprache)
+  → Auth-Mails (Passwort-Reset etc.) folgen dieser Präferenz
+```
+
+### D) Tech-Entscheidungen (Warum so)
+
+- **`next-intl` als Library**: einzige aktiv gepflegte Lösung mit nativem
+  Next.js 15/16 App-Router-Support, Server- und Client-Components, Locale
+  in Middleware, typensichere Translation-Hooks. Alternativen
+  (`react-i18next`, `next-i18next`) hinken bei App-Router-Support hinterher.
+- **URL-Präfix statt Subdomain**: spart das Setup zweier separater
+  Vercel-Deployments, behält gemeinsame Auth-Cookies, vereinfacht den
+  Sprach-Wechsler (nur Pfad-Manipulation), und ein einziges SSL-Zertifikat
+  reicht. SEO-mäßig sind beide gleichwertig wenn `hreflang` korrekt sitzt.
+- **DE als Default mit Accept-Language-Override**: schützt unsere
+  bestehenden DE-Nutzer vor unerwarteten Spracheinträgen, gibt aber
+  englischen Browsern direkt die EN-Version. Ohne Geo-IP, weil viele
+  EU-User VPNs nutzen und das nervig wäre.
+- **Plugin `i18n-schemas` (Sanity)**: ein Dokument pro Inhalt, alle
+  Sprachen drin. Editor sieht "DE" und "EN" Tabs pro Textfeld. Kein
+  Dokumenten-Duplizieren, keine vergessenen Übersetzungen, Bilder/Datum
+  bleiben einmal gepflegt. Bei späterer FR/NL/IT-Erweiterung einfach
+  Sprache aktivieren — bestehende Inhalte sind sofort bereit für die neue
+  Sprache (mit leeren Feldern).
+- **Admin auf Deutsch lassen**: einsamer User-Bereich, keine
+  Übersetzungs-Pflege rentiert sich, vermeidet 100+ zusätzliche Strings.
+- **`locale` in `orders`**: Mail-Versand passiert oft Stunden/Tage später
+  (Versand-Mail, Bewertungs-Mail). Ohne gespeichertes Locale wüssten wir
+  nicht mehr in welcher Sprache der Kunde gekauft hat.
+
+### E) Migrations-Phasen (Wie wir hin kommen)
+
+```
+Phase 1: Routing-Skelett (1–2 Tage)
+- next-intl installieren + konfigurieren
+- Middleware: Accept-Language-Detection, Redirect / → /de oder /en
+- Alle bestehenden Pages unter [locale]/ verschieben (route group)
+- Übersetzungs-JSONs anlegen mit Schlüssel-Keys, leeren EN-Werten als TODO
+- Sprach-Wechsler in LandingNav
+
+Phase 2: UI-Strings extrahieren (das größte Paket, ~1 Woche)
+- Komponente für Komponente alle hardcoded deutschen Strings durch
+  useTranslations()-Calls ersetzen
+- Englische Werte direkt mitübersetzen (LLM-Vorlage + manuelles Review)
+- Lokalisierte Datums-/Zahlen-Formate (Editor-Datum, Preise, Koordinaten)
+
+Phase 3: Sanity-Schemas migrieren (1–2 Tage)
+- i18n-schemas-Plugin in Sanity-Studio aktivieren
+- Schema-Updates: Felder zu localeString/localeText
+- Bestehende DE-Inhalte werden automatisch unter dem 'de'-Tab landen
+- Frontend-Queries auf aktive Sprache filtern
+
+Phase 4: Rechts-Texte EN (1 Tag)
+- Impressum, Datenschutz, AGB, Widerrufsbelehrung, Cookie-Richtlinie
+- Hinweis-Banner auf EN-Versionen: "Verbindlich ist die deutsche Fassung"
+
+Phase 5: E-Mail-Templates (1 Tag)
+- Bestätigungs-, Versand-, Bewertungs-Mail je Sprache
+- Supabase-Auth-Mails (Confirm, Reset) in EN hinterlegen
+- order.locale beim Anlegen aus aktiver Sprache übernehmen
+
+Phase 6: SEO + Sitemap (halber Tag)
+- hreflang-Tags in <head> jeder Seite
+- sitemap.xml listet jede URL pro Sprache mit hreflang-Querverweisen
+- robots.txt unverändert
+
+Phase 7: Stripe Checkout-Locale + Cookie-Banner (halber Tag)
+- locale-Parameter an Stripe übergeben
+- Cookie-Banner-Text je Sprache, Default-Pfade unverändert
+
+Phase 8: Smoke-Test + Bugs (1 Tag)
+- Beide Sprachen Komplett-Durchlauf: Landing → Editor → Checkout → Mail
+- hreflang in Google Search Console testen
+- Bestehende Cookies/Session bleiben über Sprachwechsel hin erhalten
+```
+
+### F) Dependencies (neue Packages)
+
+- `next-intl` — i18n-Library für Next.js App Router
+- `@sanity/i18n-schemas` (oder gleichwertiger Plugin-Code) — lokalisierte
+  Feldtypen in Sanity Studio
+- Sonst keine neuen Runtime-Pakete; vorhandenes Stripe-SDK akzeptiert
+  `locale` Parameter direkt.
+
+### G) Abhängigkeiten zwischen Phasen
+
+```
+Phase 1 (Routing)        →  unabhängig, kann sofort starten
+Phase 2 (UI-Strings)     →  baut auf Phase 1 (next-intl muss laufen)
+Phase 3 (Sanity)         →  unabhängig, kann parallel laufen
+Phase 4 (Rechts-Texte)   →  parallel zu Phase 2 möglich
+Phase 5 (E-Mails)        →  unabhängig, idealerweise nach Phase 1
+Phase 6 (SEO)            →  Ende, nachdem alle Routen lokalisiert sind
+Phase 7 (Stripe/Cookie)  →  Ende, kurz vor Smoke-Test
+Phase 8 (Smoke-Test)     →  letzter Schritt
+```
+
+### H) Gegenstände, die NICHT diesem Spec gehören (Abgrenzung)
+
+- Mehr Sprachen als DE+EN — kommen erst in V1.1+
+- Multi-Währung / länderspezifische Preise
+- Auto-Translate-Buttons im Live-Flow
+- Geo-IP-Redirect
+- Country-spezifische Domains (`.fr`, `.co.uk`)
+- Übersetzung der Map-Labels in Editor — wird über die MapTiler SDK
+  `language: Language.AUTO` Einstellung bereits abgedeckt (PROJ-15)
 
 ## QA Test Results
 _To be added by /qa_
