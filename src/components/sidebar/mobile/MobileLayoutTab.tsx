@@ -31,8 +31,8 @@ export function MobileLayoutTab() {
     maskKey, shapeConfig,
     setMaskKey,
     setShapeOuter, setInnerFrame, setOuterFrame,
-    layoutId, innerMarginMm,
-    setLayoutId, setInnerMarginMm,
+    layoutId,
+    setLayoutId,
     splitMode,
   } = useEditorStore()
   const { isAdmin } = useAuth()
@@ -231,45 +231,16 @@ export function MobileLayoutTab() {
                 )}
               </div>
             )}
-          </div>
-        </>
-      )}
 
-      {/* Admin-only Außenbereich + Innenabstand. */}
-      {isAdmin && (shapeSupported || isSplitActive) && (
-        <>
-          <Separator />
-          <div className="space-y-4">
-            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
-              Design <span className="text-[10px] normal-case text-amber-600 ml-1">Admin</span>
-            </Label>
-
-            {/* Innenabstand — was 'Formkontur' on the customer side */}
+            {/* Außenbereich — Leer/Faded/Voll + Abstand zum Poster-Rand. */}
             {shapeSupported && (
-              <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-foreground/70">Innenabstand</span>
-                  <span className="text-xs text-muted-foreground/70 tabular-nums">{innerMarginMm} mm</span>
-                </div>
-                <Slider
-                  min={0}
-                  max={10}
-                  step={1}
-                  value={[innerMarginMm]}
-                  onValueChange={([v]) => setInnerMarginMm(v)}
-                />
-              </div>
-            )}
-
-            {/* Außenbereich (shape-only) */}
-            {shapeSupported && (
-            <div className="space-y-2">
-              <span className="text-xs font-medium text-foreground/70">Außenbereich</span>
+            <div className="space-y-2 pt-2 border-t border-border">
+              <span className="text-xs font-medium text-foreground/70">{t('outerAreaLabel')}</span>
               <div className="grid grid-cols-3 gap-1">
                 {([
-                  { key: 'none', label: 'Leer' },
-                  { key: 'opacity', label: 'Faded' },
-                  { key: 'full', label: 'Voll' },
+                  { key: 'none', label: t('outerModeNone') },
+                  { key: 'opacity', label: t('outerModeFaded') },
+                  { key: 'full', label: t('outerModeFull') },
                 ] as const).map((opt) => (
                   <button
                     key={opt.key}
@@ -289,7 +260,7 @@ export function MobileLayoutTab() {
               {shapeConfig.outer.mode === 'opacity' && (
                 <div className="space-y-1 pt-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">Transparenz</span>
+                    <span className="text-xs text-muted-foreground">{t('outerOpacity')}</span>
                     <span className="text-xs text-muted-foreground/70 tabular-nums">{Math.round(shapeConfig.outer.opacity * 100)}%</span>
                   </div>
                   <Slider
@@ -302,7 +273,7 @@ export function MobileLayoutTab() {
               {shapeConfig.outer.mode !== 'none' && (
                 <div className="space-y-2 pt-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">Abstand zum Poster-Rand</span>
+                    <span className="text-xs text-muted-foreground">{t('outerMarginLabel')}</span>
                     <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
                       <input
                         type="checkbox"
@@ -327,14 +298,14 @@ export function MobileLayoutTab() {
                         }
                         className="w-3.5 h-3.5"
                       />
-                      <span>Alle Seiten gleich</span>
+                      <span>{t('outerMarginAllSides')}</span>
                     </label>
                   </div>
 
                   {shapeConfig.outer.marginLocked !== false ? (
                     <div className="space-y-1">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs text-muted-foreground">Alle Seiten</span>
+                        <span className="text-xs text-muted-foreground">{t('outerMarginAll')}</span>
                         <span className="text-xs text-muted-foreground/70 tabular-nums">{shapeConfig.outer.margin} mm</span>
                       </div>
                       <Slider
@@ -354,16 +325,16 @@ export function MobileLayoutTab() {
                   ) : (
                     <div className="space-y-2">
                       {([
-                        { label: 'Oben', field: 'marginTop' as const },
-                        { label: 'Rechts', field: 'marginRight' as const },
-                        { label: 'Unten', field: 'marginBottom' as const },
-                        { label: 'Links', field: 'marginLeft' as const },
-                      ]).map((side) => {
+                        { labelKey: 'outerMarginTop', field: 'marginTop' as const },
+                        { labelKey: 'outerMarginRight', field: 'marginRight' as const },
+                        { labelKey: 'outerMarginBottom', field: 'marginBottom' as const },
+                        { labelKey: 'outerMarginLeft', field: 'marginLeft' as const },
+                      ] as const).map((side) => {
                         const v = shapeConfig.outer[side.field] ?? shapeConfig.outer.margin
                         return (
                           <div key={side.field} className="space-y-1">
                             <div className="flex items-center justify-between">
-                              <span className="text-xs text-muted-foreground">{side.label}</span>
+                              <span className="text-xs text-muted-foreground">{t(side.labelKey)}</span>
                               <span className="text-xs text-muted-foreground/70 tabular-nums">{v} mm</span>
                             </div>
                             <Slider

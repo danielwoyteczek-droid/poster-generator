@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import Image from 'next/image'
+import { useLocale } from 'next-intl'
 import { Loader2, LayoutTemplate, ChevronDown, ChevronUp } from 'lucide-react'
 import { toast } from 'sonner'
 import { Label } from '@/components/ui/label'
@@ -27,6 +28,7 @@ interface Props {
 }
 
 export function PresetPicker({ posterType }: Props) {
+  const locale = useLocale()
   const [presets, setPresets] = useState<PresetRow[]>([])
   const [loading, setLoading] = useState(true)
   const [appliedId, setAppliedId] = useState<string | null>(null)
@@ -34,12 +36,13 @@ export function PresetPicker({ posterType }: Props) {
   const isMobile = useIsMobileEditor()
 
   useEffect(() => {
-    fetch(`/api/presets?poster_type=${posterType}`)
+    setLoading(true)
+    fetch(`/api/presets?poster_type=${posterType}&locale=${locale}`)
       .then((r) => r.json())
       .then((d) => setPresets(d.presets ?? []))
       .catch(() => {})
       .finally(() => setLoading(false))
-  }, [posterType])
+  }, [posterType, locale])
 
   const apply = useCallback(async (preset: PresetRow) => {
     invalidateCustomMasksCache()
@@ -62,7 +65,16 @@ export function PresetPicker({ posterType }: Props) {
     )
   }
 
-  if (presets.length === 0) return null
+  if (presets.length === 0) {
+    return (
+      <div className="space-y-1.5">
+        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">Designs</Label>
+        <p className="text-[11px] text-muted-foreground/70 leading-relaxed">
+          Noch keine Vorlagen für deine Sprache.
+        </p>
+      </div>
+    )
+  }
 
   const visible = expanded ? presets : presets.slice(0, INITIAL_VISIBLE)
   const hasMore = presets.length > INITIAL_VISIBLE

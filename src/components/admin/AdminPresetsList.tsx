@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { Loader2, LayoutTemplate, Pencil, Eye, EyeOff, Trash2, Plus, Link as LinkIcon } from 'lucide-react'
+import { Loader2, LayoutTemplate, Pencil, Eye, EyeOff, Trash2, Plus, Link as LinkIcon, Copy, Globe, X as XIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
@@ -18,8 +18,20 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Checkbox } from '@/components/ui/checkbox'
 import { useEditorStore } from '@/hooks/useEditorStore'
 import { useStarMapStore } from '@/hooks/useStarMapStore'
+import { LocaleMultiSelect } from '@/components/admin/LocaleMultiSelect'
+import { locales as ALL_LOCALES, localeNames, type Locale } from '@/i18n/config'
 import { cn } from '@/lib/utils'
 
 type PosterType = 'map' | 'star-map'
@@ -33,9 +45,18 @@ interface Preset {
   preview_image_url: string | null
   status: Status
   display_order: number
+  target_locales: string[]
   created_at: string
   updated_at: string
   published_at: string | null
+}
+
+type BulkAction = 'set' | 'add' | 'remove'
+
+const BULK_ACTION_LABELS: Record<BulkAction, string> = {
+  set: 'Sprachen setzen (überschreibt)',
+  add: 'Sprachen hinzufügen',
+  remove: 'Sprachen entfernen',
 }
 
 const FILTER_LABELS: Record<string, string> = {
@@ -56,6 +77,13 @@ export function AdminPresetsList() {
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState('all')
   const [typeFilter, setTypeFilter] = useState('all')
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [bulkAction, setBulkAction] = useState<BulkAction>('set')
+  const [bulkLocales, setBulkLocales] = useState<string[]>([])
+  const [bulkSubmitting, setBulkSubmitting] = useState(false)
+  const [copySource, setCopySource] = useState<Preset | null>(null)
+  const [copyTarget, setCopyTarget] = useState<Locale | ''>('')
+  const [copySubmitting, setCopySubmitting] = useState(false)
 
   const fetchPresets = useCallback(async () => {
     setLoading(true)
@@ -69,6 +97,83 @@ export function AdminPresetsList() {
   }, [statusFilter, typeFilter])
 
   useEffect(() => { fetchPresets() }, [fetchPresets])
+
+  const toggleSelected = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const clearSelection = () => setSelectedIds(new Set())
+
+  const updateLocales = async (preset: Preset, target_locales: string[]) => {
+    const res = await fetch(`/api/admin/presets/${preset.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ target_locales }),
+    })
+    if (res.ok) {
+      setPresets((prev) => prev.map((p) => (p.id === preset.id ? { ...p, target_locales } : p)))
+      toast.success('Sprachen aktualisiert')
+    } else {
+      toast.error('Aktualisierung fehlgeschlagen')
+    }
+  }
+
+  const runBulk = async () => {
+    if (selectedIds.size === 0 || bulkLocales.length === 0) return
+    setBulkSubmitting(true)
+    try {
+      const res = await fetch('/api/admin/presets/bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ids: Array.from(selectedIds),
+          action: bulkAction,
+          locales: bulkLocales,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        toast.error(data.error ?? 'Bulk-Aktion fehlgeschlagen')
+        return
+      }
+      toast.success(`${data.updated} Preset${data.updated === 1 ? '' : 's'} aktualisiert`)
+      clearSelection()
+      setBulkLocales([])
+      fetchPresets()
+    } finally {
+      setBulkSubmitting(false)
+    }
+  }
+
+  const runCopy = async () => {
+    if (!copySource || !copyTarget) return
+    setCopySubmitting(true)
+    try {
+      const res = await fetch(`/api/admin/presets/${copySource.id}/copy-to-locale`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ target_locale: copyTarget }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        toast.error(data.error ?? 'Kopieren fehlgeschlagen')
+        return
+      }
+      toast.success(`Kopie als „${data.preset.name}" angelegt`, {
+        description: 'Du kannst sie jetzt im Editor bearbeiten und Texte übersetzen.',
+      })
+      setCopySource(null)
+      setCopyTarget('')
+      fetchPresets()
+    } finally {
+      setCopySubmitting(false)
+    }
+  }
 
   const updateStatus = async (preset: Preset, status: Status) => {
     const res = await fetch(`/api/admin/presets/${preset.id}`, {
@@ -158,8 +263,49 @@ export function AdminPresetsList() {
     toast.success(`Preset "${preset.name}" geladen — Editor wird geöffnet`)
   }
 
+  const availableTargetsForCopy = copySource
+    ? ALL_LOCALES.filter((l) => !copySource.target_locales.includes(l))
+    : []
+
   return (
     <div className="space-y-6">
+      {selectedIds.size > 0 && (
+        <div className="sticky top-0 z-20 -mx-4 px-4 py-3 bg-background/95 backdrop-blur border-b border-border flex flex-wrap items-center gap-3">
+          <div className="text-sm font-medium text-foreground">
+            {selectedIds.size} ausgewählt
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <select
+              value={bulkAction}
+              onChange={(e) => setBulkAction(e.target.value as BulkAction)}
+              className="h-9 px-3 rounded-md border border-border bg-background text-sm"
+            >
+              {(Object.keys(BULK_ACTION_LABELS) as BulkAction[]).map((a) => (
+                <option key={a} value={a}>{BULK_ACTION_LABELS[a]}</option>
+              ))}
+            </select>
+            <LocaleMultiSelect
+              value={bulkLocales}
+              onChange={setBulkLocales}
+              placeholder="Sprachen wählen…"
+              buttonClassName="min-w-[180px]"
+            />
+            <Button
+              size="sm"
+              onClick={runBulk}
+              disabled={bulkLocales.length === 0 || bulkSubmitting}
+            >
+              {bulkSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+              Anwenden
+            </Button>
+            <Button variant="ghost" size="sm" onClick={clearSelection}>
+              <XIcon className="w-4 h-4 mr-1" />
+              Auswahl aufheben
+            </Button>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex gap-2 flex-wrap">
           <div className="flex gap-1 bg-white rounded-md border border-border p-0.5">
@@ -220,7 +366,13 @@ export function AdminPresetsList() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {presets.map((preset) => (
-            <div key={preset.id} className="rounded-xl bg-white border border-border overflow-hidden">
+            <div
+              key={preset.id}
+              className={cn(
+                'rounded-xl bg-white border overflow-hidden transition-colors',
+                selectedIds.has(preset.id) ? 'border-primary ring-2 ring-primary/20' : 'border-border',
+              )}
+            >
               <div className="aspect-[2/3] bg-muted relative">
                 {preset.preview_image_url ? (
                   <Image
@@ -235,8 +387,15 @@ export function AdminPresetsList() {
                     <LayoutTemplate className="w-12 h-12" />
                   </div>
                 )}
+                <label className="absolute top-2 left-2 w-7 h-7 rounded-md bg-white/90 backdrop-blur flex items-center justify-center cursor-pointer hover:bg-white transition-colors">
+                  <Checkbox
+                    checked={selectedIds.has(preset.id)}
+                    onCheckedChange={() => toggleSelected(preset.id)}
+                    aria-label={`${preset.name} für Bulk-Aktion auswählen`}
+                  />
+                </label>
                 <span className={cn(
-                  'absolute top-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider',
+                  'absolute top-2 left-12 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider',
                   preset.status === 'published'
                     ? 'bg-green-100 text-green-800'
                     : 'bg-amber-100 text-amber-800',
@@ -253,6 +412,46 @@ export function AdminPresetsList() {
                   {preset.description && (
                     <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{preset.description}</p>
                   )}
+                </div>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <Globe className="w-3.5 h-3.5 text-muted-foreground/70 shrink-0" />
+                  {preset.target_locales.length === 0 ? (
+                    <span className="text-[10px] font-medium uppercase tracking-wider text-red-600 bg-red-50 px-1.5 py-0.5 rounded">
+                      Keine Sprache
+                    </span>
+                  ) : (
+                    preset.target_locales.map((loc) => (
+                      <span
+                        key={loc}
+                        className="text-[10px] font-mono uppercase bg-muted text-foreground/80 px-1.5 py-0.5 rounded"
+                        title={localeNames[loc as Locale] ?? loc}
+                      >
+                        {loc}
+                      </span>
+                    ))
+                  )}
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0 ml-auto text-muted-foreground/70 hover:text-foreground"
+                        title="Sprachen bearbeiten"
+                      >
+                        <Pencil className="w-3 h-3" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent align="end" className="w-60 p-3 space-y-2">
+                      <div className="text-xs font-medium text-foreground">Sichtbar in Sprachen</div>
+                      <LocaleMultiSelect
+                        value={preset.target_locales}
+                        onChange={(next) => updateLocales(preset, next)}
+                      />
+                      <p className="text-[10px] text-muted-foreground leading-relaxed">
+                        Auswahl wird sofort gespeichert. Leere Auswahl = im Editor unsichtbar.
+                      </p>
+                    </PopoverContent>
+                  </Popover>
                 </div>
                 <div className="flex gap-1.5">
                   <Button
@@ -295,6 +494,18 @@ export function AdminPresetsList() {
                       <LinkIcon className="w-3.5 h-3.5" />
                     </Button>
                   )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 text-muted-foreground/70 hover:text-foreground"
+                    onClick={() => {
+                      setCopySource(preset)
+                      setCopyTarget('')
+                    }}
+                    title="In andere Sprache kopieren"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                  </Button>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground/70 hover:text-red-600">
@@ -325,6 +536,57 @@ export function AdminPresetsList() {
           ))}
         </div>
       )}
+
+      <Dialog open={copySource !== null} onOpenChange={(open) => { if (!open) { setCopySource(null); setCopyTarget('') } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>In andere Sprache kopieren</DialogTitle>
+            <DialogDescription>
+              {copySource && (
+                <>Erstellt eine Kopie von <strong>„{copySource.name}"</strong> als Draft in der gewählten Sprache. Im Anschluss kannst du Texte übersetzen.</>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3">
+            <div className="text-xs font-medium text-foreground">Zielsprache</div>
+            {availableTargetsForCopy.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Dieser Preset ist bereits in allen verfügbaren Sprachen markiert.
+              </p>
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                {availableTargetsForCopy.map((loc) => (
+                  <button
+                    key={loc}
+                    type="button"
+                    onClick={() => setCopyTarget(loc)}
+                    className={cn(
+                      'flex items-center gap-2 px-3 py-2 rounded-md border text-sm text-left transition-colors',
+                      copyTarget === loc
+                        ? 'border-primary bg-primary/5'
+                        : 'border-border hover:border-muted-foreground bg-background',
+                    )}
+                  >
+                    <span className="font-mono text-xs uppercase w-6 text-muted-foreground">{loc}</span>
+                    <span className="text-foreground">{localeNames[loc as Locale]}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => { setCopySource(null); setCopyTarget('') }}>
+              Abbrechen
+            </Button>
+            <Button onClick={runCopy} disabled={!copyTarget || copySubmitting}>
+              {copySubmitting && <Loader2 className="w-4 h-4 animate-spin mr-1" />}
+              Kopie als Draft anlegen
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

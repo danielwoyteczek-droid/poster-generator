@@ -69,10 +69,10 @@ export function MapTab() {
   const {
     styleId, maskKey, marker, secondMarker, shapeConfig,
     paletteId, customPaletteBase, customPalette, streetLabelsVisible,
-    layoutId, innerMarginMm,
+    layoutId,
     setStyleId, setMaskKey, setMarker, setSecondMarker,
     setShapeOuter, setInnerFrame, setOuterFrame,
-    setLayoutId, setInnerMarginMm,
+    setLayoutId,
     setPaletteId, setCustomPaletteBase, setCustomPalette, updateCustomPaletteColor, setStreetLabelsVisible,
     flyToLocation, setLocationName,
     secondMap, setSecondMapStyleId, setSecondMapPaletteId, setSecondMapCustomPaletteBase, setSecondMapCustomPalette, updateSecondMapCustomPaletteColor, flyToSecondLocation,
@@ -820,48 +820,18 @@ export function MapTab() {
                 )}
               </div>
             )}
-          </div>
-        </>
-      )}
 
-      {/* Admin-only Außenbereich + Innenabstand (advanced design knobs).
-          Außenbereich = the area outside the shape (Leer / Faded / Voll).
-          Innenabstand = poster-content padding (formerly mislabelled 'Formkontur'
-          on the customer side). */}
-      {isAdmin && (shapeSupported || isSplitActive) && (
-        <>
-          <Separator />
-          <div className="space-y-4">
-            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
-              Design <span className="text-[9px] normal-case text-amber-600 ml-1">Admin</span>
-            </Label>
-
-            {/* Innenabstand — was 'Formkontur' on the customer side */}
+            {/* Außenbereich — Leer/Faded/Voll + Abstand zum Poster-Rand.
+                Replaces the old top-level innerMarginMm slider, which was
+                redundant with this margin control. */}
             {shapeSupported && (
-              <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-foreground/70">Innenabstand</span>
-                  <span className="text-[11px] text-muted-foreground/70 tabular-nums">{innerMarginMm} mm</span>
-                </div>
-                <Slider
-                  min={0}
-                  max={10}
-                  step={1}
-                  value={[innerMarginMm]}
-                  onValueChange={([v]) => setInnerMarginMm(v)}
-                />
-              </div>
-            )}
-
-            {/* Außenbereich (shape-only) */}
-            {shapeSupported && (
-            <div className="space-y-2">
-              <span className="text-xs font-medium text-foreground/70">Außenbereich</span>
+            <div className="space-y-2 pt-2 border-t border-border">
+              <span className="text-xs font-medium text-foreground/70">{t('outerAreaLabel')}</span>
               <div className="grid grid-cols-3 gap-1">
                 {([
-                  { key: 'none', label: 'Leer' },
-                  { key: 'opacity', label: 'Faded' },
-                  { key: 'full', label: 'Voll' },
+                  { key: 'none', label: t('outerModeNone') },
+                  { key: 'opacity', label: t('outerModeFaded') },
+                  { key: 'full', label: t('outerModeFull') },
                 ] as const).map((opt) => (
                   <button
                     key={opt.key}
@@ -881,7 +851,7 @@ export function MapTab() {
               {shapeConfig.outer.mode === 'opacity' && (
                 <div className="space-y-1 pt-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] text-muted-foreground">Transparenz</span>
+                    <span className="text-[11px] text-muted-foreground">{t('outerOpacity')}</span>
                     <span className="text-[11px] text-muted-foreground/70 tabular-nums">{Math.round(shapeConfig.outer.opacity * 100)}%</span>
                   </div>
                   <Slider
@@ -894,7 +864,7 @@ export function MapTab() {
               {shapeConfig.outer.mode !== 'none' && (
                 <div className="space-y-2 pt-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] text-muted-foreground">Abstand zum Poster-Rand</span>
+                    <span className="text-[11px] text-muted-foreground">{t('outerMarginLabel')}</span>
                     <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground cursor-pointer">
                       <input
                         type="checkbox"
@@ -919,14 +889,14 @@ export function MapTab() {
                         }
                         className="w-3 h-3"
                       />
-                      <span>Alle Seiten gleich</span>
+                      <span>{t('outerMarginAllSides')}</span>
                     </label>
                   </div>
 
                   {shapeConfig.outer.marginLocked !== false ? (
                     <div className="space-y-1">
                       <div className="flex items-center justify-between">
-                        <span className="text-[11px] text-muted-foreground">Alle Seiten</span>
+                        <span className="text-[11px] text-muted-foreground">{t('outerMarginAll')}</span>
                         <span className="text-[11px] text-muted-foreground/70 tabular-nums">{shapeConfig.outer.margin} mm</span>
                       </div>
                       <Slider
@@ -946,16 +916,16 @@ export function MapTab() {
                   ) : (
                     <div className="space-y-2">
                       {([
-                        { label: 'Oben', field: 'marginTop' as const },
-                        { label: 'Rechts', field: 'marginRight' as const },
-                        { label: 'Unten', field: 'marginBottom' as const },
-                        { label: 'Links', field: 'marginLeft' as const },
-                      ]).map((side) => {
+                        { labelKey: 'outerMarginTop', field: 'marginTop' as const },
+                        { labelKey: 'outerMarginRight', field: 'marginRight' as const },
+                        { labelKey: 'outerMarginBottom', field: 'marginBottom' as const },
+                        { labelKey: 'outerMarginLeft', field: 'marginLeft' as const },
+                      ] as const).map((side) => {
                         const v = shapeConfig.outer[side.field] ?? shapeConfig.outer.margin
                         return (
                           <div key={side.field} className="space-y-1">
                             <div className="flex items-center justify-between">
-                              <span className="text-[11px] text-muted-foreground">{side.label}</span>
+                              <span className="text-[11px] text-muted-foreground">{t(side.labelKey)}</span>
                               <span className="text-[11px] text-muted-foreground/70 tabular-nums">{v} mm</span>
                             </div>
                             <Slider
