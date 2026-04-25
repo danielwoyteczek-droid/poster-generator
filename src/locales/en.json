@@ -1,0 +1,31 @@
+{
+  "common": {
+    "languageLabel": "Language",
+    "languageSwitcherDe": "Deutsch",
+    "languageSwitcherEn": "English",
+    "loading": "Loading …",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "close": "Close"
+  },
+  "nav": {
+    "cityPoster": "City poster",
+    "starPoster": "Star poster",
+    "features": "Features",
+    "examples": "Examples",
+    "pricing": "Pricing",
+    "blog": "Blog",
+    "myPosters": "My posters",
+    "myOrders": "My orders",
+    "logout": "Sign out",
+    "login": "Sign in",
+    "signup": "Sign up",
+    "cart": "Cart",
+    "admin": "Admin",
+    "adminOrders": "Order management",
+    "adminPresets": "Design presets",
+    "adminMasks": "Masks library",
+    "adminPalettes": "Colour palettes"
+  }
+}

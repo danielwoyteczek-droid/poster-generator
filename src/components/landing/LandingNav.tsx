@@ -20,6 +20,7 @@ import { SaveButton } from '@/components/editor/SaveButton'
 import { SaveAsPresetButton } from '@/components/editor/SaveAsPresetButton'
 import { useCartStore } from '@/hooks/useCartStore'
 import { EmailConfirmBanner } from '@/components/EmailConfirmBanner'
+import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 
 const NAV_LINKS = [
   { label: 'Stadtposter', href: '/map' },
@@ -75,6 +76,8 @@ export function LandingNav() {
         <div className="hidden md:flex items-center gap-3">
           {isEditor && user && <SaveButton />}
           {isEditor && isAdmin && <SaveAsPresetButton />}
+
+          <LanguageSwitcher />
 
           <Link
             href="/cart"
@@ -219,6 +222,7 @@ export function LandingNav() {
                 </Link>
               ))}
               <div className="mt-4 pt-4 border-t border-border flex flex-col gap-2">
+                <LanguageSwitcher variant="full" />
                 {user ? (
                   <>
                     <Button variant="outline" size="sm" asChild>

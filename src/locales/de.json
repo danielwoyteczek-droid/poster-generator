@@ -1,0 +1,31 @@
+{
+  "common": {
+    "languageLabel": "Sprache",
+    "languageSwitcherDe": "Deutsch",
+    "languageSwitcherEn": "English",
+    "loading": "Lädt …",
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "delete": "Löschen",
+    "close": "Schließen"
+  },
+  "nav": {
+    "cityPoster": "Stadtposter",
+    "starPoster": "Sternenposter",
+    "features": "Features",
+    "examples": "Beispiele",
+    "pricing": "Preise",
+    "blog": "Blog",
+    "myPosters": "Meine Poster",
+    "myOrders": "Meine Bestellungen",
+    "logout": "Abmelden",
+    "login": "Anmelden",
+    "signup": "Registrieren",
+    "cart": "Warenkorb",
+    "admin": "Admin",
+    "adminOrders": "Bestellverwaltung",
+    "adminPresets": "Design-Presets",
+    "adminMasks": "Masken-Bibliothek",
+    "adminPalettes": "Farbpaletten"
+  }
+}

@@ -1,6 +1,6 @@
 # PROJ-20: Internationalisierung (i18n)
 
-## Status: Architected
+## Status: In Progress
 **Created:** 2026-04-21
 **Last Updated:** 2026-04-21
 
@@ -90,6 +90,41 @@ Das Spec baut das Framework für beliebige Sprachen, aktiviert aber initial nur 
 8. Supabase Email Templates pro Sprache (Confirm Signup, Reset Password, etc.).
 9. SEO: hreflang-Tags, Sitemap-Anpassung, robots.txt bei Bedarf.
 10. Smoke-Test beider Sprachen end-to-end (inklusive Checkout, Mail, Download-Link).
+
+## Implementation Notes (Frontend — Phase 1A: Foundation only)
+
+Dieser erste Schritt baut nur das Gerüst, KEINE Verschiebung von Pages und
+KEINE Extraktion von Strings. Damit bleibt die App sofort lauffähig, und
+die nachfolgenden Phasen können kontrolliert nachgeliefert werden.
+
+- `next-intl ^4.9.1` installiert; `next.config.ts` über `createNextIntlPlugin('./src/i18n/request.ts')` gewrappt.
+- Neue Module unter `src/i18n/`:
+  - `config.ts` — definiert `locales = ['de','en']`, `defaultLocale = 'de'`,
+    `localeNames`-Mapping. Single source of truth für künftige Sprach-Erweiterung.
+  - `routing.ts` — `defineRouting` mit `localePrefix: 'always'` und
+    `localeDetection: true` (Accept-Language).
+  - `request.ts` — Server-Side-Loader, lädt `src/locales/<locale>.json` und
+    fällt bei unbekanntem Locale auf Default zurück.
+  - `navigation.ts` — exportiert die next-intl-Wrapper für `Link`, `redirect`,
+    `usePathname`, `useRouter` (werden in Phase 1B beim Page-Move benutzt).
+- Locale-JSONs unter `src/locales/de.json` und `src/locales/en.json` mit
+  Starter-Strings für Common + Nav. Wird in Phase 2 schrittweise erweitert
+  während Komponenten migriert werden.
+- `src/components/LanguageSwitcher.tsx` — neue Komponente mit zwei Varianten
+  (`compact` für Desktop, `full` für Mobile-Sheet). Erkennt aktiven Locale
+  aus URL-Segment ODER `NEXT_LOCALE`-Cookie. Beim Wechsel:
+  - Schreibt das Cookie (1 Jahr, root path)
+  - Wenn URL bereits einen Sprach-Präfix hat → Pfad in-place tauschen
+  - Sonst Reload (Cookie greift beim nächsten Server-Render)
+- LandingNav bekommt den Switcher: kompakt im Desktop-Bar (vor Cart-Icon)
+  und full-width im Mobile-Sheet (oberhalb der Login-Buttons).
+
+**Was Phase 1A NICHT macht und in Phase 1B/2 folgt:**
+- Pages aus `app/` nach `app/[locale]/` verschieben
+- `NextIntlClientProvider` ins Root-Layout
+- Middleware um Locale-Redirect (`/` → `/de`) erweitern
+- Existierende `<Link>`-Pfade auf `next-intl/navigation` umstellen
+- UI-Strings in Komponenten durch `useTranslations()`-Calls ersetzen
 
 ## Open Questions
 - Sprach-Default: Deutsch (weil Basis-Markt) oder Englisch (weil international inkl. DE-Muttersprachler verstanden)? Einfachste Lösung: DE bleibt Default, `/` redirected auf `/de` außer bei Accept-Language en-*.
