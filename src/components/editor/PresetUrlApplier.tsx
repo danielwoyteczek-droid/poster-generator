@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
+import { useLocale } from 'next-intl'
 import { toast } from 'sonner'
 import { invalidateCustomMasksCache } from '@/hooks/useCustomMasks'
 import { applyPreset } from '@/lib/apply-preset'
@@ -19,6 +20,7 @@ export function PresetUrlApplier({ posterType }: Props) {
   const searchParams = useSearchParams()
   const router = useRouter()
   const pathname = usePathname()
+  const locale = useLocale()
   const appliedRef = useRef<string | null>(null)
 
   useEffect(() => {
@@ -34,9 +36,9 @@ export function PresetUrlApplier({ posterType }: Props) {
           return
         }
         if (data.preset.poster_type !== posterType) {
-          // Preset is for the other editor — redirect there
+          // Preset is for the other editor — redirect there, preserving locale prefix
           const target = data.preset.poster_type === 'star-map' ? '/star-map' : '/map'
-          router.replace(`${target}?preset=${id}`)
+          router.replace(`/${locale}${target}?preset=${id}`)
           return
         }
         invalidateCustomMasksCache()

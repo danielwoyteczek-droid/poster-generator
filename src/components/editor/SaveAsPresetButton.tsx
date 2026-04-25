@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { LayoutTemplate, Loader2, RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
@@ -42,7 +42,6 @@ export function SaveAsPresetButton() {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [saving, setSaving] = useState(false)
-  const [savingMode, setSavingMode] = useState<'update' | 'new' | null>(null)
 
   const mapExport = useMapExport()
   const starMapExport = useStarMapExport()
@@ -50,19 +49,6 @@ export function SaveAsPresetButton() {
   const starMap = useStarMapStore()
   const editingPreset = useEditorStore((s) => s.editingPreset)
   const setEditingPreset = useEditorStore((s) => s.setEditingPreset)
-
-  // Pre-fill the dialog with the preset's existing name/description when an
-  // admin is editing a loaded preset. Reset to blank when not editing or when
-  // the dialog is opened in "save as new" mode for a fresh design.
-  useEffect(() => {
-    if (open && editingPreset && editingPreset.posterType === posterType) {
-      setName(editingPreset.name)
-      setDescription(editingPreset.description ?? '')
-    } else if (open && !editingPreset) {
-      setName('')
-      setDescription('')
-    }
-  }, [open, editingPreset, posterType])
 
   if (!isAdmin) return null
 
@@ -145,7 +131,6 @@ export function SaveAsPresetButton() {
       return
     }
     setSaving(true)
-    setSavingMode('new')
     try {
       const previewUrl = await tryRenderAndUploadPreview()
       const body: Record<string, unknown> = {
@@ -179,23 +164,18 @@ export function SaveAsPresetButton() {
       toast.error(err instanceof Error ? err.message : 'Speichern fehlgeschlagen')
     } finally {
       setSaving(false)
-      setSavingMode(null)
     }
   }
 
   const handleUpdate = async () => {
     if (!editingPreset) return
-    if (!name.trim()) {
-      toast.error('Name ist erforderlich')
-      return
-    }
     setSaving(true)
-    setSavingMode('update')
     try {
       const previewUrl = await tryRenderAndUploadPreview()
+      // Update only the config (and optionally the preview). Name + description
+      // were set when the preset was created and stay as-is — admin renames
+      // happen in the admin list, not via this toolbar button.
       const body: Record<string, unknown> = {
-        name: name.trim(),
-        description: description.trim() || null,
         config_json: buildConfigJson(),
       }
       if (previewUrl) body.preview_image_url = previewUrl
@@ -209,24 +189,27 @@ export function SaveAsPresetButton() {
       if (!patchRes.ok) throw new Error(patchData.error || 'Aktualisieren fehlgeschlagen')
 
       if (previewUrl) {
-        toast.success(`Preset „${name.trim()}" aktualisiert`)
+        toast.success(`Preset „${editingPreset.name}" aktualisiert`)
       } else {
-        toast.success(`Preset „${name.trim()}" aktualisiert`, {
+        toast.success(`Preset „${editingPreset.name}" aktualisiert`, {
           description: 'Vorschaubild konnte nicht erneuert werden — altes Bild bleibt erhalten.',
         })
       }
-      setEditingPreset({
-        id: editingPreset.id,
-        name: name.trim(),
-        description: description.trim() || null,
-        posterType: editingPreset.posterType,
-      })
-      setOpen(false)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Speichern fehlgeschlagen')
     } finally {
       setSaving(false)
-      setSavingMode(null)
+    }
+  }
+
+  // Edit mode: clicking the toolbar button saves directly. The dialog only
+  // pops up for fresh designs that need a name. Renames or "save as new copy"
+  // happen through the admin list (PROJ-9 tooling), not the editor toolbar.
+  const handleToolbarClick = () => {
+    if (canUpdate) {
+      handleUpdate()
+    } else {
+      setOpen(true)
     }
   }
 
@@ -236,23 +219,26 @@ export function SaveAsPresetButton() {
         variant="outline"
         size="sm"
         className="h-8 text-xs"
-        onClick={() => setOpen(true)}
-        title={canUpdate ? `Preset „${editingPreset!.name}" aktualisieren oder neu speichern` : 'Als Design-Preset speichern (Admin)'}
+        onClick={handleToolbarClick}
+        disabled={canUpdate && saving}
+        title={canUpdate ? `Änderungen an „${editingPreset!.name}" speichern` : 'Als Design-Preset speichern (Admin)'}
       >
-        {canUpdate ? <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> : <LayoutTemplate className="w-3.5 h-3.5 mr-1.5" />}
-        {canUpdate ? 'Preset speichern' : 'Als Preset'}
+        {canUpdate && saving ? (
+          <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+        ) : canUpdate ? (
+          <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+        ) : (
+          <LayoutTemplate className="w-3.5 h-3.5 mr-1.5" />
+        )}
+        {canUpdate ? (saving ? 'Speichere…' : 'Preset speichern') : 'Als Preset'}
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{canUpdate ? 'Preset speichern' : 'Als Preset speichern'}</DialogTitle>
+            <DialogTitle>Als Preset speichern</DialogTitle>
             <DialogDescription>
-              {canUpdate ? (
-                <>Du bearbeitest aktuell <strong>„{editingPreset!.name}"</strong>. Wähle, ob du den bestehenden Preset überschreiben oder eine neue Variante anlegen möchtest.</>
-              ) : (
-                <>Aktuelles Design als wiederverwendbare Vorlage speichern. Wird zunächst als <strong>Draft</strong> angelegt — erst nach Veröffentlichung sichtbar für Kunden.</>
-              )}
+              Aktuelles Design als wiederverwendbare Vorlage speichern. Wird zunächst als <strong>Draft</strong> angelegt — erst nach Veröffentlichung sichtbar für Kunden.
             </DialogDescription>
           </DialogHeader>
 
@@ -280,19 +266,13 @@ export function SaveAsPresetButton() {
             </div>
           </div>
 
-          <DialogFooter className="flex-col-reverse sm:flex-row sm:justify-end gap-2">
+          <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>
               Abbrechen
             </Button>
-            {canUpdate && (
-              <Button variant="outline" onClick={handleSaveAsNew} disabled={saving || !name.trim()}>
-                {saving && savingMode === 'new' ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> : null}
-                Als neuer Preset speichern
-              </Button>
-            )}
-            <Button onClick={canUpdate ? handleUpdate : handleSaveAsNew} disabled={saving || !name.trim()}>
-              {saving && savingMode === (canUpdate ? 'update' : 'new') ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> : null}
-              {canUpdate ? 'Bestehenden Preset überschreiben' : 'Als Draft speichern'}
+            <Button onClick={handleSaveAsNew} disabled={saving || !name.trim()}>
+              {saving ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> : null}
+              Als Draft speichern
             </Button>
           </DialogFooter>
         </DialogContent>
