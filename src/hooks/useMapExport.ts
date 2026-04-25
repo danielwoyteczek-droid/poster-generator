@@ -506,9 +506,41 @@ export async function buildPosterCanvas(
     const photoIsRightZone = splitPhotoZone === 1
     const mapSideSvg = photoIsRightZone ? mask.leftSvgPath : mask.rightSvgPath
     const photoSideSvg = photoIsRightZone ? mask.rightSvgPath : mask.leftSvgPath
+
+    // Without an explicit poster-middle rect-clip, the SVG-internal
+    // <clipPath> in the half-mask SVGs is not always honoured when loaded
+    // as an Image, so both halves end up masking to the FULL shape — and
+    // since the photo is drawn on top of the map, only the photo is visible.
+    // Dual-map (above) already does this; split-photo was missing it.
+    // mask.noHalfClip opts out for masks where the silhouettes intentionally
+    // cross the midline (entwined hearts etc.).
+    const splitGapHalfPx = mmToPx * 1
+    const midlineX = mapTargetX + mapTargetW / 2
+    const leftHalfRect = { x: mapTargetX, w: midlineX - splitGapHalfPx - mapTargetX }
+    const rightHalfRect = {
+      x: midlineX + splitGapHalfPx,
+      w: mapTargetX + mapTargetW - midlineX - splitGapHalfPx,
+    }
+    const mapHalfRect = photoIsRightZone ? leftHalfRect : rightHalfRect
+    const photoHalfRect = photoIsRightZone ? rightHalfRect : leftHalfRect
+
+    const drawHalf = (source: HTMLCanvasElement, half: { x: number; w: number }) => {
+      if (mask.noHalfClip) {
+        ctx.drawImage(source, 0, 0, W, H, mapTargetX, mapTargetY, mapTargetW, mapTargetH)
+        return
+      }
+      ctx.save()
+      ctx.beginPath()
+      ctx.rect(half.x, mapTargetY, half.w, mapTargetH)
+      ctx.clip()
+      ctx.drawImage(source, 0, 0, W, H, mapTargetX, mapTargetY, mapTargetW, mapTargetH)
+      ctx.restore()
+    }
+
     let mapCanvas = await renderMapOffscreen({ styleId, vs: viewState, previewW, previewH, outputW: W, outputH: H, paletteId: store.paletteId, customPaletteBase: store.customPaletteBase, customPalette: store.customPalette, streetLabelsVisible: store.streetLabelsVisible })
     mapCanvas = await applyMask(mapCanvas, mapSideSvg)
-    ctx.drawImage(mapCanvas, 0, 0, W, H, mapTargetX, mapTargetY, mapTargetW, mapTargetH)
+    drawHalf(mapCanvas, mapHalfRect)
+
     // Split photo is drawn into a full-poster offscreen canvas, then scaled
     // into the same target rect so the split halves stay aligned.
     const photoCanvas = document.createElement('canvas')
@@ -516,7 +548,7 @@ export async function buildPosterCanvas(
     photoCanvas.height = H
     const photoCtx = photoCanvas.getContext('2d')!
     await drawSplitPhoto(photoCtx, splitPhoto, photoSideSvg, W, H)
-    ctx.drawImage(photoCanvas, 0, 0, W, H, mapTargetX, mapTargetY, mapTargetW, mapTargetH)
+    drawHalf(photoCanvas, photoHalfRect)
   } else {
     let mapCanvas = await renderMapOffscreen({ styleId, vs: viewState, previewW, previewH, outputW: W, outputH: H, paletteId: store.paletteId, customPaletteBase: store.customPaletteBase, customPalette: store.customPalette, streetLabelsVisible: store.streetLabelsVisible })
     if (mask.shape) {
