@@ -1,5 +1,6 @@
 'use client'
 
+import { useTranslations } from 'next-intl'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -7,6 +8,7 @@ import { Separator } from '@/components/ui/separator'
 import { useEditorStore } from '@/hooks/useEditorStore'
 
 export function MobileMarkerTab() {
+  const t = useTranslations('editor')
   const { marker, secondMarker, splitMode, setMarker, setSecondMarker } = useEditorStore()
   const secondMarkerVisible = splitMode === 'second-map'
 
@@ -15,22 +17,19 @@ export function MobileMarkerTab() {
       {/* Primary marker */}
       <div className="space-y-3">
         <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
-          Marker-Pin
+          {t('mapMarkerLabel')}
         </Label>
 
         <div className="flex items-center justify-between">
           <Label htmlFor="mobile-marker-switch" className="text-sm text-foreground/70 cursor-pointer">
-            Marker anzeigen
+            {t('mapMarkerShow')}
           </Label>
           <Switch
             id="mobile-marker-switch"
             checked={marker.enabled}
             onCheckedChange={(enabled) =>
               enabled && !marker.enabled
-                ? // Re-activating: snap pin back to default center so it is
-                  // guaranteed visible if a prior map pan/zoom pushed the
-                  // stored lat/lng off-canvas.
-                  setMarker({ enabled: true, lat: null, lng: null })
+                ? setMarker({ enabled: true, lat: null, lng: null })
                 : setMarker({ enabled })
             }
           />
@@ -39,7 +38,7 @@ export function MobileMarkerTab() {
         {marker.enabled && (
           <div className="space-y-3">
             <div className="flex items-center gap-3">
-              <Label className="text-sm text-muted-foreground w-16 shrink-0">Typ</Label>
+              <Label className="text-sm text-muted-foreground w-16 shrink-0">{t('mapMarkerType')}</Label>
               <Select
                 value={marker.type}
                 onValueChange={(type: 'classic' | 'heart') => setMarker({ type })}
@@ -48,14 +47,14 @@ export function MobileMarkerTab() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="classic">Klassisch</SelectItem>
-                  <SelectItem value="heart">Herz</SelectItem>
+                  <SelectItem value="classic">{t('mapMarkerClassic')}</SelectItem>
+                  <SelectItem value="heart">{t('mapMarkerHeart')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="flex items-center gap-3">
-              <Label className="text-sm text-muted-foreground w-16 shrink-0">Farbe</Label>
+              <Label className="text-sm text-muted-foreground w-16 shrink-0">{t('mapMarkerColor')}</Label>
               <input
                 type="color"
                 value={marker.color}
@@ -73,12 +72,12 @@ export function MobileMarkerTab() {
           <Separator />
           <div className="space-y-3">
             <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
-              Zweiter Marker-Pin
+              {t('mapMarkerSecondLabel')}
             </Label>
 
             <div className="flex items-center justify-between">
               <Label htmlFor="mobile-second-marker-switch" className="text-sm text-foreground/70 cursor-pointer">
-                Zweiten Marker anzeigen
+                {t('mapMarkerShowSecond')}
               </Label>
               <Switch
                 id="mobile-second-marker-switch"
@@ -94,7 +93,7 @@ export function MobileMarkerTab() {
             {secondMarker.enabled && (
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
-                  <Label className="text-sm text-muted-foreground w-16 shrink-0">Typ</Label>
+                  <Label className="text-sm text-muted-foreground w-16 shrink-0">{t('mapMarkerType')}</Label>
                   <Select
                     value={secondMarker.type}
                     onValueChange={(type: 'classic' | 'heart') => setSecondMarker({ type })}
@@ -103,14 +102,14 @@ export function MobileMarkerTab() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="classic">Klassisch</SelectItem>
-                      <SelectItem value="heart">Herz</SelectItem>
+                      <SelectItem value="classic">{t('mapMarkerClassic')}</SelectItem>
+                      <SelectItem value="heart">{t('mapMarkerHeart')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <Label className="text-sm text-muted-foreground w-16 shrink-0">Farbe</Label>
+                  <Label className="text-sm text-muted-foreground w-16 shrink-0">{t('mapMarkerColor')}</Label>
                   <input
                     type="color"
                     value={secondMarker.color}
@@ -127,7 +126,7 @@ export function MobileMarkerTab() {
       {/* Hint if split mode isn't active */}
       {!secondMarkerVisible && (
         <p className="text-[11px] text-muted-foreground/70 leading-relaxed">
-          Ein zweiter Marker wird verfügbar, sobald im Karte-Tab „Zweite Karte" aktiviert ist.
+          {t('mapMarkerSecondHint')}
         </p>
       )}
     </div>

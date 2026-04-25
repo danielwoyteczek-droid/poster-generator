@@ -1,5 +1,6 @@
 'use client'
 
+import { useTranslations } from 'next-intl'
 import {
   Plus,
   Lock,
@@ -24,15 +25,6 @@ import { useEditorStore, type TextBlock } from '@/hooks/useEditorStore'
 import { getCoordinatesText } from '@/components/editor/TextBlockOverlay'
 import { cn } from '@/lib/utils'
 
-const TITLE_IDEAS = [
-  'Wo alles begann...',
-  'Home sweet home',
-  'Du und ich',
-  'Zu Hause',
-  'Just married',
-  'Unser erster Kuss',
-]
-
 const FONT_OPTIONS: { value: string; label: string }[] = [
   { value: 'Playfair Display', label: 'Playfair Display' },
   { value: 'Montserrat', label: 'Montserrat' },
@@ -43,14 +35,8 @@ const FONT_OPTIONS: { value: string; label: string }[] = [
   { value: 'Arial', label: 'Arial' },
 ]
 
-function getBlockLabel(block: TextBlock, coordsText?: string): string {
-  if (block.label) return block.label
-  if (block.isCoordinates) return coordsText ?? 'Ort & Koordinaten'
-  if (!block.text.trim()) return 'Leer'
-  return block.text.length > 20 ? `${block.text.slice(0, 20)}…` : block.text
-}
-
 export function TextTab() {
+  const t = useTranslations('editor')
   const {
     textBlocks,
     selectedBlockId,
@@ -64,6 +50,22 @@ export function TextTab() {
 
   const coordsText = getCoordinatesText(viewState.lat, viewState.lng, locationName)
 
+  const titleIdeas = [
+    t('textIdea1'),
+    t('textIdea2'),
+    t('textIdea3'),
+    t('textIdea4'),
+    t('textIdea5'),
+    t('textIdea6'),
+  ]
+
+  const getBlockLabel = (block: TextBlock): string => {
+    if (block.label) return block.label
+    if (block.isCoordinates) return coordsText ?? t('textLabelCoordinates')
+    if (!block.text.trim()) return t('textLabelEmpty')
+    return block.text.length > 20 ? `${block.text.slice(0, 20)}…` : block.text
+  }
+
   const selectedBlock = textBlocks.find((b) => b.id === selectedBlockId) ?? null
 
   return (
@@ -75,7 +77,7 @@ export function TextTab() {
         className="w-full h-9 flex items-center justify-center gap-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
       >
         <Plus className="w-4 h-4" />
-        Textblock hinzufügen
+        {t('textAddBlock')}
       </button>
 
       {/* Block list */}
@@ -92,7 +94,7 @@ export function TextTab() {
               )}
             >
               <span className="flex-1 text-sm text-foreground/70 truncate">
-                {getBlockLabel(block, coordsText)}
+                {getBlockLabel(block)}
               </span>
               <button
                 type="button"
@@ -101,8 +103,8 @@ export function TextTab() {
                   updateTextBlock(block.id, { locked: !block.locked })
                 }}
                 className="text-muted-foreground hover:text-foreground"
-                aria-label={block.locked ? 'Entsperren' : 'Sperren'}
-                title={block.locked ? 'Entsperren' : 'Sperren'}
+                aria-label={block.locked ? t('textUnlock') : t('textLock')}
+                title={block.locked ? t('textUnlock') : t('textLock')}
               >
                 {block.locked ? (
                   <Lock className="w-3.5 h-3.5" />
@@ -118,8 +120,8 @@ export function TextTab() {
                     deleteTextBlock(block.id)
                   }}
                   className="text-muted-foreground hover:text-destructive"
-                  aria-label="Löschen"
-                  title="Löschen"
+                  aria-label={t('textDelete')}
+                  title={t('textDelete')}
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
@@ -137,7 +139,7 @@ export function TextTab() {
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
-                Text
+                {t('textLabel')}
               </Label>
               {!selectedBlock.isCoordinates && (
                 <Select
@@ -147,10 +149,10 @@ export function TextTab() {
                   }
                 >
                   <SelectTrigger className="h-6 w-auto text-xs border-0 shadow-none text-muted-foreground/70 hover:text-foreground px-1 gap-1 focus:ring-0">
-                    <SelectValue placeholder="Ideen" />
+                    <SelectValue placeholder={t('textIdeas')} />
                   </SelectTrigger>
                   <SelectContent>
-                    {TITLE_IDEAS.map((idea) => (
+                    {titleIdeas.map((idea) => (
                       <SelectItem key={idea} value={idea} className="text-sm">
                         {idea}
                       </SelectItem>
@@ -174,7 +176,7 @@ export function TextTab() {
           {/* Font family */}
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
-              Schriftart
+              {t('textFontFamily')}
             </Label>
             <Select
               value={selectedBlock.fontFamily}
@@ -198,7 +200,7 @@ export function TextTab() {
           {/* Font size */}
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
-              Größe
+              {t('textSize')}
             </Label>
             <div className="flex items-center gap-2">
               <input
@@ -234,7 +236,7 @@ export function TextTab() {
           {/* Color */}
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
-              Farbe
+              {t('textColor')}
             </Label>
             <input
               type="color"
@@ -249,14 +251,14 @@ export function TextTab() {
           {/* Alignment */}
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
-              Ausrichtung
+              {t('textAlignment')}
             </Label>
             <div className="grid grid-cols-3 gap-1.5">
               {(
                 [
-                  { value: 'left', Icon: AlignLeft, label: 'Links' },
-                  { value: 'center', Icon: AlignCenter, label: 'Zentriert' },
-                  { value: 'right', Icon: AlignRight, label: 'Rechts' },
+                  { value: 'left', Icon: AlignLeft, label: t('textAlignLeft') },
+                  { value: 'center', Icon: AlignCenter, label: t('textAlignCenter') },
+                  { value: 'right', Icon: AlignRight, label: t('textAlignRight') },
                 ] as const
               ).map(({ value, Icon, label }) => {
                 const active = selectedBlock.align === value
@@ -286,7 +288,7 @@ export function TextTab() {
           {/* Style */}
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
-              Stil
+              {t('textStyle')}
             </Label>
             <div className="grid grid-cols-2 gap-1.5">
               <button
@@ -294,8 +296,8 @@ export function TextTab() {
                 onClick={() =>
                   updateTextBlock(selectedBlock.id, { bold: !selectedBlock.bold })
                 }
-                aria-label="Fett"
-                title="Fett"
+                aria-label={t('textBold')}
+                title={t('textBold')}
                 className={cn(
                   'h-8 flex items-center justify-center rounded-md text-sm font-bold transition-colors',
                   selectedBlock.bold
@@ -312,8 +314,8 @@ export function TextTab() {
                     uppercase: !selectedBlock.uppercase,
                   })
                 }
-                aria-label="Großbuchstaben"
-                title="Großbuchstaben"
+                aria-label={t('textUppercase')}
+                title={t('textUppercase')}
                 className={cn(
                   'h-8 flex items-center justify-center rounded-md text-sm transition-colors',
                   selectedBlock.uppercase

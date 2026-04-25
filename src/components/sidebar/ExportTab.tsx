@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { Loader2, FileImage, FileText, Download, Image, Frame, ShoppingCart, Eye } from 'lucide-react'
 import { toast } from 'sonner'
 import { Label } from '@/components/ui/label'
@@ -32,11 +33,12 @@ function FormatSelector({ printFormat, setPrintFormat, fmt }: {
   setPrintFormat: (id: PrintFormat) => void
   fmt: typeof PRINT_FORMAT_OPTIONS[number]
 }) {
+  const t = useTranslations('editor')
   return (
     <>
       <div className="space-y-1.5">
         <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
-          Papierformat
+          {t('paperFormat')}
         </Label>
         <div className="grid grid-cols-3 gap-1.5">
           {PRINT_FORMAT_OPTIONS.map((f) => (
@@ -59,10 +61,10 @@ function FormatSelector({ printFormat, setPrintFormat, fmt }: {
 
       <div className="rounded-md bg-muted border border-border px-3 py-2.5 space-y-0.5">
         <p className="text-xs font-medium text-foreground/70">
-          {fmt.widthPx.toLocaleString()} × {fmt.heightPx.toLocaleString()} Pixel
+          {t('paperFormatPixels', { w: fmt.widthPx.toLocaleString(), h: fmt.heightPx.toLocaleString() })}
         </p>
         <p className="text-xs text-muted-foreground/70">
-          {fmt.widthMm} × {fmt.heightMm} mm · 300 DPI · Druckqualität
+          {t('paperFormatPrintHint', { w: fmt.widthMm, h: fmt.heightMm })}
         </p>
       </div>
     </>
@@ -124,6 +126,7 @@ function AdminExportView({ printFormat }: { printFormat: string }) {
 // ─── Customer product selection ───────────────────────────────────────────────
 
 function CustomerProductView({ printFormat }: { printFormat: string }) {
+  const t = useTranslations('editor')
   const [selectedProduct, setSelectedProduct] = useState<ProductId | null>(null)
   const [isAdding, setIsAdding] = useState(false)
   const { renderPreview } = useMapExport()
@@ -142,7 +145,7 @@ function CustomerProductView({ printFormat }: { printFormat: string }) {
     try {
       const fullDataUrl = await renderPreview(printFormat as PrintFormat)
       const previewDataUrl = await downsizeDataURL(fullDataUrl, 600)
-      const title = editor.locationName || 'Karten-Poster'
+      const title = editor.locationName || t('exportDefaultPosterTitle')
       addItem({
         productId: selectedProduct,
         format: printFormat as PrintFormat,
@@ -179,9 +182,9 @@ function CustomerProductView({ printFormat }: { printFormat: string }) {
         priceCents,
         posterType: 'map',
       })
-      toast.success('Zum Warenkorb hinzugefügt')
+      toast.success(t('exportAddedToCart'))
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Hinzufügen fehlgeschlagen')
+      toast.error(err instanceof Error ? err.message : t('exportAddFailed'))
     } finally {
       setIsAdding(false)
     }
@@ -190,7 +193,7 @@ function CustomerProductView({ printFormat }: { printFormat: string }) {
   return (
     <div className="space-y-2">
       <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
-        Produkt wählen
+        {t('exportProductLabel')}
       </Label>
 
       <div className="space-y-2">
@@ -253,12 +256,12 @@ function CustomerProductView({ printFormat }: { printFormat: string }) {
       >
         {isAdding ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShoppingCart className="w-4 h-4" />}
         {isAdding
-          ? 'Wird hinzugefügt…'
-          : priceCents != null ? `In den Warenkorb · ${formatPrice(priceCents)}` : 'Produkt wählen'}
+          ? t('exportAddingToCart')
+          : priceCents != null ? t('exportInCart', { price: formatPrice(priceCents) }) : t('exportSelectProduct')}
       </button>
 
       <p className="text-xs text-muted-foreground/70 leading-relaxed">
-        Sichere Zahlung via Stripe. Physische Produkte werden innerhalb von 3–5 Werktagen geliefert.
+        {t('exportSecureNote')}
       </p>
     </div>
   )
@@ -267,6 +270,7 @@ function CustomerProductView({ printFormat }: { printFormat: string }) {
 // ─── Main component ───────────────────────────────────────────────────────────
 
 function PreviewButton({ printFormat }: { printFormat: string }) {
+  const t = useTranslations('editor')
   const { renderPreview } = useMapExport()
   const [open, setOpen] = useState(false)
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null)
@@ -282,7 +286,7 @@ function PreviewButton({ printFormat }: { printFormat: string }) {
       const url = await renderPreview(printFormat as PrintFormat)
       setImageDataUrl(url)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Vorschau fehlgeschlagen')
+      setError(err instanceof Error ? err.message : t('exportPreviewFailed'))
     } finally {
       setIsLoading(false)
     }
@@ -296,7 +300,7 @@ function PreviewButton({ printFormat }: { printFormat: string }) {
         className="w-full h-10 flex items-center justify-center gap-2 rounded-md border border-border text-foreground/70 text-sm font-medium hover:bg-muted transition-colors"
       >
         <Eye className="w-4 h-4" />
-        In Zimmeransicht ansehen
+        {t('exportPreviewCta')}
       </button>
       <PosterFrameModal
         open={open}

@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { Upload, Trash2, Loader2, ImagePlus } from 'lucide-react'
 import { toast } from 'sonner'
 import { Label } from '@/components/ui/label'
@@ -16,6 +17,7 @@ import type { PhotoFilter } from '@/hooks/useEditorStore'
 import { cn } from '@/lib/utils'
 
 export function PhotoTab() {
+  const t = useTranslations('editor')
   const { user } = useAuth()
   const { photos, addPhoto, updatePhoto, removePhoto } = useEditorStore()
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -44,9 +46,9 @@ export function PhotoTab() {
         cropY: 0,
         filter: 'none',
       })
-      toast.success('Foto hinzugefügt')
+      toast.success(t('photoAdded'))
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Upload fehlgeschlagen')
+      toast.error(err instanceof Error ? err.message : t('uploadFailed'))
     } finally {
       setIsUploading(false)
       setProgress(0)
@@ -71,11 +73,11 @@ export function PhotoTab() {
     <div className="space-y-5 p-4">
       <div className="space-y-2">
         <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
-          Foto hochladen
+          {t('photoUploadLabel')}
         </Label>
         {!user && (
           <p className="text-[11px] text-muted-foreground leading-relaxed">
-            Du kannst auch ohne Konto hochladen. Fotos ohne Bestellung werden nach 7 Tagen automatisch gelöscht.
+            {t('photoGuestNote')}
           </p>
         )}
         <input
@@ -98,17 +100,17 @@ export function PhotoTab() {
           {isUploading ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin" />
-              <span className="ml-2">Hochladen… {progress}%</span>
+              <span className="ml-2">{t('uploadProgress', { progress })}</span>
             </>
           ) : (
             <>
               <Upload className="w-4 h-4" />
-              <span className="ml-2">Foto auswählen</span>
+              <span className="ml-2">{t('photoChooseButton')}</span>
             </>
           )}
         </Button>
         <p className="text-[11px] text-muted-foreground/70 leading-relaxed">
-          JPG, PNG oder HEIC. Maximal 10 MB. Wird automatisch komprimiert.
+          {t('photoFormatHint')}
         </p>
       </div>
 
@@ -117,7 +119,7 @@ export function PhotoTab() {
           <Separator />
           <div className="space-y-3">
             <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
-              Deine Fotos
+              {t('photoListLabel')}
             </Label>
             {photos.map((photo) => (
               <div key={photo.id} className="space-y-2 rounded-md border border-border p-2">
@@ -132,13 +134,13 @@ export function PhotoTab() {
                     <p className="text-xs text-foreground/70 truncate">
                       {photo.width} × {photo.height}px
                     </p>
-                    <p className="text-[10px] text-muted-foreground/70">Maske: {photo.maskKey}</p>
+                    <p className="text-[10px] text-muted-foreground/70">{t('photoMaskLabel', { mask: photo.maskKey })}</p>
                   </div>
                   <button
                     type="button"
                     onClick={() => handleRemove(photo.id, photo.storagePath)}
                     className="w-7 h-7 flex items-center justify-center rounded-sm hover:bg-muted text-muted-foreground hover:text-destructive"
-                    aria-label="Foto entfernen"
+                    aria-label={t('photoRemoveAria')}
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
@@ -187,7 +189,7 @@ export function PhotoTab() {
         <div className="rounded-lg border border-dashed border-border p-6 text-center">
           <ImagePlus className="w-8 h-8 mx-auto text-muted-foreground/50" />
           <p className="mt-2 text-xs text-muted-foreground">
-            Noch keine Fotos. Lade ein Bild hoch, um es neben der Karte zu platzieren.
+            {t('photoEmpty')}
           </p>
         </div>
       )}

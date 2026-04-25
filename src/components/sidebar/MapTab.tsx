@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { ChevronDown, ChevronUp, Loader2, Upload, Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
 import { toast } from 'sonner'
 import { Label } from '@/components/ui/label'
@@ -43,21 +44,24 @@ const SINGLE_MASK_OPTIONS = MAP_MASK_OPTIONS.filter(
   (m) => !m.isSplit && m.key !== 'text-below',
 )
 
-const LAYOUT_OPTIONS: { id: 'full' | 'text-30' | 'text-15'; label: string; description: string }[] = [
-  { id: 'full', label: 'Vollflächig', description: 'Karte füllt das gesamte Poster' },
-  { id: 'text-30', label: 'Text unten 30 %', description: 'Karte oben 70 %, unten 30 % Text' },
-  { id: 'text-15', label: 'Text unten 15 %', description: 'Karte oben 85 %, unten 15 % Text' },
-]
-
 // Zones per split mask — later multi-part masks can declare 3+ zones here
 const ZONE_COUNT_BY_MASK: Record<string, number> = {
   'split-circles': 2,
   'split-hearts': 2,
   'split-halves': 2,
 }
-const ZONE_LABELS = ['Links', 'Rechts', 'Oben', 'Unten', 'Mitte']
 
 export function MapTab() {
+  const t = useTranslations('editor')
+
+  const LAYOUT_OPTIONS: { id: 'full' | 'text-30' | 'text-15'; label: string; description: string }[] = [
+    { id: 'full', label: t('mapLayoutFull'), description: t('mapLayoutFullDesc') },
+    { id: 'text-30', label: t('mapLayoutText30'), description: t('mapLayoutText30Desc') },
+    { id: 'text-15', label: t('mapLayoutText15'), description: t('mapLayoutText15Desc') },
+  ]
+
+  const ZONE_LABELS = [t('mapZoneLeft'), t('mapZoneRight'), t('mapZoneTop'), t('mapZoneBottom'), t('mapZoneCenter')]
+
   const {
     styleId, maskKey, marker, secondMarker, shapeConfig,
     paletteId, customPaletteBase, customPalette, streetLabelsVisible,
@@ -163,7 +167,7 @@ export function MapTab() {
     const next = (splitPhotoZone + dir + zoneCount) % zoneCount
     setSplitPhotoZone(next)
   }
-  const zoneLabel = ZONE_LABELS[splitPhotoZone] ?? `Zone ${splitPhotoZone + 1}`
+  const zoneLabel = ZONE_LABELS[splitPhotoZone] ?? t('mapZoneFallback', { n: splitPhotoZone + 1 })
 
   const handleSplitPhotoFile = async (file: File) => {
     setSplitUploading(true)
@@ -185,9 +189,9 @@ export function MapTab() {
         cropScale: 1,
         uploadedAt: new Date().toISOString(),
       })
-      toast.success('Foto eingefügt')
+      toast.success(t('mapPhotoInserted'))
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Upload fehlgeschlagen')
+      toast.error(err instanceof Error ? err.message : t('uploadFailed'))
     } finally {
       setSplitUploading(false)
       setSplitProgress(0)
@@ -221,14 +225,14 @@ export function MapTab() {
     <div className="space-y-5 p-4">
       {/* Location Search — primary map */}
       <div className="space-y-1.5">
-        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">Ort suchen</Label>
+        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">{t('mapLocationSearch')}</Label>
         <LocationSearch onSelect={(lng, lat, name) => { flyToLocation(lng, lat); setLocationName(name) }} />
       </div>
 
       {/* Split-Modus: None / zweite Karte / Foto */}
       <div className="space-y-3">
         <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
-          Zweite Ansicht
+          {t('mapSecondViewLabel')}
         </Label>
         <div className="grid grid-cols-3 gap-1">
           {(['none', 'second-map', 'photo'] as const).map((m) => (
@@ -243,7 +247,7 @@ export function MapTab() {
                   : 'bg-white text-foreground/70 border border-border hover:border-muted-foreground',
               )}
             >
-              {m === 'none' ? 'Keine' : m === 'second-map' ? 'Zweite Karte' : 'Foto'}
+              {m === 'none' ? t('mapSecondViewNone') : m === 'second-map' ? t('mapSecondViewMap') : t('mapSecondViewPhoto')}
             </button>
           ))}
         </div>
@@ -251,14 +255,14 @@ export function MapTab() {
         {splitMode === 'photo' && (
           <div className="space-y-2 pl-1">
             <div className="flex items-center gap-2">
-              <Label className="text-xs text-muted-foreground flex-1">Position</Label>
+              <Label className="text-xs text-muted-foreground flex-1">{t('mapZonePosition')}</Label>
               <div className="flex items-center gap-1">
                 <button
                   type="button"
                   onClick={() => cycleZone(-1)}
                   disabled={zoneCount < 2}
                   className="w-7 h-7 flex items-center justify-center rounded-sm border border-border bg-white text-muted-foreground hover:border-muted-foreground disabled:opacity-40"
-                  aria-label="Vorherige Zone"
+                  aria-label={t('mapZonePrev')}
                 >
                   <ChevronLeft className="w-3.5 h-3.5" />
                 </button>
@@ -270,7 +274,7 @@ export function MapTab() {
                   onClick={() => cycleZone(1)}
                   disabled={zoneCount < 2}
                   className="w-7 h-7 flex items-center justify-center rounded-sm border border-border bg-white text-muted-foreground hover:border-muted-foreground disabled:opacity-40"
-                  aria-label="Nächste Zone"
+                  aria-label={t('mapZoneNext')}
                 >
                   <ChevronRight className="w-3.5 h-3.5" />
                 </button>
@@ -298,12 +302,12 @@ export function MapTab() {
                 {splitUploading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span className="ml-2">Hochladen… {splitProgress}%</span>
+                    <span className="ml-2">{t('uploadProgress', { progress: splitProgress })}</span>
                   </>
                 ) : (
                   <>
                     <Upload className="w-4 h-4" />
-                    <span className="ml-2">Foto hochladen</span>
+                    <span className="ml-2">{t('mapPhotoUpload')}</span>
                   </>
                 )}
               </Button>
@@ -319,7 +323,7 @@ export function MapTab() {
                     type="button"
                     onClick={handleRemoveSplitPhoto}
                     className="w-7 h-7 flex items-center justify-center rounded-sm hover:bg-muted text-muted-foreground hover:text-red-600"
-                    aria-label="Foto entfernen"
+                    aria-label={t('mapPhotoRemoveAria')}
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
@@ -343,7 +347,7 @@ export function MapTab() {
                 </div>
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] text-muted-foreground">Zoom</span>
+                    <span className="text-[11px] text-muted-foreground">{t('mapPhotoZoom')}</span>
                     <span className="text-[11px] text-muted-foreground/70 tabular-nums">
                       {splitPhoto.cropScale.toFixed(1)}×
                     </span>
@@ -355,7 +359,7 @@ export function MapTab() {
                   />
                 </div>
                 <p className="text-[10px] text-muted-foreground/70 leading-relaxed">
-                  Ziehe das Foto auf dem Poster, um den Ausschnitt anzupassen.
+                  {t('mapPhotoCropHint')}
                 </p>
               </div>
             )}
@@ -365,12 +369,12 @@ export function MapTab() {
         {splitMode === 'second-map' && (
           <div className="space-y-3 pl-1">
             <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Ort (rechts)</Label>
+              <Label className="text-xs text-muted-foreground">{t('mapSecondLocation')}</Label>
               <LocationSearch onSelect={(lng, lat) => flyToSecondLocation(lng, lat)} />
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Kartenstil (rechts)</Label>
+              <Label className="text-xs text-muted-foreground">{t('mapSecondStyle')}</Label>
               <div className="grid grid-cols-2 gap-1.5">
                 {MAP_LAYOUTS.map((layout) => (
                   <button
@@ -390,7 +394,7 @@ export function MapTab() {
               </div>
               {true && (
                 <div className="space-y-1.5 pt-2">
-                  <Label className="text-xs text-muted-foreground">Farbpalette (rechts)</Label>
+                  <Label className="text-xs text-muted-foreground">{t('mapSecondPalette')}</Label>
                   <div className="grid grid-cols-3 gap-1.5">
                     <button
                       onClick={() => setSecondMapPaletteId('original')}
@@ -400,10 +404,10 @@ export function MapTab() {
                           ? 'border-primary'
                           : 'border-border hover:border-muted-foreground',
                       )}
-                      title="Farben aus dem Kartenstil übernehmen"
+                      title={t('mapPaletteOriginalTitle')}
                     >
                       <div className="w-3 h-3 rounded-full border border-black/10 bg-gradient-to-br from-gray-200 via-gray-400 to-gray-600" />
-                      <span className="text-[10px] leading-tight text-foreground/70">Original</span>
+                      <span className="text-[10px] leading-tight text-foreground/70">{t('mapPaletteOriginal')}</span>
                     </button>
                     {availablePalettes.map((p) => {
                       const c = p.colors
@@ -449,7 +453,7 @@ export function MapTab() {
                         className="w-3 h-3 rounded-full border border-black/10"
                         style={{ background: secondMap.customPalette?.water ?? secondMap.customPaletteBase ?? '#84c5a6' }}
                       />
-                      <span className="text-[10px] leading-tight text-foreground/70">Eigene</span>
+                      <span className="text-[10px] leading-tight text-foreground/70">{t('mapPaletteCustom')}</span>
                     </button>
                   </div>
                   {secondMap.paletteId === 'custom' && (
@@ -466,7 +470,7 @@ export function MapTab() {
 
             {/* Second marker pin */}
             <div className="flex items-center justify-between">
-              <Label className="text-xs text-muted-foreground">Marker-Pin (rechts)</Label>
+              <Label className="text-xs text-muted-foreground">{t('mapSecondMarker')}</Label>
               <Switch
                 checked={secondMarker.enabled}
                 onCheckedChange={(enabled) =>
@@ -479,7 +483,7 @@ export function MapTab() {
             {secondMarker.enabled && (
               <div className="space-y-2">
                 <div className="flex items-center gap-3">
-                  <Label className="text-xs text-muted-foreground w-12 shrink-0">Typ</Label>
+                  <Label className="text-xs text-muted-foreground w-12 shrink-0">{t('mapMarkerType')}</Label>
                   <Select
                     value={secondMarker.type}
                     onValueChange={(type: 'classic' | 'heart') => setSecondMarker({ type })}
@@ -488,13 +492,13 @@ export function MapTab() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="classic">Klassisch</SelectItem>
-                      <SelectItem value="heart">Herz</SelectItem>
+                      <SelectItem value="classic">{t('mapMarkerClassic')}</SelectItem>
+                      <SelectItem value="heart">{t('mapMarkerHeart')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="flex items-center gap-3">
-                  <Label className="text-xs text-muted-foreground w-12 shrink-0">Farbe</Label>
+                  <Label className="text-xs text-muted-foreground w-12 shrink-0">{t('mapMarkerColor')}</Label>
                   <input
                     type="color"
                     value={secondMarker.color}
@@ -518,7 +522,7 @@ export function MapTab() {
 
       {/* Map layout — choose detail level / what's shown at which zoom */}
       <div className="space-y-1.5">
-        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">Kartenstil</Label>
+        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">{t('mapStyleLabel')}</Label>
         <div className="grid grid-cols-2 gap-1.5">
           {MAP_LAYOUTS.map((layout) => (
             <button
@@ -540,7 +544,7 @@ export function MapTab() {
 
       {true && (
         <div className="space-y-1.5">
-          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">Farbpalette</Label>
+          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">{t('mapPalette')}</Label>
           <div className="grid grid-cols-3 gap-1.5">
             <button
               onClick={() => setPaletteId('original')}
@@ -550,10 +554,10 @@ export function MapTab() {
                   ? 'border-primary'
                   : 'border-border hover:border-muted-foreground',
               )}
-              title="Farben aus dem Kartenstil übernehmen"
+              title={t('mapPaletteOriginalTitle')}
             >
               <div className="w-3 h-3 rounded-full border border-black/10 bg-gradient-to-br from-gray-200 via-gray-400 to-gray-600" />
-              <span className="text-[10px] leading-tight text-foreground/70">Original</span>
+              <span className="text-[10px] leading-tight text-foreground/70">{t('mapPaletteOriginal')}</span>
             </button>
             {availablePalettes.map((p) => {
               const c = p.colors
@@ -599,7 +603,7 @@ export function MapTab() {
                 className="w-3 h-3 rounded-full border border-black/10"
                 style={{ background: customPalette?.water ?? customPaletteBase ?? '#84c5a6' }}
               />
-              <span className="text-[10px] leading-tight text-foreground/70">Eigene</span>
+              <span className="text-[10px] leading-tight text-foreground/70">{t('mapPaletteCustom')}</span>
             </button>
           </div>
           {paletteId === 'custom' && (
@@ -615,7 +619,7 @@ export function MapTab() {
 
       {/* Street labels — always available, works on any map style */}
       <div className="flex items-center justify-between">
-        <Label className="text-xs text-foreground/70">Straßennamen anzeigen</Label>
+        <Label className="text-xs text-foreground/70">{t('mapShowStreets')}</Label>
         <Switch
           checked={streetLabelsVisible}
           onCheckedChange={setStreetLabelsVisible}
@@ -626,7 +630,7 @@ export function MapTab() {
 
       {/* Mask / Shape — filtered to split-only when second map is active */}
       <div className="space-y-1.5">
-        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">Kartenform</Label>
+        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">{t('mapShape')}</Label>
         <div className="grid grid-cols-3 gap-1.5">
           {(masksExpanded ? visibleMasks : visibleMasks.slice(0, MASK_INITIAL_VISIBLE)).map((mask) => (
             <button
@@ -658,7 +662,7 @@ export function MapTab() {
             className="w-full text-[11px] text-muted-foreground hover:text-foreground flex items-center justify-center gap-0.5 py-1"
           >
             {masksExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-            {masksExpanded ? 'Weniger anzeigen' : `Mehr anzeigen (${visibleMasks.length - MASK_INITIAL_VISIBLE})`}
+            {masksExpanded ? t('mapShowLess') : t('mapShowMore', { n: visibleMasks.length - MASK_INITIAL_VISIBLE })}
           </button>
         )}
       </div>
@@ -667,7 +671,7 @@ export function MapTab() {
 
       {/* Layout — where the text sits on the poster */}
       <div className="space-y-1.5">
-        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">Layout</Label>
+        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">{t('mapLayout')}</Label>
         <div className="grid grid-cols-3 gap-1.5">
           {LAYOUT_OPTIONS.map((opt) => (
             <button
@@ -697,7 +701,7 @@ export function MapTab() {
       {/* Inner margin — how much the whole poster content is inset */}
       <div className="space-y-1.5">
         <div className="flex items-center justify-between">
-          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">Formkontur</Label>
+          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">{t('mapShapeContour')}</Label>
           <span className="text-[11px] text-muted-foreground/70 tabular-nums">{innerMarginMm} mm</span>
         </div>
         <Slider
@@ -952,10 +956,10 @@ export function MapTab() {
 
       {/* Marker Pin */}
       <div className="space-y-3">
-        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">Marker-Pin</Label>
+        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">{t('mapMarkerLabel')}</Label>
         <div className="flex items-center justify-between">
           <Label htmlFor="marker-switch" className="text-sm text-foreground/70 cursor-pointer">
-            Marker anzeigen
+            {t('mapMarkerShow')}
           </Label>
           <Switch
             id="marker-switch"
@@ -973,7 +977,7 @@ export function MapTab() {
         {marker.enabled && (
           <div className="space-y-2">
             <div className="flex items-center gap-3">
-              <Label className="text-sm text-muted-foreground w-12 shrink-0">Typ</Label>
+              <Label className="text-sm text-muted-foreground w-12 shrink-0">{t('mapMarkerType')}</Label>
               <Select
                 value={marker.type}
                 onValueChange={(type: 'classic' | 'heart') => setMarker({ type })}
@@ -982,13 +986,13 @@ export function MapTab() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="classic">Klassisch</SelectItem>
-                  <SelectItem value="heart">Herz</SelectItem>
+                  <SelectItem value="classic">{t('mapMarkerClassic')}</SelectItem>
+                  <SelectItem value="heart">{t('mapMarkerHeart')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="flex items-center gap-3">
-              <Label className="text-sm text-muted-foreground w-12 shrink-0">Farbe</Label>
+              <Label className="text-sm text-muted-foreground w-12 shrink-0">{t('mapMarkerColor')}</Label>
               <input
                 type="color"
                 value={marker.color}
@@ -1062,17 +1066,6 @@ export function MapTab() {
 
 // ─── Custom palette editor ─────────────────────────────────────────────────────
 
-const PALETTE_FIELD_LABELS: Array<{ key: keyof MapPaletteColors; label: string; description: string }> = [
-  { key: 'background', label: 'Hintergrund', description: 'Poster-Grundfläche' },
-  { key: 'land', label: 'Land', description: 'Landflächen, Parks' },
-  { key: 'water', label: 'Wasser', description: 'Meer, See, Fluss' },
-  { key: 'road', label: 'Straßen', description: 'Alle Straßenlinien' },
-  { key: 'building', label: 'Gebäude', description: 'Häuser-Umrisse' },
-  { key: 'border', label: 'Grenzen', description: 'Ländergrenzen' },
-  { key: 'label', label: 'Text', description: 'Orts- und Straßennamen' },
-  { key: 'labelHalo', label: 'Text-Umrandung', description: 'Weißer Schein um den Text' },
-]
-
 function CustomPaletteEditor({
   colors,
   onColorChange,
@@ -1084,17 +1077,28 @@ function CustomPaletteEditor({
   onReset: () => void
   onSaveAsPalette?: (colors: MapPaletteColors) => void
 }) {
+  const t = useTranslations('editor')
+  const PALETTE_FIELD_LABELS: Array<{ key: keyof MapPaletteColors; label: string; description: string }> = [
+    { key: 'background', label: t('paletteFieldBackground'), description: t('paletteFieldBackgroundDesc') },
+    { key: 'land', label: t('paletteFieldLand'), description: t('paletteFieldLandDesc') },
+    { key: 'water', label: t('paletteFieldWater'), description: t('paletteFieldWaterDesc') },
+    { key: 'road', label: t('paletteFieldRoad'), description: t('paletteFieldRoadDesc') },
+    { key: 'building', label: t('paletteFieldBuilding'), description: t('paletteFieldBuildingDesc') },
+    { key: 'border', label: t('paletteFieldBorder'), description: t('paletteFieldBorderDesc') },
+    { key: 'label', label: t('paletteFieldLabel'), description: t('paletteFieldLabelDesc') },
+    { key: 'labelHalo', label: t('paletteFieldLabelHalo'), description: t('paletteFieldLabelHaloDesc') },
+  ]
   const effective = colors ?? MAP_PALETTES[0].colors
   return (
     <div className="space-y-2 pt-2">
       <div className="flex items-center justify-between">
-        <span className="text-[11px] text-muted-foreground uppercase tracking-wider">Alle Farben</span>
+        <span className="text-[11px] text-muted-foreground uppercase tracking-wider">{t('paletteAllColors')}</span>
         <button
           type="button"
           onClick={onReset}
           className="text-[10px] text-muted-foreground/70 hover:text-foreground/70"
         >
-          Zurücksetzen
+          {t('paletteReset')}
         </button>
       </div>
       {PALETTE_FIELD_LABELS.map((field) => (

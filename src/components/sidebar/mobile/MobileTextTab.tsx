@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 import {
   Plus,
   Lock,
@@ -32,15 +33,6 @@ import { useEditorStore, type TextBlock } from '@/hooks/useEditorStore'
 import { getCoordinatesText } from '@/components/editor/TextBlockOverlay'
 import { cn } from '@/lib/utils'
 
-const TITLE_IDEAS = [
-  'Wo alles begann...',
-  'Home sweet home',
-  'Du und ich',
-  'Zu Hause',
-  'Just married',
-  'Unser erster Kuss',
-]
-
 const FONT_OPTIONS: { value: string; label: string }[] = [
   { value: 'Playfair Display', label: 'Playfair Display' },
   { value: 'Montserrat', label: 'Montserrat' },
@@ -51,14 +43,8 @@ const FONT_OPTIONS: { value: string; label: string }[] = [
   { value: 'Arial', label: 'Arial' },
 ]
 
-function getBlockLabel(block: TextBlock, coordsText?: string): string {
-  if (block.label) return block.label
-  if (block.isCoordinates) return coordsText ?? 'Ort & Koordinaten'
-  if (!block.text.trim()) return 'Leer'
-  return block.text.length > 24 ? `${block.text.slice(0, 24)}…` : block.text
-}
-
 export function MobileTextTab() {
+  const t = useTranslations('editor')
   const {
     textBlocks,
     addTextBlock,
@@ -72,6 +58,22 @@ export function MobileTextTab() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const coordsText = getCoordinatesText(viewState.lat, viewState.lng, locationName)
   const editingBlock = textBlocks.find((b) => b.id === editingId) ?? null
+
+  const titleIdeas = [
+    t('textIdea1'),
+    t('textIdea2'),
+    t('textIdea3'),
+    t('textIdea4'),
+    t('textIdea5'),
+    t('textIdea6'),
+  ]
+
+  const getBlockLabel = (block: TextBlock): string => {
+    if (block.label) return block.label
+    if (block.isCoordinates) return coordsText ?? t('textLabelCoordinates')
+    if (!block.text.trim()) return t('textLabelEmpty')
+    return block.text.length > 24 ? `${block.text.slice(0, 24)}…` : block.text
+  }
 
   const openEditor = (id: string) => {
     setSelectedBlockId(id)
@@ -90,7 +92,7 @@ export function MobileTextTab() {
         className="w-full h-11 flex items-center justify-center gap-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
       >
         <Plus className="w-4 h-4" />
-        Textblock hinzufügen
+        {t('textAddBlock')}
       </button>
 
       <div className="space-y-1">
@@ -101,7 +103,7 @@ export function MobileTextTab() {
             className="flex items-center gap-2 px-3 py-3 rounded-md cursor-pointer hover:bg-muted active:bg-muted min-h-[44px]"
           >
             <span className="flex-1 text-sm text-foreground/70 truncate">
-              {getBlockLabel(block, coordsText)}
+              {getBlockLabel(block)}
             </span>
             <button
               type="button"
@@ -110,7 +112,7 @@ export function MobileTextTab() {
                 updateTextBlock(block.id, { locked: !block.locked })
               }}
               className="w-9 h-9 flex items-center justify-center text-muted-foreground hover:text-foreground"
-              aria-label={block.locked ? 'Entsperren' : 'Sperren'}
+              aria-label={block.locked ? t('textUnlock') : t('textLock')}
             >
               {block.locked ? (
                 <Lock className="w-4 h-4" />
@@ -125,7 +127,7 @@ export function MobileTextTab() {
 
       {textBlocks.length === 0 && (
         <p className="text-[11px] text-muted-foreground/70 leading-relaxed text-center pt-4">
-          Noch keine Textblöcke. Tipp auf „Textblock hinzufügen", um loszulegen.
+          {t('textNoBlocksHint')}
         </p>
       )}
 
@@ -135,7 +137,7 @@ export function MobileTextTab() {
             <>
               <SheetHeader className="shrink-0 px-4 pt-4 pb-2 border-b border-border">
                 <SheetTitle className="text-left text-sm font-semibold">
-                  Textblock bearbeiten
+                  {t('textEditBlock')}
                 </SheetTitle>
               </SheetHeader>
 
@@ -143,7 +145,7 @@ export function MobileTextTab() {
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
                     <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
-                      Text
+                      {t('textLabel')}
                     </Label>
                     {!editingBlock.isCoordinates && (
                       <Select
@@ -153,10 +155,10 @@ export function MobileTextTab() {
                         }
                       >
                         <SelectTrigger className="h-6 w-auto text-xs border-0 shadow-none text-muted-foreground/70 hover:text-foreground/70 px-1 gap-1 focus:ring-0">
-                          <SelectValue placeholder="Ideen" />
+                          <SelectValue placeholder={t('textIdeas')} />
                         </SelectTrigger>
                         <SelectContent>
-                          {TITLE_IDEAS.map((idea) => (
+                          {titleIdeas.map((idea) => (
                             <SelectItem key={idea} value={idea} className="text-sm">
                               {idea}
                             </SelectItem>
@@ -179,7 +181,7 @@ export function MobileTextTab() {
 
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
-                    Schriftart
+                    {t('textFontFamily')}
                   </Label>
                   <Select
                     value={editingBlock.fontFamily}
@@ -202,7 +204,7 @@ export function MobileTextTab() {
 
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
-                    Größe
+                    {t('textSize')}
                   </Label>
                   <div className="flex items-center gap-2">
                     <input
@@ -237,7 +239,7 @@ export function MobileTextTab() {
 
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
-                    Farbe
+                    {t('textColor')}
                   </Label>
                   <input
                     type="color"
@@ -251,14 +253,14 @@ export function MobileTextTab() {
 
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
-                    Ausrichtung
+                    {t('textAlignment')}
                   </Label>
                   <div className="grid grid-cols-3 gap-1.5">
                     {(
                       [
-                        { value: 'left', Icon: AlignLeft, label: 'Links' },
-                        { value: 'center', Icon: AlignCenter, label: 'Zentriert' },
-                        { value: 'right', Icon: AlignRight, label: 'Rechts' },
+                        { value: 'left', Icon: AlignLeft, label: t('textAlignLeft') },
+                        { value: 'center', Icon: AlignCenter, label: t('textAlignCenter') },
+                        { value: 'right', Icon: AlignRight, label: t('textAlignRight') },
                       ] as const
                     ).map(({ value, Icon, label }) => {
                       const active = editingBlock.align === value
@@ -286,7 +288,7 @@ export function MobileTextTab() {
 
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
-                    Stil
+                    {t('textStyle')}
                   </Label>
                   <div className="grid grid-cols-2 gap-1.5">
                     <button
@@ -294,7 +296,7 @@ export function MobileTextTab() {
                       onClick={() =>
                         updateTextBlock(editingBlock.id, { bold: !editingBlock.bold })
                       }
-                      aria-label="Fett"
+                      aria-label={t('textBold')}
                       className={cn(
                         'h-11 flex items-center justify-center rounded-md text-sm font-bold transition-colors',
                         editingBlock.bold
@@ -311,7 +313,7 @@ export function MobileTextTab() {
                           uppercase: !editingBlock.uppercase,
                         })
                       }
-                      aria-label="Großbuchstaben"
+                      aria-label={t('textUppercase')}
                       className={cn(
                         'h-11 flex items-center justify-center rounded-md text-sm transition-colors',
                         editingBlock.uppercase
@@ -336,7 +338,7 @@ export function MobileTextTab() {
                       className="w-full h-11 flex items-center justify-center gap-2 rounded-md border border-red-200 text-red-600 text-sm font-medium hover:bg-red-50 transition-colors"
                     >
                       <Trash2 className="w-4 h-4" />
-                      Textblock löschen
+                      {t('textDeleteBlock')}
                     </button>
                   </>
                 )}

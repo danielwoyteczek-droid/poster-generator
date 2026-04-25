@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
@@ -19,13 +20,15 @@ const SINGLE_MASK_OPTIONS = MAP_MASK_OPTIONS.filter(
   (m) => !m.isSplit && m.key !== 'text-below',
 )
 
-const LAYOUT_OPTIONS: { id: 'full' | 'text-30' | 'text-15'; label: string; description: string }[] = [
-  { id: 'full', label: 'Vollflächig', description: 'Karte füllt das gesamte Poster' },
-  { id: 'text-30', label: 'Text unten 30 %', description: 'Karte oben 70 %, unten 30 % Text' },
-  { id: 'text-15', label: 'Text unten 15 %', description: 'Karte oben 85 %, unten 15 % Text' },
-]
-
 export function MobileLayoutTab() {
+  const t = useTranslations('editor')
+
+  const LAYOUT_OPTIONS: { id: 'full' | 'text-30' | 'text-15'; label: string; description: string }[] = [
+    { id: 'full', label: t('mapLayoutFull'), description: t('mapLayoutFullDesc') },
+    { id: 'text-30', label: t('mapLayoutText30'), description: t('mapLayoutText30Desc') },
+    { id: 'text-15', label: t('mapLayoutText15'), description: t('mapLayoutText15Desc') },
+  ]
+
   const {
     maskKey, shapeConfig,
     setMaskKey,
@@ -55,7 +58,7 @@ export function MobileLayoutTab() {
     <div className="space-y-5 p-4">
       {/* Kartenform */}
       <div className="space-y-1.5">
-        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">Kartenform</Label>
+        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">{t('mapShape')}</Label>
         <div className="grid grid-cols-3 gap-1.5">
           {(masksExpanded ? visibleMasks : visibleMasks.slice(0, MASK_INITIAL_VISIBLE)).map((mask) => (
             <button
@@ -87,7 +90,7 @@ export function MobileLayoutTab() {
             className="w-full h-9 text-xs text-muted-foreground hover:text-foreground flex items-center justify-center gap-1"
           >
             {masksExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-            {masksExpanded ? 'Weniger anzeigen' : `Mehr anzeigen (${visibleMasks.length - MASK_INITIAL_VISIBLE})`}
+            {masksExpanded ? t('mapShowLess') : t('mapShowMore', { n: visibleMasks.length - MASK_INITIAL_VISIBLE })}
           </button>
         )}
       </div>
@@ -96,7 +99,7 @@ export function MobileLayoutTab() {
 
       {/* Layout */}
       <div className="space-y-1.5">
-        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">Layout</Label>
+        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">{t('mapLayout')}</Label>
         <div className="grid grid-cols-3 gap-1.5">
           {LAYOUT_OPTIONS.map((opt) => (
             <button
@@ -126,7 +129,7 @@ export function MobileLayoutTab() {
       {/* Formkontur */}
       <div className="space-y-1.5">
         <div className="flex items-center justify-between">
-          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">Formkontur</Label>
+          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">{t('mapShapeContour')}</Label>
           <span className="text-xs text-muted-foreground/70 tabular-nums">{innerMarginMm} mm</span>
         </div>
         <Slider
