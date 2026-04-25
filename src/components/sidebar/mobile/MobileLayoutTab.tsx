@@ -114,25 +114,128 @@ export function MobileLayoutTab() {
 
       <Separator />
 
-      {/* Formkontur */}
-      <div className="space-y-1.5">
-        <div className="flex items-center justify-between">
-          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">{t('mapShapeContour')}</Label>
-          <span className="text-xs text-muted-foreground/70 tabular-nums">{innerMarginMm} mm</span>
-        </div>
-        <Slider
-          min={0}
-          max={10}
-          step={1}
-          value={[innerMarginMm]}
-          onValueChange={([v]) => setInnerMarginMm(v)}
-        />
-      </div>
+      {/* Customer-facing Design controls: Formkontur + Äußerer Rahmen.
+          The innerMarginMm slider was previously labelled 'Formkontur' here
+          but actually controls inner padding — moved into the admin block
+          below as 'Innenabstand'. */}
+      {(shapeSupported || isSplitActive) && (
+        <>
+          <Separator />
+          <div className="space-y-4">
+            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
+              {t('designSectionLabel')}
+            </Label>
 
-      {/* Admin-only Design composition. In Split/Dual modes only the Äußerer
-          Rahmen is meaningful (no single shape to fade or hug), so the
-          Außenbereich + Rand sub-sections wrap themselves in `shapeSupported`
-          while the outer frame uses `|| isSplitActive` to stay visible. */}
+            {/* Formkontur (shape-only — hugs the silhouette) */}
+            {shapeSupported && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-foreground/70">{t('mapShapeContour')}</span>
+                <Switch
+                  checked={shapeConfig.innerFrame.enabled}
+                  onCheckedChange={(enabled) => setInnerFrame({ enabled })}
+                />
+              </div>
+              {shapeConfig.innerFrame.enabled && (
+                <div className="space-y-2 pl-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">{t('frameColor')}</span>
+                    <input
+                      type="color"
+                      value={shapeConfig.innerFrame.color}
+                      onChange={(e) => setInnerFrame({ color: e.target.value })}
+                      className="w-8 h-8 rounded-full border border-border cursor-pointer p-0 overflow-hidden"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">{t('frameThickness')}</span>
+                      <span className="text-xs text-muted-foreground/70 tabular-nums">{shapeConfig.innerFrame.thickness} mm</span>
+                    </div>
+                    <Slider
+                      min={0.3} max={2} step={0.1}
+                      value={[shapeConfig.innerFrame.thickness]}
+                      onValueChange={([v]) => setInnerFrame({ thickness: v })}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+            )}
+
+            {/* Äußerer Rahmen — Rechteck am Poster-Rand. Auch in Split/Dual
+                Modi verfügbar; dort wird er über ein synthetisches Poster-
+                Rechteck gerendert. */}
+            {(shapeConfig.outer.mode !== 'none' || isSplitActive) && (
+              <div className="space-y-2 pt-2 border-t border-border">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-foreground/70">{t('mapOuterFrame')}</span>
+                  <Switch
+                    checked={shapeConfig.outerFrame.enabled}
+                    onCheckedChange={(enabled) => setOuterFrame({ enabled })}
+                  />
+                </div>
+                {shapeConfig.outerFrame.enabled && (
+                  <div className="space-y-2 pl-1">
+                    <div className="grid grid-cols-2 gap-1">
+                      {(['single', 'double'] as const).map((s) => (
+                        <button
+                          key={s}
+                          type="button"
+                          onClick={() => setOuterFrame({ style: s })}
+                          className={cn(
+                            'h-9 text-xs rounded border',
+                            shapeConfig.outerFrame.style === s
+                              ? 'bg-primary text-primary-foreground border-primary'
+                              : 'bg-white text-muted-foreground border-border hover:border-muted-foreground',
+                          )}
+                        >
+                          {s === 'single' ? t('frameStyleSingle') : t('frameStyleDouble')}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">{t('frameColor')}</span>
+                      <input
+                        type="color"
+                        value={shapeConfig.outerFrame.color}
+                        onChange={(e) => setOuterFrame({ color: e.target.value })}
+                        className="w-8 h-8 rounded-full border border-border cursor-pointer p-0 overflow-hidden"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground">{t('frameThickness')}</span>
+                        <span className="text-xs text-muted-foreground/70 tabular-nums">{shapeConfig.outerFrame.thickness} mm</span>
+                      </div>
+                      <Slider
+                        min={0.3} max={2} step={0.1}
+                        value={[shapeConfig.outerFrame.thickness]}
+                        onValueChange={([v]) => setOuterFrame({ thickness: v })}
+                      />
+                    </div>
+                    {shapeConfig.outerFrame.style === 'double' && (
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-muted-foreground">{t('frameLineGap')}</span>
+                          <span className="text-xs text-muted-foreground/70 tabular-nums">{shapeConfig.outerFrame.gap} mm</span>
+                        </div>
+                        <Slider
+                          min={0.5} max={3} step={0.1}
+                          value={[shapeConfig.outerFrame.gap]}
+                          onValueChange={([v]) => setOuterFrame({ gap: v })}
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* Admin-only Außenbereich + Innenabstand. */}
       {isAdmin && (shapeSupported || isSplitActive) && (
         <>
           <Separator />
@@ -140,6 +243,23 @@ export function MobileLayoutTab() {
             <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
               Design <span className="text-[10px] normal-case text-amber-600 ml-1">Admin</span>
             </Label>
+
+            {/* Innenabstand — was 'Formkontur' on the customer side */}
+            {shapeSupported && (
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-foreground/70">Innenabstand</span>
+                  <span className="text-xs text-muted-foreground/70 tabular-nums">{innerMarginMm} mm</span>
+                </div>
+                <Slider
+                  min={0}
+                  max={10}
+                  step={1}
+                  value={[innerMarginMm]}
+                  onValueChange={([v]) => setInnerMarginMm(v)}
+                />
+              </div>
+            )}
 
             {/* Außenbereich (shape-only) */}
             {shapeSupported && (
@@ -259,112 +379,6 @@ export function MobileLayoutTab() {
                 </div>
               )}
             </div>
-            )}
-
-            {/* Rand (shape-only — hugs the silhouette) */}
-            {shapeSupported && (
-            <div className="space-y-2 pt-2 border-t border-border">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-foreground/70">Rand</span>
-                <Switch
-                  checked={shapeConfig.innerFrame.enabled}
-                  onCheckedChange={(enabled) => setInnerFrame({ enabled })}
-                />
-              </div>
-              {shapeConfig.innerFrame.enabled && (
-                <div className="space-y-2 pl-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">Farbe</span>
-                    <input
-                      type="color"
-                      value={shapeConfig.innerFrame.color}
-                      onChange={(e) => setInnerFrame({ color: e.target.value })}
-                      className="w-8 h-8 rounded-full border border-border cursor-pointer p-0 overflow-hidden"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">Dicke</span>
-                      <span className="text-xs text-muted-foreground/70 tabular-nums">{shapeConfig.innerFrame.thickness} mm</span>
-                    </div>
-                    <Slider
-                      min={0.3} max={2} step={0.1}
-                      value={[shapeConfig.innerFrame.thickness]}
-                      onValueChange={([v]) => setInnerFrame({ thickness: v })}
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-            )}
-
-            {/* Äußerer Rahmen — Rechteck am Poster-Rand. Auch in Split/Dual
-                Modi verfügbar; dort wird er über ein synthetisches Poster-
-                Rechteck gerendert. */}
-            {(shapeConfig.outer.mode !== 'none' || isSplitActive) && (
-              <div className="space-y-2 pt-2 border-t border-border">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-foreground/70">Äußerer Rahmen</span>
-                  <Switch
-                    checked={shapeConfig.outerFrame.enabled}
-                    onCheckedChange={(enabled) => setOuterFrame({ enabled })}
-                  />
-                </div>
-                {shapeConfig.outerFrame.enabled && (
-                  <div className="space-y-2 pl-1">
-                    <div className="grid grid-cols-2 gap-1">
-                      {(['single', 'double'] as const).map((s) => (
-                        <button
-                          key={s}
-                          type="button"
-                          onClick={() => setOuterFrame({ style: s })}
-                          className={cn(
-                            'h-9 text-xs rounded border',
-                            shapeConfig.outerFrame.style === s
-                              ? 'bg-primary text-primary-foreground border-primary'
-                              : 'bg-white text-muted-foreground border-border hover:border-muted-foreground',
-                          )}
-                        >
-                          {s === 'single' ? 'Einfach' : 'Doppelt'}
-                        </button>
-                      ))}
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">Farbe</span>
-                      <input
-                        type="color"
-                        value={shapeConfig.outerFrame.color}
-                        onChange={(e) => setOuterFrame({ color: e.target.value })}
-                        className="w-8 h-8 rounded-full border border-border cursor-pointer p-0 overflow-hidden"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-muted-foreground">Dicke</span>
-                        <span className="text-xs text-muted-foreground/70 tabular-nums">{shapeConfig.outerFrame.thickness} mm</span>
-                      </div>
-                      <Slider
-                        min={0.3} max={2} step={0.1}
-                        value={[shapeConfig.outerFrame.thickness]}
-                        onValueChange={([v]) => setOuterFrame({ thickness: v })}
-                      />
-                    </div>
-                    {shapeConfig.outerFrame.style === 'double' && (
-                      <div className="space-y-1">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-muted-foreground">Abstand der Linien</span>
-                          <span className="text-xs text-muted-foreground/70 tabular-nums">{shapeConfig.outerFrame.gap} mm</span>
-                        </div>
-                        <Slider
-                          min={0.5} max={3} step={0.1}
-                          value={[shapeConfig.outerFrame.gap]}
-                          onValueChange={([v]) => setOuterFrame({ gap: v })}
-                        />
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
             )}
           </div>
         </>
