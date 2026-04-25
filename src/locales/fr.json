@@ -1,6 +1,7 @@
 {
   "common": {
     "languageLabel": "Langue",
+    "languageSwitchAria": "Changer de langue",
     "languageSwitcherDe": "Deutsch",
     "languageSwitcherEn": "English",
     "loading": "Chargement…",
@@ -8,6 +9,19 @@
     "cancel": "Annuler",
     "delete": "Supprimer",
     "close": "Fermer"
+  },
+  "editorTabs": {
+    "map": "Carte",
+    "layout": "Mise en page",
+    "text": "Texte",
+    "marker": "Épingle",
+    "photo": "Photo",
+    "photos": "Photos",
+    "export": "Export",
+    "stars": "Étoiles",
+    "sky": "Ciel",
+    "mapPageTitle": "Éditeur de carte | Poster Generator",
+    "starMapPageTitle": "Éditeur de carte du ciel | Poster Generator"
   },
   "auth": {
     "signInTitle": "Se connecter",

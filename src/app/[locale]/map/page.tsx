@@ -1,11 +1,13 @@
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
+import { getTranslations } from 'next-intl/server'
 import { EditorShell } from '@/components/editor/EditorShell'
 import { LandingNav } from '@/components/landing/LandingNav'
 import { PresetUrlApplier } from '@/components/editor/PresetUrlApplier'
 
-export const metadata: Metadata = {
-  title: 'Karten-Editor | Poster Generator',
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations('editorTabs')
+  return { title: t('mapPageTitle') }
 }
 
 export default function MapPage() {

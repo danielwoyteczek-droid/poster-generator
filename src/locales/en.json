@@ -1,6 +1,7 @@
 {
   "common": {
     "languageLabel": "Language",
+    "languageSwitchAria": "Switch language",
     "languageSwitcherDe": "Deutsch",
     "languageSwitcherEn": "English",
     "loading": "Loading …",
@@ -8,6 +9,19 @@
     "cancel": "Cancel",
     "delete": "Delete",
     "close": "Close"
+  },
+  "editorTabs": {
+    "map": "Map",
+    "layout": "Layout",
+    "text": "Text",
+    "marker": "Marker",
+    "photo": "Photo",
+    "photos": "Photos",
+    "export": "Export",
+    "stars": "Stars",
+    "sky": "Sky",
+    "mapPageTitle": "Map editor | Poster Generator",
+    "starMapPageTitle": "Star map editor | Poster Generator"
   },
   "auth": {
     "signInTitle": "Sign in",

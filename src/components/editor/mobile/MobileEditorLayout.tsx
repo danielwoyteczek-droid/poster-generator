@@ -2,6 +2,7 @@
 
 import '@maptiler/sdk/dist/maptiler-sdk.css'
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { Map, Droplet, Type, MapPin, Camera, ShoppingBag } from 'lucide-react'
 import { PosterCanvas } from '@/components/editor/PosterCanvas'
 import { MobileMapTab } from '@/components/sidebar/mobile/MobileMapTab'
@@ -15,18 +16,19 @@ import { cn } from '@/lib/utils'
 
 type MobileTab = 'map' | 'layout' | 'text' | 'marker' | 'photo' | 'export'
 
-const TABS: { id: MobileTab; label: string; Icon: typeof Map }[] = [
-  { id: 'map', label: 'Karte', Icon: Map },
-  { id: 'layout', label: 'Layout', Icon: Droplet },
-  { id: 'text', label: 'Text', Icon: Type },
-  { id: 'marker', label: 'Marker', Icon: MapPin },
-  { id: 'photo', label: 'Fotos', Icon: Camera },
-  { id: 'export', label: 'Export', Icon: ShoppingBag },
-]
-
 export function MobileEditorLayout() {
+  const t = useTranslations('editorTabs')
   useProjectSync()
   const [activeTab, setActiveTab] = useState<MobileTab>('map')
+
+  const TABS: { id: MobileTab; label: string; Icon: typeof Map }[] = [
+    { id: 'map', label: t('map'), Icon: Map },
+    { id: 'layout', label: t('layout'), Icon: Droplet },
+    { id: 'text', label: t('text'), Icon: Type },
+    { id: 'marker', label: t('marker'), Icon: MapPin },
+    { id: 'photo', label: t('photos'), Icon: Camera },
+    { id: 'export', label: t('export'), Icon: ShoppingBag },
+  ]
 
   return (
     <div className="flex flex-col h-full overflow-hidden">

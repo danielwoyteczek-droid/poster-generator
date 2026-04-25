@@ -1,6 +1,7 @@
 {
   "common": {
     "languageLabel": "Sprache",
+    "languageSwitchAria": "Sprache wechseln",
     "languageSwitcherDe": "Deutsch",
     "languageSwitcherEn": "English",
     "loading": "Lädt …",
@@ -8,6 +9,19 @@
     "cancel": "Abbrechen",
     "delete": "Löschen",
     "close": "Schließen"
+  },
+  "editorTabs": {
+    "map": "Karte",
+    "layout": "Layout",
+    "text": "Text",
+    "marker": "Marker",
+    "photo": "Foto",
+    "photos": "Fotos",
+    "export": "Export",
+    "stars": "Sterne",
+    "sky": "Himmel",
+    "mapPageTitle": "Karten-Editor | Poster Generator",
+    "starMapPageTitle": "Sternkarten-Editor | Poster Generator"
   },
   "auth": {
     "signInTitle": "Anmelden",

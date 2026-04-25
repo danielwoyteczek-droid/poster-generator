@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { Languages } from 'lucide-react'
 import {
   DropdownMenu,
@@ -46,6 +47,7 @@ interface LanguageSwitcherProps {
 }
 
 export function LanguageSwitcher({ variant = 'compact' }: LanguageSwitcherProps) {
+  const t = useTranslations('common')
   const [active, setActive] = useState<Locale>(defaultLocale)
 
   useEffect(() => {
@@ -75,7 +77,7 @@ export function LanguageSwitcher({ variant = 'compact' }: LanguageSwitcherProps)
   const triggerCompact = (
     <button
       className="inline-flex items-center gap-1 px-2 py-1.5 rounded-md text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors uppercase tabular-nums"
-      aria-label="Sprache wechseln"
+      aria-label={t('languageSwitchAria')}
     >
       <Languages className="w-4 h-4" />
       <span className="text-xs font-medium">{active}</span>
@@ -86,7 +88,7 @@ export function LanguageSwitcher({ variant = 'compact' }: LanguageSwitcherProps)
     <button className="w-full flex items-center justify-between px-3 py-2 rounded-md text-sm text-gray-700 hover:bg-gray-100 transition-colors">
       <span className="flex items-center gap-2">
         <Languages className="w-4 h-4" />
-        Sprache · Language
+        {t('languageLabel')}
       </span>
       <span className="text-xs uppercase text-gray-400">{active}</span>
     </button>

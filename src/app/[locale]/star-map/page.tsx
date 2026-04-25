@@ -1,11 +1,13 @@
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
+import { getTranslations } from 'next-intl/server'
 import { LandingNav } from '@/components/landing/LandingNav'
 import { StarMapLayout } from '@/components/star-map/StarMapLayout'
 import { PresetUrlApplier } from '@/components/editor/PresetUrlApplier'
 
-export const metadata: Metadata = {
-  title: 'Sternkarten-Editor | Poster Generator',
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations('editorTabs')
+  return { title: t('starMapPageTitle') }
 }
 
 export default function StarMapPage() {

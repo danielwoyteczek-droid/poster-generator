@@ -1,6 +1,7 @@
 'use client'
 
 import '@maptiler/sdk/dist/maptiler-sdk.css'
+import { useTranslations } from 'next-intl'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { MapTab } from '@/components/sidebar/MapTab'
@@ -11,6 +12,7 @@ import { PosterCanvas } from './PosterCanvas'
 import { useProjectSync } from '@/hooks/useProjectSync'
 
 export function EditorLayout() {
+  const t = useTranslations('editorTabs')
   useProjectSync()
 
   return (
@@ -23,25 +25,25 @@ export function EditorLayout() {
               value="map"
               className="flex-1 h-full rounded-none text-xs font-medium data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-white"
             >
-              Karte
+              {t('map')}
             </TabsTrigger>
             <TabsTrigger
               value="text"
               className="flex-1 h-full rounded-none text-xs font-medium data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-white"
             >
-              Text
+              {t('text')}
             </TabsTrigger>
             <TabsTrigger
               value="photo"
               className="flex-1 h-full rounded-none text-xs font-medium data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-white"
             >
-              Foto
+              {t('photo')}
             </TabsTrigger>
             <TabsTrigger
               value="export"
               className="flex-1 h-full rounded-none text-xs font-medium data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-white"
             >
-              Export
+              {t('export')}
             </TabsTrigger>
           </TabsList>
 
