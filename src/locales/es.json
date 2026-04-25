@@ -174,6 +174,7 @@
     "exportSelectProduct": "Elegir producto",
     "exportSecureNote": "Pago seguro vía Stripe. Los productos físicos se envían en 3–5 días laborables.",
     "exportDefaultPosterTitle": "Póster cartográfico",
+    "exportDefaultStarTitle": "Carta estelar",
     "mapLocationSearch": "Buscar lugar",
     "mapSecondViewLabel": "Segunda vista",
     "mapSecondViewNone": "Ninguna",
@@ -294,6 +295,64 @@
     "body": "Hemos recibido tu pedido correctamente. Recibirás un correo de confirmación en breve. Los productos físicos se envían en 3–5 días laborables.",
     "homeCta": "Volver al inicio",
     "createAnotherCta": "Crear otro póster"
+  },
+  "products": {
+    "downloadLabel": "Descarga digital",
+    "downloadDescription": "Archivo PNG + PDF en calidad de impresión, disponible al instante",
+    "posterLabel": "Póster",
+    "posterDescription": "Impresión de alta calidad en papel fotográfico, enviada por correo. Descarga digital incluida.",
+    "frameLabel": "Póster enmarcado (negro)",
+    "frameDescription": "Póster en marco de madera negro, listo para colgar. Descarga digital incluida."
+  },
+  "mapLayouts": {
+    "klassischLabel": "Clásico",
+    "klassischDescription": "Estructura básica clara con calles y etiquetas de lugares.",
+    "satelliteLabel": "Satélite",
+    "satelliteDescription": "Imagen de satélite — la paleta no afecta a la foto aérea.",
+    "minimalLabel": "Minimal",
+    "minimalDescription": "Aspecto de póster reducido con zonas urbanas y calles finas.",
+    "detailLabel": "Detallado",
+    "detailDescription": "Alto nivel de detalle desde z13 — edificios negros, agua azul claro, calles blancas."
+  },
+  "mapMasks": {
+    "none": "Ninguna",
+    "circle": "Círculo",
+    "heart": "Corazón dividido",
+    "heart-single": "Corazón",
+    "frame1": "Marco",
+    "text-below": "Classic",
+    "split-circles": "Círculos divididos",
+    "split-halves": "Dos mitades"
+  },
+  "photoMasks": {
+    "full": "Pantalla completa",
+    "circle": "Círculo",
+    "heart": "Corazón",
+    "square": "Cuadrado",
+    "portrait": "Vertical",
+    "landscape": "Horizontal"
+  },
+  "photoFilters": {
+    "none": "Original",
+    "grayscale": "Blanco y negro",
+    "sepia": "Sepia"
+  },
+  "consent": {
+    "title": "Cookies y seguimiento",
+    "intro": "Utilizamos cookies para mejorar nuestro sitio y medir la publicidad. Las cookies necesarias siempre están activas. Las cookies de análisis y marketing solo con tu consentimiento. Detalles en nuestra <link>política de cookies</link>.",
+    "acceptAll": "Aceptar todas",
+    "rejectAll": "Solo necesarias",
+    "settingsCta": "Configuración",
+    "settingsTitle": "Configuración",
+    "necessary": "Necesarias",
+    "necessaryDescription": "Para carrito, inicio de sesión y pago — siempre activas.",
+    "analytics": "Análisis",
+    "analyticsDescription": "Nos ayuda a entender cómo se usa el sitio (p. ej. Google Analytics).",
+    "marketing": "Marketing",
+    "marketingDescription": "Medición y remarketing para Google Ads, Meta, TikTok.",
+    "saveChoices": "Guardar selección",
+    "back": "Atrás",
+    "settingsLink": "Configuración de cookies"
   },
   "nav": {
     "cityPoster": "Póster de ciudad",

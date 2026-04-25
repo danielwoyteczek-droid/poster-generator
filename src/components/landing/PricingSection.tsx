@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
+import { useTranslatedLabel } from '@/lib/i18n-catalog'
 import { Download, ImageIcon, Frame, ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { PRODUCTS, formatPrice } from '@/lib/products'
@@ -24,6 +25,7 @@ const PRODUCT_ICONS = {
 
 export function PricingSection() {
   const t = useTranslations('pricing')
+  const productLabel = useTranslatedLabel('products')
   const [format, setFormat] = useState<PrintFormat>('a4')
   const { products: catalog, loading } = useProductCatalog()
 
@@ -80,10 +82,10 @@ export function PricingSection() {
                 </div>
 
                 <h3 className={cn('font-semibold text-lg', isHighlighted ? 'text-primary-foreground' : 'text-foreground')}>
-                  {product.label}
+                  {productLabel(`${product.id}Label`, product.label)}
                 </h3>
                 <p className={cn('text-sm mt-1 mb-6', isHighlighted ? 'text-primary-foreground/60' : 'text-muted-foreground')}>
-                  {product.description}
+                  {productLabel(`${product.id}Description`, product.description)}
                 </p>
 
                 <div className="mt-auto">

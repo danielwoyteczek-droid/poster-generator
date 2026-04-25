@@ -174,6 +174,7 @@
     "exportSelectProduct": "Produkt wählen",
     "exportSecureNote": "Sichere Zahlung via Stripe. Physische Produkte werden innerhalb von 3–5 Werktagen geliefert.",
     "exportDefaultPosterTitle": "Karten-Poster",
+    "exportDefaultStarTitle": "Sternkarte",
     "mapLocationSearch": "Ort suchen",
     "mapSecondViewLabel": "Zweite Ansicht",
     "mapSecondViewNone": "Keine",
@@ -294,6 +295,64 @@
     "body": "Deine Bestellung wurde erfolgreich aufgenommen. Du erhältst in Kürze eine Bestätigung per E-Mail. Physische Produkte werden innerhalb von 3–5 Werktagen versendet.",
     "homeCta": "Zur Startseite",
     "createAnotherCta": "Weiteres Poster erstellen"
+  },
+  "products": {
+    "downloadLabel": "Digitaler Download",
+    "downloadDescription": "PNG + PDF in Druckqualität, sofort verfügbar",
+    "posterLabel": "Poster",
+    "posterDescription": "Hochwertiger Druck auf Fotopapier, geliefert per Post. Digitaler Download inklusive.",
+    "frameLabel": "Gerahmtes Poster (schwarz)",
+    "frameDescription": "Poster im schwarzen Holzrahmen, fertig zum Aufhängen. Digitaler Download inklusive."
+  },
+  "mapLayouts": {
+    "klassischLabel": "Klassisch",
+    "klassischDescription": "Klare Grundstruktur mit Straßen und Orts-Labels.",
+    "satelliteLabel": "Satellit",
+    "satelliteDescription": "Satellitenbild – die Palette wirkt hier nicht auf die Luftaufnahme.",
+    "minimalLabel": "Minimal",
+    "minimalDescription": "Reduzierte Poster-Optik mit Urban-Flächen und feinen Straßen.",
+    "detailLabel": "Detailliert",
+    "detailDescription": "Hoher Detailgrad ab z13 — schwarze Gebäude, hellblaues Wasser, weiße Straßen."
+  },
+  "mapMasks": {
+    "none": "Keins",
+    "circle": "Kreis",
+    "heart": "Herz geteilt",
+    "heart-single": "Herz",
+    "frame1": "Rahmen",
+    "text-below": "Classic",
+    "split-circles": "Kreis geteilt",
+    "split-halves": "2× Hälfte"
+  },
+  "photoMasks": {
+    "full": "Vollbild",
+    "circle": "Kreis",
+    "heart": "Herz",
+    "square": "Quadrat",
+    "portrait": "Hochformat",
+    "landscape": "Querformat"
+  },
+  "photoFilters": {
+    "none": "Original",
+    "grayscale": "Schwarz-weiß",
+    "sepia": "Sepia"
+  },
+  "consent": {
+    "title": "Cookies & Tracking",
+    "intro": "Wir verwenden Cookies, um unsere Seite zu verbessern und Werbung messbar zu machen. Notwendige Cookies sind immer aktiv. Analyse- und Marketing-Cookies nur mit deiner Einwilligung. Details in unserer <link>Cookie-Richtlinie</link>.",
+    "acceptAll": "Alle akzeptieren",
+    "rejectAll": "Nur notwendige",
+    "settingsCta": "Einstellungen",
+    "settingsTitle": "Einstellungen",
+    "necessary": "Notwendig",
+    "necessaryDescription": "Für Warenkorb, Login und Checkout – immer aktiv.",
+    "analytics": "Analyse",
+    "analyticsDescription": "Hilft uns zu verstehen, wie die Seite genutzt wird (z. B. Google Analytics).",
+    "marketing": "Marketing",
+    "marketingDescription": "Messung und Remarketing für Google Ads, Meta, TikTok.",
+    "saveChoices": "Auswahl speichern",
+    "back": "Zurück",
+    "settingsLink": "Cookie-Einstellungen"
   },
   "nav": {
     "cityPoster": "Stadtposter",

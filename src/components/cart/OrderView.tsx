@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
+import { useTranslatedLabel } from '@/lib/i18n-catalog'
 import { CheckCircle2, Loader2, FileImage, FileText, Package, AlertTriangle } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -48,15 +49,15 @@ interface Props {
   showSuccessBanner: boolean
 }
 
-function productLabel(id: string) {
-  return PRODUCTS.find((p) => p.id === id)?.label ?? id
-}
 function formatLabel(id: string) {
   return PRINT_FORMAT_OPTIONS.find((f) => f.id === id)?.label ?? id.toUpperCase()
 }
 
 export function OrderView({ orderId, token, showSuccessBanner }: Props) {
   const t = useTranslations('order')
+  const productI18n = useTranslatedLabel('products')
+  const productLabel = (id: string) =>
+    productI18n(`${id}Label`, PRODUCTS.find((p) => p.id === id)?.label ?? id)
   const [order, setOrder] = useState<OrderData | null>(null)
   const [exports, setExports] = useState<OrderExport[]>([])
   const [loadError, setLoadError] = useState<string | null>(null)

@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
+import { useTranslatedLabel } from '@/lib/i18n-catalog'
 import { Loader2, Upload, Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
 import { toast } from 'sonner'
 import { Label } from '@/components/ui/label'
@@ -31,6 +32,8 @@ const ZONE_COUNT_BY_MASK: Record<string, number> = {
 
 export function MobileMapTab() {
   const t = useTranslations('editor')
+  const layoutLabel = useTranslatedLabel('mapLayouts')
+  const filterLabel = useTranslatedLabel('photoFilters')
   const ZONE_LABELS = [t('mapZoneLeft'), t('mapZoneRight'), t('mapZoneTop'), t('mapZoneBottom'), t('mapZoneCenter')]
 
   const {
@@ -233,7 +236,7 @@ export function MobileMapTab() {
                           : 'border-border text-muted-foreground hover:border-muted-foreground',
                       )}
                     >
-                      {f.label}
+                      {filterLabel(f.id, f.label)}
                     </button>
                   ))}
                 </div>
@@ -269,6 +272,7 @@ export function MobileMapTab() {
                   <button
                     key={layout.id}
                     onClick={() => setSecondMapStyleId(layout.id)}
+                    title={layoutLabel(`${layout.id}Description`, layout.description)}
                     className={cn(
                       'rounded-md border-2 px-2 py-3 text-left text-xs font-medium transition-all',
                       secondMap.styleId === layout.id
@@ -276,7 +280,7 @@ export function MobileMapTab() {
                         : 'border-border text-foreground/70 hover:border-muted-foreground'
                     )}
                   >
-                    {layout.label}
+                    {layoutLabel(`${layout.id}Label`, layout.label)}
                   </button>
                 ))}
               </div>
@@ -370,6 +374,7 @@ export function MobileMapTab() {
             <button
               key={layout.id}
               onClick={() => setStyleId(layout.id)}
+              title={layoutLabel(`${layout.id}Description`, layout.description)}
               className={cn(
                 'rounded-md border-2 px-2 py-3 text-left text-sm font-medium transition-all',
                 styleId === layout.id
@@ -377,7 +382,7 @@ export function MobileMapTab() {
                   : 'border-border text-foreground/70 hover:border-muted-foreground'
               )}
             >
-              {layout.label}
+              {layoutLabel(`${layout.id}Label`, layout.label)}
             </button>
           ))}
         </div>

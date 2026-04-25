@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
+import { useTranslatedLabel } from '@/lib/i18n-catalog'
 import { Loader2, FileImage, FileText, Download, Image, Frame, ShoppingCart, Eye } from 'lucide-react'
 import { toast } from 'sonner'
 import { Label } from '@/components/ui/label'
@@ -127,6 +128,7 @@ function AdminExportView({ printFormat }: { printFormat: string }) {
 
 function CustomerProductView({ printFormat }: { printFormat: string }) {
   const t = useTranslations('editor')
+  const productLabel = useTranslatedLabel('products')
   const [selectedProduct, setSelectedProduct] = useState<ProductId | null>(null)
   const [isAdding, setIsAdding] = useState(false)
   const { renderPreview } = useMapExport()
@@ -222,7 +224,7 @@ function CustomerProductView({ printFormat }: { printFormat: string }) {
                 </span>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-sm font-medium text-foreground">{product.label}</span>
+                    <span className="text-sm font-medium text-foreground">{productLabel(`${product.id}Label`, product.label)}</span>
                     <span className="flex items-center gap-1.5 shrink-0">
                       {rowPrice && (
                         <DiscountBadge unitAmount={rowPrice.unitAmount} compareAtCents={rowPrice.compareAtCents} />
@@ -240,7 +242,7 @@ function CustomerProductView({ printFormat }: { printFormat: string }) {
                       </span>
                     </span>
                   </div>
-                  <p className="text-xs text-muted-foreground/70 mt-0.5 leading-snug">{product.description}</p>
+                  <p className="text-xs text-muted-foreground/70 mt-0.5 leading-snug">{productLabel(`${product.id}Description`, product.description)}</p>
                 </div>
               </div>
             </button>

@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
+import { useTranslatedLabel } from '@/lib/i18n-catalog'
 import { ChevronDown, ChevronUp, Loader2, Upload, Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
 import { toast } from 'sonner'
 import { Label } from '@/components/ui/label'
@@ -53,6 +54,9 @@ const ZONE_COUNT_BY_MASK: Record<string, number> = {
 
 export function MapTab() {
   const t = useTranslations('editor')
+  const layoutLabel = useTranslatedLabel('mapLayouts')
+  const maskLabel = useTranslatedLabel('mapMasks')
+  const filterLabel = useTranslatedLabel('photoFilters')
 
   const LAYOUT_OPTIONS: { id: 'full' | 'text-30' | 'text-15'; label: string; description: string }[] = [
     { id: 'full', label: t('mapLayoutFull'), description: t('mapLayoutFullDesc') },
@@ -341,7 +345,7 @@ export function MapTab() {
                           : 'border-border text-muted-foreground hover:border-muted-foreground',
                       )}
                     >
-                      {f.label}
+                      {filterLabel(f.id, f.label)}
                     </button>
                   ))}
                 </div>
@@ -380,7 +384,7 @@ export function MapTab() {
                   <button
                     key={layout.id}
                     onClick={() => setSecondMapStyleId(layout.id)}
-                    title={layout.description}
+                    title={layoutLabel(`${layout.id}Description`, layout.description)}
                     className={cn(
                       'rounded-md border-2 px-2 py-2 text-left text-xs font-medium transition-all',
                       secondMap.styleId === layout.id
@@ -388,7 +392,7 @@ export function MapTab() {
                         : 'border-border text-foreground/70 hover:border-muted-foreground'
                     )}
                   >
-                    {layout.label}
+                    {layoutLabel(`${layout.id}Label`, layout.label)}
                   </button>
                 ))}
               </div>
@@ -528,7 +532,7 @@ export function MapTab() {
             <button
               key={layout.id}
               onClick={() => setStyleId(layout.id)}
-              title={layout.description}
+              title={layoutLabel(`${layout.id}Description`, layout.description)}
               className={cn(
                 'rounded-md border-2 px-2 py-2 text-left text-xs font-medium transition-all',
                 styleId === layout.id
@@ -536,7 +540,7 @@ export function MapTab() {
                   : 'border-border text-foreground/70 hover:border-muted-foreground'
               )}
             >
-              {layout.label}
+              {layoutLabel(`${layout.id}Label`, layout.label)}
             </button>
           ))}
         </div>
@@ -646,12 +650,12 @@ export function MapTab() {
               <div className="w-8 h-8 flex items-center justify-center">
                 {mask.svgPath ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={mask.svgPath} alt={mask.label} className="w-7 h-7 object-contain" />
+                  <img src={mask.svgPath} alt={maskLabel(mask.key, mask.label)} className="w-7 h-7 object-contain" />
                 ) : (
                   <div className="w-7 h-7 rounded-sm bg-muted" />
                 )}
               </div>
-              <span className="text-[9px] leading-tight text-center text-muted-foreground">{mask.label}</span>
+              <span className="text-[9px] leading-tight text-center text-muted-foreground">{maskLabel(mask.key, mask.label)}</span>
             </button>
           ))}
         </div>

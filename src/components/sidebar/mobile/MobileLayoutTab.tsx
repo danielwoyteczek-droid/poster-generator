@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
+import { useTranslatedLabel } from '@/lib/i18n-catalog'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
@@ -22,6 +23,7 @@ const SINGLE_MASK_OPTIONS = MAP_MASK_OPTIONS.filter(
 
 export function MobileLayoutTab() {
   const t = useTranslations('editor')
+  const maskLabel = useTranslatedLabel('mapMasks')
 
   const LAYOUT_OPTIONS: { id: 'full' | 'text-30' | 'text-15'; label: string; description: string }[] = [
     { id: 'full', label: t('mapLayoutFull'), description: t('mapLayoutFullDesc') },
@@ -74,12 +76,12 @@ export function MobileLayoutTab() {
               <div className="w-10 h-10 flex items-center justify-center">
                 {mask.svgPath ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={mask.svgPath} alt={mask.label} className="w-9 h-9 object-contain" />
+                  <img src={mask.svgPath} alt={maskLabel(mask.key, mask.label)} className="w-9 h-9 object-contain" />
                 ) : (
                   <div className="w-9 h-9 rounded-sm bg-muted" />
                 )}
               </div>
-              <span className="text-[11px] leading-tight text-center text-muted-foreground">{mask.label}</span>
+              <span className="text-[11px] leading-tight text-center text-muted-foreground">{maskLabel(mask.key, mask.label)}</span>
             </button>
           ))}
         </div>

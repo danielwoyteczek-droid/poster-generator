@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { readConsent, writeConsent } from '@/lib/analytics'
 
 export function ConsentBanner() {
+  const t = useTranslations('consent')
   const [open, setOpen] = useState(false)
   const [details, setDetails] = useState(false)
   const [analytics, setAnalytics] = useState(false)
@@ -53,47 +55,49 @@ export function ConsentBanner() {
       <div className="mx-auto max-w-2xl bg-white border border-border rounded-2xl shadow-xl p-6 pointer-events-auto">
         {!details ? (
           <>
-            <h2 className="text-base font-semibold text-foreground mb-2">Cookies & Tracking</h2>
+            <h2 className="text-base font-semibold text-foreground mb-2">{t('title')}</h2>
             <p className="text-sm text-muted-foreground leading-relaxed mb-4">
-              Wir verwenden Cookies, um unsere Seite zu verbessern und Werbung messbar zu machen.
-              Notwendige Cookies sind immer aktiv. Analyse- und Marketing-Cookies nur mit deiner Einwilligung.
-              Details in unserer <Link href="/cookie-richtlinie" className="underline">Cookie-Richtlinie</Link>.
+              {t.rich('intro', {
+                link: (chunks) => (
+                  <Link href="/cookie-richtlinie" className="underline">{chunks}</Link>
+                ),
+              })}
             </p>
             <div className="flex flex-col sm:flex-row gap-2">
-              <Button onClick={acceptAll} className="flex-1">Alle akzeptieren</Button>
-              <Button onClick={rejectAll} variant="outline" className="flex-1">Nur notwendige</Button>
-              <Button onClick={() => setDetails(true)} variant="ghost" className="flex-1">Einstellungen</Button>
+              <Button onClick={acceptAll} className="flex-1">{t('acceptAll')}</Button>
+              <Button onClick={rejectAll} variant="outline" className="flex-1">{t('rejectAll')}</Button>
+              <Button onClick={() => setDetails(true)} variant="ghost" className="flex-1">{t('settingsCta')}</Button>
             </div>
           </>
         ) : (
           <>
-            <h2 className="text-base font-semibold text-foreground mb-4">Einstellungen</h2>
+            <h2 className="text-base font-semibold text-foreground mb-4">{t('settingsTitle')}</h2>
             <div className="space-y-4 mb-4">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <div className="text-sm font-medium text-foreground">Notwendig</div>
-                  <div className="text-xs text-muted-foreground">Für Warenkorb, Login und Checkout – immer aktiv.</div>
+                  <div className="text-sm font-medium text-foreground">{t('necessary')}</div>
+                  <div className="text-xs text-muted-foreground">{t('necessaryDescription')}</div>
                 </div>
                 <Switch checked disabled />
               </div>
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <div className="text-sm font-medium text-foreground">Analyse</div>
-                  <div className="text-xs text-muted-foreground">Hilft uns zu verstehen, wie die Seite genutzt wird (z. B. Google Analytics).</div>
+                  <div className="text-sm font-medium text-foreground">{t('analytics')}</div>
+                  <div className="text-xs text-muted-foreground">{t('analyticsDescription')}</div>
                 </div>
                 <Switch checked={analytics} onCheckedChange={setAnalytics} />
               </div>
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <div className="text-sm font-medium text-foreground">Marketing</div>
-                  <div className="text-xs text-muted-foreground">Messung und Remarketing für Google Ads, Meta, TikTok.</div>
+                  <div className="text-sm font-medium text-foreground">{t('marketing')}</div>
+                  <div className="text-xs text-muted-foreground">{t('marketingDescription')}</div>
                 </div>
                 <Switch checked={marketing} onCheckedChange={setMarketing} />
               </div>
             </div>
             <div className="flex flex-col sm:flex-row gap-2">
-              <Button onClick={saveChoices} className="flex-1">Auswahl speichern</Button>
-              <Button onClick={() => setDetails(false)} variant="outline" className="flex-1">Zurück</Button>
+              <Button onClick={saveChoices} className="flex-1">{t('saveChoices')}</Button>
+              <Button onClick={() => setDetails(false)} variant="outline" className="flex-1">{t('back')}</Button>
             </div>
           </>
         )}

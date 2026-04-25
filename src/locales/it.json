@@ -174,6 +174,7 @@
     "exportSelectProduct": "Scegli prodotto",
     "exportSecureNote": "Pagamento sicuro tramite Stripe. I prodotti fisici vengono spediti entro 3–5 giorni lavorativi.",
     "exportDefaultPosterTitle": "Poster cartografico",
+    "exportDefaultStarTitle": "Carta stellare",
     "mapLocationSearch": "Cerca luogo",
     "mapSecondViewLabel": "Seconda vista",
     "mapSecondViewNone": "Nessuna",
@@ -294,6 +295,64 @@
     "body": "Il tuo ordine è stato ricevuto correttamente. A breve riceverai un'e-mail di conferma. I prodotti fisici vengono spediti entro 3–5 giorni lavorativi.",
     "homeCta": "Torna alla home",
     "createAnotherCta": "Crea un altro poster"
+  },
+  "products": {
+    "downloadLabel": "Download digitale",
+    "downloadDescription": "File PNG + PDF in qualità di stampa, disponibile immediatamente",
+    "posterLabel": "Poster",
+    "posterDescription": "Stampa di alta qualità su carta fotografica, consegnata per posta. Download digitale incluso.",
+    "frameLabel": "Poster incorniciato (nero)",
+    "frameDescription": "Poster con cornice in legno nero, pronto da appendere. Download digitale incluso."
+  },
+  "mapLayouts": {
+    "klassischLabel": "Classico",
+    "klassischDescription": "Struttura di base chiara con strade ed etichette di luogo.",
+    "satelliteLabel": "Satellite",
+    "satelliteDescription": "Immagine satellitare — la palette non influisce sulla foto aerea.",
+    "minimalLabel": "Minimal",
+    "minimalDescription": "Look poster ridotto con aree urbane e strade sottili.",
+    "detailLabel": "Dettagliato",
+    "detailDescription": "Alto livello di dettaglio da z13 — edifici neri, acqua azzurra, strade bianche."
+  },
+  "mapMasks": {
+    "none": "Nessuna",
+    "circle": "Cerchio",
+    "heart": "Cuore diviso",
+    "heart-single": "Cuore",
+    "frame1": "Cornice",
+    "text-below": "Classic",
+    "split-circles": "Cerchi divisi",
+    "split-halves": "Due metà"
+  },
+  "photoMasks": {
+    "full": "Schermo intero",
+    "circle": "Cerchio",
+    "heart": "Cuore",
+    "square": "Quadrato",
+    "portrait": "Verticale",
+    "landscape": "Orizzontale"
+  },
+  "photoFilters": {
+    "none": "Originale",
+    "grayscale": "Bianco e nero",
+    "sepia": "Seppia"
+  },
+  "consent": {
+    "title": "Cookie e tracciamento",
+    "intro": "Utilizziamo i cookie per migliorare il nostro sito e misurare la pubblicità. I cookie necessari sono sempre attivi. I cookie di analisi e marketing solo con il tuo consenso. Dettagli nella nostra <link>politica sui cookie</link>.",
+    "acceptAll": "Accetta tutti",
+    "rejectAll": "Solo necessari",
+    "settingsCta": "Impostazioni",
+    "settingsTitle": "Impostazioni",
+    "necessary": "Necessari",
+    "necessaryDescription": "Per carrello, accesso e checkout — sempre attivi.",
+    "analytics": "Analisi",
+    "analyticsDescription": "Ci aiuta a capire come viene utilizzato il sito (es. Google Analytics).",
+    "marketing": "Marketing",
+    "marketingDescription": "Misurazione e remarketing per Google Ads, Meta, TikTok.",
+    "saveChoices": "Salva scelte",
+    "back": "Indietro",
+    "settingsLink": "Impostazioni cookie"
   },
   "nav": {
     "cityPoster": "Poster cartografico",

@@ -174,6 +174,7 @@
     "exportSelectProduct": "Choisir un produit",
     "exportSecureNote": "Paiement sécurisé via Stripe. Les produits physiques sont expédiés sous 3 à 5 jours ouvrés.",
     "exportDefaultPosterTitle": "Affiche cartographique",
+    "exportDefaultStarTitle": "Carte du ciel",
     "mapLocationSearch": "Rechercher un lieu",
     "mapSecondViewLabel": "Seconde vue",
     "mapSecondViewNone": "Aucune",
@@ -294,6 +295,64 @@
     "body": "Votre commande a bien été reçue. Vous recevrez un e-mail de confirmation sous peu. Les produits physiques sont expédiés sous 3 à 5 jours ouvrés.",
     "homeCta": "Retour à l'accueil",
     "createAnotherCta": "Créer une autre affiche"
+  },
+  "products": {
+    "downloadLabel": "Téléchargement numérique",
+    "downloadDescription": "Fichier PNG + PDF en qualité d'impression, disponible immédiatement",
+    "posterLabel": "Affiche",
+    "posterDescription": "Impression de haute qualité sur papier photo, livrée par la poste. Téléchargement numérique inclus.",
+    "frameLabel": "Affiche encadrée (noir)",
+    "frameDescription": "Affiche dans un cadre en bois noir, prête à accrocher. Téléchargement numérique inclus."
+  },
+  "mapLayouts": {
+    "klassischLabel": "Classique",
+    "klassischDescription": "Structure de base claire avec rues et étiquettes de lieux.",
+    "satelliteLabel": "Satellite",
+    "satelliteDescription": "Imagerie satellite — la palette n'affecte pas la photo aérienne.",
+    "minimalLabel": "Minimal",
+    "minimalDescription": "Look d'affiche réduit avec zones urbaines et rues fines.",
+    "detailLabel": "Détaillé",
+    "detailDescription": "Haut niveau de détail à partir de z13 — bâtiments noirs, eau bleu clair, rues blanches."
+  },
+  "mapMasks": {
+    "none": "Aucune",
+    "circle": "Cercle",
+    "heart": "Cœur partagé",
+    "heart-single": "Cœur",
+    "frame1": "Cadre",
+    "text-below": "Classic",
+    "split-circles": "Cercles partagés",
+    "split-halves": "Deux moitiés"
+  },
+  "photoMasks": {
+    "full": "Plein écran",
+    "circle": "Cercle",
+    "heart": "Cœur",
+    "square": "Carré",
+    "portrait": "Portrait",
+    "landscape": "Paysage"
+  },
+  "photoFilters": {
+    "none": "Original",
+    "grayscale": "Noir et blanc",
+    "sepia": "Sépia"
+  },
+  "consent": {
+    "title": "Cookies et suivi",
+    "intro": "Nous utilisons des cookies pour améliorer notre site et mesurer la publicité. Les cookies nécessaires sont toujours actifs. Les cookies d'analyse et de marketing uniquement avec votre consentement. Détails dans notre <link>politique de cookies</link>.",
+    "acceptAll": "Tout accepter",
+    "rejectAll": "Nécessaires uniquement",
+    "settingsCta": "Paramètres",
+    "settingsTitle": "Paramètres",
+    "necessary": "Nécessaires",
+    "necessaryDescription": "Pour le panier, la connexion et le paiement — toujours actifs.",
+    "analytics": "Analyse",
+    "analyticsDescription": "Nous aide à comprendre comment le site est utilisé (par ex. Google Analytics).",
+    "marketing": "Marketing",
+    "marketingDescription": "Mesure et remarketing pour Google Ads, Meta, TikTok.",
+    "saveChoices": "Enregistrer les choix",
+    "back": "Retour",
+    "settingsLink": "Paramètres des cookies"
   },
   "nav": {
     "cityPoster": "Affiche de ville",

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
+import { useTranslatedLabel } from '@/lib/i18n-catalog'
 import { X, ShoppingCart, CreditCard, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useCartStore } from '@/hooks/useCartStore'
@@ -12,16 +13,15 @@ import { PRINT_FORMAT_OPTIONS } from '@/lib/print-formats'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 
-function productLabel(productId: string) {
-  return PRODUCTS.find((p) => p.id === productId)?.label ?? productId
-}
-
 function formatLabel(format: string) {
   return PRINT_FORMAT_OPTIONS.find((f) => f.id === format)?.label ?? format.toUpperCase()
 }
 
 export function CartView() {
   const t = useTranslations('cart')
+  const productI18n = useTranslatedLabel('products')
+  const productLabel = (id: string) =>
+    productI18n(`${id}Label`, PRODUCTS.find((p) => p.id === id)?.label ?? id)
   const [hydrated, setHydrated] = useState(false)
   const [isCheckingOut, setIsCheckingOut] = useState(false)
   const [digitalConsent, setDigitalConsent] = useState(false)

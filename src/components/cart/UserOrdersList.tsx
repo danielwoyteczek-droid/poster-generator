@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useTranslatedLabel } from '@/lib/i18n-catalog'
 import { Loader2, Package, FileImage, FileText, ChevronRight, ShoppingBag } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatPrice, PRODUCTS } from '@/lib/products'
@@ -34,14 +35,14 @@ const FULFILLMENT_LABELS: Record<string, string> = {
   completed: 'Abgeschlossen',
 }
 
-function productLabel(id: string) {
-  return PRODUCTS.find((p) => p.id === id)?.label ?? id
-}
 function formatLabel(id: string) {
   return PRINT_FORMAT_OPTIONS.find((f) => f.id === id)?.label ?? id.toUpperCase()
 }
 
 export function UserOrdersList() {
+  const productI18n = useTranslatedLabel('products')
+  const productLabel = (id: string) =>
+    productI18n(`${id}Label`, PRODUCTS.find((p) => p.id === id)?.label ?? id)
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
 

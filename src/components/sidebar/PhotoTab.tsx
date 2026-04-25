@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
+import { useTranslatedLabel } from '@/lib/i18n-catalog'
 import { Upload, Trash2, Loader2, ImagePlus } from 'lucide-react'
 import { toast } from 'sonner'
 import { Label } from '@/components/ui/label'
@@ -18,6 +19,8 @@ import { cn } from '@/lib/utils'
 
 export function PhotoTab() {
   const t = useTranslations('editor')
+  const photoMaskLabel = useTranslatedLabel('photoMasks')
+  const filterLabel = useTranslatedLabel('photoFilters')
   const { user } = useAuth()
   const { photos, addPhoto, updatePhoto, removePhoto } = useEditorStore()
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -134,7 +137,7 @@ export function PhotoTab() {
                     <p className="text-xs text-foreground/70 truncate">
                       {photo.width} × {photo.height}px
                     </p>
-                    <p className="text-[10px] text-muted-foreground/70">{t('photoMaskLabel', { mask: photo.maskKey })}</p>
+                    <p className="text-[10px] text-muted-foreground/70">{t('photoMaskLabel', { mask: photoMaskLabel(photo.maskKey, photo.maskKey) })}</p>
                   </div>
                   <button
                     type="button"
@@ -158,7 +161,7 @@ export function PhotoTab() {
                           : 'border-border text-muted-foreground hover:border-muted-foreground',
                       )}
                     >
-                      {mask.label}
+                      {photoMaskLabel(mask.key, mask.label)}
                     </button>
                   ))}
                 </div>
@@ -175,7 +178,7 @@ export function PhotoTab() {
                           : 'border-border text-muted-foreground hover:border-muted-foreground',
                       )}
                     >
-                      {f.label}
+                      {filterLabel(f.id, f.label)}
                     </button>
                   ))}
                 </div>
