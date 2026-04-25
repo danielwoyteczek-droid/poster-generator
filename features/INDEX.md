@@ -36,10 +36,11 @@
 | PROJ-20 | Internationalisierung (i18n) | Planned | [PROJ-20-internationalization.md](PROJ-20-internationalization.md) | 2026-04-21 |
 | PROJ-21 | Layout-Presets | In Progress | [PROJ-21-layout-presets.md](PROJ-21-layout-presets.md) | 2026-04-24 |
 | PROJ-22 | Admin-Paletten-Verwaltung | Deployed | [PROJ-22-admin-palette-management.md](PROJ-22-admin-palette-management.md) | 2026-04-24 |
+| PROJ-23 | Design-System & Brand-Styling | In Progress | [PROJ-23-design-system-brand-styling.md](PROJ-23-design-system-brand-styling.md) | 2026-04-24 |
 
 <!-- Add features above this line -->
 
-## Next Available ID: PROJ-23
+## Next Available ID: PROJ-24
 
 ## Recommended Build Order
 1. **PROJ-1** — Karten-Editor Core (Fundament der App)
