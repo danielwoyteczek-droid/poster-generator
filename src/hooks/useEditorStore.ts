@@ -138,6 +138,17 @@ export interface EditorStore {
   textBlocks: TextBlock[]
   selectedBlockId: string | null
   projectId: string | null
+  /**
+   * Set when an admin loads an existing preset via "Bearbeiten" in the Admin
+   * list. Lets SaveAsPresetButton offer "update existing" alongside "save as
+   * new". Cleared on successful save or when the admin starts a fresh design.
+   */
+  editingPreset: {
+    id: string
+    name: string
+    description: string | null
+    posterType: 'map' | 'star-map'
+  } | null
   photos: PhotoItem[]
   splitMode: 'none' | 'second-map' | 'photo'
   splitPhoto: SplitPhoto | null
@@ -185,6 +196,7 @@ export interface EditorStore {
   deleteTextBlock: (id: string) => void
   setSelectedBlockId: (id: string | null) => void
   setProjectId: (id: string | null) => void
+  setEditingPreset: (preset: EditorStore['editingPreset']) => void
   addPhoto: (photo: Omit<PhotoItem, 'id' | 'uploadedAt'>) => void
   updatePhoto: (id: string, updates: Partial<PhotoItem>) => void
   removePhoto: (id: string) => void
@@ -285,6 +297,7 @@ export const useEditorStore = create<EditorStore>((set) => ({
   locationName: 'München',
   selectedBlockId: null,
   projectId: null,
+  editingPreset: null,
   photos: [],
   splitMode: 'none',
   splitPhoto: null,
@@ -387,6 +400,7 @@ export const useEditorStore = create<EditorStore>((set) => ({
   setLocationName: (name) => set({ locationName: name }),
   setSelectedBlockId: (id) => set({ selectedBlockId: id }),
   setProjectId: (id) => set({ projectId: id }),
+  setEditingPreset: (preset) => set({ editingPreset: preset }),
   addPhoto: (photo) =>
     set((s) => ({
       photos: [

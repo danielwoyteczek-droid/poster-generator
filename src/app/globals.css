@@ -113,4 +113,8 @@ html {
   h1, h2, h3 {
     @apply font-serif;
   }
+  ::selection {
+    background-color: hsl(var(--primary) / 0.18);
+    color: hsl(var(--foreground));
+  }
 }

@@ -247,6 +247,12 @@ export function AdminPresetsList() {
       if (s.textBlocks) {
         useEditorStore.setState({ textBlocks: s.textBlocks as never })
       }
+      useEditorStore.getState().setEditingPreset({
+        id: preset.id,
+        name: preset.name,
+        description: preset.description,
+        posterType: 'star-map',
+      })
       router.push('/star-map')
     } else {
       // Map preset: apply to editor store
@@ -257,6 +263,12 @@ export function AdminPresetsList() {
         viewState: state.viewState,
         locationName: state.locationName,
         projectId: null, // Don't associate with a locked project
+        editingPreset: {
+          id: preset.id,
+          name: preset.name,
+          description: preset.description,
+          posterType: 'map',
+        },
       }))
       router.push('/map')
     }
