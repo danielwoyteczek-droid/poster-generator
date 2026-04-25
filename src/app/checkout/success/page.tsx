@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 export default function CheckoutSuccessPage() {
   return (
-    <div className="min-h-screen flex flex-col pt-16 bg-gray-50">
+    <div className="min-h-screen flex flex-col pt-16 bg-muted">
       <LandingNav />
       <main className="flex-1 flex items-center justify-center px-4 py-10">
         <CheckoutSuccessView />

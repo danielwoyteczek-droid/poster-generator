@@ -28,7 +28,7 @@ const STATUS_BADGE: Record<string, string> = {
   new: 'bg-amber-100 text-amber-800',
   in_production: 'bg-blue-100 text-blue-800',
   shipped: 'bg-green-100 text-green-800',
-  completed: 'bg-gray-100 text-gray-600',
+  completed: 'bg-muted text-muted-foreground',
 }
 
 function itemSummary(items: OrderRow['items']) {
@@ -64,8 +64,8 @@ export function AdminOrdersList() {
             className={cn(
               'px-3 py-1.5 rounded-md text-sm font-medium transition-colors',
               filter === key
-                ? 'bg-gray-900 text-white'
-                : 'bg-white border border-gray-200 text-gray-700 hover:border-gray-400',
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-white border border-border text-foreground/70 hover:border-muted-foreground',
             )}
           >
             {label}
@@ -73,20 +73,20 @@ export function AdminOrdersList() {
         ))}
       </div>
 
-      <div className="rounded-xl bg-white border border-gray-200 overflow-hidden">
+      <div className="rounded-xl bg-white border border-border overflow-hidden">
         {loading ? (
           <div className="p-12 text-center">
-            <Loader2 className="w-6 h-6 animate-spin mx-auto text-gray-400" />
+            <Loader2 className="w-6 h-6 animate-spin mx-auto text-muted-foreground/70" />
           </div>
         ) : orders.length === 0 ? (
-          <div className="p-12 text-center text-gray-500 text-sm">
-            <Package className="w-8 h-8 mx-auto text-gray-300 mb-2" />
+          <div className="p-12 text-center text-muted-foreground text-sm">
+            <Package className="w-8 h-8 mx-auto text-muted-foreground/40 mb-2" />
             Keine Bestellungen{filter !== 'all' ? ` mit Status "${STATUS_LABELS[filter]}"` : ''}.
           </div>
         ) : (
           <table className="w-full">
             <thead>
-              <tr className="text-left text-xs uppercase tracking-wider text-gray-400 border-b border-gray-200">
+              <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground/70 border-b border-border">
                 <th className="px-4 py-3 font-medium">Bestellung</th>
                 <th className="px-4 py-3 font-medium">Kunde</th>
                 <th className="px-4 py-3 font-medium">Produkt</th>
@@ -101,20 +101,20 @@ export function AdminOrdersList() {
                 return (
                   <tr
                     key={order.id}
-                    className="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors"
+                    className="border-b border-border last:border-0 hover:bg-muted transition-colors"
                   >
                     <td className="px-4 py-3 text-sm">
-                      <div className="font-mono text-xs text-gray-500">#{order.id.slice(0, 8)}</div>
-                      <div className="text-xs text-gray-400 mt-0.5">
+                      <div className="font-mono text-xs text-muted-foreground">#{order.id.slice(0, 8)}</div>
+                      <div className="text-xs text-muted-foreground/70 mt-0.5">
                         {new Date(order.created_at).toLocaleDateString('de-DE', {
                           day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit',
                         })}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-700 truncate max-w-[200px]">
+                    <td className="px-4 py-3 text-sm text-foreground/70 truncate max-w-[200px]">
                       {order.email ?? '—'}
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-700">
+                    <td className="px-4 py-3 text-sm text-foreground/70">
                       {itemSummary(order.items)}
                       {allDigital && (
                         <span className="inline-flex items-center gap-1 ml-2 text-xs text-blue-600">
@@ -131,13 +131,13 @@ export function AdminOrdersList() {
                         {STATUS_LABELS[order.fulfillment_status]}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-sm font-semibold text-gray-900 text-right whitespace-nowrap">
+                    <td className="px-4 py-3 text-sm font-semibold text-foreground text-right whitespace-nowrap">
                       {formatPrice(order.total_cents)}
                     </td>
                     <td className="px-2 py-3">
                       <Link
                         href={`/private/admin/orders/${order.id}`}
-                        className="inline-flex items-center text-gray-400 hover:text-gray-700 p-1"
+                        className="inline-flex items-center text-muted-foreground/70 hover:text-foreground/70 p-1"
                         aria-label="Öffnen"
                       >
                         <ChevronRight className="w-4 h-4" />

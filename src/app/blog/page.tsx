@@ -21,11 +21,11 @@ export default async function BlogIndexPage() {
       <LandingNav />
       <main className="flex-1">
         <div className="max-w-5xl mx-auto px-6 py-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Blog</h1>
-          <p className="text-gray-500 mb-10">Geschichten, Tipps & Inspiration.</p>
+          <h1 className="text-4xl font-bold text-foreground mb-2">Blog</h1>
+          <p className="text-muted-foreground mb-10">Geschichten, Tipps & Inspiration.</p>
 
           {posts.length === 0 ? (
-            <div className="text-center py-20 text-gray-500 text-sm">
+            <div className="text-center py-20 text-muted-foreground text-sm">
               Noch keine Artikel. Leg deinen ersten Beitrag im Sanity Studio an.
             </div>
           ) : (
@@ -34,7 +34,7 @@ export default async function BlogIndexPage() {
                 <Link key={post._id} href={`/blog/${post.slug.current}`} className="group">
                   <article className="space-y-3">
                     {post.coverImage ? (
-                      <div className="aspect-[4/3] relative rounded-lg overflow-hidden bg-gray-100">
+                      <div className="aspect-[4/3] relative rounded-lg overflow-hidden bg-muted">
                         <Image
                           src={urlFor(post.coverImage).width(800).auto('format').url()}
                           alt={post.coverImage.alt ?? post.title}
@@ -44,19 +44,19 @@ export default async function BlogIndexPage() {
                         />
                       </div>
                     ) : (
-                      <div className="aspect-[4/3] rounded-lg bg-gray-100" />
+                      <div className="aspect-[4/3] rounded-lg bg-muted" />
                     )}
                     <div>
-                      <p className="text-xs text-gray-400">
+                      <p className="text-xs text-muted-foreground/70">
                         {new Date(post.publishedAt).toLocaleDateString('de-DE', {
                           day: '2-digit', month: 'long', year: 'numeric',
                         })}
                       </p>
-                      <h2 className="text-lg font-semibold text-gray-900 mt-1 group-hover:text-gray-700">
+                      <h2 className="text-lg font-semibold text-foreground mt-1 group-hover:text-foreground/70">
                         {post.title}
                       </h2>
                       {post.excerpt && (
-                        <p className="text-sm text-gray-500 mt-2 line-clamp-3">{post.excerpt}</p>
+                        <p className="text-sm text-muted-foreground mt-2 line-clamp-3">{post.excerpt}</p>
                       )}
                     </div>
                   </article>

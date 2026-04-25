@@ -40,8 +40,8 @@ export default async function FaqPage() {
       )}
       <main className="flex-1">
         <div className="max-w-3xl mx-auto px-6 py-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Häufige Fragen</h1>
-          <p className="text-gray-500 mb-10">
+          <h1 className="text-4xl font-bold text-foreground mb-2">Häufige Fragen</h1>
+          <p className="text-muted-foreground mb-10">
             Wenn deine Frage hier nicht auftaucht, schreib uns einfach.
           </p>
           <FaqList items={items} />

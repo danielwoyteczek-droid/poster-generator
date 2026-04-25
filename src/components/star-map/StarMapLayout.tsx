@@ -11,30 +11,30 @@ import { StarMapCanvas } from './StarMapCanvas'
 export function StarMapLayout() {
   return (
     <div className="flex h-full overflow-hidden">
-      <div className="w-72 shrink-0 border-r border-gray-200 bg-white flex flex-col">
+      <div className="w-72 shrink-0 border-r border-border bg-white flex flex-col">
         <Tabs defaultValue="stars" className="flex flex-col h-full">
-          <TabsList className="w-full rounded-none border-b border-gray-200 bg-white h-10 p-0 gap-0">
+          <TabsList className="w-full rounded-none border-b border-border bg-white h-10 p-0 gap-0">
             <TabsTrigger
               value="stars"
-              className="flex-1 h-full rounded-none text-xs font-medium data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-gray-900 data-[state=active]:bg-white"
+              className="flex-1 h-full rounded-none text-xs font-medium data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-white"
             >
               Sterne
             </TabsTrigger>
             <TabsTrigger
               value="himmel"
-              className="flex-1 h-full rounded-none text-xs font-medium data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-gray-900 data-[state=active]:bg-white"
+              className="flex-1 h-full rounded-none text-xs font-medium data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-white"
             >
               Himmel
             </TabsTrigger>
             <TabsTrigger
               value="text"
-              className="flex-1 h-full rounded-none text-xs font-medium data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-gray-900 data-[state=active]:bg-white"
+              className="flex-1 h-full rounded-none text-xs font-medium data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-white"
             >
               Text
             </TabsTrigger>
             <TabsTrigger
               value="export"
-              className="flex-1 h-full rounded-none text-xs font-medium data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-gray-900 data-[state=active]:bg-white"
+              className="flex-1 h-full rounded-none text-xs font-medium data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-white"
             >
               Export
             </TabsTrigger>

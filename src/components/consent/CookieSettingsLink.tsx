@@ -7,7 +7,7 @@ export function CookieSettingsLink({ className }: { className?: string }) {
     <button
       type="button"
       onClick={openConsentSettings}
-      className={className ?? 'text-sm text-gray-600 hover:text-gray-900'}
+      className={className ?? 'text-sm text-muted-foreground hover:text-foreground'}
     >
       Cookie-Einstellungen
     </button>

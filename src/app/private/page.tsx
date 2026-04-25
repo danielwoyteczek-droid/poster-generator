@@ -16,18 +16,18 @@ export default function PrivatePage() {
       <Suspense fallback={null}>
         <ConfirmedToast />
       </Suspense>
-      <main className="flex-1 overflow-y-auto bg-gray-50">
+      <main className="flex-1 overflow-y-auto bg-muted">
         <div className="max-w-5xl mx-auto px-6 py-10">
-          <div className="flex items-center gap-6 mb-8 border-b border-gray-200">
+          <div className="flex items-center gap-6 mb-8 border-b border-border">
             <Link
               href="/private"
-              className="pb-3 text-sm font-medium text-gray-900 border-b-2 border-gray-900 -mb-px"
+              className="pb-3 text-sm font-medium text-foreground border-b-2 border-primary -mb-px"
             >
               Meine Poster
             </Link>
             <Link
               href="/private/orders"
-              className="pb-3 text-sm font-medium text-gray-500 hover:text-gray-900"
+              className="pb-3 text-sm font-medium text-muted-foreground hover:text-foreground"
             >
               Meine Bestellungen
             </Link>

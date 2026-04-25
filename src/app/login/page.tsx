@@ -51,7 +51,7 @@ function LoginForm() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-muted flex items-center justify-center p-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="space-y-1">
           <CardTitle className="text-xl">Anmelden</CardTitle>
@@ -81,7 +81,7 @@ function LoginForm() {
 
           <div className="relative">
             <Separator />
-            <span className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-2 text-xs text-gray-400">
+            <span className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-2 text-xs text-muted-foreground/70">
               oder
             </span>
           </div>
@@ -102,7 +102,7 @@ function LoginForm() {
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">Passwort</Label>
-                <Link href="/forgot-password" className="text-xs text-gray-500 hover:text-gray-900">
+                <Link href="/forgot-password" className="text-xs text-muted-foreground hover:text-foreground">
                   Passwort vergessen?
                 </Link>
               </div>
@@ -130,9 +130,9 @@ function LoginForm() {
         </CardContent>
 
         <CardFooter className="justify-center">
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted-foreground">
             Noch kein Konto?{' '}
-            <Link href={`/signup${next !== '/private' ? `?next=${encodeURIComponent(next)}` : ''}`} className="text-gray-900 font-medium hover:underline">
+            <Link href={`/signup${next !== '/private' ? `?next=${encodeURIComponent(next)}` : ''}`} className="text-foreground font-medium hover:underline">
               Registrieren
             </Link>
           </p>

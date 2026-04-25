@@ -205,13 +205,13 @@ export function AdminOrderDetail({ orderId }: { orderId: string }) {
   if (loading) {
     return (
       <div className="text-center py-20">
-        <Loader2 className="w-6 h-6 animate-spin mx-auto text-gray-400" />
+        <Loader2 className="w-6 h-6 animate-spin mx-auto text-muted-foreground/70" />
       </div>
     )
   }
 
   if (!order) {
-    return <div className="text-center py-20 text-gray-500">Bestellung nicht gefunden</div>
+    return <div className="text-center py-20 text-muted-foreground">Bestellung nicht gefunden</div>
   }
 
   const allDigital = order.items.every((i) => i.productId === 'download')
@@ -219,19 +219,19 @@ export function AdminOrderDetail({ orderId }: { orderId: string }) {
 
   return (
     <div className="space-y-6">
-      <Link href="/private/admin/orders" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900">
+      <Link href="/private/admin/orders" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="w-4 h-4" />
         Zurück zur Übersicht
       </Link>
 
-      <div className="rounded-xl bg-white border border-gray-200 p-6">
+      <div className="rounded-xl bg-white border border-border p-6">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
-            <div className="font-mono text-xs text-gray-500">#{order.id}</div>
-            <h1 className="text-xl font-semibold text-gray-900 mt-1">
+            <div className="font-mono text-xs text-muted-foreground">#{order.id}</div>
+            <h1 className="text-xl font-semibold text-foreground mt-1">
               Bestellung · {formatPrice(order.total_cents)}
             </h1>
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="text-sm text-muted-foreground mt-1">
               {order.email ?? 'Kein Kunde'} · {new Date(order.created_at).toLocaleString('de-DE')}
             </p>
           </div>
@@ -240,7 +240,7 @@ export function AdminOrderDetail({ orderId }: { orderId: string }) {
             order.fulfillment_status === 'new' && 'bg-amber-100 text-amber-800',
             order.fulfillment_status === 'in_production' && 'bg-blue-100 text-blue-800',
             order.fulfillment_status === 'shipped' && 'bg-green-100 text-green-800',
-            order.fulfillment_status === 'completed' && 'bg-gray-200 text-gray-700',
+            order.fulfillment_status === 'completed' && 'bg-muted text-foreground/70',
           )}>
             {STATUS_LABELS[order.fulfillment_status]}
           </span>
@@ -248,9 +248,9 @@ export function AdminOrderDetail({ orderId }: { orderId: string }) {
       </div>
 
       {hasPhysical && order.shipping_address && (
-        <div className="rounded-xl bg-white border border-gray-200 p-6">
-          <h2 className="text-sm font-semibold text-gray-900 mb-3">Lieferadresse</h2>
-          <div className="text-sm text-gray-700 space-y-0.5">
+        <div className="rounded-xl bg-white border border-border p-6">
+          <h2 className="text-sm font-semibold text-foreground mb-3">Lieferadresse</h2>
+          <div className="text-sm text-foreground/70 space-y-0.5">
             {order.shipping_address.name && <div>{order.shipping_address.name}</div>}
             {order.shipping_address.line1 && <div>{order.shipping_address.line1}</div>}
             {order.shipping_address.line2 && <div>{order.shipping_address.line2}</div>}
@@ -262,8 +262,8 @@ export function AdminOrderDetail({ orderId }: { orderId: string }) {
         </div>
       )}
 
-      <div className="rounded-xl bg-white border border-gray-200">
-        <h2 className="text-sm font-semibold text-gray-900 p-6 pb-3">Artikel</h2>
+      <div className="rounded-xl bg-white border border-border">
+        <h2 className="text-sm font-semibold text-foreground p-6 pb-3">Artikel</h2>
         <ul className="divide-y divide-gray-100">
           {order.items.map((item, idx) => {
             const png = exports.find((e) => e.item_index === idx && e.file_type === 'png')
@@ -271,17 +271,17 @@ export function AdminOrderDetail({ orderId }: { orderId: string }) {
             return (
               <li key={idx} className="p-6 flex flex-col sm:flex-row sm:items-center gap-4">
                 <div className="flex-1 min-w-0">
-                  <div className="text-xs uppercase tracking-wider text-gray-400">
+                  <div className="text-xs uppercase tracking-wider text-muted-foreground/70">
                     {item.posterType === 'star-map' ? 'Sternenposter' : 'Stadtposter'}
                   </div>
-                  <div className="text-sm font-semibold text-gray-900 mt-0.5 truncate">{item.title}</div>
-                  <div className="text-xs text-gray-500 mt-1">
+                  <div className="text-sm font-semibold text-foreground mt-0.5 truncate">{item.title}</div>
+                  <div className="text-xs text-muted-foreground mt-1">
                     {productLabel(item.productId)} · {formatLabel(item.format)} · {formatPrice(item.priceCents)}
                   </div>
                 </div>
                 <div className="flex gap-2 shrink-0">
                   {preparing[idx] && (!png || !pdf) ? (
-                    <div className="flex items-center gap-2 text-xs text-gray-500 px-3 py-2">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground px-3 py-2">
                       <Loader2 className="w-4 h-4 animate-spin" />
                       Datei wird generiert…
                     </div>
@@ -309,8 +309,8 @@ export function AdminOrderDetail({ orderId }: { orderId: string }) {
       </div>
 
       {hasPhysical && (
-        <div className="rounded-xl bg-white border border-gray-200 p-6 space-y-4">
-          <h2 className="text-sm font-semibold text-gray-900">Fulfillment</h2>
+        <div className="rounded-xl bg-white border border-border p-6 space-y-4">
+          <h2 className="text-sm font-semibold text-foreground">Fulfillment</h2>
 
           <div className="flex flex-wrap gap-2">
             {(['new', 'in_production', 'completed'] as FulfillmentStatus[]).map((s) => (
@@ -326,8 +326,8 @@ export function AdminOrderDetail({ orderId }: { orderId: string }) {
             ))}
           </div>
 
-          <div className="pt-4 border-t border-gray-100">
-            <label className="text-xs font-medium text-gray-600 uppercase tracking-wider">
+          <div className="pt-4 border-t border-border">
+            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
               Als versendet markieren
             </label>
             <div className="mt-2 flex gap-2">
@@ -349,7 +349,7 @@ export function AdminOrderDetail({ orderId }: { orderId: string }) {
                 {order.fulfillment_status === 'shipped' ? 'Aktualisieren' : 'Versenden'}
               </Button>
             </div>
-            <p className="text-xs text-gray-400 mt-2">
+            <p className="text-xs text-muted-foreground/70 mt-2">
               Beim Status-Wechsel auf "Versendet" wird automatisch eine E-Mail mit der Sendungsnummer an den Kunden geschickt.
             </p>
           </div>

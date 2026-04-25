@@ -96,7 +96,7 @@ export function AdminMasksList() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-2 text-xs text-gray-500">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <Info className="w-3.5 h-3.5" />
           Lade reine Form-SVGs hoch (nur `&lt;circle&gt;`, `&lt;path&gt;` etc., ohne Rahmen oder Opacity). Alles andere wird im Editor gesteuert.
         </div>
@@ -134,7 +134,7 @@ export function AdminMasksList() {
                   onChange={(e) => setMaskFile(e.target.files?.[0] ?? null)}
                   disabled={uploading}
                 />
-                <p className="text-xs text-gray-400 leading-snug">
+                <p className="text-xs text-muted-foreground/70 leading-snug">
                   viewBox muss gesetzt sein (z.B. 0 0 595.3 841.9 für A4-Proportion).
                 </p>
               </div>
@@ -153,25 +153,25 @@ export function AdminMasksList() {
       </div>
 
       {loading ? (
-        <div className="rounded-xl bg-white border border-gray-200 p-12 text-center">
-          <Loader2 className="w-6 h-6 animate-spin mx-auto text-gray-400" />
+        <div className="rounded-xl bg-white border border-border p-12 text-center">
+          <Loader2 className="w-6 h-6 animate-spin mx-auto text-muted-foreground/70" />
         </div>
       ) : masks.length === 0 ? (
-        <div className="rounded-xl bg-white border border-dashed border-gray-300 p-12 text-center text-gray-500 text-sm">
+        <div className="rounded-xl bg-white border border-dashed border-border p-12 text-center text-muted-foreground text-sm">
           Noch keine eigenen Masken. Lade deine erste hoch.
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
           {masks.map((mask) => (
-            <div key={mask.id} className="rounded-xl bg-white border border-gray-200 overflow-hidden">
-              <div className="aspect-square bg-gray-50 flex items-center justify-center p-4">
+            <div key={mask.id} className="rounded-xl bg-white border border-border overflow-hidden">
+              <div className="aspect-square bg-muted flex items-center justify-center p-4">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={mask.mask_svg_url} alt={mask.label} className="max-w-full max-h-full object-contain" />
               </div>
               <div className="p-3 space-y-2">
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-900 truncate">{mask.label}</h3>
-                  <p className="text-[10px] text-gray-400 font-mono truncate">{mask.mask_key}</p>
+                  <h3 className="text-sm font-semibold text-foreground truncate">{mask.label}</h3>
+                  <p className="text-[10px] text-muted-foreground/70 font-mono truncate">{mask.mask_key}</p>
                   {mask.shape_markup && (
                     <span className="inline-block mt-1 text-[10px] text-green-700 bg-green-50 px-1.5 py-0.5 rounded">
                       ready
@@ -180,7 +180,7 @@ export function AdminMasksList() {
                 </div>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button variant="ghost" size="sm" className="w-full h-7 text-xs text-gray-400 hover:text-red-600">
+                    <Button variant="ghost" size="sm" className="w-full h-7 text-xs text-muted-foreground/70 hover:text-red-600">
                       <Trash2 className="w-3.5 h-3.5 mr-1" />
                       Löschen
                     </Button>

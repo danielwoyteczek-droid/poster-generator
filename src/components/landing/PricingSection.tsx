@@ -26,26 +26,26 @@ export function PricingSection() {
   const { products: catalog, loading } = useProductCatalog()
 
   return (
-    <section id="pricing" className="py-24 bg-white">
+    <section id="pricing" className="py-24 bg-background">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <div className="text-center mb-12">
-          <h2 className="text-3xl sm:text-4xl font-bold text-gray-900">
+          <h2 className="text-3xl sm:text-4xl font-serif font-medium text-foreground">
             Einfache Preise
           </h2>
-          <p className="mt-4 text-gray-500 text-lg max-w-xl mx-auto">
+          <p className="mt-4 text-muted-foreground text-lg max-w-xl mx-auto">
             Wähle dein Format und das passende Produkt.
           </p>
 
-          <div className="mt-8 inline-flex rounded-lg border border-gray-200 p-1 bg-gray-50">
+          <div className="mt-8 inline-flex rounded-full border border-border p-1 bg-muted">
             {FORMATS.map((f) => (
               <button
                 key={f.id}
                 onClick={() => setFormat(f.id)}
                 className={cn(
-                  'px-5 py-2 text-sm font-medium rounded-md transition-colors',
+                  'px-5 py-2 text-sm font-medium rounded-full transition-colors',
                   format === f.id
-                    ? 'bg-white text-gray-900 shadow-sm'
-                    : 'text-gray-500 hover:text-gray-700',
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground',
                 )}
               >
                 {f.label}
@@ -66,29 +66,29 @@ export function PricingSection() {
                 className={cn(
                   'rounded-2xl border p-6 flex flex-col',
                   isHighlighted
-                    ? 'border-gray-900 bg-gray-900 text-white shadow-xl'
-                    : 'border-gray-200 bg-white',
+                    ? 'border-primary bg-primary text-primary-foreground shadow-xl'
+                    : 'border-border bg-background',
                 )}
               >
                 <div className={cn(
                   'w-10 h-10 rounded-lg flex items-center justify-center mb-4',
-                  isHighlighted ? 'bg-white/10' : 'bg-gray-100',
+                  isHighlighted ? 'bg-primary-foreground/10' : 'bg-muted',
                 )}>
-                  <Icon className={cn('w-5 h-5', isHighlighted ? 'text-white' : 'text-gray-900')} />
+                  <Icon className={cn('w-5 h-5', isHighlighted ? 'text-primary-foreground' : 'text-foreground')} />
                 </div>
 
-                <h3 className={cn('font-semibold text-lg', isHighlighted ? 'text-white' : 'text-gray-900')}>
+                <h3 className={cn('font-semibold text-lg', isHighlighted ? 'text-primary-foreground' : 'text-foreground')}>
                   {product.label}
                 </h3>
-                <p className={cn('text-sm mt-1 mb-6', isHighlighted ? 'text-white/60' : 'text-gray-500')}>
+                <p className={cn('text-sm mt-1 mb-6', isHighlighted ? 'text-primary-foreground/60' : 'text-muted-foreground')}>
                   {product.description}
                 </p>
 
                 <div className="mt-auto">
-                  <div className={cn('mb-6', isHighlighted ? 'text-white' : 'text-gray-900')}>
+                  <div className={cn('mb-6', isHighlighted ? 'text-primary-foreground' : 'text-foreground')}>
                     {price?.compareAtCents && price.compareAtCents > price.unitAmount && (
                       <div className="flex items-center gap-2 mb-1">
-                        <span className={cn('text-sm line-through', isHighlighted ? 'text-white/50' : 'text-gray-400')}>
+                        <span className={cn('text-sm line-through', isHighlighted ? 'text-primary-foreground/50' : 'text-muted-foreground/70')}>
                           {formatPrice(price.compareAtCents)}
                         </span>
                         <DiscountBadge unitAmount={price.unitAmount} compareAtCents={price.compareAtCents} />
@@ -102,7 +102,7 @@ export function PricingSection() {
                     asChild
                     className={cn(
                       'w-full',
-                      isHighlighted ? 'bg-white text-gray-900 hover:bg-gray-100' : '',
+                      isHighlighted ? 'bg-background text-foreground hover:bg-muted' : '',
                     )}
                     variant={isHighlighted ? 'secondary' : 'outline'}
                   >

@@ -37,7 +37,7 @@ export function FaqList({ items }: Props) {
 
   if (items.length === 0) {
     return (
-      <div className="text-center py-16 text-gray-500 text-sm">
+      <div className="text-center py-16 text-muted-foreground text-sm">
         Noch keine FAQ-Einträge. Leg sie im Sanity Studio an.
       </div>
     )
@@ -46,7 +46,7 @@ export function FaqList({ items }: Props) {
   return (
     <div className="space-y-8">
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/70" />
         <Input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
@@ -56,12 +56,12 @@ export function FaqList({ items }: Props) {
       </div>
 
       {grouped.length === 0 ? (
-        <p className="text-center text-gray-500 text-sm py-10">Keine Treffer für „{query}".</p>
+        <p className="text-center text-muted-foreground text-sm py-10">Keine Treffer für „{query}".</p>
       ) : (
         grouped.map(([category, categoryItems]) => (
           <div key={category} className="space-y-2">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">{category}</h2>
-            <div className="divide-y divide-gray-100 rounded-xl border border-gray-200 bg-white">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70 mb-3">{category}</h2>
+            <div className="divide-y divide-gray-100 rounded-xl border border-border bg-white">
               {categoryItems.map((item) => {
                 const isOpen = openId === item._id
                 return (
@@ -69,12 +69,12 @@ export function FaqList({ items }: Props) {
                     <button
                       type="button"
                       onClick={() => setOpenId(isOpen ? null : item._id)}
-                      className="w-full flex items-start justify-between gap-4 px-5 py-4 text-left hover:bg-gray-50 transition-colors"
+                      className="w-full flex items-start justify-between gap-4 px-5 py-4 text-left hover:bg-muted transition-colors"
                     >
-                      <span className="font-medium text-gray-900 text-sm">{item.question}</span>
+                      <span className="font-medium text-foreground text-sm">{item.question}</span>
                       <ChevronDown
                         className={cn(
-                          'w-4 h-4 text-gray-400 shrink-0 mt-0.5 transition-transform',
+                          'w-4 h-4 text-muted-foreground/70 shrink-0 mt-0.5 transition-transform',
                           isOpen && 'rotate-180',
                         )}
                       />

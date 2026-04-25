@@ -89,7 +89,7 @@ export function ProjectCard({ project, onDelete, onDuplicate }: ProjectCardProps
       <CardContent className="p-4 flex flex-col h-full">
         <div className="flex-1">
           <div className="flex items-start justify-between gap-2">
-            <h3 className="font-semibold text-gray-900 text-sm truncate">{project.title}</h3>
+            <h3 className="font-semibold text-foreground text-sm truncate">{project.title}</h3>
             {project.is_locked && (
               <span
                 className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded shrink-0"
@@ -102,11 +102,11 @@ export function ProjectCard({ project, onDelete, onDuplicate }: ProjectCardProps
           </div>
           {project.location_name && (
             <div className="flex items-center gap-1 mt-1">
-              <MapPin className="w-3 h-3 text-gray-400 shrink-0" />
-              <span className="text-xs text-gray-500 truncate">{project.location_name}</span>
+              <MapPin className="w-3 h-3 text-muted-foreground/70 shrink-0" />
+              <span className="text-xs text-muted-foreground truncate">{project.location_name}</span>
             </div>
           )}
-          <p className="text-xs text-gray-400 mt-1">Bearbeitet: {updatedDate}</p>
+          <p className="text-xs text-muted-foreground/70 mt-1">Bearbeitet: {updatedDate}</p>
         </div>
 
         <div className="flex items-center gap-2 mt-3">
@@ -138,7 +138,7 @@ export function ProjectCard({ project, onDelete, onDuplicate }: ProjectCardProps
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-7 w-7 p-0 text-gray-400 hover:text-red-600"
+                className="h-7 w-7 p-0 text-muted-foreground/70 hover:text-red-600"
                 disabled={deleting}
               >
                 <Trash2 className="w-3.5 h-3.5" />

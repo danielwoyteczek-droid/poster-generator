@@ -142,7 +142,7 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
   }
 
   return (
-    <div ref={wrapperRef} className="flex-1 relative bg-gray-100 min-h-0 overflow-hidden flex items-center justify-center">
+    <div ref={wrapperRef} className="flex-1 relative bg-muted min-h-0 overflow-hidden flex items-center justify-center">
       {posterSize.width > 0 && (() => {
         const mmToPx = posterSize.width / format.widthMm
         const marginPx = innerMarginMm * mmToPx
@@ -312,27 +312,27 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
                 <button
                   onClick={handleLocate}
                   disabled={locating}
-                  className="w-8 h-8 rounded-md bg-white shadow border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors disabled:opacity-50"
+                  className="w-8 h-8 rounded-md bg-white shadow border border-border flex items-center justify-center hover:bg-muted transition-colors disabled:opacity-50"
                   aria-label="Meinen Standort finden"
                   title="Meinen Standort (links)"
                 >
-                  <LocateFixed className={`w-4 h-4 text-gray-700 ${locating ? 'animate-pulse' : ''}`} />
+                  <LocateFixed className={`w-4 h-4 text-foreground/70 ${locating ? 'animate-pulse' : ''}`} />
                 </button>
                 <button
                   onClick={zoomIn}
-                  className="w-8 h-8 rounded-md bg-white shadow border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors"
+                  className="w-8 h-8 rounded-md bg-white shadow border border-border flex items-center justify-center hover:bg-muted transition-colors"
                   aria-label="Zoom in"
                   title="Hineinzoomen (links)"
                 >
-                  <Plus className="w-4 h-4 text-gray-700" />
+                  <Plus className="w-4 h-4 text-foreground/70" />
                 </button>
                 <button
                   onClick={zoomOut}
-                  className="w-8 h-8 rounded-md bg-white shadow border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors"
+                  className="w-8 h-8 rounded-md bg-white shadow border border-border flex items-center justify-center hover:bg-muted transition-colors"
                   aria-label="Zoom out"
                   title="Herauszoomen (links)"
                 >
-                  <Minus className="w-4 h-4 text-gray-700" />
+                  <Minus className="w-4 h-4 text-foreground/70" />
                 </button>
               </div>
 
@@ -346,19 +346,19 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
               >
                 <button
                   onClick={zoomInSecond}
-                  className="w-8 h-8 rounded-md bg-white shadow border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors"
+                  className="w-8 h-8 rounded-md bg-white shadow border border-border flex items-center justify-center hover:bg-muted transition-colors"
                   aria-label="Zoom in"
                   title="Hineinzoomen (rechts)"
                 >
-                  <Plus className="w-4 h-4 text-gray-700" />
+                  <Plus className="w-4 h-4 text-foreground/70" />
                 </button>
                 <button
                   onClick={zoomOutSecond}
-                  className="w-8 h-8 rounded-md bg-white shadow border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors"
+                  className="w-8 h-8 rounded-md bg-white shadow border border-border flex items-center justify-center hover:bg-muted transition-colors"
                   aria-label="Zoom out"
                   title="Herauszoomen (rechts)"
                 >
-                  <Minus className="w-4 h-4 text-gray-700" />
+                  <Minus className="w-4 h-4 text-foreground/70" />
                 </button>
               </div>
             </>
@@ -374,27 +374,27 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
               <button
                 onClick={handleLocate}
                 disabled={locating}
-                className="w-8 h-8 rounded-md bg-white shadow border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors disabled:opacity-50"
+                className="w-8 h-8 rounded-md bg-white shadow border border-border flex items-center justify-center hover:bg-muted transition-colors disabled:opacity-50"
                 aria-label="Meinen Standort finden"
                 title="Meinen Standort"
               >
-                <LocateFixed className={`w-4 h-4 text-gray-700 ${locating ? 'animate-pulse' : ''}`} />
+                <LocateFixed className={`w-4 h-4 text-foreground/70 ${locating ? 'animate-pulse' : ''}`} />
               </button>
               <button
                 onClick={zoomIn}
-                className="w-8 h-8 rounded-md bg-white shadow border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors"
+                className="w-8 h-8 rounded-md bg-white shadow border border-border flex items-center justify-center hover:bg-muted transition-colors"
                 aria-label="Zoom in"
                 title="Hineinzoomen"
               >
-                <Plus className="w-4 h-4 text-gray-700" />
+                <Plus className="w-4 h-4 text-foreground/70" />
               </button>
               <button
                 onClick={zoomOut}
-                className="w-8 h-8 rounded-md bg-white shadow border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors"
+                className="w-8 h-8 rounded-md bg-white shadow border border-border flex items-center justify-center hover:bg-muted transition-colors"
                 aria-label="Zoom out"
                 title="Herauszoomen"
               >
-                <Minus className="w-4 h-4 text-gray-700" />
+                <Minus className="w-4 h-4 text-foreground/70" />
               </button>
             </div>
           )}

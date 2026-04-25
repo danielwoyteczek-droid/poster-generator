@@ -114,13 +114,13 @@ export function MobileMapTab() {
     <div className="space-y-5 p-4">
       {/* Primary location search */}
       <div className="space-y-1.5">
-        <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400">Ort suchen</Label>
+        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">Ort suchen</Label>
         <LocationSearch onSelect={(lng, lat, name) => { flyToLocation(lng, lat); setLocationName(name) }} />
       </div>
 
       {/* Split mode */}
       <div className="space-y-3">
-        <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
           Zweite Ansicht
         </Label>
         <div className="grid grid-cols-3 gap-1">
@@ -132,8 +132,8 @@ export function MobileMapTab() {
               className={cn(
                 'h-10 rounded-md text-xs font-medium transition-colors',
                 splitMode === m
-                  ? 'bg-gray-900 text-white'
-                  : 'bg-white text-gray-700 border border-gray-200 hover:border-gray-400',
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-white text-foreground/70 border border-border hover:border-muted-foreground',
               )}
             >
               {m === 'none' ? 'Keine' : m === 'second-map' ? 'Zweite Karte' : 'Foto'}
@@ -144,25 +144,25 @@ export function MobileMapTab() {
         {splitMode === 'photo' && (
           <div className="space-y-2 pl-1">
             <div className="flex items-center gap-2">
-              <Label className="text-xs text-gray-500 flex-1">Position</Label>
+              <Label className="text-xs text-muted-foreground flex-1">Position</Label>
               <div className="flex items-center gap-1">
                 <button
                   type="button"
                   onClick={() => cycleZone(-1)}
                   disabled={zoneCount < 2}
-                  className="w-9 h-9 flex items-center justify-center rounded-sm border border-gray-200 bg-white text-gray-600 hover:border-gray-400 disabled:opacity-40"
+                  className="w-9 h-9 flex items-center justify-center rounded-sm border border-border bg-white text-muted-foreground hover:border-muted-foreground disabled:opacity-40"
                   aria-label="Vorherige Zone"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
-                <span className="text-xs text-gray-700 min-w-[56px] text-center tabular-nums">
+                <span className="text-xs text-foreground/70 min-w-[56px] text-center tabular-nums">
                   {zoneLabel}
                 </span>
                 <button
                   type="button"
                   onClick={() => cycleZone(1)}
                   disabled={zoneCount < 2}
-                  className="w-9 h-9 flex items-center justify-center rounded-sm border border-gray-200 bg-white text-gray-600 hover:border-gray-400 disabled:opacity-40"
+                  className="w-9 h-9 flex items-center justify-center rounded-sm border border-border bg-white text-muted-foreground hover:border-muted-foreground disabled:opacity-40"
                   aria-label="Nächste Zone"
                 >
                   <ChevronRight className="w-4 h-4" />
@@ -202,16 +202,16 @@ export function MobileMapTab() {
               </Button>
             ) : (
               <div className="space-y-2">
-                <div className="flex items-center gap-2 rounded-md border border-gray-200 p-2">
+                <div className="flex items-center gap-2 rounded-md border border-border p-2">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={splitPhoto.publicUrl} alt="" className="w-12 h-12 object-cover rounded-sm" />
-                  <p className="flex-1 text-xs text-gray-600 truncate">
+                  <p className="flex-1 text-xs text-muted-foreground truncate">
                     {splitPhoto.width} × {splitPhoto.height}px
                   </p>
                   <button
                     type="button"
                     onClick={handleRemoveSplitPhoto}
-                    className="w-9 h-9 flex items-center justify-center rounded-sm hover:bg-gray-100 text-gray-500 hover:text-red-600"
+                    className="w-9 h-9 flex items-center justify-center rounded-sm hover:bg-muted text-muted-foreground hover:text-red-600"
                     aria-label="Foto entfernen"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -226,8 +226,8 @@ export function MobileMapTab() {
                       className={cn(
                         'rounded-sm border px-1.5 py-2 text-[11px] transition-colors',
                         splitPhoto.filter === f.id
-                          ? 'border-gray-900 bg-gray-900 text-white'
-                          : 'border-gray-200 text-gray-600 hover:border-gray-400',
+                          ? 'border-primary bg-primary text-primary-foreground'
+                          : 'border-border text-muted-foreground hover:border-muted-foreground',
                       )}
                     >
                       {f.label}
@@ -236,8 +236,8 @@ export function MobileMapTab() {
                 </div>
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-600">Zoom</span>
-                    <span className="text-xs text-gray-400 tabular-nums">
+                    <span className="text-xs text-muted-foreground">Zoom</span>
+                    <span className="text-xs text-muted-foreground/70 tabular-nums">
                       {splitPhoto.cropScale.toFixed(1)}×
                     </span>
                   </div>
@@ -255,12 +255,12 @@ export function MobileMapTab() {
         {splitMode === 'second-map' && (
           <div className="space-y-3 pl-1">
             <div className="space-y-1.5">
-              <Label className="text-xs text-gray-500">Ort (rechts)</Label>
+              <Label className="text-xs text-muted-foreground">Ort (rechts)</Label>
               <LocationSearch onSelect={(lng, lat) => flyToSecondLocation(lng, lat)} />
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs text-gray-500">Kartenstil (rechts)</Label>
+              <Label className="text-xs text-muted-foreground">Kartenstil (rechts)</Label>
               <div className="grid grid-cols-2 gap-1.5">
                 {MAP_LAYOUTS.map((layout) => (
                   <button
@@ -269,8 +269,8 @@ export function MobileMapTab() {
                     className={cn(
                       'rounded-md border-2 px-2 py-3 text-left text-xs font-medium transition-all',
                       secondMap.styleId === layout.id
-                        ? 'border-gray-900 bg-gray-900 text-white'
-                        : 'border-gray-200 text-gray-700 hover:border-gray-400'
+                        ? 'border-primary bg-primary text-primary-foreground'
+                        : 'border-border text-foreground/70 hover:border-muted-foreground'
                     )}
                   >
                     {layout.label}
@@ -279,19 +279,19 @@ export function MobileMapTab() {
               </div>
 
               <div className="space-y-1.5 pt-2">
-                <Label className="text-xs text-gray-500">Farbpalette (rechts)</Label>
+                <Label className="text-xs text-muted-foreground">Farbpalette (rechts)</Label>
                 <div className="grid grid-cols-3 gap-1.5">
                   <button
                     onClick={() => setSecondMapPaletteId('original')}
                     className={cn(
                       'rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
                       secondMap.paletteId === 'original'
-                        ? 'border-gray-900'
-                        : 'border-gray-200 hover:border-gray-400',
+                        ? 'border-primary'
+                        : 'border-border hover:border-muted-foreground',
                     )}
                   >
                     <div className="w-4 h-4 rounded-full border border-black/10 bg-gradient-to-br from-gray-200 via-gray-400 to-gray-600" />
-                    <span className="text-[11px] leading-tight text-gray-700">Original</span>
+                    <span className="text-[11px] leading-tight text-foreground/70">Original</span>
                   </button>
                   {availablePalettes.map((p) => {
                     const c = p.colors
@@ -302,8 +302,8 @@ export function MobileMapTab() {
                         className={cn(
                           'rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
                           secondMap.paletteId === p.id
-                            ? 'border-gray-900'
-                            : 'border-gray-200 hover:border-gray-400',
+                            ? 'border-primary'
+                            : 'border-border hover:border-muted-foreground',
                         )}
                       >
                         <div className="flex gap-0.5">
@@ -312,7 +312,7 @@ export function MobileMapTab() {
                           <span className="w-3 h-3 rounded-full border border-black/10" style={{ background: c.road }} />
                           <span className="w-3 h-3 rounded-full border border-black/10" style={{ background: c.label }} />
                         </div>
-                        <span className="text-[11px] leading-tight text-gray-700">{p.label}</span>
+                        <span className="text-[11px] leading-tight text-foreground/70">{p.label}</span>
                       </button>
                     )
                   })}
@@ -328,15 +328,15 @@ export function MobileMapTab() {
                     className={cn(
                       'rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
                       secondMap.paletteId === 'custom'
-                        ? 'border-gray-900'
-                        : 'border-gray-200 hover:border-gray-400',
+                        ? 'border-primary'
+                        : 'border-border hover:border-muted-foreground',
                     )}
                   >
                     <div
                       className="w-4 h-4 rounded-full border border-black/10"
                       style={{ background: secondMap.customPalette?.water ?? secondMap.customPaletteBase ?? '#84c5a6' }}
                     />
-                    <span className="text-[11px] leading-tight text-gray-700">Eigene</span>
+                    <span className="text-[11px] leading-tight text-foreground/70">Eigene</span>
                   </button>
                 </div>
                 {secondMap.paletteId === 'custom' && (
@@ -360,7 +360,7 @@ export function MobileMapTab() {
 
       {/* Kartenstil */}
       <div className="space-y-1.5">
-        <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400">Kartenstil</Label>
+        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">Kartenstil</Label>
         <div className="grid grid-cols-2 gap-1.5">
           {MAP_LAYOUTS.map((layout) => (
             <button
@@ -369,8 +369,8 @@ export function MobileMapTab() {
               className={cn(
                 'rounded-md border-2 px-2 py-3 text-left text-sm font-medium transition-all',
                 styleId === layout.id
-                  ? 'border-gray-900 bg-gray-900 text-white'
-                  : 'border-gray-200 text-gray-700 hover:border-gray-400'
+                  ? 'border-primary bg-primary text-primary-foreground'
+                  : 'border-border text-foreground/70 hover:border-muted-foreground'
               )}
             >
               {layout.label}
@@ -381,19 +381,19 @@ export function MobileMapTab() {
 
       {/* Farbpalette */}
       <div className="space-y-1.5">
-        <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400">Farbpalette</Label>
+        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">Farbpalette</Label>
         <div className="grid grid-cols-3 gap-1.5">
           <button
             onClick={() => setPaletteId('original')}
             className={cn(
               'rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
               paletteId === 'original'
-                ? 'border-gray-900'
-                : 'border-gray-200 hover:border-gray-400',
+                ? 'border-primary'
+                : 'border-border hover:border-muted-foreground',
             )}
           >
             <div className="w-4 h-4 rounded-full border border-black/10 bg-gradient-to-br from-gray-200 via-gray-400 to-gray-600" />
-            <span className="text-[11px] leading-tight text-gray-700">Original</span>
+            <span className="text-[11px] leading-tight text-foreground/70">Original</span>
           </button>
           {availablePalettes.map((p) => {
             const c = p.colors
@@ -404,8 +404,8 @@ export function MobileMapTab() {
                 className={cn(
                   'rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
                   paletteId === p.id
-                    ? 'border-gray-900'
-                    : 'border-gray-200 hover:border-gray-400',
+                    ? 'border-primary'
+                    : 'border-border hover:border-muted-foreground',
                 )}
               >
                 <div className="flex gap-0.5">
@@ -414,7 +414,7 @@ export function MobileMapTab() {
                   <span className="w-3 h-3 rounded-full border border-black/10" style={{ background: c.road }} />
                   <span className="w-3 h-3 rounded-full border border-black/10" style={{ background: c.label }} />
                 </div>
-                <span className="text-[11px] leading-tight text-gray-700">{p.label}</span>
+                <span className="text-[11px] leading-tight text-foreground/70">{p.label}</span>
               </button>
             )
           })}
@@ -430,15 +430,15 @@ export function MobileMapTab() {
             className={cn(
               'rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
               paletteId === 'custom'
-                ? 'border-gray-900'
-                : 'border-gray-200 hover:border-gray-400',
+                ? 'border-primary'
+                : 'border-border hover:border-muted-foreground',
             )}
           >
             <div
               className="w-4 h-4 rounded-full border border-black/10"
               style={{ background: customPalette?.water ?? customPaletteBase ?? '#84c5a6' }}
             />
-            <span className="text-[11px] leading-tight text-gray-700">Eigene</span>
+            <span className="text-[11px] leading-tight text-foreground/70">Eigene</span>
           </button>
         </div>
         {paletteId === 'custom' && (
@@ -452,7 +452,7 @@ export function MobileMapTab() {
 
       {/* Straßennamen */}
       <div className="flex items-center justify-between">
-        <Label className="text-sm text-gray-700">Straßennamen anzeigen</Label>
+        <Label className="text-sm text-foreground/70">Straßennamen anzeigen</Label>
         <Switch
           checked={streetLabelsVisible}
           onCheckedChange={setStreetLabelsVisible}
@@ -486,11 +486,11 @@ function MobileCustomPaletteEditor({
   return (
     <div className="space-y-2 pt-2">
       <div className="flex items-center justify-between">
-        <span className="text-xs text-gray-500 uppercase tracking-wider">Alle Farben</span>
+        <span className="text-xs text-muted-foreground uppercase tracking-wider">Alle Farben</span>
         <button
           type="button"
           onClick={onReset}
-          className="text-xs text-gray-400 hover:text-gray-700"
+          className="text-xs text-muted-foreground/70 hover:text-foreground/70"
         >
           Zurücksetzen
         </button>
@@ -501,13 +501,13 @@ function MobileCustomPaletteEditor({
             type="color"
             value={effective[field.key]}
             onChange={(e) => onColorChange(field.key, e.target.value)}
-            className="w-11 h-11 rounded-md border border-gray-200 cursor-pointer shrink-0"
+            className="w-11 h-11 rounded-md border border-border cursor-pointer shrink-0"
           />
           <div className="flex-1 min-w-0">
-            <p className="text-xs text-gray-700 leading-tight">{field.label}</p>
-            <p className="text-[11px] text-gray-400 leading-tight">{field.description}</p>
+            <p className="text-xs text-foreground/70 leading-tight">{field.label}</p>
+            <p className="text-[11px] text-muted-foreground/70 leading-tight">{field.description}</p>
           </div>
-          <span className="text-[11px] text-gray-400 font-mono tabular-nums uppercase">
+          <span className="text-[11px] text-muted-foreground/70 font-mono tabular-nums uppercase">
             {effective[field.key]}
           </span>
         </div>

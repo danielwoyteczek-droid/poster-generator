@@ -47,7 +47,7 @@ export function LandingNav() {
   }
 
   return (
-    <header className="fixed top-0 inset-x-0 z-50 bg-white/90 backdrop-blur-sm border-b border-gray-200/80">
+    <header className="fixed top-0 inset-x-0 z-50 bg-background/90 backdrop-blur-sm border-b border-border/80">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center" aria-label="petite-moment Startseite">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -65,7 +65,7 @@ export function LandingNav() {
             <Link
               key={link.href}
               href={link.href}
-              className="relative text-sm text-gray-600 hover:text-gray-900 transition-colors py-1 after:content-[''] after:absolute after:left-0 after:-bottom-0.5 after:h-px after:w-full after:origin-left after:scale-x-0 after:bg-gray-900 after:transition-transform after:duration-300 after:ease-out hover:after:scale-x-100"
+              className="relative text-sm text-muted-foreground hover:text-foreground transition-colors py-1 after:content-[''] after:absolute after:left-0 after:-bottom-0.5 after:h-px after:w-full after:origin-left after:scale-x-0 after:bg-primary after:transition-transform after:duration-300 after:ease-out hover:after:scale-x-100"
             >
               {link.label}
             </Link>
@@ -78,25 +78,25 @@ export function LandingNav() {
 
           <Link
             href="/cart"
-            className="relative p-1.5 rounded-md hover:bg-gray-100 transition-colors"
+            className="relative p-1.5 rounded-md hover:bg-muted transition-colors"
             aria-label="Warenkorb"
           >
-            <ShoppingCart className="w-5 h-5 text-gray-700" />
+            <ShoppingCart className="w-5 h-5 text-foreground/70" />
             {hydrated && cartCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-gray-900 text-white text-[10px] font-semibold flex items-center justify-center">
+              <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-semibold flex items-center justify-center">
                 {cartCount}
               </span>
             )}
           </Link>
 
           {loading ? (
-            <div className="w-8 h-8 rounded-full bg-gray-100 animate-pulse" />
+            <div className="w-8 h-8 rounded-full bg-muted animate-pulse" />
           ) : user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="focus:outline-none">
-                  <Avatar className="w-8 h-8 cursor-pointer hover:ring-2 hover:ring-gray-300 transition-all">
-                    <AvatarFallback className="text-xs bg-gray-900 text-white">
+                  <Avatar className="w-8 h-8 cursor-pointer hover:ring-2 hover:ring-border transition-all">
+                    <AvatarFallback className="text-xs bg-primary text-primary-foreground">
                       {initials}
                     </AvatarFallback>
                   </Avatar>
@@ -104,8 +104,8 @@ export function LandingNav() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-52">
                 <div className="px-2 py-1.5">
-                  <p className="text-xs font-medium text-gray-900 truncate">{user.email}</p>
-                  {isAdmin && <p className="text-xs text-gray-400">Admin</p>}
+                  <p className="text-xs font-medium text-foreground truncate">{user.email}</p>
+                  {isAdmin && <p className="text-xs text-muted-foreground">Admin</p>}
                 </div>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
@@ -190,12 +190,12 @@ export function LandingNav() {
         <div className="flex md:hidden items-center gap-1">
           <Link
             href="/cart"
-            className="relative p-2 rounded-md hover:bg-gray-100 transition-colors"
+            className="relative p-2 rounded-md hover:bg-muted transition-colors"
             aria-label="Warenkorb"
           >
-            <ShoppingCart className="w-5 h-5 text-gray-700" />
+            <ShoppingCart className="w-5 h-5 text-foreground/70" />
             {hydrated && cartCount > 0 && (
-              <span className="absolute top-0 right-0 min-w-[18px] h-[18px] px-1 rounded-full bg-gray-900 text-white text-[10px] font-semibold flex items-center justify-center">
+              <span className="absolute top-0 right-0 min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-semibold flex items-center justify-center">
                 {cartCount}
               </span>
             )}
@@ -213,12 +213,12 @@ export function LandingNav() {
                   key={link.href}
                   href={link.href}
                   onClick={() => setOpen(false)}
-                  className="px-3 py-2.5 text-sm rounded-md hover:bg-gray-100 transition-colors"
+                  className="px-3 py-2.5 text-sm rounded-md hover:bg-muted transition-colors"
                 >
                   {link.label}
                 </Link>
               ))}
-              <div className="mt-4 pt-4 border-t border-gray-200 flex flex-col gap-2">
+              <div className="mt-4 pt-4 border-t border-border flex flex-col gap-2">
                 {user ? (
                   <>
                     <Button variant="outline" size="sm" asChild>

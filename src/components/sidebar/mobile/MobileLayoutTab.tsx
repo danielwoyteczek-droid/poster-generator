@@ -55,7 +55,7 @@ export function MobileLayoutTab() {
     <div className="space-y-5 p-4">
       {/* Kartenform */}
       <div className="space-y-1.5">
-        <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400">Kartenform</Label>
+        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">Kartenform</Label>
         <div className="grid grid-cols-3 gap-1.5">
           {(masksExpanded ? visibleMasks : visibleMasks.slice(0, MASK_INITIAL_VISIBLE)).map((mask) => (
             <button
@@ -64,8 +64,8 @@ export function MobileLayoutTab() {
               className={cn(
                 'rounded-md border-2 py-3 px-1 transition-all flex flex-col items-center gap-1',
                 maskKey === mask.key
-                  ? 'border-gray-900 bg-gray-50'
-                  : 'border-gray-200 hover:border-gray-400'
+                  ? 'border-primary bg-muted'
+                  : 'border-border hover:border-muted-foreground'
               )}
             >
               <div className="w-10 h-10 flex items-center justify-center">
@@ -73,10 +73,10 @@ export function MobileLayoutTab() {
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={mask.svgPath} alt={mask.label} className="w-9 h-9 object-contain" />
                 ) : (
-                  <div className="w-9 h-9 rounded-sm bg-gray-200" />
+                  <div className="w-9 h-9 rounded-sm bg-muted" />
                 )}
               </div>
-              <span className="text-[11px] leading-tight text-center text-gray-600">{mask.label}</span>
+              <span className="text-[11px] leading-tight text-center text-muted-foreground">{mask.label}</span>
             </button>
           ))}
         </div>
@@ -84,7 +84,7 @@ export function MobileLayoutTab() {
           <button
             type="button"
             onClick={() => setMasksExpanded((v) => !v)}
-            className="w-full h-9 text-xs text-gray-500 hover:text-gray-900 flex items-center justify-center gap-1"
+            className="w-full h-9 text-xs text-muted-foreground hover:text-foreground flex items-center justify-center gap-1"
           >
             {masksExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
             {masksExpanded ? 'Weniger anzeigen' : `Mehr anzeigen (${visibleMasks.length - MASK_INITIAL_VISIBLE})`}
@@ -96,7 +96,7 @@ export function MobileLayoutTab() {
 
       {/* Layout */}
       <div className="space-y-1.5">
-        <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400">Layout</Label>
+        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">Layout</Label>
         <div className="grid grid-cols-3 gap-1.5">
           {LAYOUT_OPTIONS.map((opt) => (
             <button
@@ -105,17 +105,17 @@ export function MobileLayoutTab() {
               className={cn(
                 'rounded-md border-2 py-3 px-1 transition-all flex flex-col items-center gap-1',
                 layoutId === opt.id
-                  ? 'border-gray-900 bg-gray-50'
-                  : 'border-gray-200 hover:border-gray-400',
+                  ? 'border-primary bg-muted'
+                  : 'border-border hover:border-muted-foreground',
               )}
             >
-              <div className="w-9 h-12 rounded-sm border border-gray-300 bg-white flex flex-col overflow-hidden">
+              <div className="w-9 h-12 rounded-sm border border-border bg-white flex flex-col overflow-hidden">
                 <div
-                  className="bg-gray-400"
+                  className="bg-muted-foreground"
                   style={{ height: opt.id === 'full' ? '100%' : opt.id === 'text-30' ? '70%' : '85%' }}
                 />
               </div>
-              <span className="text-[11px] leading-tight text-center text-gray-600">{opt.label}</span>
+              <span className="text-[11px] leading-tight text-center text-muted-foreground">{opt.label}</span>
             </button>
           ))}
         </div>
@@ -126,8 +126,8 @@ export function MobileLayoutTab() {
       {/* Formkontur */}
       <div className="space-y-1.5">
         <div className="flex items-center justify-between">
-          <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400">Formkontur</Label>
-          <span className="text-xs text-gray-400 tabular-nums">{innerMarginMm} mm</span>
+          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">Formkontur</Label>
+          <span className="text-xs text-muted-foreground/70 tabular-nums">{innerMarginMm} mm</span>
         </div>
         <Slider
           min={0}
@@ -143,13 +143,13 @@ export function MobileLayoutTab() {
         <>
           <Separator />
           <div className="space-y-4">
-            <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
               Design <span className="text-[10px] normal-case text-amber-600 ml-1">Admin</span>
             </Label>
 
             {/* Außenbereich */}
             <div className="space-y-2">
-              <span className="text-xs font-medium text-gray-700">Außenbereich</span>
+              <span className="text-xs font-medium text-foreground/70">Außenbereich</span>
               <div className="grid grid-cols-3 gap-1">
                 {([
                   { key: 'none', label: 'Leer' },
@@ -163,8 +163,8 @@ export function MobileLayoutTab() {
                     className={cn(
                       'h-9 text-xs rounded border',
                       shapeConfig.outer.mode === opt.key
-                        ? 'bg-gray-900 text-white border-gray-900'
-                        : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400',
+                        ? 'bg-primary text-primary-foreground border-primary'
+                        : 'bg-white text-muted-foreground border-border hover:border-muted-foreground',
                     )}
                   >
                     {opt.label}
@@ -174,8 +174,8 @@ export function MobileLayoutTab() {
               {shapeConfig.outer.mode === 'opacity' && (
                 <div className="space-y-1 pt-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-600">Transparenz</span>
-                    <span className="text-xs text-gray-400 tabular-nums">{Math.round(shapeConfig.outer.opacity * 100)}%</span>
+                    <span className="text-xs text-muted-foreground">Transparenz</span>
+                    <span className="text-xs text-muted-foreground/70 tabular-nums">{Math.round(shapeConfig.outer.opacity * 100)}%</span>
                   </div>
                   <Slider
                     min={0.1} max={1} step={0.05}
@@ -187,8 +187,8 @@ export function MobileLayoutTab() {
               {shapeConfig.outer.mode !== 'none' && (
                 <div className="space-y-2 pt-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-600">Abstand zum Poster-Rand</span>
-                    <label className="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer">
+                    <span className="text-xs text-muted-foreground">Abstand zum Poster-Rand</span>
+                    <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
                       <input
                         type="checkbox"
                         checked={shapeConfig.outer.marginLocked !== false}
@@ -219,8 +219,8 @@ export function MobileLayoutTab() {
                   {shapeConfig.outer.marginLocked !== false ? (
                     <div className="space-y-1">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs text-gray-500">Alle Seiten</span>
-                        <span className="text-xs text-gray-400 tabular-nums">{shapeConfig.outer.margin} mm</span>
+                        <span className="text-xs text-muted-foreground">Alle Seiten</span>
+                        <span className="text-xs text-muted-foreground/70 tabular-nums">{shapeConfig.outer.margin} mm</span>
                       </div>
                       <Slider
                         min={0} max={30} step={1}
@@ -248,8 +248,8 @@ export function MobileLayoutTab() {
                         return (
                           <div key={side.field} className="space-y-1">
                             <div className="flex items-center justify-between">
-                              <span className="text-xs text-gray-500">{side.label}</span>
-                              <span className="text-xs text-gray-400 tabular-nums">{v} mm</span>
+                              <span className="text-xs text-muted-foreground">{side.label}</span>
+                              <span className="text-xs text-muted-foreground/70 tabular-nums">{v} mm</span>
                             </div>
                             <Slider
                               min={0} max={30} step={1}
@@ -266,9 +266,9 @@ export function MobileLayoutTab() {
             </div>
 
             {/* Rand (Inner Frame) */}
-            <div className="space-y-2 pt-2 border-t border-gray-100">
+            <div className="space-y-2 pt-2 border-t border-border">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-gray-700">Rand</span>
+                <span className="text-xs font-medium text-foreground/70">Rand</span>
                 <Switch
                   checked={shapeConfig.innerFrame.enabled}
                   onCheckedChange={(enabled) => setInnerFrame({ enabled })}
@@ -277,18 +277,18 @@ export function MobileLayoutTab() {
               {shapeConfig.innerFrame.enabled && (
                 <div className="space-y-2 pl-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-600">Farbe</span>
+                    <span className="text-xs text-muted-foreground">Farbe</span>
                     <input
                       type="color"
                       value={shapeConfig.innerFrame.color}
                       onChange={(e) => setInnerFrame({ color: e.target.value })}
-                      className="w-8 h-8 rounded-full border border-gray-300 cursor-pointer p-0 overflow-hidden"
+                      className="w-8 h-8 rounded-full border border-border cursor-pointer p-0 overflow-hidden"
                     />
                   </div>
                   <div className="space-y-1">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-gray-600">Dicke</span>
-                      <span className="text-xs text-gray-400 tabular-nums">{shapeConfig.innerFrame.thickness} mm</span>
+                      <span className="text-xs text-muted-foreground">Dicke</span>
+                      <span className="text-xs text-muted-foreground/70 tabular-nums">{shapeConfig.innerFrame.thickness} mm</span>
                     </div>
                     <Slider
                       min={0.3} max={2} step={0.1}
@@ -302,9 +302,9 @@ export function MobileLayoutTab() {
 
             {/* Äußerer Rahmen */}
             {shapeConfig.outer.mode !== 'none' && (
-              <div className="space-y-2 pt-2 border-t border-gray-100">
+              <div className="space-y-2 pt-2 border-t border-border">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-gray-700">Äußerer Rahmen</span>
+                  <span className="text-xs font-medium text-foreground/70">Äußerer Rahmen</span>
                   <Switch
                     checked={shapeConfig.outerFrame.enabled}
                     onCheckedChange={(enabled) => setOuterFrame({ enabled })}
@@ -321,8 +321,8 @@ export function MobileLayoutTab() {
                           className={cn(
                             'h-9 text-xs rounded border',
                             shapeConfig.outerFrame.style === s
-                              ? 'bg-gray-900 text-white border-gray-900'
-                              : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400',
+                              ? 'bg-primary text-primary-foreground border-primary'
+                              : 'bg-white text-muted-foreground border-border hover:border-muted-foreground',
                           )}
                         >
                           {s === 'single' ? 'Einfach' : 'Doppelt'}
@@ -330,18 +330,18 @@ export function MobileLayoutTab() {
                       ))}
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-gray-600">Farbe</span>
+                      <span className="text-xs text-muted-foreground">Farbe</span>
                       <input
                         type="color"
                         value={shapeConfig.outerFrame.color}
                         onChange={(e) => setOuterFrame({ color: e.target.value })}
-                        className="w-8 h-8 rounded-full border border-gray-300 cursor-pointer p-0 overflow-hidden"
+                        className="w-8 h-8 rounded-full border border-border cursor-pointer p-0 overflow-hidden"
                       />
                     </div>
                     <div className="space-y-1">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs text-gray-600">Dicke</span>
-                        <span className="text-xs text-gray-400 tabular-nums">{shapeConfig.outerFrame.thickness} mm</span>
+                        <span className="text-xs text-muted-foreground">Dicke</span>
+                        <span className="text-xs text-muted-foreground/70 tabular-nums">{shapeConfig.outerFrame.thickness} mm</span>
                       </div>
                       <Slider
                         min={0.3} max={2} step={0.1}
@@ -352,8 +352,8 @@ export function MobileLayoutTab() {
                     {shapeConfig.outerFrame.style === 'double' && (
                       <div className="space-y-1">
                         <div className="flex items-center justify-between">
-                          <span className="text-xs text-gray-600">Abstand der Linien</span>
-                          <span className="text-xs text-gray-400 tabular-nums">{shapeConfig.outerFrame.gap} mm</span>
+                          <span className="text-xs text-muted-foreground">Abstand der Linien</span>
+                          <span className="text-xs text-muted-foreground/70 tabular-nums">{shapeConfig.outerFrame.gap} mm</span>
                         </div>
                         <Slider
                           min={0.5} max={3} step={0.1}

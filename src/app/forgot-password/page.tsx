@@ -37,11 +37,11 @@ export default function ForgotPasswordPage() {
 
   if (sent) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-muted flex items-center justify-center p-4">
         <Card className="w-full max-w-sm text-center">
           <CardHeader>
-            <div className="mx-auto w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-2">
-              <Mail className="w-5 h-5 text-gray-700" />
+            <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-2">
+              <Mail className="w-5 h-5 text-foreground/70" />
             </div>
             <CardTitle className="text-xl">E-Mail ist unterwegs</CardTitle>
             <CardDescription>
@@ -50,7 +50,7 @@ export default function ForgotPasswordPage() {
             </CardDescription>
           </CardHeader>
           <CardFooter className="justify-center">
-            <Link href="/login" className="text-sm text-gray-900 font-medium hover:underline">
+            <Link href="/login" className="text-sm text-foreground font-medium hover:underline">
               Zurück zum Login
             </Link>
           </CardFooter>
@@ -60,7 +60,7 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-muted flex items-center justify-center p-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="space-y-1">
           <CardTitle className="text-xl">Passwort zurücksetzen</CardTitle>
@@ -98,7 +98,7 @@ export default function ForgotPasswordPage() {
         </CardContent>
 
         <CardFooter className="justify-center">
-          <Link href="/login" className="text-sm text-gray-500 hover:text-gray-900">
+          <Link href="/login" className="text-sm text-muted-foreground hover:text-foreground">
             Zurück zum Login
           </Link>
         </CardFooter>

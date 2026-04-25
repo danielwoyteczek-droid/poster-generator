@@ -8,7 +8,7 @@ export function EditorShell() {
   const isMobile = useIsMobileEditor()
 
   if (isMobile === undefined) {
-    return <div className="h-full bg-gray-100" aria-hidden />
+    return <div className="h-full bg-muted" aria-hidden />
   }
 
   return isMobile ? <MobileEditorLayout /> : <EditorLayout />

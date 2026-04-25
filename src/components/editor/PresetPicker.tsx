@@ -52,9 +52,9 @@ export function PresetPicker({ posterType }: Props) {
   if (loading) {
     return (
       <div className="space-y-1.5">
-        <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400">Designs</Label>
+        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">Designs</Label>
         <div className="flex items-center justify-center py-4">
-          <Loader2 className="w-4 h-4 animate-spin text-gray-300" />
+          <Loader2 className="w-4 h-4 animate-spin text-muted-foreground/40" />
         </div>
       </div>
     )
@@ -67,7 +67,7 @@ export function PresetPicker({ posterType }: Props) {
 
   return (
     <div className="space-y-1.5">
-      <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400">Designs</Label>
+      <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">Designs</Label>
       <div className="grid grid-cols-3 gap-2">
         {visible.map((preset) => (
           <button
@@ -75,10 +75,10 @@ export function PresetPicker({ posterType }: Props) {
             type="button"
             onClick={() => apply(preset)}
             className={cn(
-              'relative aspect-[2/3] rounded-md border-2 overflow-hidden transition-all bg-gray-50',
+              'relative aspect-[2/3] rounded-md border-2 overflow-hidden transition-all bg-muted',
               appliedId === preset.id
-                ? 'border-gray-900 ring-2 ring-gray-900/20'
-                : 'border-gray-200 hover:border-gray-400',
+                ? 'border-primary ring-2 ring-gray-900/20'
+                : 'border-border hover:border-muted-foreground',
             )}
             title={preset.description || preset.name}
           >
@@ -91,7 +91,7 @@ export function PresetPicker({ posterType }: Props) {
                 className="object-cover"
               />
             ) : (
-              <div className="absolute inset-0 flex items-center justify-center text-gray-300">
+              <div className="absolute inset-0 flex items-center justify-center text-muted-foreground/40">
                 <LayoutTemplate className="w-6 h-6" />
               </div>
             )}
@@ -105,7 +105,7 @@ export function PresetPicker({ posterType }: Props) {
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
-          className="w-full text-[11px] text-gray-500 hover:text-gray-900 flex items-center justify-center gap-0.5 py-1"
+          className="w-full text-[11px] text-muted-foreground hover:text-foreground flex items-center justify-center gap-0.5 py-1"
         >
           {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
           {expanded ? 'Weniger anzeigen' : `Mehr anzeigen (${presets.length - INITIAL_VISIBLE})`}

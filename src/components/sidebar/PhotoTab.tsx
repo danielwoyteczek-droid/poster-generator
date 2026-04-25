@@ -70,11 +70,11 @@ export function PhotoTab() {
   return (
     <div className="space-y-5 p-4">
       <div className="space-y-2">
-        <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
           Foto hochladen
         </Label>
         {!user && (
-          <p className="text-[11px] text-gray-500 leading-relaxed">
+          <p className="text-[11px] text-muted-foreground leading-relaxed">
             Du kannst auch ohne Konto hochladen. Fotos ohne Bestellung werden nach 7 Tagen automatisch gelöscht.
           </p>
         )}
@@ -107,7 +107,7 @@ export function PhotoTab() {
             </>
           )}
         </Button>
-        <p className="text-[11px] text-gray-400 leading-relaxed">
+        <p className="text-[11px] text-muted-foreground/70 leading-relaxed">
           JPG, PNG oder HEIC. Maximal 10 MB. Wird automatisch komprimiert.
         </p>
       </div>
@@ -116,28 +116,28 @@ export function PhotoTab() {
         <>
           <Separator />
           <div className="space-y-3">
-            <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
               Deine Fotos
             </Label>
             {photos.map((photo) => (
-              <div key={photo.id} className="space-y-2 rounded-md border border-gray-200 p-2">
+              <div key={photo.id} className="space-y-2 rounded-md border border-border p-2">
                 <div className="flex items-start gap-2">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={photo.publicUrl}
                     alt=""
-                    className="w-12 h-12 object-cover rounded-sm border border-gray-100"
+                    className="w-12 h-12 object-cover rounded-sm border border-border"
                   />
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs text-gray-700 truncate">
+                    <p className="text-xs text-foreground/70 truncate">
                       {photo.width} × {photo.height}px
                     </p>
-                    <p className="text-[10px] text-gray-400">Maske: {photo.maskKey}</p>
+                    <p className="text-[10px] text-muted-foreground/70">Maske: {photo.maskKey}</p>
                   </div>
                   <button
                     type="button"
                     onClick={() => handleRemove(photo.id, photo.storagePath)}
-                    className="w-7 h-7 flex items-center justify-center rounded-sm hover:bg-gray-100 text-gray-500 hover:text-red-600"
+                    className="w-7 h-7 flex items-center justify-center rounded-sm hover:bg-muted text-muted-foreground hover:text-destructive"
                     aria-label="Foto entfernen"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -152,8 +152,8 @@ export function PhotoTab() {
                       className={cn(
                         'rounded-sm border px-1.5 py-1 text-[10px] transition-colors',
                         photo.maskKey === mask.key
-                          ? 'border-gray-900 bg-gray-900 text-white'
-                          : 'border-gray-200 text-gray-600 hover:border-gray-400',
+                          ? 'border-primary bg-primary text-primary-foreground'
+                          : 'border-border text-muted-foreground hover:border-muted-foreground',
                       )}
                     >
                       {mask.label}
@@ -169,8 +169,8 @@ export function PhotoTab() {
                       className={cn(
                         'rounded-sm border px-1.5 py-1 text-[10px] transition-colors',
                         photo.filter === f.id
-                          ? 'border-gray-900 bg-gray-900 text-white'
-                          : 'border-gray-200 text-gray-600 hover:border-gray-400',
+                          ? 'border-primary bg-primary text-primary-foreground'
+                          : 'border-border text-muted-foreground hover:border-muted-foreground',
                       )}
                     >
                       {f.label}
@@ -184,9 +184,9 @@ export function PhotoTab() {
       )}
 
       {photos.length === 0 && user && (
-        <div className="rounded-lg border border-dashed border-gray-300 p-6 text-center">
-          <ImagePlus className="w-8 h-8 mx-auto text-gray-300" />
-          <p className="mt-2 text-xs text-gray-500">
+        <div className="rounded-lg border border-dashed border-border p-6 text-center">
+          <ImagePlus className="w-8 h-8 mx-auto text-muted-foreground/50" />
+          <p className="mt-2 text-xs text-muted-foreground">
             Noch keine Fotos. Lade ein Bild hoch, um es neben der Karte zu platzieren.
           </p>
         </div>

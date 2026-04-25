@@ -17,18 +17,18 @@ export function LegalLayout({ title, updatedAt, children }: Props) {
       <LandingNav />
       <main className="flex-1">
         <div className="max-w-3xl mx-auto px-6 py-12">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">{title}</h1>
+          <h1 className="text-3xl font-bold text-foreground mb-2">{title}</h1>
           {updatedAt && (
-            <p className="text-sm text-gray-500 mb-8">Stand: {updatedAt}</p>
+            <p className="text-sm text-muted-foreground mb-8">Stand: {updatedAt}</p>
           )}
           <article className="prose prose-gray max-w-none
-            prose-headings:font-semibold prose-headings:text-gray-900
+            prose-headings:font-semibold prose-headings:text-foreground
             prose-h2:text-2xl prose-h2:mt-10 prose-h2:mb-3
             prose-h3:text-xl prose-h3:mt-8 prose-h3:mb-2
-            prose-p:text-gray-700 prose-p:leading-relaxed
+            prose-p:text-foreground/70 prose-p:leading-relaxed
             prose-a:text-blue-600 prose-a:underline prose-a:underline-offset-2 hover:prose-a:text-blue-800
-            prose-strong:font-semibold prose-strong:text-gray-900
-            prose-ul:list-disc prose-ul:pl-6 prose-ul:text-gray-700
+            prose-strong:font-semibold prose-strong:text-foreground
+            prose-ul:list-disc prose-ul:pl-6 prose-ul:text-foreground/70
             prose-li:leading-relaxed
           ">
             {children}

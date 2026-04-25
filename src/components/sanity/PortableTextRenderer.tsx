@@ -6,24 +6,24 @@ import type { SanityImage } from '@/sanity/queries'
 
 const components: PortableTextComponents = {
   block: {
-    normal: ({ children }) => <p className="text-gray-700 leading-relaxed my-4">{children}</p>,
-    h2: ({ children }) => <h2 className="text-2xl font-semibold text-gray-900 mt-10 mb-3">{children}</h2>,
-    h3: ({ children }) => <h3 className="text-xl font-semibold text-gray-900 mt-8 mb-2">{children}</h3>,
-    h4: ({ children }) => <h4 className="text-lg font-semibold text-gray-900 mt-6 mb-2">{children}</h4>,
+    normal: ({ children }) => <p className="text-foreground/70 leading-relaxed my-4">{children}</p>,
+    h2: ({ children }) => <h2 className="text-2xl font-semibold text-foreground mt-10 mb-3">{children}</h2>,
+    h3: ({ children }) => <h3 className="text-xl font-semibold text-foreground mt-8 mb-2">{children}</h3>,
+    h4: ({ children }) => <h4 className="text-lg font-semibold text-foreground mt-6 mb-2">{children}</h4>,
     blockquote: ({ children }) => (
-      <blockquote className="border-l-4 border-gray-300 pl-4 my-6 italic text-gray-600">{children}</blockquote>
+      <blockquote className="border-l-4 border-border pl-4 my-6 italic text-muted-foreground">{children}</blockquote>
     ),
   },
   list: {
-    bullet: ({ children }) => <ul className="list-disc pl-6 my-4 text-gray-700 space-y-1">{children}</ul>,
-    number: ({ children }) => <ol className="list-decimal pl-6 my-4 text-gray-700 space-y-1">{children}</ol>,
+    bullet: ({ children }) => <ul className="list-disc pl-6 my-4 text-foreground/70 space-y-1">{children}</ul>,
+    number: ({ children }) => <ol className="list-decimal pl-6 my-4 text-foreground/70 space-y-1">{children}</ol>,
   },
   listItem: {
     bullet: ({ children }) => <li className="leading-relaxed">{children}</li>,
     number: ({ children }) => <li className="leading-relaxed">{children}</li>,
   },
   marks: {
-    strong: ({ children }) => <strong className="font-semibold text-gray-900">{children}</strong>,
+    strong: ({ children }) => <strong className="font-semibold text-foreground">{children}</strong>,
     em: ({ children }) => <em className="italic">{children}</em>,
     underline: ({ children }) => <span className="underline">{children}</span>,
     'strike-through': ({ children }) => <span className="line-through">{children}</span>,
@@ -61,12 +61,12 @@ const components: PortableTextComponents = {
             sizes="(max-width: 768px) 100vw, 800px"
           />
           {value.caption && (
-            <figcaption className="text-sm text-gray-500 text-center mt-2">{value.caption}</figcaption>
+            <figcaption className="text-sm text-muted-foreground text-center mt-2">{value.caption}</figcaption>
           )}
         </figure>
       )
     },
-    divider: () => <hr className="my-10 border-gray-200" />,
+    divider: () => <hr className="my-10 border-border" />,
   },
 }
 

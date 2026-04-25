@@ -67,16 +67,16 @@ export function UserOrdersList() {
   if (loading) {
     return (
       <div className="text-center py-20">
-        <Loader2 className="w-6 h-6 animate-spin mx-auto text-gray-400" />
+        <Loader2 className="w-6 h-6 animate-spin mx-auto text-muted-foreground/70" />
       </div>
     )
   }
 
   if (orders.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-gray-300 bg-white px-6 py-16 text-center">
-        <ShoppingBag className="w-10 h-10 mx-auto text-gray-300 mb-4" />
-        <p className="text-gray-600 mb-6">Du hast noch keine Bestellungen.</p>
+      <div className="rounded-xl border border-dashed border-border bg-white px-6 py-16 text-center">
+        <ShoppingBag className="w-10 h-10 mx-auto text-muted-foreground/40 mb-4" />
+        <p className="text-muted-foreground mb-6">Du hast noch keine Bestellungen.</p>
         <Button asChild>
           <Link href="/map">Jetzt Poster erstellen</Link>
         </Button>
@@ -89,25 +89,25 @@ export function UserOrdersList() {
       {orders.map((order) => {
         const isPhysical = order.items.some((i) => i.productId !== 'download')
         return (
-          <div key={order.id} className="rounded-xl bg-white border border-gray-200 overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-3 bg-gray-50 border-b border-gray-200">
+          <div key={order.id} className="rounded-xl bg-white border border-border overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-3 bg-muted border-b border-border">
               <div className="flex items-center gap-4 flex-wrap">
                 <div>
-                  <div className="font-mono text-xs text-gray-500">#{order.id.slice(0, 8)}</div>
-                  <div className="text-xs text-gray-400 mt-0.5">
+                  <div className="font-mono text-xs text-muted-foreground">#{order.id.slice(0, 8)}</div>
+                  <div className="text-xs text-muted-foreground/70 mt-0.5">
                     {new Date(order.created_at).toLocaleDateString('de-DE', {
                       day: '2-digit', month: 'long', year: 'numeric',
                     })}
                   </div>
                 </div>
                 {isPhysical && (
-                  <span className="text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-full px-2.5 py-1">
+                  <span className="text-xs font-medium text-foreground/70 bg-white border border-border rounded-full px-2.5 py-1">
                     <Package className="w-3 h-3 inline mr-1" />
                     {FULFILLMENT_LABELS[order.fulfillment_status] ?? order.fulfillment_status}
                   </span>
                 )}
               </div>
-              <div className="text-sm font-semibold text-gray-900">
+              <div className="text-sm font-semibold text-foreground">
                 {formatPrice(order.total_cents)}
               </div>
             </div>
@@ -119,11 +119,11 @@ export function UserOrdersList() {
                 return (
                   <li key={idx} className="px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-4">
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs uppercase tracking-wider text-gray-400">
+                      <p className="text-xs uppercase tracking-wider text-muted-foreground/70">
                         {item.posterType === 'star-map' ? 'Sternenposter' : 'Stadtposter'}
                       </p>
-                      <h3 className="text-sm font-semibold text-gray-900 truncate mt-0.5">{item.title}</h3>
-                      <p className="text-xs text-gray-500 mt-1">
+                      <h3 className="text-sm font-semibold text-foreground truncate mt-0.5">{item.title}</h3>
+                      <p className="text-xs text-muted-foreground mt-1">
                         {productLabel(item.productId)} · {formatLabel(item.format)}
                       </p>
                     </div>
@@ -156,10 +156,10 @@ export function UserOrdersList() {
               })}
             </ul>
 
-            <div className="px-5 py-2.5 bg-gray-50 border-t border-gray-100">
+            <div className="px-5 py-2.5 bg-muted border-t border-border">
               <Link
                 href={`/orders/${order.id}?token=${order.access_token}`}
-                className="text-xs text-gray-500 hover:text-gray-900 inline-flex items-center gap-1"
+                className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
               >
                 Bestelldetails öffnen
                 <ChevronRight className="w-3 h-3" />

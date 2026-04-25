@@ -47,15 +47,15 @@ export default async function BlogPostPage({ params }: Props) {
       <LandingNav />
       <main className="flex-1">
         <article className="max-w-3xl mx-auto px-6 py-12">
-          <p className="text-sm text-gray-400 mb-2">
+          <p className="text-sm text-muted-foreground/70 mb-2">
             {new Date(post.publishedAt).toLocaleDateString('de-DE', {
               day: '2-digit', month: 'long', year: 'numeric',
             })}
           </p>
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">{post.title}</h1>
-          {post.excerpt && <p className="text-lg text-gray-600 mb-8">{post.excerpt}</p>}
+          <h1 className="text-4xl font-bold text-foreground mb-4">{post.title}</h1>
+          {post.excerpt && <p className="text-lg text-muted-foreground mb-8">{post.excerpt}</p>}
           {post.coverImage && (
-            <div className="aspect-[16/9] relative rounded-lg overflow-hidden bg-gray-100 mb-10">
+            <div className="aspect-[16/9] relative rounded-lg overflow-hidden bg-muted mb-10">
               <Image
                 src={urlFor(post.coverImage).width(1400).auto('format').url()}
                 alt={post.coverImage.alt ?? post.title}
@@ -70,10 +70,10 @@ export default async function BlogPostPage({ params }: Props) {
             <PortableTextRenderer value={post.body} />
           </div>
           {post.tags && post.tags.length > 0 && (
-            <div className="mt-12 pt-6 border-t border-gray-200">
+            <div className="mt-12 pt-6 border-t border-border">
               <div className="flex flex-wrap gap-2">
                 {post.tags.map((tag) => (
-                  <span key={tag} className="text-xs text-gray-600 bg-gray-100 rounded-full px-3 py-1">
+                  <span key={tag} className="text-xs text-muted-foreground bg-muted rounded-full px-3 py-1">
                     {tag}
                   </span>
                 ))}

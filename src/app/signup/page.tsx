@@ -70,7 +70,7 @@ function SignupForm() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-muted flex items-center justify-center p-4">
         <Card className="w-full max-w-sm text-center">
           <CardHeader>
             <CardTitle className="text-xl">Fast geschafft!</CardTitle>
@@ -80,7 +80,7 @@ function SignupForm() {
             </CardDescription>
           </CardHeader>
           <CardFooter className="justify-center">
-            <Link href="/login" className="text-sm text-gray-900 font-medium hover:underline">
+            <Link href="/login" className="text-sm text-foreground font-medium hover:underline">
               Zurück zum Login
             </Link>
           </CardFooter>
@@ -90,7 +90,7 @@ function SignupForm() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-muted flex items-center justify-center p-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="space-y-1">
           <CardTitle className="text-xl">Konto erstellen</CardTitle>
@@ -120,7 +120,7 @@ function SignupForm() {
 
           <div className="relative">
             <Separator />
-            <span className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-2 text-xs text-gray-400">
+            <span className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-2 text-xs text-muted-foreground/70">
               oder
             </span>
           </div>
@@ -165,9 +165,9 @@ function SignupForm() {
         </CardContent>
 
         <CardFooter className="justify-center">
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted-foreground">
             Bereits ein Konto?{' '}
-            <Link href="/login" className="text-gray-900 font-medium hover:underline">
+            <Link href="/login" className="text-foreground font-medium hover:underline">
               Anmelden
             </Link>
           </p>

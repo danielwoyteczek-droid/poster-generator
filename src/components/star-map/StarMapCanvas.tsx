@@ -103,7 +103,7 @@ export function StarMapCanvas() {
   return (
     <div
       ref={wrapperRef}
-      className="flex-1 relative bg-gray-100 min-h-0 overflow-hidden flex items-center justify-center"
+      className="flex-1 relative bg-muted min-h-0 overflow-hidden flex items-center justify-center"
     >
       {posterSize.width > 0 && (
         <div
@@ -120,9 +120,9 @@ export function StarMapCanvas() {
       )}
 
       {loadError && (
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-white rounded-lg shadow px-4 py-3 text-xs text-gray-600 text-center max-w-xs">
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-white rounded-lg shadow px-4 py-3 text-xs text-muted-foreground text-center max-w-xs">
           Sterndaten fehlen. Bitte{' '}
-          <code className="bg-gray-100 px-1 rounded">public/bright-stars.json</code>{' '}
+          <code className="bg-muted px-1 rounded">public/bright-stars.json</code>{' '}
           hinzufügen.
         </div>
       )}

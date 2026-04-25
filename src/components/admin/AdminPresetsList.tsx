@@ -162,28 +162,28 @@ export function AdminPresetsList() {
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex gap-2 flex-wrap">
-          <div className="flex gap-1 bg-white rounded-md border border-gray-200 p-0.5">
+          <div className="flex gap-1 bg-white rounded-md border border-border p-0.5">
             {Object.entries(FILTER_LABELS).map(([key, label]) => (
               <button
                 key={key}
                 onClick={() => setStatusFilter(key)}
                 className={cn(
                   'px-3 py-1.5 rounded text-xs font-medium transition-colors',
-                  statusFilter === key ? 'bg-gray-900 text-white' : 'text-gray-700 hover:bg-gray-100',
+                  statusFilter === key ? 'bg-primary text-primary-foreground' : 'text-foreground/70 hover:bg-muted',
                 )}
               >
                 {label}
               </button>
             ))}
           </div>
-          <div className="flex gap-1 bg-white rounded-md border border-gray-200 p-0.5">
+          <div className="flex gap-1 bg-white rounded-md border border-border p-0.5">
             {Object.entries(TYPE_LABELS).map(([key, label]) => (
               <button
                 key={key}
                 onClick={() => setTypeFilter(key)}
                 className={cn(
                   'px-3 py-1.5 rounded text-xs font-medium transition-colors',
-                  typeFilter === key ? 'bg-gray-900 text-white' : 'text-gray-700 hover:bg-gray-100',
+                  typeFilter === key ? 'bg-primary text-primary-foreground' : 'text-foreground/70 hover:bg-muted',
                 )}
               >
                 {label}
@@ -209,19 +209,19 @@ export function AdminPresetsList() {
       </div>
 
       {loading ? (
-        <div className="rounded-xl bg-white border border-gray-200 p-12 text-center">
-          <Loader2 className="w-6 h-6 animate-spin mx-auto text-gray-400" />
+        <div className="rounded-xl bg-white border border-border p-12 text-center">
+          <Loader2 className="w-6 h-6 animate-spin mx-auto text-muted-foreground/70" />
         </div>
       ) : presets.length === 0 ? (
-        <div className="rounded-xl bg-white border border-dashed border-gray-300 p-12 text-center text-gray-500 text-sm">
-          <LayoutTemplate className="w-10 h-10 mx-auto text-gray-300 mb-3" />
+        <div className="rounded-xl bg-white border border-dashed border-border p-12 text-center text-muted-foreground text-sm">
+          <LayoutTemplate className="w-10 h-10 mx-auto text-muted-foreground/40 mb-3" />
           Noch keine Presets. Designe im Editor ein Poster und klick auf „Als Preset" in der oberen Navigation.
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {presets.map((preset) => (
-            <div key={preset.id} className="rounded-xl bg-white border border-gray-200 overflow-hidden">
-              <div className="aspect-[2/3] bg-gray-100 relative">
+            <div key={preset.id} className="rounded-xl bg-white border border-border overflow-hidden">
+              <div className="aspect-[2/3] bg-muted relative">
                 {preset.preview_image_url ? (
                   <Image
                     src={preset.preview_image_url}
@@ -231,7 +231,7 @@ export function AdminPresetsList() {
                     className="object-cover"
                   />
                 ) : (
-                  <div className="absolute inset-0 flex items-center justify-center text-gray-300">
+                  <div className="absolute inset-0 flex items-center justify-center text-muted-foreground/40">
                     <LayoutTemplate className="w-12 h-12" />
                   </div>
                 )}
@@ -243,15 +243,15 @@ export function AdminPresetsList() {
                 )}>
                   {preset.status === 'published' ? 'Live' : 'Draft'}
                 </span>
-                <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full text-[10px] font-medium bg-white/90 text-gray-700 backdrop-blur">
+                <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full text-[10px] font-medium bg-white/90 text-foreground/70 backdrop-blur">
                   {preset.poster_type === 'star-map' ? 'Sternenposter' : 'Stadtposter'}
                 </span>
               </div>
               <div className="p-4 space-y-3">
                 <div>
-                  <h3 className="font-semibold text-sm text-gray-900 truncate">{preset.name}</h3>
+                  <h3 className="font-semibold text-sm text-foreground truncate">{preset.name}</h3>
                   {preset.description && (
-                    <p className="text-xs text-gray-500 mt-1 line-clamp-2">{preset.description}</p>
+                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{preset.description}</p>
                   )}
                 </div>
                 <div className="flex gap-1.5">
@@ -288,7 +288,7 @@ export function AdminPresetsList() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-8 w-8 p-0 text-gray-400 hover:text-gray-900"
+                      className="h-8 w-8 p-0 text-muted-foreground/70 hover:text-foreground"
                       onClick={() => copyPresetUrl(preset)}
                       title="Deep-Link zum Preset kopieren"
                     >
@@ -297,7 +297,7 @@ export function AdminPresetsList() {
                   )}
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-400 hover:text-red-600">
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground/70 hover:text-red-600">
                         <Trash2 className="w-3.5 h-3.5" />
                       </Button>
                     </AlertDialogTrigger>

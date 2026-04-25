@@ -228,7 +228,7 @@ export function AdminPalettesList() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-muted-foreground">
           {loading ? 'Lade…' : `${palettes.length} Palette${palettes.length === 1 ? '' : 'n'}`}
         </p>
         <Button onClick={openCreate} size="sm">
@@ -238,15 +238,15 @@ export function AdminPalettesList() {
       </div>
 
       {loading ? (
-        <div className="py-12 flex justify-center text-gray-400">
+        <div className="py-12 flex justify-center text-muted-foreground/70">
           <Loader2 className="w-6 h-6 animate-spin" />
         </div>
       ) : palettes.length === 0 ? (
-        <p className="py-12 text-center text-sm text-gray-500">Noch keine Paletten angelegt.</p>
+        <p className="py-12 text-center text-sm text-muted-foreground">Noch keine Paletten angelegt.</p>
       ) : (
         <div className="space-y-2">
           {palettes.map((p) => (
-            <div key={p.id} className="bg-white border border-gray-200 rounded-md px-4 py-3 flex items-center gap-4">
+            <div key={p.id} className="bg-white border border-border rounded-md px-4 py-3 flex items-center gap-4">
               <div className="flex gap-1 flex-none">
                 {COLOR_LABELS.map(({ key }) => (
                   <span
@@ -259,13 +259,13 @@ export function AdminPalettesList() {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="font-medium text-gray-900">{p.name}</span>
+                  <span className="font-medium text-foreground">{p.name}</span>
                   <Badge variant={p.status === 'published' ? 'default' : 'secondary'} className="text-[10px]">
                     {p.status}
                   </Badge>
-                  <span className="text-xs text-gray-400">#{p.id}</span>
+                  <span className="text-xs text-muted-foreground/70">#{p.id}</span>
                 </div>
-                {p.description && <p className="text-xs text-gray-500 mt-0.5 truncate">{p.description}</p>}
+                {p.description && <p className="text-xs text-muted-foreground mt-0.5 truncate">{p.description}</p>}
               </div>
               <div className="flex gap-1 flex-none">
                 <Button size="sm" variant="ghost" onClick={() => togglePublish(p)} title={p.status === 'published' ? 'Zurückziehen' : 'Veröffentlichen'}>
@@ -340,7 +340,7 @@ export function AdminPalettesList() {
               />
             </div>
             <div className="pt-2">
-              <Label className="text-xs text-gray-500 mb-1.5 block">Farben (alle 8 erforderlich)</Label>
+              <Label className="text-xs text-muted-foreground mb-1.5 block">Farben (alle 8 erforderlich)</Label>
               <div className="grid grid-cols-2 gap-2">
                 {COLOR_LABELS.map(({ key, label }) => (
                   <div key={key} className="flex items-center gap-2">
@@ -348,11 +348,11 @@ export function AdminPalettesList() {
                       type="color"
                       value={formColors[key]}
                       onChange={(e) => setFormColors((c) => ({ ...c, [key]: e.target.value }))}
-                      className="w-8 h-8 rounded border border-gray-200 cursor-pointer"
+                      className="w-8 h-8 rounded border border-border cursor-pointer"
                       disabled={saving}
                     />
                     <div className="flex-1 min-w-0">
-                      <Label htmlFor={`col-${key}`} className="text-[10px] text-gray-500">{label}</Label>
+                      <Label htmlFor={`col-${key}`} className="text-[10px] text-muted-foreground">{label}</Label>
                       <Input
                         id={`col-${key}`}
                         value={formColors[key]}

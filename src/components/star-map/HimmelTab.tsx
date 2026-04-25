@@ -16,7 +16,7 @@ export function HimmelTab() {
       <div className="flex items-center justify-between py-3">
         <div>
           <Label className="text-sm font-medium">Milchstraße</Label>
-          <p className="text-xs text-gray-400 mt-0.5">Milchstraßenband einblenden</p>
+          <p className="text-xs text-muted-foreground/70 mt-0.5">Milchstraßenband einblenden</p>
         </div>
         <Switch checked={showMilkyWay} onCheckedChange={setShowMilkyWay} />
       </div>
@@ -26,7 +26,7 @@ export function HimmelTab() {
       <div className="flex items-center justify-between py-3">
         <div>
           <Label className="text-sm font-medium">Sternbilder</Label>
-          <p className="text-xs text-gray-400 mt-0.5">Verbindungslinien der Sternbilder</p>
+          <p className="text-xs text-muted-foreground/70 mt-0.5">Verbindungslinien der Sternbilder</p>
         </div>
         <Switch checked={showConstellations} onCheckedChange={setShowConstellations} />
       </div>
@@ -36,7 +36,7 @@ export function HimmelTab() {
       <div className="flex items-center justify-between py-3">
         <div>
           <Label className="text-sm font-medium">Sonne</Label>
-          <p className="text-xs text-gray-400 mt-0.5">Position der Sonne anzeigen</p>
+          <p className="text-xs text-muted-foreground/70 mt-0.5">Position der Sonne anzeigen</p>
         </div>
         <Switch checked={showSun} onCheckedChange={setShowSun} />
       </div>
@@ -46,7 +46,7 @@ export function HimmelTab() {
       <div className="flex items-center justify-between py-3">
         <div>
           <Label className="text-sm font-medium">Mond</Label>
-          <p className="text-xs text-gray-400 mt-0.5">Position des Mondes anzeigen</p>
+          <p className="text-xs text-muted-foreground/70 mt-0.5">Position des Mondes anzeigen</p>
         </div>
         <Switch checked={showMoon} onCheckedChange={setShowMoon} />
       </div>
@@ -56,7 +56,7 @@ export function HimmelTab() {
       <div className="flex items-center justify-between py-3">
         <div>
           <Label className="text-sm font-medium">Planeten</Label>
-          <p className="text-xs text-gray-400 mt-0.5">Merkur, Venus, Mars, Jupiter, Saturn</p>
+          <p className="text-xs text-muted-foreground/70 mt-0.5">Merkur, Venus, Mars, Jupiter, Saturn</p>
         </div>
         <Switch checked={showPlanets} onCheckedChange={setShowPlanets} />
       </div>

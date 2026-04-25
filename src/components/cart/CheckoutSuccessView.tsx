@@ -14,10 +14,10 @@ export function CheckoutSuccessView() {
   }, [clearCart])
 
   return (
-    <div className="max-w-md w-full bg-white rounded-xl border border-gray-200 p-8 text-center">
+    <div className="max-w-md w-full bg-white rounded-xl border border-border p-8 text-center">
       <CheckCircle2 className="w-14 h-16 text-green-500 mx-auto mb-4" />
-      <h1 className="text-2xl font-semibold text-gray-900 mb-2">Vielen Dank!</h1>
-      <p className="text-gray-600 leading-relaxed mb-6">
+      <h1 className="text-2xl font-semibold text-foreground mb-2">Vielen Dank!</h1>
+      <p className="text-muted-foreground leading-relaxed mb-6">
         Deine Bestellung wurde erfolgreich aufgenommen. Du erhältst in Kürze eine Bestätigung per E-Mail.
         Physische Produkte werden innerhalb von 3–5 Werktagen versendet.
       </p>

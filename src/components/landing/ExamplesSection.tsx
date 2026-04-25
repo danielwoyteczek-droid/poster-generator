@@ -8,13 +8,13 @@ const EXAMPLES = [
 
 export function ExamplesSection() {
   return (
-    <section id="examples" className="py-24 bg-gray-50">
+    <section id="examples" className="py-24 bg-muted">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <div className="text-center mb-16">
-          <h2 className="text-3xl sm:text-4xl font-bold text-gray-900">
+          <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
             Echte Beispiele
           </h2>
-          <p className="mt-4 text-gray-500 text-lg max-w-xl mx-auto">
+          <p className="mt-4 text-muted-foreground text-lg max-w-xl mx-auto">
             So könnten deine Poster aussehen.
           </p>
         </div>
@@ -27,7 +27,7 @@ export function ExamplesSection() {
               className="flex flex-col items-center gap-3 group"
             >
               <div
-                className="w-full relative bg-gray-200 rounded-xl overflow-hidden shadow-lg group-hover:shadow-xl transition-shadow"
+                className="w-full relative bg-muted rounded-xl overflow-hidden shadow-lg group-hover:shadow-xl transition-shadow"
                 style={{ aspectRatio: '2/3' }}
               >
                 <Image
@@ -38,7 +38,7 @@ export function ExamplesSection() {
                   className="object-cover"
                 />
               </div>
-              <p className="text-sm font-medium text-gray-700 group-hover:text-gray-900 transition-colors">
+              <p className="text-sm font-medium text-foreground/70 group-hover:text-foreground transition-colors">
                 {ex.label}
               </p>
             </Link>

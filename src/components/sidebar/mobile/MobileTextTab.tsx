@@ -87,7 +87,7 @@ export function MobileTextTab() {
       <button
         type="button"
         onClick={addTextBlock}
-        className="w-full h-11 flex items-center justify-center gap-2 rounded-md bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 transition-colors"
+        className="w-full h-11 flex items-center justify-center gap-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
       >
         <Plus className="w-4 h-4" />
         Textblock hinzufügen
@@ -98,9 +98,9 @@ export function MobileTextTab() {
           <div
             key={block.id}
             onClick={() => openEditor(block.id)}
-            className="flex items-center gap-2 px-3 py-3 rounded-md cursor-pointer hover:bg-gray-50 active:bg-gray-100 min-h-[44px]"
+            className="flex items-center gap-2 px-3 py-3 rounded-md cursor-pointer hover:bg-muted active:bg-muted min-h-[44px]"
           >
-            <span className="flex-1 text-sm text-gray-700 truncate">
+            <span className="flex-1 text-sm text-foreground/70 truncate">
               {getBlockLabel(block, coordsText)}
             </span>
             <button
@@ -109,7 +109,7 @@ export function MobileTextTab() {
                 e.stopPropagation()
                 updateTextBlock(block.id, { locked: !block.locked })
               }}
-              className="w-9 h-9 flex items-center justify-center text-gray-500 hover:text-gray-900"
+              className="w-9 h-9 flex items-center justify-center text-muted-foreground hover:text-foreground"
               aria-label={block.locked ? 'Entsperren' : 'Sperren'}
             >
               {block.locked ? (
@@ -118,13 +118,13 @@ export function MobileTextTab() {
                 <Unlock className="w-4 h-4" />
               )}
             </button>
-            <ChevronRight className="w-4 h-4 text-gray-400" />
+            <ChevronRight className="w-4 h-4 text-muted-foreground/70" />
           </div>
         ))}
       </div>
 
       {textBlocks.length === 0 && (
-        <p className="text-[11px] text-gray-400 leading-relaxed text-center pt-4">
+        <p className="text-[11px] text-muted-foreground/70 leading-relaxed text-center pt-4">
           Noch keine Textblöcke. Tipp auf „Textblock hinzufügen", um loszulegen.
         </p>
       )}
@@ -133,7 +133,7 @@ export function MobileTextTab() {
         <SheetContent side="bottom" className="h-[85vh] p-0 flex flex-col">
           {editingBlock && (
             <>
-              <SheetHeader className="shrink-0 px-4 pt-4 pb-2 border-b border-gray-200">
+              <SheetHeader className="shrink-0 px-4 pt-4 pb-2 border-b border-border">
                 <SheetTitle className="text-left text-sm font-semibold">
                   Textblock bearbeiten
                 </SheetTitle>
@@ -142,7 +142,7 @@ export function MobileTextTab() {
               <div className="flex-1 overflow-y-auto p-4 space-y-4">
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
                       Text
                     </Label>
                     {!editingBlock.isCoordinates && (
@@ -152,7 +152,7 @@ export function MobileTextTab() {
                           updateTextBlock(editingBlock.id, { text: val })
                         }
                       >
-                        <SelectTrigger className="h-6 w-auto text-xs border-0 shadow-none text-gray-400 hover:text-gray-700 px-1 gap-1 focus:ring-0">
+                        <SelectTrigger className="h-6 w-auto text-xs border-0 shadow-none text-muted-foreground/70 hover:text-foreground/70 px-1 gap-1 focus:ring-0">
                           <SelectValue placeholder="Ideen" />
                         </SelectTrigger>
                         <SelectContent>
@@ -178,7 +178,7 @@ export function MobileTextTab() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+                  <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
                     Schriftart
                   </Label>
                   <Select
@@ -201,7 +201,7 @@ export function MobileTextTab() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+                  <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
                     Größe
                   </Label>
                   <div className="flex items-center gap-2">
@@ -236,7 +236,7 @@ export function MobileTextTab() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+                  <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
                     Farbe
                   </Label>
                   <input
@@ -245,12 +245,12 @@ export function MobileTextTab() {
                     onChange={(e) =>
                       updateTextBlock(editingBlock.id, { color: e.target.value })
                     }
-                    className="w-full h-11 rounded-md border border-gray-200 cursor-pointer px-1"
+                    className="w-full h-11 rounded-md border border-border cursor-pointer px-1"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+                  <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
                     Ausrichtung
                   </Label>
                   <div className="grid grid-cols-3 gap-1.5">
@@ -273,8 +273,8 @@ export function MobileTextTab() {
                           className={cn(
                             'h-11 flex items-center justify-center rounded-md text-xs transition-colors',
                             active
-                              ? 'bg-gray-900 text-white'
-                              : 'border border-gray-200 text-gray-700 hover:border-gray-400'
+                              ? 'bg-primary text-primary-foreground'
+                              : 'border border-border text-foreground/70 hover:border-muted-foreground'
                           )}
                         >
                           <Icon className="w-4 h-4" />
@@ -285,7 +285,7 @@ export function MobileTextTab() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+                  <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
                     Stil
                   </Label>
                   <div className="grid grid-cols-2 gap-1.5">
@@ -298,8 +298,8 @@ export function MobileTextTab() {
                       className={cn(
                         'h-11 flex items-center justify-center rounded-md text-sm font-bold transition-colors',
                         editingBlock.bold
-                          ? 'bg-gray-900 text-white'
-                          : 'border border-gray-200 text-gray-700 hover:border-gray-400'
+                          ? 'bg-primary text-primary-foreground'
+                          : 'border border-border text-foreground/70 hover:border-muted-foreground'
                       )}
                     >
                       B
@@ -315,8 +315,8 @@ export function MobileTextTab() {
                       className={cn(
                         'h-11 flex items-center justify-center rounded-md text-sm transition-colors',
                         editingBlock.uppercase
-                          ? 'bg-gray-900 text-white'
-                          : 'border border-gray-200 text-gray-700 hover:border-gray-400'
+                          ? 'bg-primary text-primary-foreground'
+                          : 'border border-border text-foreground/70 hover:border-muted-foreground'
                       )}
                     >
                       AA

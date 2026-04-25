@@ -68,14 +68,14 @@ export function CartView() {
   }
 
   if (!hydrated) {
-    return <div className="text-sm text-gray-400">Lädt…</div>
+    return <div className="text-sm text-muted-foreground/70">Lädt…</div>
   }
 
   if (items.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-gray-300 bg-white px-6 py-16 text-center">
-        <ShoppingCart className="w-10 h-10 mx-auto text-gray-300 mb-4" />
-        <p className="text-gray-600 mb-6">Dein Warenkorb ist leer.</p>
+      <div className="rounded-xl border border-dashed border-border bg-white px-6 py-16 text-center">
+        <ShoppingCart className="w-10 h-10 mx-auto text-muted-foreground/40 mb-4" />
+        <p className="text-muted-foreground mb-6">Dein Warenkorb ist leer.</p>
         <div className="flex gap-3 justify-center">
           <Button asChild variant="outline">
             <Link href="/map">Stadtposter erstellen</Link>
@@ -92,8 +92,8 @@ export function CartView() {
     <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
       <div className="space-y-3">
         {items.map((item) => (
-          <div key={item.id} className="flex gap-4 p-4 rounded-xl bg-white border border-gray-200">
-            <div className="w-24 h-32 shrink-0 rounded-md overflow-hidden bg-gray-100 flex items-center justify-center">
+          <div key={item.id} className="flex gap-4 p-4 rounded-xl bg-white border border-border">
+            <div className="w-24 h-32 shrink-0 rounded-md overflow-hidden bg-muted flex items-center justify-center">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={item.previewDataUrl}
@@ -104,11 +104,11 @@ export function CartView() {
             <div className="flex-1 min-w-0 flex flex-col">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-xs text-gray-400 uppercase tracking-wider">
+                  <p className="text-xs text-muted-foreground/70 uppercase tracking-wider">
                     {item.posterType === 'star-map' ? 'Sternenposter' : 'Stadtposter'}
                   </p>
-                  <h3 className="text-sm font-semibold text-gray-900 truncate mt-0.5">{item.title}</h3>
-                  <p className="text-xs text-gray-500 mt-1">
+                  <h3 className="text-sm font-semibold text-foreground truncate mt-0.5">{item.title}</h3>
+                  <p className="text-xs text-muted-foreground mt-1">
                     {productLabel(item.productId)} · {formatLabel(item.format)}
                   </p>
                   {item.productId !== 'download' && (
@@ -120,13 +120,13 @@ export function CartView() {
                 <button
                   type="button"
                   onClick={() => removeItem(item.id)}
-                  className="text-gray-400 hover:text-gray-700 p-1 -m-1"
+                  className="text-muted-foreground/70 hover:text-foreground/70 p-1 -m-1"
                   aria-label="Entfernen"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
-              <div className="mt-auto text-sm font-semibold text-gray-900">
+              <div className="mt-auto text-sm font-semibold text-foreground">
                 {formatPrice(item.priceCents)}
               </div>
             </div>
@@ -134,22 +134,22 @@ export function CartView() {
         ))}
       </div>
 
-      <aside className="lg:sticky lg:top-20 h-fit rounded-xl bg-white border border-gray-200 p-5 space-y-4">
-        <h2 className="text-sm font-semibold text-gray-900">Zusammenfassung</h2>
+      <aside className="lg:sticky lg:top-20 h-fit rounded-xl bg-white border border-border p-5 space-y-4">
+        <h2 className="text-sm font-semibold text-foreground">Zusammenfassung</h2>
         <div className="space-y-2 text-sm">
-          <div className="flex justify-between text-gray-600">
+          <div className="flex justify-between text-muted-foreground">
             <span>Artikel</span>
             <span>{items.length}</span>
           </div>
-          <div className="flex justify-between text-gray-600">
+          <div className="flex justify-between text-muted-foreground">
             <span>Zwischensumme</span>
             <span>{formatPrice(totalCents)}</span>
           </div>
-          <div className="flex justify-between text-gray-600">
+          <div className="flex justify-between text-muted-foreground">
             <span>Versand</span>
             <span>wird im Checkout berechnet</span>
           </div>
-          <div className="border-t border-gray-200 pt-2 flex justify-between text-base font-semibold text-gray-900">
+          <div className="border-t border-border pt-2 flex justify-between text-base font-semibold text-foreground">
             <span>Gesamt</span>
             <span>{formatPrice(totalCents)}</span>
           </div>
@@ -184,7 +184,7 @@ export function CartView() {
           )}
           {isCheckingOut ? 'Weiterleitung…' : 'Zur Kasse'}
         </Button>
-        <p className="text-xs text-gray-400 leading-relaxed">
+        <p className="text-xs text-muted-foreground/70 leading-relaxed">
           Sichere Zahlung über Stripe. Keine Registrierung nötig.
         </p>
       </aside>

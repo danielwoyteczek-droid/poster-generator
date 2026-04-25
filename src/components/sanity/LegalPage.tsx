@@ -16,9 +16,9 @@ export function LegalPageView({ page, slug }: Props) {
         <div className="max-w-3xl mx-auto px-6 py-12">
           {page ? (
             <>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">{page.title}</h1>
+              <h1 className="text-3xl font-bold text-foreground mb-2">{page.title}</h1>
               {page.updatedAt && (
-                <p className="text-sm text-gray-500 mb-8">
+                <p className="text-sm text-muted-foreground mb-8">
                   Stand: {new Date(page.updatedAt).toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' })}
                 </p>
               )}
@@ -28,9 +28,9 @@ export function LegalPageView({ page, slug }: Props) {
             </>
           ) : (
             <div className="text-center py-20">
-              <h1 className="text-2xl font-semibold text-gray-900 mb-2">Seite noch nicht befüllt</h1>
-              <p className="text-gray-500 text-sm">
-                Die Seite <code className="bg-gray-100 px-1.5 py-0.5 rounded">{slug}</code> muss im Sanity Studio angelegt werden.
+              <h1 className="text-2xl font-semibold text-foreground mb-2">Seite noch nicht befüllt</h1>
+              <p className="text-muted-foreground text-sm">
+                Die Seite <code className="bg-muted px-1.5 py-0.5 rounded">{slug}</code> muss im Sanity Studio angelegt werden.
               </p>
             </div>
           )}

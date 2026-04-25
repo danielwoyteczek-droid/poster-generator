@@ -206,7 +206,7 @@ export function OrderView({ orderId, token, showSuccessBanner }: Props) {
 
   if (!order) {
     return (
-      <div className="text-center text-gray-500 py-20">
+      <div className="text-center text-muted-foreground py-20">
         <Loader2 className="w-6 h-6 animate-spin mx-auto mb-3" />
         <p className="text-sm">Bestellung wird geladen…</p>
       </div>
@@ -239,13 +239,13 @@ export function OrderView({ orderId, token, showSuccessBanner }: Props) {
         </div>
       )}
 
-      <div className="rounded-xl bg-white border border-gray-200">
-        <div className="p-5 border-b border-gray-200 flex items-center justify-between">
+      <div className="rounded-xl bg-white border border-border">
+        <div className="p-5 border-b border-border flex items-center justify-between">
           <div>
-            <h2 className="text-sm font-semibold text-gray-900">Bestellung</h2>
-            <p className="text-xs text-gray-500 mt-0.5">ID {order.id.slice(0, 8)}…</p>
+            <h2 className="text-sm font-semibold text-foreground">Bestellung</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">ID {order.id.slice(0, 8)}…</p>
           </div>
-          <div className="text-sm font-semibold text-gray-900">
+          <div className="text-sm font-semibold text-foreground">
             {formatPrice(order.total_cents)}
           </div>
         </div>
@@ -260,11 +260,11 @@ export function OrderView({ orderId, token, showSuccessBanner }: Props) {
               <li key={idx} className="p-5 flex flex-col gap-3">
                 <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs uppercase tracking-wider text-gray-400">
+                    <p className="text-xs uppercase tracking-wider text-muted-foreground/70">
                       {item.posterType === 'star-map' ? 'Sternenposter' : 'Stadtposter'}
                     </p>
-                    <h3 className="text-sm font-semibold text-gray-900 truncate mt-0.5">{item.title}</h3>
-                    <p className="text-xs text-gray-500 mt-1">
+                    <h3 className="text-sm font-semibold text-foreground truncate mt-0.5">{item.title}</h3>
+                    <p className="text-xs text-muted-foreground mt-1">
                       {productLabel(item.productId)} · {formatLabel(item.format)} · {formatPrice(item.priceCents)}
                     </p>
                   </div>
@@ -272,7 +272,7 @@ export function OrderView({ orderId, token, showSuccessBanner }: Props) {
                   {order.status === 'paid' && (
                     <div className="flex gap-2 shrink-0">
                       {isPreparing && (!png || !pdf) ? (
-                        <div className="flex items-center gap-2 text-xs text-gray-500 px-3 py-2">
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground px-3 py-2">
                           <Loader2 className="w-4 h-4 animate-spin" />
                           Wird vorbereitet…
                         </div>
@@ -303,7 +303,7 @@ export function OrderView({ orderId, token, showSuccessBanner }: Props) {
                 </div>
 
                 {order.status === 'paid' && isPhysical && (
-                  <div className="flex items-center gap-1.5 text-xs text-gray-500 bg-gray-50 rounded-md px-3 py-2">
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted rounded-md px-3 py-2">
                     <Package className="w-4 h-4" />
                     Wird innerhalb von 3–5 Werktagen versendet — die Datei kannst du zusätzlich hier herunterladen.
                   </div>

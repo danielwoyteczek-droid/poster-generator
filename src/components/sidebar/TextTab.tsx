@@ -72,7 +72,7 @@ export function TextTab() {
       <button
         type="button"
         onClick={addTextBlock}
-        className="w-full h-9 flex items-center justify-center gap-2 rounded-md bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 transition-colors"
+        className="w-full h-9 flex items-center justify-center gap-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
       >
         <Plus className="w-4 h-4" />
         Textblock hinzufügen
@@ -88,10 +88,10 @@ export function TextTab() {
               onClick={() => setSelectedBlockId(block.id)}
               className={cn(
                 'flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer',
-                isSelected ? 'bg-gray-100' : 'hover:bg-gray-50'
+                isSelected ? 'bg-muted' : 'hover:bg-muted/50'
               )}
             >
-              <span className="flex-1 text-sm text-gray-700 truncate">
+              <span className="flex-1 text-sm text-foreground/70 truncate">
                 {getBlockLabel(block, coordsText)}
               </span>
               <button
@@ -100,7 +100,7 @@ export function TextTab() {
                   e.stopPropagation()
                   updateTextBlock(block.id, { locked: !block.locked })
                 }}
-                className="text-gray-500 hover:text-gray-900"
+                className="text-muted-foreground hover:text-foreground"
                 aria-label={block.locked ? 'Entsperren' : 'Sperren'}
                 title={block.locked ? 'Entsperren' : 'Sperren'}
               >
@@ -117,7 +117,7 @@ export function TextTab() {
                     e.stopPropagation()
                     deleteTextBlock(block.id)
                   }}
-                  className="text-gray-500 hover:text-red-600"
+                  className="text-muted-foreground hover:text-destructive"
                   aria-label="Löschen"
                   title="Löschen"
                 >
@@ -136,7 +136,7 @@ export function TextTab() {
           {/* Text content */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
                 Text
               </Label>
               {!selectedBlock.isCoordinates && (
@@ -146,7 +146,7 @@ export function TextTab() {
                     updateTextBlock(selectedBlock.id, { text: val })
                   }
                 >
-                  <SelectTrigger className="h-6 w-auto text-xs border-0 shadow-none text-gray-400 hover:text-gray-700 px-1 gap-1 focus:ring-0">
+                  <SelectTrigger className="h-6 w-auto text-xs border-0 shadow-none text-muted-foreground/70 hover:text-foreground px-1 gap-1 focus:ring-0">
                     <SelectValue placeholder="Ideen" />
                   </SelectTrigger>
                   <SelectContent>
@@ -173,7 +173,7 @@ export function TextTab() {
 
           {/* Font family */}
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
               Schriftart
             </Label>
             <Select
@@ -197,7 +197,7 @@ export function TextTab() {
 
           {/* Font size */}
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
               Größe
             </Label>
             <div className="flex items-center gap-2">
@@ -233,7 +233,7 @@ export function TextTab() {
 
           {/* Color */}
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
               Farbe
             </Label>
             <input
@@ -242,13 +242,13 @@ export function TextTab() {
               onChange={(e) =>
                 updateTextBlock(selectedBlock.id, { color: e.target.value })
               }
-              className="w-full h-8 rounded-md border border-gray-200 cursor-pointer px-1"
+              className="w-full h-8 rounded-md border border-border cursor-pointer px-1"
             />
           </div>
 
           {/* Alignment */}
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
               Ausrichtung
             </Label>
             <div className="grid grid-cols-3 gap-1.5">
@@ -272,8 +272,8 @@ export function TextTab() {
                     className={cn(
                       'h-8 flex items-center justify-center rounded-md text-xs transition-colors',
                       active
-                        ? 'bg-gray-900 text-white'
-                        : 'border border-gray-200 text-gray-700 hover:border-gray-400'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'border border-border text-foreground/70 hover:border-muted-foreground'
                     )}
                   >
                     <Icon className="w-4 h-4" />
@@ -285,7 +285,7 @@ export function TextTab() {
 
           {/* Style */}
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
               Stil
             </Label>
             <div className="grid grid-cols-2 gap-1.5">
@@ -299,8 +299,8 @@ export function TextTab() {
                 className={cn(
                   'h-8 flex items-center justify-center rounded-md text-sm font-bold transition-colors',
                   selectedBlock.bold
-                    ? 'bg-gray-900 text-white'
-                    : 'border border-gray-200 text-gray-700 hover:border-gray-400'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'border border-border text-foreground/70 hover:border-muted-foreground'
                 )}
               >
                 B
@@ -317,8 +317,8 @@ export function TextTab() {
                 className={cn(
                   'h-8 flex items-center justify-center rounded-md text-sm transition-colors',
                   selectedBlock.uppercase
-                    ? 'bg-gray-900 text-white'
-                    : 'border border-gray-200 text-gray-700 hover:border-gray-400'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'border border-border text-foreground/70 hover:border-muted-foreground'
                 )}
               >
                 AA

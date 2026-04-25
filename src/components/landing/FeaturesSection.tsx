@@ -28,10 +28,10 @@ export function FeaturesSection() {
     <section id="features" className="py-24 bg-white">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <div className="text-center mb-16">
-          <h2 className="text-3xl sm:text-4xl font-bold text-gray-900">
+          <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
             Alles, was du brauchst
           </h2>
-          <p className="mt-4 text-gray-500 text-lg max-w-xl mx-auto">
+          <p className="mt-4 text-muted-foreground text-lg max-w-xl mx-auto">
             Von der Kartenauswahl bis zum fertigen Druck — in wenigen Minuten.
           </p>
         </div>
@@ -41,11 +41,11 @@ export function FeaturesSection() {
             const Icon = feature.icon
             return (
               <div key={feature.title} className="flex flex-col items-start">
-                <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center mb-4">
-                  <Icon className="w-6 h-6 text-gray-900" />
+                <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center mb-4">
+                  <Icon className="w-6 h-6 text-foreground" />
                 </div>
-                <h3 className="font-semibold text-gray-900 mb-2">{feature.title}</h3>
-                <p className="text-sm text-gray-500 leading-relaxed">{feature.description}</p>
+                <h3 className="font-semibold text-foreground mb-2">{feature.title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">{feature.description}</p>
               </div>
             )
           })}

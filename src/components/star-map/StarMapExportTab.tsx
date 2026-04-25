@@ -35,7 +35,7 @@ function FormatSelector({ printFormat, setPrintFormat }: {
   return (
     <>
       <div className="space-y-1.5">
-        <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
           Papierformat
         </Label>
         <div className="grid grid-cols-3 gap-1.5">
@@ -47,8 +47,8 @@ function FormatSelector({ printFormat, setPrintFormat }: {
               className={cn(
                 'h-9 rounded-md border-2 text-sm font-medium transition-colors',
                 printFormat === f.id
-                  ? 'border-gray-900 bg-gray-900 text-white'
-                  : 'border-gray-200 text-gray-700 hover:border-gray-400',
+                  ? 'border-primary bg-primary text-primary-foreground'
+                  : 'border-border text-foreground/70 hover:border-muted-foreground',
               )}
             >
               {f.label}
@@ -56,11 +56,11 @@ function FormatSelector({ printFormat, setPrintFormat }: {
           ))}
         </div>
       </div>
-      <div className="rounded-md bg-gray-50 border border-gray-100 px-3 py-2.5 space-y-0.5">
-        <p className="text-xs font-medium text-gray-700">
+      <div className="rounded-md bg-muted border border-border px-3 py-2.5 space-y-0.5">
+        <p className="text-xs font-medium text-foreground/70">
           {fmt.widthPx.toLocaleString()} × {fmt.heightPx.toLocaleString()} Pixel
         </p>
-        <p className="text-xs text-gray-400">
+        <p className="text-xs text-muted-foreground/70">
           {fmt.widthMm} × {fmt.heightMm} mm · 300 DPI · Druckqualität
         </p>
       </div>
@@ -83,7 +83,7 @@ function AdminExportView({ printFormat }: { printFormat: string }) {
 
   return (
     <div className="space-y-2">
-      <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+      <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
         Herunterladen
       </Label>
 
@@ -91,7 +91,7 @@ function AdminExportView({ printFormat }: { printFormat: string }) {
         type="button"
         onClick={() => handleExport('png')}
         disabled={isExporting}
-        className="w-full h-10 flex items-center justify-center gap-2 rounded-md bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full h-10 flex items-center justify-center gap-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {isExporting && activeAction === 'png'
           ? <Loader2 className="w-4 h-4 animate-spin" />
@@ -103,7 +103,7 @@ function AdminExportView({ printFormat }: { printFormat: string }) {
         type="button"
         onClick={() => handleExport('pdf')}
         disabled={isExporting}
-        className="w-full h-10 flex items-center justify-center gap-2 rounded-md border border-gray-900 text-gray-900 text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full h-10 flex items-center justify-center gap-2 rounded-md border border-primary text-foreground text-sm font-medium hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {isExporting && activeAction === 'pdf'
           ? <Loader2 className="w-4 h-4 animate-spin" />
@@ -117,7 +117,7 @@ function AdminExportView({ printFormat }: { printFormat: string }) {
         </div>
       )}
 
-      <p className="text-xs text-gray-400 leading-relaxed">
+      <p className="text-xs text-muted-foreground/70 leading-relaxed">
         Der Export rendert die Sternkarte in voller Druckauflösung. Dies kann einige Sekunden dauern.
       </p>
     </div>
@@ -190,7 +190,7 @@ function CustomerProductView({ printFormat }: { printFormat: string }) {
 
   return (
     <div className="space-y-2">
-      <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+      <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
         Produkt wählen
       </Label>
 
@@ -206,39 +206,39 @@ function CustomerProductView({ printFormat }: { printFormat: string }) {
               className={cn(
                 'w-full text-left rounded-lg border-2 px-3 py-2.5 transition-colors',
                 selectedProduct === product.id
-                  ? 'border-gray-900 bg-gray-50'
-                  : 'border-gray-200 hover:border-gray-300 bg-white',
+                  ? 'border-primary bg-muted'
+                  : 'border-border hover:border-border bg-white',
                 !rowPrice && 'opacity-50 cursor-not-allowed',
               )}
             >
               <div className="flex items-start gap-2.5">
                 <span className={cn(
                   'mt-0.5 shrink-0',
-                  selectedProduct === product.id ? 'text-gray-900' : 'text-gray-400',
+                  selectedProduct === product.id ? 'text-foreground' : 'text-muted-foreground/70',
                 )}>
                   {PRODUCT_ICONS[product.id]}
                 </span>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-sm font-medium text-gray-900">{product.label}</span>
+                    <span className="text-sm font-medium text-foreground">{product.label}</span>
                     <span className="flex items-center gap-1.5 shrink-0">
                       {rowPrice && (
                         <DiscountBadge unitAmount={rowPrice.unitAmount} compareAtCents={rowPrice.compareAtCents} />
                       )}
                       {rowPrice?.compareAtCents && rowPrice.compareAtCents > rowPrice.unitAmount && (
-                        <span className="text-xs text-gray-400 line-through">
+                        <span className="text-xs text-muted-foreground/70 line-through">
                           {formatPrice(rowPrice.compareAtCents)}
                         </span>
                       )}
                       <span className={cn(
                         'text-sm font-semibold',
-                        selectedProduct === product.id ? 'text-gray-900' : 'text-gray-500',
+                        selectedProduct === product.id ? 'text-foreground' : 'text-muted-foreground',
                       )}>
                         {rowPrice ? formatPrice(rowPrice.unitAmount) : catalogLoading ? '…' : '–'}
                       </span>
                     </span>
                   </div>
-                  <p className="text-xs text-gray-400 mt-0.5 leading-snug">{product.description}</p>
+                  <p className="text-xs text-muted-foreground/70 mt-0.5 leading-snug">{product.description}</p>
                 </div>
               </div>
             </button>
@@ -250,7 +250,7 @@ function CustomerProductView({ printFormat }: { printFormat: string }) {
         type="button"
         disabled={!selectedProduct || priceCents == null || isAdding}
         onClick={handleAddToCart}
-        className="w-full h-10 flex items-center justify-center gap-2 rounded-md bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed mt-1"
+        className="w-full h-10 flex items-center justify-center gap-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed mt-1"
       >
         {isAdding ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShoppingCart className="w-4 h-4" />}
         {isAdding
@@ -258,7 +258,7 @@ function CustomerProductView({ printFormat }: { printFormat: string }) {
           : priceCents != null ? `In den Warenkorb · ${formatPrice(priceCents)}` : 'Produkt wählen'}
       </button>
 
-      <p className="text-xs text-gray-400 leading-relaxed">
+      <p className="text-xs text-muted-foreground/70 leading-relaxed">
         Sichere Zahlung via Stripe. Physische Produkte werden innerhalb von 3–5 Werktagen geliefert.
       </p>
     </div>
@@ -294,7 +294,7 @@ function PreviewButton({ printFormat }: { printFormat: string }) {
       <button
         type="button"
         onClick={handleClick}
-        className="w-full h-10 flex items-center justify-center gap-2 rounded-md border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors"
+        className="w-full h-10 flex items-center justify-center gap-2 rounded-md border border-border text-foreground/70 text-sm font-medium hover:bg-muted transition-colors"
       >
         <Eye className="w-4 h-4" />
         In Zimmeransicht ansehen
@@ -326,9 +326,9 @@ export function StarMapExportTab() {
 
       {loading ? (
         <div className="space-y-2">
-          <div className="h-4 bg-gray-100 rounded animate-pulse w-24" />
-          <div className="h-16 bg-gray-100 rounded animate-pulse" />
-          <div className="h-16 bg-gray-100 rounded animate-pulse" />
+          <div className="h-4 bg-muted rounded animate-pulse w-24" />
+          <div className="h-16 bg-muted rounded animate-pulse" />
+          <div className="h-16 bg-muted rounded animate-pulse" />
         </div>
       ) : isAdmin ? (
         <AdminExportView printFormat={printFormat} />

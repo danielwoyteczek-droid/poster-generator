@@ -60,7 +60,7 @@ export function ProjectDashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <button
           onClick={() => router.push('/map')}
-          className="h-40 rounded-xl border-2 border-dashed border-gray-300 hover:border-gray-400 hover:bg-white transition-colors flex flex-col items-center justify-center gap-2 text-gray-400 hover:text-gray-600"
+          className="h-40 rounded-xl border-2 border-dashed border-border hover:border-muted-foreground hover:bg-white transition-colors flex flex-col items-center justify-center gap-2 text-muted-foreground/70 hover:text-muted-foreground"
         >
           <Plus className="w-6 h-6" />
           <span className="text-sm font-medium">Neues Poster</span>
@@ -77,7 +77,7 @@ export function ProjectDashboard() {
       </div>
 
       {projects.length === 0 && (
-        <p className="mt-8 text-sm text-gray-500 text-center">
+        <p className="mt-8 text-sm text-muted-foreground text-center">
           Noch keine Poster gespeichert. Erstelle dein erstes Poster!
         </p>
       )}

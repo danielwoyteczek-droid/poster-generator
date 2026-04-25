@@ -14,12 +14,12 @@ export function MobileMarkerTab() {
     <div className="space-y-5 p-4">
       {/* Primary marker */}
       <div className="space-y-3">
-        <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
           Marker-Pin
         </Label>
 
         <div className="flex items-center justify-between">
-          <Label htmlFor="mobile-marker-switch" className="text-sm text-gray-700 cursor-pointer">
+          <Label htmlFor="mobile-marker-switch" className="text-sm text-foreground/70 cursor-pointer">
             Marker anzeigen
           </Label>
           <Switch
@@ -39,7 +39,7 @@ export function MobileMarkerTab() {
         {marker.enabled && (
           <div className="space-y-3">
             <div className="flex items-center gap-3">
-              <Label className="text-sm text-gray-600 w-16 shrink-0">Typ</Label>
+              <Label className="text-sm text-muted-foreground w-16 shrink-0">Typ</Label>
               <Select
                 value={marker.type}
                 onValueChange={(type: 'classic' | 'heart') => setMarker({ type })}
@@ -55,12 +55,12 @@ export function MobileMarkerTab() {
             </div>
 
             <div className="flex items-center gap-3">
-              <Label className="text-sm text-gray-600 w-16 shrink-0">Farbe</Label>
+              <Label className="text-sm text-muted-foreground w-16 shrink-0">Farbe</Label>
               <input
                 type="color"
                 value={marker.color}
                 onChange={(e) => setMarker({ color: e.target.value })}
-                className="flex-1 h-11 rounded-md border border-gray-200 cursor-pointer px-1"
+                className="flex-1 h-11 rounded-md border border-border cursor-pointer px-1"
               />
             </div>
           </div>
@@ -72,12 +72,12 @@ export function MobileMarkerTab() {
         <>
           <Separator />
           <div className="space-y-3">
-            <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
               Zweiter Marker-Pin
             </Label>
 
             <div className="flex items-center justify-between">
-              <Label htmlFor="mobile-second-marker-switch" className="text-sm text-gray-700 cursor-pointer">
+              <Label htmlFor="mobile-second-marker-switch" className="text-sm text-foreground/70 cursor-pointer">
                 Zweiten Marker anzeigen
               </Label>
               <Switch
@@ -94,7 +94,7 @@ export function MobileMarkerTab() {
             {secondMarker.enabled && (
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
-                  <Label className="text-sm text-gray-600 w-16 shrink-0">Typ</Label>
+                  <Label className="text-sm text-muted-foreground w-16 shrink-0">Typ</Label>
                   <Select
                     value={secondMarker.type}
                     onValueChange={(type: 'classic' | 'heart') => setSecondMarker({ type })}
@@ -110,12 +110,12 @@ export function MobileMarkerTab() {
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <Label className="text-sm text-gray-600 w-16 shrink-0">Farbe</Label>
+                  <Label className="text-sm text-muted-foreground w-16 shrink-0">Farbe</Label>
                   <input
                     type="color"
                     value={secondMarker.color}
                     onChange={(e) => setSecondMarker({ color: e.target.value })}
-                    className="flex-1 h-11 rounded-md border border-gray-200 cursor-pointer px-1"
+                    className="flex-1 h-11 rounded-md border border-border cursor-pointer px-1"
                   />
                 </div>
               </div>
@@ -126,7 +126,7 @@ export function MobileMarkerTab() {
 
       {/* Hint if split mode isn't active */}
       {!secondMarkerVisible && (
-        <p className="text-[11px] text-gray-400 leading-relaxed">
+        <p className="text-[11px] text-muted-foreground/70 leading-relaxed">
           Ein zweiter Marker wird verfügbar, sobald im Karte-Tab „Zweite Karte" aktiviert ist.
         </p>
       )}

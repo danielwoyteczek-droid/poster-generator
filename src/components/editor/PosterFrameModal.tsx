@@ -18,7 +18,7 @@ export function PosterFrameModal({ open, onOpenChange, imageDataUrl, isLoading, 
         <DialogTitle className="sr-only">Zimmeransicht</DialogTitle>
         <div className="bg-[#e8e4de] py-16 px-8 flex items-center justify-center min-h-[70vh]">
           {isLoading && (
-            <div className="flex flex-col items-center gap-3 text-gray-600">
+            <div className="flex flex-col items-center gap-3 text-muted-foreground">
               <Loader2 className="w-8 h-8 animate-spin" />
               <p className="text-sm">Vorschau wird erstellt…</p>
             </div>

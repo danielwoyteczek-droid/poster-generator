@@ -24,7 +24,7 @@ export default async function AboutPage() {
       <LandingNav />
       <main className="flex-1">
         {page?.heroImage && (
-          <div className="relative w-full aspect-[16/7] bg-gray-100">
+          <div className="relative w-full aspect-[16/7] bg-muted">
             <Image
               src={urlFor(page.heroImage).width(1920).auto('format').url()}
               alt={page.heroImage.alt ?? page.title}
@@ -38,15 +38,15 @@ export default async function AboutPage() {
         <div className="max-w-3xl mx-auto px-6 py-12">
           {page ? (
             <>
-              <h1 className="text-4xl font-bold text-gray-900 mb-6">{page.title}</h1>
+              <h1 className="text-4xl font-bold text-foreground mb-6">{page.title}</h1>
               <article className="prose prose-gray max-w-none">
                 <PortableTextRenderer value={page.body} />
               </article>
             </>
           ) : (
             <div className="text-center py-20">
-              <h1 className="text-2xl font-semibold text-gray-900 mb-2">About-Seite noch nicht befüllt</h1>
-              <p className="text-gray-500 text-sm">
+              <h1 className="text-2xl font-semibold text-foreground mb-2">About-Seite noch nicht befüllt</h1>
+              <p className="text-muted-foreground text-sm">
                 Die About-Seite muss im Sanity Studio angelegt werden.
               </p>
             </div>

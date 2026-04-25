@@ -23,16 +23,16 @@ export function StarMapTab() {
     <div className="space-y-5 p-4">
       {/* Location */}
       <div className="space-y-1.5">
-        <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400">Ort</Label>
+        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">Ort</Label>
         <LocationSearch onSelect={(lng, lat, name) => setLocation(lat, lng, name)} />
-        {locationName && <p className="text-xs text-gray-500 truncate">{locationName}</p>}
+        {locationName && <p className="text-xs text-muted-foreground truncate">{locationName}</p>}
       </div>
 
       <Separator />
 
       {/* Date & Time */}
       <div className="space-y-1.5">
-        <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
           Datum & Uhrzeit
         </Label>
         <input
@@ -52,33 +52,33 @@ export function StarMapTab() {
 
       {/* Colors */}
       <div className="space-y-3">
-        <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400">Farben</Label>
+        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">Farben</Label>
 
         <div className="flex items-center justify-between">
-          <span className="text-xs text-gray-600">Poster-Hintergrund</span>
+          <span className="text-xs text-muted-foreground">Poster-Hintergrund</span>
           <input
             type="color"
             value={posterBgColor}
             onChange={(e) => setPosterBgColor(e.target.value)}
-            className="w-7 h-7 rounded-full border border-gray-300 cursor-pointer p-0 overflow-hidden"
+            className="w-7 h-7 rounded-full border border-border cursor-pointer p-0 overflow-hidden"
           />
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-xs text-gray-600">Himmel</span>
+          <span className="text-xs text-muted-foreground">Himmel</span>
           <input
             type="color"
             value={skyBgColor}
             onChange={(e) => setSkyBgColor(e.target.value)}
-            className="w-7 h-7 rounded-full border border-gray-300 cursor-pointer p-0 overflow-hidden"
+            className="w-7 h-7 rounded-full border border-border cursor-pointer p-0 overflow-hidden"
           />
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-xs text-gray-600">Sterne</span>
+          <span className="text-xs text-muted-foreground">Sterne</span>
           <input
             type="color"
             value={starColor}
             onChange={(e) => setStarColor(e.target.value)}
-            className="w-7 h-7 rounded-full border border-gray-300 cursor-pointer p-0 overflow-hidden"
+            className="w-7 h-7 rounded-full border border-border cursor-pointer p-0 overflow-hidden"
           />
         </div>
       </div>
@@ -88,13 +88,13 @@ export function StarMapTab() {
         <>
           <Separator />
           <div className="space-y-4">
-            <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
               Design <span className="text-[9px] normal-case text-amber-600 ml-1">Admin</span>
             </Label>
 
             {/* Außenbereich */}
             <div className="space-y-2">
-              <span className="text-xs font-medium text-gray-700">Außenbereich</span>
+              <span className="text-xs font-medium text-foreground/70">Außenbereich</span>
               <div className="grid grid-cols-3 gap-1">
                 {([
                   { key: 'none', label: 'Leer' },
@@ -108,8 +108,8 @@ export function StarMapTab() {
                     className={cn(
                       'h-7 text-[11px] rounded border',
                       frameConfig.outer.mode === opt.key
-                        ? 'bg-gray-900 text-white border-gray-900'
-                        : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400',
+                        ? 'bg-primary text-primary-foreground border-primary'
+                        : 'bg-white text-muted-foreground border-border hover:border-muted-foreground',
                     )}
                   >
                     {opt.label}
@@ -119,8 +119,8 @@ export function StarMapTab() {
               {frameConfig.outer.mode === 'opacity' && (
                 <div className="space-y-1 pt-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] text-gray-600">Transparenz</span>
-                    <span className="text-[11px] text-gray-400 tabular-nums">{Math.round(frameConfig.outer.opacity * 100)}%</span>
+                    <span className="text-[11px] text-muted-foreground">Transparenz</span>
+                    <span className="text-[11px] text-muted-foreground/70 tabular-nums">{Math.round(frameConfig.outer.opacity * 100)}%</span>
                   </div>
                   <Slider
                     min={0.1} max={1} step={0.05}
@@ -132,8 +132,8 @@ export function StarMapTab() {
               {(frameConfig.outer.mode !== 'none' || frameConfig.outerFrame.enabled) && (
                 <div className="space-y-1 pt-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] text-gray-600">Abstand zum Poster-Rand</span>
-                    <span className="text-[11px] text-gray-400 tabular-nums">{frameConfig.outer.margin} mm</span>
+                    <span className="text-[11px] text-muted-foreground">Abstand zum Poster-Rand</span>
+                    <span className="text-[11px] text-muted-foreground/70 tabular-nums">{frameConfig.outer.margin} mm</span>
                   </div>
                   <Slider
                     min={0} max={30} step={1}
@@ -145,9 +145,9 @@ export function StarMapTab() {
             </div>
 
             {/* Innerer Rahmen (um Sky-Circle) */}
-            <div className="space-y-2 pt-2 border-t border-gray-100">
+            <div className="space-y-2 pt-2 border-t border-border">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-gray-700">Innerer Rahmen</span>
+                <span className="text-xs font-medium text-foreground/70">Innerer Rahmen</span>
                 <Switch
                   checked={frameConfig.innerFrame.enabled}
                   onCheckedChange={(enabled) => setInnerFrame({ enabled })}
@@ -156,18 +156,18 @@ export function StarMapTab() {
               {frameConfig.innerFrame.enabled && (
                 <div className="space-y-2 pl-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] text-gray-600">Farbe</span>
+                    <span className="text-[11px] text-muted-foreground">Farbe</span>
                     <input
                       type="color"
                       value={frameConfig.innerFrame.color}
                       onChange={(e) => setInnerFrame({ color: e.target.value })}
-                      className="w-6 h-6 rounded-full border border-gray-300 cursor-pointer p-0 overflow-hidden"
+                      className="w-6 h-6 rounded-full border border-border cursor-pointer p-0 overflow-hidden"
                     />
                   </div>
                   <div className="space-y-1">
                     <div className="flex items-center justify-between">
-                      <span className="text-[11px] text-gray-600">Dicke</span>
-                      <span className="text-[11px] text-gray-400 tabular-nums">{frameConfig.innerFrame.thickness} mm</span>
+                      <span className="text-[11px] text-muted-foreground">Dicke</span>
+                      <span className="text-[11px] text-muted-foreground/70 tabular-nums">{frameConfig.innerFrame.thickness} mm</span>
                     </div>
                     <Slider
                       min={0.3} max={2} step={0.1}
@@ -180,9 +180,9 @@ export function StarMapTab() {
             </div>
 
             {/* Äußerer Rahmen (um das Rechteck) */}
-            <div className="space-y-2 pt-2 border-t border-gray-100">
+            <div className="space-y-2 pt-2 border-t border-border">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-gray-700">Äußerer Rahmen</span>
+                <span className="text-xs font-medium text-foreground/70">Äußerer Rahmen</span>
                 <Switch
                   checked={frameConfig.outerFrame.enabled}
                   onCheckedChange={(enabled) => setOuterFrame({ enabled })}
@@ -199,8 +199,8 @@ export function StarMapTab() {
                         className={cn(
                           'h-7 text-[11px] rounded border',
                           frameConfig.outerFrame.style === s
-                            ? 'bg-gray-900 text-white border-gray-900'
-                            : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400',
+                            ? 'bg-primary text-primary-foreground border-primary'
+                            : 'bg-white text-muted-foreground border-border hover:border-muted-foreground',
                         )}
                       >
                         {s === 'single' ? 'Einfach' : 'Doppelt'}
@@ -208,18 +208,18 @@ export function StarMapTab() {
                     ))}
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] text-gray-600">Farbe</span>
+                    <span className="text-[11px] text-muted-foreground">Farbe</span>
                     <input
                       type="color"
                       value={frameConfig.outerFrame.color}
                       onChange={(e) => setOuterFrame({ color: e.target.value })}
-                      className="w-6 h-6 rounded-full border border-gray-300 cursor-pointer p-0 overflow-hidden"
+                      className="w-6 h-6 rounded-full border border-border cursor-pointer p-0 overflow-hidden"
                     />
                   </div>
                   <div className="space-y-1">
                     <div className="flex items-center justify-between">
-                      <span className="text-[11px] text-gray-600">Dicke</span>
-                      <span className="text-[11px] text-gray-400 tabular-nums">{frameConfig.outerFrame.thickness} mm</span>
+                      <span className="text-[11px] text-muted-foreground">Dicke</span>
+                      <span className="text-[11px] text-muted-foreground/70 tabular-nums">{frameConfig.outerFrame.thickness} mm</span>
                     </div>
                     <Slider
                       min={0.3} max={2} step={0.1}
@@ -230,8 +230,8 @@ export function StarMapTab() {
                   {frameConfig.outerFrame.style === 'double' && (
                     <div className="space-y-1">
                       <div className="flex items-center justify-between">
-                        <span className="text-[11px] text-gray-600">Abstand der Linien</span>
-                        <span className="text-[11px] text-gray-400 tabular-nums">{frameConfig.outerFrame.gap} mm</span>
+                        <span className="text-[11px] text-muted-foreground">Abstand der Linien</span>
+                        <span className="text-[11px] text-muted-foreground/70 tabular-nums">{frameConfig.outerFrame.gap} mm</span>
                       </div>
                       <Slider
                         min={0.5} max={3} step={0.1}

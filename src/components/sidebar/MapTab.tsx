@@ -221,13 +221,13 @@ export function MapTab() {
     <div className="space-y-5 p-4">
       {/* Location Search — primary map */}
       <div className="space-y-1.5">
-        <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400">Ort suchen</Label>
+        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">Ort suchen</Label>
         <LocationSearch onSelect={(lng, lat, name) => { flyToLocation(lng, lat); setLocationName(name) }} />
       </div>
 
       {/* Split-Modus: None / zweite Karte / Foto */}
       <div className="space-y-3">
-        <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
           Zweite Ansicht
         </Label>
         <div className="grid grid-cols-3 gap-1">
@@ -239,8 +239,8 @@ export function MapTab() {
               className={cn(
                 'h-8 rounded-md text-[11px] font-medium transition-colors',
                 splitMode === m
-                  ? 'bg-gray-900 text-white'
-                  : 'bg-white text-gray-700 border border-gray-200 hover:border-gray-400',
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-white text-foreground/70 border border-border hover:border-muted-foreground',
               )}
             >
               {m === 'none' ? 'Keine' : m === 'second-map' ? 'Zweite Karte' : 'Foto'}
@@ -251,25 +251,25 @@ export function MapTab() {
         {splitMode === 'photo' && (
           <div className="space-y-2 pl-1">
             <div className="flex items-center gap-2">
-              <Label className="text-xs text-gray-500 flex-1">Position</Label>
+              <Label className="text-xs text-muted-foreground flex-1">Position</Label>
               <div className="flex items-center gap-1">
                 <button
                   type="button"
                   onClick={() => cycleZone(-1)}
                   disabled={zoneCount < 2}
-                  className="w-7 h-7 flex items-center justify-center rounded-sm border border-gray-200 bg-white text-gray-600 hover:border-gray-400 disabled:opacity-40"
+                  className="w-7 h-7 flex items-center justify-center rounded-sm border border-border bg-white text-muted-foreground hover:border-muted-foreground disabled:opacity-40"
                   aria-label="Vorherige Zone"
                 >
                   <ChevronLeft className="w-3.5 h-3.5" />
                 </button>
-                <span className="text-[11px] text-gray-700 min-w-[48px] text-center tabular-nums">
+                <span className="text-[11px] text-foreground/70 min-w-[48px] text-center tabular-nums">
                   {zoneLabel}
                 </span>
                 <button
                   type="button"
                   onClick={() => cycleZone(1)}
                   disabled={zoneCount < 2}
-                  className="w-7 h-7 flex items-center justify-center rounded-sm border border-gray-200 bg-white text-gray-600 hover:border-gray-400 disabled:opacity-40"
+                  className="w-7 h-7 flex items-center justify-center rounded-sm border border-border bg-white text-muted-foreground hover:border-muted-foreground disabled:opacity-40"
                   aria-label="Nächste Zone"
                 >
                   <ChevronRight className="w-3.5 h-3.5" />
@@ -309,16 +309,16 @@ export function MapTab() {
               </Button>
             ) : (
               <div className="space-y-2">
-                <div className="flex items-center gap-2 rounded-md border border-gray-200 p-2">
+                <div className="flex items-center gap-2 rounded-md border border-border p-2">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={splitPhoto.publicUrl} alt="" className="w-12 h-12 object-cover rounded-sm" />
-                  <p className="flex-1 text-xs text-gray-600 truncate">
+                  <p className="flex-1 text-xs text-muted-foreground truncate">
                     {splitPhoto.width} × {splitPhoto.height}px
                   </p>
                   <button
                     type="button"
                     onClick={handleRemoveSplitPhoto}
-                    className="w-7 h-7 flex items-center justify-center rounded-sm hover:bg-gray-100 text-gray-500 hover:text-red-600"
+                    className="w-7 h-7 flex items-center justify-center rounded-sm hover:bg-muted text-muted-foreground hover:text-red-600"
                     aria-label="Foto entfernen"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -333,8 +333,8 @@ export function MapTab() {
                       className={cn(
                         'rounded-sm border px-1.5 py-1 text-[10px] transition-colors',
                         splitPhoto.filter === f.id
-                          ? 'border-gray-900 bg-gray-900 text-white'
-                          : 'border-gray-200 text-gray-600 hover:border-gray-400',
+                          ? 'border-primary bg-primary text-primary-foreground'
+                          : 'border-border text-muted-foreground hover:border-muted-foreground',
                       )}
                     >
                       {f.label}
@@ -343,8 +343,8 @@ export function MapTab() {
                 </div>
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] text-gray-600">Zoom</span>
-                    <span className="text-[11px] text-gray-400 tabular-nums">
+                    <span className="text-[11px] text-muted-foreground">Zoom</span>
+                    <span className="text-[11px] text-muted-foreground/70 tabular-nums">
                       {splitPhoto.cropScale.toFixed(1)}×
                     </span>
                   </div>
@@ -354,7 +354,7 @@ export function MapTab() {
                     onValueChange={([v]) => updateSplitPhoto({ cropScale: v })}
                   />
                 </div>
-                <p className="text-[10px] text-gray-400 leading-relaxed">
+                <p className="text-[10px] text-muted-foreground/70 leading-relaxed">
                   Ziehe das Foto auf dem Poster, um den Ausschnitt anzupassen.
                 </p>
               </div>
@@ -365,12 +365,12 @@ export function MapTab() {
         {splitMode === 'second-map' && (
           <div className="space-y-3 pl-1">
             <div className="space-y-1.5">
-              <Label className="text-xs text-gray-500">Ort (rechts)</Label>
+              <Label className="text-xs text-muted-foreground">Ort (rechts)</Label>
               <LocationSearch onSelect={(lng, lat) => flyToSecondLocation(lng, lat)} />
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs text-gray-500">Kartenstil (rechts)</Label>
+              <Label className="text-xs text-muted-foreground">Kartenstil (rechts)</Label>
               <div className="grid grid-cols-2 gap-1.5">
                 {MAP_LAYOUTS.map((layout) => (
                   <button
@@ -380,8 +380,8 @@ export function MapTab() {
                     className={cn(
                       'rounded-md border-2 px-2 py-2 text-left text-xs font-medium transition-all',
                       secondMap.styleId === layout.id
-                        ? 'border-gray-900 bg-gray-900 text-white'
-                        : 'border-gray-200 text-gray-700 hover:border-gray-400'
+                        ? 'border-primary bg-primary text-primary-foreground'
+                        : 'border-border text-foreground/70 hover:border-muted-foreground'
                     )}
                   >
                     {layout.label}
@@ -390,20 +390,20 @@ export function MapTab() {
               </div>
               {true && (
                 <div className="space-y-1.5 pt-2">
-                  <Label className="text-xs text-gray-500">Farbpalette (rechts)</Label>
+                  <Label className="text-xs text-muted-foreground">Farbpalette (rechts)</Label>
                   <div className="grid grid-cols-3 gap-1.5">
                     <button
                       onClick={() => setSecondMapPaletteId('original')}
                       className={cn(
                         'rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
                         secondMap.paletteId === 'original'
-                          ? 'border-gray-900'
-                          : 'border-gray-200 hover:border-gray-400',
+                          ? 'border-primary'
+                          : 'border-border hover:border-muted-foreground',
                       )}
                       title="Farben aus dem Kartenstil übernehmen"
                     >
                       <div className="w-3 h-3 rounded-full border border-black/10 bg-gradient-to-br from-gray-200 via-gray-400 to-gray-600" />
-                      <span className="text-[10px] leading-tight text-gray-700">Original</span>
+                      <span className="text-[10px] leading-tight text-foreground/70">Original</span>
                     </button>
                     {availablePalettes.map((p) => {
                       const c = p.colors
@@ -414,8 +414,8 @@ export function MapTab() {
                           className={cn(
                             'rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
                             secondMap.paletteId === p.id
-                              ? 'border-gray-900'
-                              : 'border-gray-200 hover:border-gray-400',
+                              ? 'border-primary'
+                              : 'border-border hover:border-muted-foreground',
                           )}
                           title={p.description}
                         >
@@ -425,7 +425,7 @@ export function MapTab() {
                             <span className="w-3 h-3 rounded-full border border-black/10" style={{ background: c.road }} />
                             <span className="w-3 h-3 rounded-full border border-black/10" style={{ background: c.label }} />
                           </div>
-                          <span className="text-[10px] leading-tight text-gray-700">{p.label}</span>
+                          <span className="text-[10px] leading-tight text-foreground/70">{p.label}</span>
                         </button>
                       )
                     })}
@@ -441,15 +441,15 @@ export function MapTab() {
                       className={cn(
                         'rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
                         secondMap.paletteId === 'custom'
-                          ? 'border-gray-900'
-                          : 'border-gray-200 hover:border-gray-400',
+                          ? 'border-primary'
+                          : 'border-border hover:border-muted-foreground',
                       )}
                     >
                       <div
                         className="w-3 h-3 rounded-full border border-black/10"
                         style={{ background: secondMap.customPalette?.water ?? secondMap.customPaletteBase ?? '#84c5a6' }}
                       />
-                      <span className="text-[10px] leading-tight text-gray-700">Eigene</span>
+                      <span className="text-[10px] leading-tight text-foreground/70">Eigene</span>
                     </button>
                   </div>
                   {secondMap.paletteId === 'custom' && (
@@ -466,7 +466,7 @@ export function MapTab() {
 
             {/* Second marker pin */}
             <div className="flex items-center justify-between">
-              <Label className="text-xs text-gray-500">Marker-Pin (rechts)</Label>
+              <Label className="text-xs text-muted-foreground">Marker-Pin (rechts)</Label>
               <Switch
                 checked={secondMarker.enabled}
                 onCheckedChange={(enabled) =>
@@ -479,7 +479,7 @@ export function MapTab() {
             {secondMarker.enabled && (
               <div className="space-y-2">
                 <div className="flex items-center gap-3">
-                  <Label className="text-xs text-gray-500 w-12 shrink-0">Typ</Label>
+                  <Label className="text-xs text-muted-foreground w-12 shrink-0">Typ</Label>
                   <Select
                     value={secondMarker.type}
                     onValueChange={(type: 'classic' | 'heart') => setSecondMarker({ type })}
@@ -494,12 +494,12 @@ export function MapTab() {
                   </Select>
                 </div>
                 <div className="flex items-center gap-3">
-                  <Label className="text-xs text-gray-500 w-12 shrink-0">Farbe</Label>
+                  <Label className="text-xs text-muted-foreground w-12 shrink-0">Farbe</Label>
                   <input
                     type="color"
                     value={secondMarker.color}
                     onChange={(e) => setSecondMarker({ color: e.target.value })}
-                    className="flex-1 h-8 rounded-md border border-gray-200 cursor-pointer px-1"
+                    className="flex-1 h-8 rounded-md border border-border cursor-pointer px-1"
                   />
                 </div>
               </div>
@@ -518,7 +518,7 @@ export function MapTab() {
 
       {/* Map layout — choose detail level / what's shown at which zoom */}
       <div className="space-y-1.5">
-        <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400">Kartenstil</Label>
+        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">Kartenstil</Label>
         <div className="grid grid-cols-2 gap-1.5">
           {MAP_LAYOUTS.map((layout) => (
             <button
@@ -528,8 +528,8 @@ export function MapTab() {
               className={cn(
                 'rounded-md border-2 px-2 py-2 text-left text-xs font-medium transition-all',
                 styleId === layout.id
-                  ? 'border-gray-900 bg-gray-900 text-white'
-                  : 'border-gray-200 text-gray-700 hover:border-gray-400'
+                  ? 'border-primary bg-primary text-primary-foreground'
+                  : 'border-border text-foreground/70 hover:border-muted-foreground'
               )}
             >
               {layout.label}
@@ -540,20 +540,20 @@ export function MapTab() {
 
       {true && (
         <div className="space-y-1.5">
-          <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400">Farbpalette</Label>
+          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">Farbpalette</Label>
           <div className="grid grid-cols-3 gap-1.5">
             <button
               onClick={() => setPaletteId('original')}
               className={cn(
                 'rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
                 paletteId === 'original'
-                  ? 'border-gray-900'
-                  : 'border-gray-200 hover:border-gray-400',
+                  ? 'border-primary'
+                  : 'border-border hover:border-muted-foreground',
               )}
               title="Farben aus dem Kartenstil übernehmen"
             >
               <div className="w-3 h-3 rounded-full border border-black/10 bg-gradient-to-br from-gray-200 via-gray-400 to-gray-600" />
-              <span className="text-[10px] leading-tight text-gray-700">Original</span>
+              <span className="text-[10px] leading-tight text-foreground/70">Original</span>
             </button>
             {availablePalettes.map((p) => {
               const c = p.colors
@@ -564,8 +564,8 @@ export function MapTab() {
                   className={cn(
                     'rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
                     paletteId === p.id
-                      ? 'border-gray-900'
-                      : 'border-gray-200 hover:border-gray-400',
+                      ? 'border-primary'
+                      : 'border-border hover:border-muted-foreground',
                   )}
                   title={p.description}
                 >
@@ -575,7 +575,7 @@ export function MapTab() {
                     <span className="w-3 h-3 rounded-full border border-black/10" style={{ background: c.road }} />
                     <span className="w-3 h-3 rounded-full border border-black/10" style={{ background: c.label }} />
                   </div>
-                  <span className="text-[10px] leading-tight text-gray-700">{p.label}</span>
+                  <span className="text-[10px] leading-tight text-foreground/70">{p.label}</span>
                 </button>
               )
             })}
@@ -591,15 +591,15 @@ export function MapTab() {
               className={cn(
                 'rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
                 paletteId === 'custom'
-                  ? 'border-gray-900'
-                  : 'border-gray-200 hover:border-gray-400',
+                  ? 'border-primary'
+                  : 'border-border hover:border-muted-foreground',
               )}
             >
               <div
                 className="w-3 h-3 rounded-full border border-black/10"
                 style={{ background: customPalette?.water ?? customPaletteBase ?? '#84c5a6' }}
               />
-              <span className="text-[10px] leading-tight text-gray-700">Eigene</span>
+              <span className="text-[10px] leading-tight text-foreground/70">Eigene</span>
             </button>
           </div>
           {paletteId === 'custom' && (
@@ -615,7 +615,7 @@ export function MapTab() {
 
       {/* Street labels — always available, works on any map style */}
       <div className="flex items-center justify-between">
-        <Label className="text-xs text-gray-700">Straßennamen anzeigen</Label>
+        <Label className="text-xs text-foreground/70">Straßennamen anzeigen</Label>
         <Switch
           checked={streetLabelsVisible}
           onCheckedChange={setStreetLabelsVisible}
@@ -626,7 +626,7 @@ export function MapTab() {
 
       {/* Mask / Shape — filtered to split-only when second map is active */}
       <div className="space-y-1.5">
-        <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400">Kartenform</Label>
+        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">Kartenform</Label>
         <div className="grid grid-cols-3 gap-1.5">
           {(masksExpanded ? visibleMasks : visibleMasks.slice(0, MASK_INITIAL_VISIBLE)).map((mask) => (
             <button
@@ -635,8 +635,8 @@ export function MapTab() {
               className={cn(
                 'rounded-md border-2 py-2 px-1 transition-all flex flex-col items-center gap-1',
                 maskKey === mask.key
-                  ? 'border-gray-900 bg-gray-50'
-                  : 'border-gray-200 hover:border-gray-400'
+                  ? 'border-primary bg-muted'
+                  : 'border-border hover:border-muted-foreground'
               )}
             >
               <div className="w-8 h-8 flex items-center justify-center">
@@ -644,10 +644,10 @@ export function MapTab() {
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={mask.svgPath} alt={mask.label} className="w-7 h-7 object-contain" />
                 ) : (
-                  <div className="w-7 h-7 rounded-sm bg-gray-200" />
+                  <div className="w-7 h-7 rounded-sm bg-muted" />
                 )}
               </div>
-              <span className="text-[9px] leading-tight text-center text-gray-600">{mask.label}</span>
+              <span className="text-[9px] leading-tight text-center text-muted-foreground">{mask.label}</span>
             </button>
           ))}
         </div>
@@ -655,7 +655,7 @@ export function MapTab() {
           <button
             type="button"
             onClick={() => setMasksExpanded((v) => !v)}
-            className="w-full text-[11px] text-gray-500 hover:text-gray-900 flex items-center justify-center gap-0.5 py-1"
+            className="w-full text-[11px] text-muted-foreground hover:text-foreground flex items-center justify-center gap-0.5 py-1"
           >
             {masksExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
             {masksExpanded ? 'Weniger anzeigen' : `Mehr anzeigen (${visibleMasks.length - MASK_INITIAL_VISIBLE})`}
@@ -667,7 +667,7 @@ export function MapTab() {
 
       {/* Layout — where the text sits on the poster */}
       <div className="space-y-1.5">
-        <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400">Layout</Label>
+        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">Layout</Label>
         <div className="grid grid-cols-3 gap-1.5">
           {LAYOUT_OPTIONS.map((opt) => (
             <button
@@ -677,18 +677,18 @@ export function MapTab() {
               className={cn(
                 'rounded-md border-2 py-2 px-1 transition-all flex flex-col items-center gap-1',
                 layoutId === opt.id
-                  ? 'border-gray-900 bg-gray-50'
-                  : 'border-gray-200 hover:border-gray-400',
+                  ? 'border-primary bg-muted'
+                  : 'border-border hover:border-muted-foreground',
               )}
             >
               {/* Miniature: grey block = map area, white band = text area */}
-              <div className="w-8 h-10 rounded-sm border border-gray-300 bg-white flex flex-col overflow-hidden">
+              <div className="w-8 h-10 rounded-sm border border-border bg-white flex flex-col overflow-hidden">
                 <div
-                  className="bg-gray-400"
+                  className="bg-muted-foreground"
                   style={{ height: opt.id === 'full' ? '100%' : opt.id === 'text-30' ? '70%' : '85%' }}
                 />
               </div>
-              <span className="text-[9px] leading-tight text-center text-gray-600">{opt.label}</span>
+              <span className="text-[9px] leading-tight text-center text-muted-foreground">{opt.label}</span>
             </button>
           ))}
         </div>
@@ -697,8 +697,8 @@ export function MapTab() {
       {/* Inner margin — how much the whole poster content is inset */}
       <div className="space-y-1.5">
         <div className="flex items-center justify-between">
-          <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400">Formkontur</Label>
-          <span className="text-[11px] text-gray-400 tabular-nums">{innerMarginMm} mm</span>
+          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">Formkontur</Label>
+          <span className="text-[11px] text-muted-foreground/70 tabular-nums">{innerMarginMm} mm</span>
         </div>
         <Slider
           min={0}
@@ -714,13 +714,13 @@ export function MapTab() {
         <>
           <Separator />
           <div className="space-y-4">
-            <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
               Design <span className="text-[9px] normal-case text-amber-600 ml-1">Admin</span>
             </Label>
 
             {/* Außenbereich */}
             <div className="space-y-2">
-              <span className="text-xs font-medium text-gray-700">Außenbereich</span>
+              <span className="text-xs font-medium text-foreground/70">Außenbereich</span>
               <div className="grid grid-cols-3 gap-1">
                 {([
                   { key: 'none', label: 'Leer' },
@@ -734,8 +734,8 @@ export function MapTab() {
                     className={cn(
                       'h-7 text-[11px] rounded border',
                       shapeConfig.outer.mode === opt.key
-                        ? 'bg-gray-900 text-white border-gray-900'
-                        : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400',
+                        ? 'bg-primary text-primary-foreground border-primary'
+                        : 'bg-white text-muted-foreground border-border hover:border-muted-foreground',
                     )}
                   >
                     {opt.label}
@@ -745,8 +745,8 @@ export function MapTab() {
               {shapeConfig.outer.mode === 'opacity' && (
                 <div className="space-y-1 pt-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] text-gray-600">Transparenz</span>
-                    <span className="text-[11px] text-gray-400 tabular-nums">{Math.round(shapeConfig.outer.opacity * 100)}%</span>
+                    <span className="text-[11px] text-muted-foreground">Transparenz</span>
+                    <span className="text-[11px] text-muted-foreground/70 tabular-nums">{Math.round(shapeConfig.outer.opacity * 100)}%</span>
                   </div>
                   <Slider
                     min={0.1} max={1} step={0.05}
@@ -758,8 +758,8 @@ export function MapTab() {
               {shapeConfig.outer.mode !== 'none' && (
                 <div className="space-y-2 pt-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] text-gray-600">Abstand zum Poster-Rand</span>
-                    <label className="flex items-center gap-1.5 text-[11px] text-gray-500 cursor-pointer">
+                    <span className="text-[11px] text-muted-foreground">Abstand zum Poster-Rand</span>
+                    <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground cursor-pointer">
                       <input
                         type="checkbox"
                         checked={shapeConfig.outer.marginLocked !== false}
@@ -790,8 +790,8 @@ export function MapTab() {
                   {shapeConfig.outer.marginLocked !== false ? (
                     <div className="space-y-1">
                       <div className="flex items-center justify-between">
-                        <span className="text-[11px] text-gray-500">Alle Seiten</span>
-                        <span className="text-[11px] text-gray-400 tabular-nums">{shapeConfig.outer.margin} mm</span>
+                        <span className="text-[11px] text-muted-foreground">Alle Seiten</span>
+                        <span className="text-[11px] text-muted-foreground/70 tabular-nums">{shapeConfig.outer.margin} mm</span>
                       </div>
                       <Slider
                         min={0} max={30} step={1}
@@ -819,8 +819,8 @@ export function MapTab() {
                         return (
                           <div key={side.field} className="space-y-1">
                             <div className="flex items-center justify-between">
-                              <span className="text-[11px] text-gray-500">{side.label}</span>
-                              <span className="text-[11px] text-gray-400 tabular-nums">{v} mm</span>
+                              <span className="text-[11px] text-muted-foreground">{side.label}</span>
+                              <span className="text-[11px] text-muted-foreground/70 tabular-nums">{v} mm</span>
                             </div>
                             <Slider
                               min={0} max={30} step={1}
@@ -837,9 +837,9 @@ export function MapTab() {
             </div>
 
             {/* Rand (um die Form) */}
-            <div className="space-y-2 pt-2 border-t border-gray-100">
+            <div className="space-y-2 pt-2 border-t border-border">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-gray-700">Rand</span>
+                <span className="text-xs font-medium text-foreground/70">Rand</span>
                 <Switch
                   checked={shapeConfig.innerFrame.enabled}
                   onCheckedChange={(enabled) => setInnerFrame({ enabled })}
@@ -848,18 +848,18 @@ export function MapTab() {
               {shapeConfig.innerFrame.enabled && (
                 <div className="space-y-2 pl-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] text-gray-600">Farbe</span>
+                    <span className="text-[11px] text-muted-foreground">Farbe</span>
                     <input
                       type="color"
                       value={shapeConfig.innerFrame.color}
                       onChange={(e) => setInnerFrame({ color: e.target.value })}
-                      className="w-6 h-6 rounded-full border border-gray-300 cursor-pointer p-0 overflow-hidden"
+                      className="w-6 h-6 rounded-full border border-border cursor-pointer p-0 overflow-hidden"
                     />
                   </div>
                   <div className="space-y-1">
                     <div className="flex items-center justify-between">
-                      <span className="text-[11px] text-gray-600">Dicke</span>
-                      <span className="text-[11px] text-gray-400 tabular-nums">{shapeConfig.innerFrame.thickness} mm</span>
+                      <span className="text-[11px] text-muted-foreground">Dicke</span>
+                      <span className="text-[11px] text-muted-foreground/70 tabular-nums">{shapeConfig.innerFrame.thickness} mm</span>
                     </div>
                     <Slider
                       min={0.3} max={2} step={0.1}
@@ -873,9 +873,9 @@ export function MapTab() {
 
             {/* Äußerer Rahmen (um das Rechteck) */}
             {shapeConfig.outer.mode !== 'none' && (
-              <div className="space-y-2 pt-2 border-t border-gray-100">
+              <div className="space-y-2 pt-2 border-t border-border">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-gray-700">Äußerer Rahmen</span>
+                  <span className="text-xs font-medium text-foreground/70">Äußerer Rahmen</span>
                   <Switch
                     checked={shapeConfig.outerFrame.enabled}
                     onCheckedChange={(enabled) => setOuterFrame({ enabled })}
@@ -892,8 +892,8 @@ export function MapTab() {
                           className={cn(
                             'h-7 text-[11px] rounded border',
                             shapeConfig.outerFrame.style === s
-                              ? 'bg-gray-900 text-white border-gray-900'
-                              : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400',
+                              ? 'bg-primary text-primary-foreground border-primary'
+                              : 'bg-white text-muted-foreground border-border hover:border-muted-foreground',
                           )}
                         >
                           {s === 'single' ? 'Einfach' : 'Doppelt'}
@@ -901,18 +901,18 @@ export function MapTab() {
                       ))}
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-[11px] text-gray-600">Farbe</span>
+                      <span className="text-[11px] text-muted-foreground">Farbe</span>
                       <input
                         type="color"
                         value={shapeConfig.outerFrame.color}
                         onChange={(e) => setOuterFrame({ color: e.target.value })}
-                        className="w-6 h-6 rounded-full border border-gray-300 cursor-pointer p-0 overflow-hidden"
+                        className="w-6 h-6 rounded-full border border-border cursor-pointer p-0 overflow-hidden"
                       />
                     </div>
                     <div className="space-y-1">
                       <div className="flex items-center justify-between">
-                        <span className="text-[11px] text-gray-600">Dicke</span>
-                        <span className="text-[11px] text-gray-400 tabular-nums">{shapeConfig.outerFrame.thickness} mm</span>
+                        <span className="text-[11px] text-muted-foreground">Dicke</span>
+                        <span className="text-[11px] text-muted-foreground/70 tabular-nums">{shapeConfig.outerFrame.thickness} mm</span>
                       </div>
                       <Slider
                         min={0.3} max={2} step={0.1}
@@ -923,8 +923,8 @@ export function MapTab() {
                     {shapeConfig.outerFrame.style === 'double' && (
                       <div className="space-y-1">
                         <div className="flex items-center justify-between">
-                          <span className="text-[11px] text-gray-600">Abstand der Linien</span>
-                          <span className="text-[11px] text-gray-400 tabular-nums">{shapeConfig.outerFrame.gap} mm</span>
+                          <span className="text-[11px] text-muted-foreground">Abstand der Linien</span>
+                          <span className="text-[11px] text-muted-foreground/70 tabular-nums">{shapeConfig.outerFrame.gap} mm</span>
                         </div>
                         <Slider
                           min={0.5} max={3} step={0.1}
@@ -945,9 +945,9 @@ export function MapTab() {
 
       {/* Marker Pin */}
       <div className="space-y-3">
-        <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400">Marker-Pin</Label>
+        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">Marker-Pin</Label>
         <div className="flex items-center justify-between">
-          <Label htmlFor="marker-switch" className="text-sm text-gray-700 cursor-pointer">
+          <Label htmlFor="marker-switch" className="text-sm text-foreground/70 cursor-pointer">
             Marker anzeigen
           </Label>
           <Switch
@@ -966,7 +966,7 @@ export function MapTab() {
         {marker.enabled && (
           <div className="space-y-2">
             <div className="flex items-center gap-3">
-              <Label className="text-sm text-gray-600 w-12 shrink-0">Typ</Label>
+              <Label className="text-sm text-muted-foreground w-12 shrink-0">Typ</Label>
               <Select
                 value={marker.type}
                 onValueChange={(type: 'classic' | 'heart') => setMarker({ type })}
@@ -981,12 +981,12 @@ export function MapTab() {
               </Select>
             </div>
             <div className="flex items-center gap-3">
-              <Label className="text-sm text-gray-600 w-12 shrink-0">Farbe</Label>
+              <Label className="text-sm text-muted-foreground w-12 shrink-0">Farbe</Label>
               <input
                 type="color"
                 value={marker.color}
                 onChange={(e) => setMarker({ color: e.target.value })}
-                className="flex-1 h-8 rounded-md border border-gray-200 cursor-pointer px-1"
+                className="flex-1 h-8 rounded-md border border-border cursor-pointer px-1"
               />
             </div>
           </div>
@@ -1081,11 +1081,11 @@ function CustomPaletteEditor({
   return (
     <div className="space-y-2 pt-2">
       <div className="flex items-center justify-between">
-        <span className="text-[11px] text-gray-500 uppercase tracking-wider">Alle Farben</span>
+        <span className="text-[11px] text-muted-foreground uppercase tracking-wider">Alle Farben</span>
         <button
           type="button"
           onClick={onReset}
-          className="text-[10px] text-gray-400 hover:text-gray-700"
+          className="text-[10px] text-muted-foreground/70 hover:text-foreground/70"
         >
           Zurücksetzen
         </button>
@@ -1096,13 +1096,13 @@ function CustomPaletteEditor({
             type="color"
             value={effective[field.key]}
             onChange={(e) => onColorChange(field.key, e.target.value)}
-            className="w-8 h-8 rounded-md border border-gray-200 cursor-pointer shrink-0"
+            className="w-8 h-8 rounded-md border border-border cursor-pointer shrink-0"
           />
           <div className="flex-1 min-w-0">
-            <p className="text-[11px] text-gray-700 leading-tight">{field.label}</p>
-            <p className="text-[10px] text-gray-400 leading-tight">{field.description}</p>
+            <p className="text-[11px] text-foreground/70 leading-tight">{field.label}</p>
+            <p className="text-[10px] text-muted-foreground/70 leading-tight">{field.description}</p>
           </div>
-          <span className="text-[10px] text-gray-400 font-mono tabular-nums uppercase">
+          <span className="text-[10px] text-muted-foreground/70 font-mono tabular-nums uppercase">
             {effective[field.key]}
           </span>
         </div>

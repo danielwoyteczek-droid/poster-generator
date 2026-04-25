@@ -34,7 +34,7 @@ export function HeroSection() {
           Erstelle in wenigen Minuten ein individuelles Kartenposter von jedem Ort der Welt — ohne Designkenntnisse.
         </p>
         <div className="mt-10 flex flex-col sm:flex-row gap-3 justify-center">
-          <Button size="lg" className="bg-white text-gray-900 hover:bg-gray-100 text-base px-8" asChild>
+          <Button size="lg" className="bg-white text-foreground hover:bg-muted text-base px-8" asChild>
             <Link href="/map">
               Poster erstellen
               <ArrowRight className="w-4 h-4 ml-2" />

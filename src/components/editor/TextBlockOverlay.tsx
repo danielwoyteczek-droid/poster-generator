@@ -148,7 +148,7 @@ function BlockItem({ block, isSelected, overlayRef, displayText, interactive, fo
         <div
           className="absolute -top-1 -left-1 bg-white rounded-sm shadow-sm p-0.5 pointer-events-none"
         >
-          <Lock className="w-3 h-3 text-gray-700" />
+          <Lock className="w-3 h-3 text-foreground/70" />
         </div>
       )}
 

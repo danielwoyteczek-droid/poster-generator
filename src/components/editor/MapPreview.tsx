@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic'
 
 const MapPreviewInner = dynamic(() => import('./MapPreviewInner'), {
   ssr: false,
-  loading: () => <div className="w-full h-full bg-gray-200 animate-pulse" />,
+  loading: () => <div className="w-full h-full bg-muted animate-pulse" />,
 })
 
 interface MapPreviewProps {

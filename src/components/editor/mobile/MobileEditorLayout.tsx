@@ -36,13 +36,13 @@ export function MobileEditorLayout() {
           to exactly one overlay at a time (map / text / photo / marker),
           matched to the active tab — so fingers don't fight each other
           on a small screen. */}
-      <div className="h-[58vh] shrink-0 flex min-h-0 border-b border-gray-200">
+      <div className="h-[58vh] shrink-0 flex min-h-0 border-b border-border">
         <PosterCanvas padding={16} activeMobileTool={activeTab} />
       </div>
 
       {/* Tab bar — fixed under preview */}
       <nav
-        className="h-14 shrink-0 grid grid-cols-6 bg-white border-b border-gray-200"
+        className="h-14 shrink-0 grid grid-cols-6 bg-white border-b border-border"
         role="tablist"
       >
         {TABS.map(({ id, label, Icon }) => {
@@ -57,8 +57,8 @@ export function MobileEditorLayout() {
                 'flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-colors',
                 'min-h-[44px] touch-manipulation',
                 active
-                  ? 'text-gray-900 border-t-2 border-gray-900 -mt-px'
-                  : 'text-gray-500 hover:text-gray-700',
+                  ? 'text-foreground border-t-2 border-primary -mt-px'
+                  : 'text-muted-foreground hover:text-foreground/70',
               )}
             >
               <Icon className={cn('w-5 h-5', active && 'stroke-[2.25]')} />
