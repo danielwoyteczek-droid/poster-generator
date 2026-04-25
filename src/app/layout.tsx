@@ -47,13 +47,18 @@ export const metadata: Metadata = {
 
 const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Locale is read from the request inside the [locale] segment via
+  // next-intl. For routes that live outside the prefix (api, auth,
+  // private, studio) the html lang stays at the project default.
+  const { getLocale } = await import('next-intl/server')
+  const locale = await getLocale().catch(() => 'de')
   return (
-    <html lang="de" className={`${cormorant.variable} ${inter.variable}`}>
+    <html lang={locale} className={`${cormorant.variable} ${inter.variable}`}>
       <body className="antialiased font-sans bg-background text-foreground">
         {GTM_ID && (
           <>
