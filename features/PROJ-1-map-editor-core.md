@@ -2,8 +2,11 @@
 
 ## Status: In Progress
 **Implementation Notes:** MapTiler SDK v3.8.0 (nicht v4 — Breaking Changes). Verwendet `next/dynamic` mit `ssr: false` da MapTiler Browser-only ist. PosterCanvas berechnet Poster-Dimensionen via ResizeObserver für zuverlässiges Rendering.
+
+**2026-04-26 — Outer-Mode `glow` ergänzt:** Neben den bestehenden Außenbereich-Modi (`none` / `opacity` / `full`) gibt es jetzt einen vierten Modus `glow`, der eine geblurrte Kopie der Form als Halo unter die solide Form rendert (`feGaussianBlur` in der Mask-SVG). Erzeugt einen weichen radialen Übergang entlang der Form-Kontur statt eines gleichmäßigen Rechtecks. Zwei neue Parameter im `outer`-Config: `glowRadius` (mm, 1–30, Default 8) und `glowIntensity` (0..1, Default 0.5). UI in `MapTab.tsx` (Desktop) und `MobileLayoutTab.tsx` (Mobile); Mode-Picker wechselt von 3-Spalten auf 2×2-Grid. Funktioniert sowohl im Preview-Pfad (CSS `maskImage`) als auch im Export-Pfad (Canvas `destination-in`) ohne Pipeline-Änderungen, da Browser SVG-Filter beim Image-Load rasterisieren. iOS Safari bei `mask-image` mit Filtern noch nicht verifiziert — falls Probleme auftreten, alternativen Render-Pfad mit zwei separaten Masken-Layern bauen.
+
 **Created:** 2026-04-19
-**Last Updated:** 2026-04-19
+**Last Updated:** 2026-04-26
 
 ## Dependencies
 - None (Einstiegspunkt der App)
