@@ -703,17 +703,16 @@ export function MapTab() {
       </div>
 
       {/* Customer-facing Design controls: Formkontur (line around the shape)
-          and Äußerer Rahmen (rectangular frame at poster edge). The
-          innerMarginMm slider was previously labelled 'Formkontur' here but
-          actually controls inner padding — moved into the admin block below
-          and renamed 'Innenabstand' to remove that confusion. */}
-      {(shapeSupported || isSplitActive) && (
-        <>
-          <Separator />
-          <div className="space-y-4">
-            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
-              {t('designSectionLabel')}
-            </Label>
+          and Äußerer Rahmen (rectangular frame at poster edge). Section is
+          always visible because the rectangular outer frame works on any
+          layout (shape, split-mode, or fullbleed via a synthetic poster rect).
+          Inner items still have their own visibility rules — Formkontur and
+          Außenbereich-Modus stay shape-only. */}
+      <Separator />
+      <div className="space-y-4">
+        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
+          {t('designSectionLabel')}
+        </Label>
 
             {/* Formkontur (shape-only — hugs the silhouette) */}
             {shapeSupported && (
@@ -752,11 +751,11 @@ export function MapTab() {
             </div>
             )}
 
-            {/* Äußerer Rahmen — Rechteck am Poster-Rand. Auch in Split/Dual
-                Modi verfügbar; dort wird er über ein synthetisches Poster-
-                Rechteck gerendert. */}
-            {(shapeConfig.outer.mode !== 'none' || isSplitActive) && (
-              <div className="space-y-2 pt-2 border-t border-border">
+            {/* Äußerer Rahmen — Rechteck am Poster-Rand. Funktioniert in jedem
+                Layout: bei Form um die Form-Bounds, bei Split/Dual über ein
+                synthetisches Poster-Rechteck, bei Fullbleed (keine Form, kein
+                Split) ebenfalls am Poster-Rand. Daher immer verfügbar. */}
+            <div className="space-y-2 pt-2 border-t border-border">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-medium text-foreground/70">{t('mapOuterFrame')}</span>
                   <Switch
@@ -819,12 +818,12 @@ export function MapTab() {
                   </div>
                 )}
               </div>
-            )}
 
             {/* Außenbereich — Leer/Faded/Voll + Abstand zum Poster-Rand.
-                Replaces the old top-level innerMarginMm slider, which was
-                redundant with this margin control. */}
-            {shapeSupported && (
+                Bei Form (shapeSupported): alle 4 Modi. Bei Fullbleed (keine Form,
+                kein Split): nur Leer + Voll, weil Faded und Glow eine Silhouette
+                brauchen, um sich vom Inset-Rect abzuheben. */}
+            {!isSplitActive && (
             <div className="space-y-2 pt-2 border-t border-border">
               <span className="text-xs font-medium text-foreground/70">{t('outerAreaLabel')}</span>
               <div className="flex items-center justify-between">
@@ -835,12 +834,18 @@ export function MapTab() {
                 />
               </div>
               <div className="grid grid-cols-2 gap-1">
-                {([
-                  { key: 'none', label: t('outerModeNone') },
-                  { key: 'opacity', label: t('outerModeFaded') },
-                  { key: 'glow', label: t('outerModeGlow') },
-                  { key: 'full', label: t('outerModeFull') },
-                ] as const).map((opt) => (
+                {(shapeSupported
+                  ? ([
+                      { key: 'none', label: t('outerModeNone') },
+                      { key: 'opacity', label: t('outerModeFaded') },
+                      { key: 'glow', label: t('outerModeGlow') },
+                      { key: 'full', label: t('outerModeFull') },
+                    ] as const)
+                  : ([
+                      { key: 'none', label: t('outerModeNone') },
+                      { key: 'full', label: t('outerModeFull') },
+                    ] as const)
+                ).map((opt) => (
                   <button
                     key={opt.key}
                     type="button"
@@ -977,8 +982,6 @@ export function MapTab() {
             </div>
             )}
           </div>
-        </>
-      )}
 
       <Separator />
 

@@ -262,3 +262,37 @@ export function svgToDataUrl(svg: string): string {
 export function hasAnyFrame(config: ShapeConfigState): boolean {
   return config.innerFrame.enabled || config.outerFrame.enabled
 }
+
+/**
+ * Build a fullbleed mask SVG (inset-rect only) for the case where there's no
+ * shape silhouette but the user wants a margin around the map. Used for
+ * fullbleed posters with `outer.mode === 'full'` (or 'opacity', if reachable):
+ * the resulting alpha mask keeps the map visible inside the inset rect and
+ * lets the poster background show through outside.
+ *
+ * Returns an empty string when no mask is needed (mode 'none' or all margins
+ * zero) — caller should then skip mask application.
+ *
+ * Uses A4 proportions for the viewBox; the mask gets rasterised + stretched
+ * to fit the actual canvas, so the small aspect-ratio difference for non-A4
+ * formats (e.g. 50×70cm) is visually negligible.
+ */
+export function composeFullbleedMaskSvg(config: ShapeConfigState): string {
+  const { outer } = config
+  if (outer.mode === 'none') return ''
+  const sides = resolveSideMarginsMm(config)
+  if (sides.top === 0 && sides.right === 0 && sides.bottom === 0 && sides.left === 0) {
+    return ''
+  }
+  const W = 595.3
+  const H = 841.9
+  const mT = mmToUnits(sides.top, W)
+  const mR = mmToUnits(sides.right, W)
+  const mB = mmToUnits(sides.bottom, W)
+  const mL = mmToUnits(sides.left, W)
+  const w = W - mL - mR
+  const h = H - mT - mB
+  if (w <= 0 || h <= 0) return ''
+  const op = outer.mode === 'full' ? 1 : (outer.opacity ?? 1)
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}"><rect x="${mL}" y="${mT}" width="${w}" height="${h}" fill="#fff" fill-opacity="${op}"/></svg>`
+}

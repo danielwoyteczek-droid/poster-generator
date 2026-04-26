@@ -116,12 +116,10 @@ export function MobileLayoutTab() {
       <Separator />
 
       {/* Customer-facing Design controls: Formkontur + Äußerer Rahmen.
-          The innerMarginMm slider was previously labelled 'Formkontur' here
-          but actually controls inner padding — moved into the admin block
-          below as 'Innenabstand'. */}
-      {(shapeSupported || isSplitActive) && (
-        <>
-          <Separator />
+          Section is always visible because the rectangular outer frame works
+          on any layout (shape, split-mode, or fullbleed via a synthetic poster
+          rect). Inner items still gate themselves on shapeSupported / split. */}
+      <Separator />
           <div className="space-y-4">
             <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
               {t('designSectionLabel')}
@@ -164,11 +162,11 @@ export function MobileLayoutTab() {
             </div>
             )}
 
-            {/* Äußerer Rahmen — Rechteck am Poster-Rand. Auch in Split/Dual
-                Modi verfügbar; dort wird er über ein synthetisches Poster-
-                Rechteck gerendert. */}
-            {(shapeConfig.outer.mode !== 'none' || isSplitActive) && (
-              <div className="space-y-2 pt-2 border-t border-border">
+            {/* Äußerer Rahmen — Rechteck am Poster-Rand. Funktioniert in jedem
+                Layout: bei Form um die Form-Bounds, bei Split/Dual über ein
+                synthetisches Poster-Rechteck, bei Fullbleed (keine Form, kein
+                Split) ebenfalls am Poster-Rand. Daher immer verfügbar. */}
+            <div className="space-y-2 pt-2 border-t border-border">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-medium text-foreground/70">{t('mapOuterFrame')}</span>
                   <Switch
@@ -231,10 +229,10 @@ export function MobileLayoutTab() {
                   </div>
                 )}
               </div>
-            )}
 
-            {/* Außenbereich — Leer/Faded/Voll + Abstand zum Poster-Rand. */}
-            {shapeSupported && (
+            {/* Außenbereich — Leer/Faded/Voll + Abstand zum Poster-Rand.
+                Bei Form alle 4 Modi; bei Fullbleed nur Leer + Voll. */}
+            {!isSplitActive && (
             <div className="space-y-2 pt-2 border-t border-border">
               <span className="text-xs font-medium text-foreground/70">{t('outerAreaLabel')}</span>
               <div className="flex items-center justify-between">
@@ -245,12 +243,18 @@ export function MobileLayoutTab() {
                 />
               </div>
               <div className="grid grid-cols-2 gap-1">
-                {([
-                  { key: 'none', label: t('outerModeNone') },
-                  { key: 'opacity', label: t('outerModeFaded') },
-                  { key: 'glow', label: t('outerModeGlow') },
-                  { key: 'full', label: t('outerModeFull') },
-                ] as const).map((opt) => (
+                {(shapeSupported
+                  ? ([
+                      { key: 'none', label: t('outerModeNone') },
+                      { key: 'opacity', label: t('outerModeFaded') },
+                      { key: 'glow', label: t('outerModeGlow') },
+                      { key: 'full', label: t('outerModeFull') },
+                    ] as const)
+                  : ([
+                      { key: 'none', label: t('outerModeNone') },
+                      { key: 'full', label: t('outerModeFull') },
+                    ] as const)
+                ).map((opt) => (
                   <button
                     key={opt.key}
                     type="button"
@@ -387,8 +391,6 @@ export function MobileLayoutTab() {
             </div>
             )}
           </div>
-        </>
-      )}
     </div>
   )
 }

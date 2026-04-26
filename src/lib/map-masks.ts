@@ -68,6 +68,17 @@ export const MAP_MASKS: Record<MapMaskKey, MapMaskDefinition> = {
       bottomFraction: 0.645,
     },
   },
+  house: {
+    key: 'house',
+    label: 'Haus',
+    svgPath: '/masks/house.svg',
+    shape: {
+      viewBox: '0 0 595.3 841.9',
+      width: 595.3, height: 841.9,
+      markup: '<path d="M115 550 L115 310 L60 310 L297.65 80 L535 310 L480 310 L480 550 Z"/>',
+      bottomFraction: 0.653,
+    },
+  },
   frame1: {
     key: 'frame1',
     label: 'Rahmen',

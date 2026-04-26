@@ -7,7 +7,7 @@ import { computeFontScale } from '@/lib/font-scale'
 import { useCustomMasks } from '@/hooks/useCustomMasks'
 import { MAP_MASKS } from '@/lib/map-masks'
 import { getPalette } from '@/lib/map-palettes'
-import { composeMaskSvg, composeFrameSvg, svgToDataUrl, hasAnyFrame } from '@/lib/mask-composer'
+import { composeMaskSvg, composeFrameSvg, composeFullbleedMaskSvg, svgToDataUrl, hasAnyFrame } from '@/lib/mask-composer'
 import { useRasterizedMaskUrl } from '@/hooks/useRasterizedMaskUrl'
 import { PRINT_FORMATS } from '@/lib/print-formats'
 import { MapPreview } from './MapPreview'
@@ -120,12 +120,22 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
     ? svgToDataUrl(composeFrameSvg(mask.shape, shapeConfig, layoutMapHeight))
     : null
 
-  // For dual-map / split-photo modes, the mask itself has no `shape`, so the
-  // shape-bound frame composer doesn't fire. Render the OUTER frame here too
-  // — synthesised against a full-poster rectangle so it wraps both halves.
-  // Inner-frame ("Rand") is intentionally suppressed because there's no
-  // single silhouette to hug in split modes.
-  const outerFrameForSplit = (isDualMap || isSplitPhoto) && shapeConfig.outerFrame.enabled
+  // Fullbleed (no shape, no split) with outer.mode != 'none' and a margin > 0:
+  // build an inset-rectangle mask so the map gets a passe-partout border.
+  const fullbleedMaskDataUrl = !mask.shape && !isDualMap && !isSplitPhoto
+    ? (() => {
+        const svg = composeFullbleedMaskSvg(shapeConfig)
+        return svg ? svgToDataUrl(svg) : null
+      })()
+    : null
+
+  // For dual-map / split-photo modes — and for fullbleed (no shape, no split) —
+  // the shape-bound frame composer doesn't fire because there's no single shape
+  // to hug. Render the OUTER frame here too, synthesised against a full-poster
+  // rectangle. Inner-frame ("Formkontur") is intentionally suppressed because
+  // it requires a real silhouette.
+  const needsSyntheticFrame = (isDualMap || isSplitPhoto || !mask.shape) && shapeConfig.outerFrame.enabled
+  const outerFrameForSplit = needsSyntheticFrame
     ? svgToDataUrl(composeFrameSvg(
         {
           viewBox: '0 0 595.3 841.9',
@@ -278,7 +288,9 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
                     ? makeMaskStyle(composedMaskDataUrl)
                     : mask.svgPath
                       ? makeMaskStyle(mask.svgPath)
-                      : {}
+                      : fullbleedMaskDataUrl
+                        ? makeMaskStyle(fullbleedMaskDataUrl)
+                        : {}
                 }
               >
                 <MapPreview storeSlice="primary" />

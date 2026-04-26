@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useEditorStore, type TextBlock, type ViewState, type MarkerState, type SecondMapState, type ShapeConfigState } from './useEditorStore'
-import { composeMaskSvg, composeFrameSvg, parseShapeSvg, svgToDataUrl, hasAnyFrame } from '@/lib/mask-composer'
+import { composeMaskSvg, composeFrameSvg, composeFullbleedMaskSvg, parseShapeSvg, svgToDataUrl, hasAnyFrame } from '@/lib/mask-composer'
 import { PRINT_FORMATS, type PrintFormat } from '@/lib/print-formats'
 import { MAP_MASKS, type MapMaskKey } from '@/lib/map-masks'
 import { resolveMask } from '@/hooks/useCustomMasks'
@@ -461,6 +461,25 @@ export async function buildPosterCanvas(
     return out
   }
 
+  // Fullbleed (no shape, no split) mask: applies an inset-rect to the map so
+  // a passe-partout border appears around it. Returns srcCanvas unchanged when
+  // no fullbleed mask is needed (mode 'none' or all margins 0).
+  async function applyFullbleedMask(srcCanvas: HTMLCanvasElement): Promise<HTMLCanvasElement> {
+    if (!shapeConfig) return srcCanvas
+    const maskSvg = composeFullbleedMaskSvg(shapeConfig)
+    if (!maskSvg) return srcCanvas
+    const out = document.createElement('canvas')
+    out.width = srcCanvas.width
+    out.height = srcCanvas.height
+    const c = out.getContext('2d')!
+    c.drawImage(srcCanvas, 0, 0)
+    const maskImg = await loadImage(svgToDataUrl(maskSvg))
+    c.globalCompositeOperation = 'destination-in'
+    c.drawImage(maskImg, 0, 0, out.width, out.height)
+    c.globalCompositeOperation = 'source-over'
+    return out
+  }
+
   const previewW = viewState.viewportWidth > 0 ? viewState.viewportWidth : 500
   const previewH = viewState.viewportHeight > 0 ? viewState.viewportHeight : Math.round(previewW * (H / W))
 
@@ -565,6 +584,10 @@ export async function buildPosterCanvas(
       mapCanvas = await applyComposedMask(mapCanvas)
     } else if (mask.svgPath) {
       mapCanvas = await applyMask(mapCanvas, mask.svgPath)
+    } else {
+      // Fullbleed: no shape, no split-svg. Apply passe-partout mask if user
+      // configured a margin via "Außenbereich → Voll".
+      mapCanvas = await applyFullbleedMask(mapCanvas)
     }
     ctx.drawImage(mapCanvas, 0, 0, W, H, mapTargetX, mapTargetY, mapTargetW, mapTargetH)
   }
@@ -587,13 +610,14 @@ export async function buildPosterCanvas(
 
   // Decorative frame (inner + outer), composed from shape + shapeConfig.
   // For shape masks the frame hugs the silhouette and draws into the map
-  // target rect. For dual/split modes there's no single shape, so use a
-  // synthetic full-poster rectangle and skip the inner frame.
+  // target rect. For dual/split modes AND fullbleed (no shape, no split) there's
+  // no single shape, so use a synthetic full-poster rectangle and skip the
+  // inner frame (which requires a silhouette).
   if (!isDualMap && !isSplitPhoto && mask.shape && shapeConfig && hasAnyFrame(shapeConfig)) {
     const frameSvg = composeFrameSvg(mask.shape, shapeConfig, layoutMapHeightForShape)
     const frameImg = await loadImage(svgToDataUrl(frameSvg))
     ctx.drawImage(frameImg, mapTargetX, mapTargetY, mapTargetW, mapTargetH)
-  } else if ((isDualMap || isSplitPhoto) && shapeConfig && shapeConfig.outerFrame.enabled) {
+  } else if (shapeConfig && shapeConfig.outerFrame.enabled && (isDualMap || isSplitPhoto || !mask.shape)) {
     const syntheticShape = {
       viewBox: '0 0 595.3 841.9',
       width: 595.3, height: 841.9,
