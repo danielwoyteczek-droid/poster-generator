@@ -8,9 +8,11 @@ import { StarMapTab } from './StarMapTab'
 import { HimmelTab } from './HimmelTab'
 import { StarMapExportTab } from './StarMapExportTab'
 import { StarMapCanvas } from './StarMapCanvas'
+import { useStarMapStore } from '@/hooks/useStarMapStore'
 
 export function StarMapLayout() {
   const t = useTranslations('editorTabs')
+  const { lat, lng, locationName } = useStarMapStore()
   return (
     <div className="flex h-full overflow-hidden">
       <div className="w-72 shrink-0 border-r border-border bg-white flex flex-col">
@@ -50,7 +52,7 @@ export function StarMapLayout() {
               <HimmelTab />
             </TabsContent>
             <TabsContent value="text" className="mt-0">
-              <TextTab />
+              <TextTab coordinatesSource={{ lat, lng, locationName }} />
             </TabsContent>
             <TabsContent value="export" className="mt-0">
               <StarMapExportTab />

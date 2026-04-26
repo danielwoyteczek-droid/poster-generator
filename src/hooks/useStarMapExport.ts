@@ -97,6 +97,7 @@ export function useStarMapExport() {
     lat, lng, datetime, locationName,
     posterBgColor, skyBgColor, starColor,
     showConstellations, showMilkyWay, showSun, showMoon, showPlanets,
+    showCompass, showGrid, gridOpacity, starDensity,
     frameConfig,
     previewWidth,
   } = useStarMapStore()
@@ -126,6 +127,7 @@ export function useStarMapExport() {
       posterBgColor, skyBgColor, starColor,
       starData: starDataRaw, constellationData: constellationRaw, milkyWayData: milkyWayRaw,
       showConstellations, showMilkyWay, showSun, showMoon, showPlanets,
+      showCompass, showGrid, gridOpacity, starDensity,
       frameConfig,
     })
 

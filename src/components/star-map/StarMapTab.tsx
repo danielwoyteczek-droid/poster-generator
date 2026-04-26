@@ -83,6 +83,43 @@ export function StarMapTab() {
         </div>
       </div>
 
+      <Separator />
+
+      {/* Formkontur (Stroke um den Sky-Kreis) — customer-facing. */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">Formkontur</Label>
+          <Switch
+            checked={frameConfig.innerFrame.enabled}
+            onCheckedChange={(enabled) => setInnerFrame({ enabled })}
+          />
+        </div>
+        {frameConfig.innerFrame.enabled && (
+          <div className="space-y-2 pl-1">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] text-muted-foreground">Farbe</span>
+              <input
+                type="color"
+                value={frameConfig.innerFrame.color}
+                onChange={(e) => setInnerFrame({ color: e.target.value })}
+                className="w-6 h-6 rounded-full border border-border cursor-pointer p-0 overflow-hidden"
+              />
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] text-muted-foreground">Dicke</span>
+                <span className="text-[11px] text-muted-foreground/70 tabular-nums">{frameConfig.innerFrame.thickness} mm</span>
+              </div>
+              <Slider
+                min={0.3} max={2} step={0.1}
+                value={[frameConfig.innerFrame.thickness]}
+                onValueChange={([v]) => setInnerFrame({ thickness: v })}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Design composition — Admin only */}
       {isAdmin && (
         <>
@@ -140,41 +177,6 @@ export function StarMapTab() {
                     value={[frameConfig.outer.margin]}
                     onValueChange={([v]) => setOuter({ margin: v })}
                   />
-                </div>
-              )}
-            </div>
-
-            {/* Innerer Rahmen (um Sky-Circle) */}
-            <div className="space-y-2 pt-2 border-t border-border">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-foreground/70">Innerer Rahmen</span>
-                <Switch
-                  checked={frameConfig.innerFrame.enabled}
-                  onCheckedChange={(enabled) => setInnerFrame({ enabled })}
-                />
-              </div>
-              {frameConfig.innerFrame.enabled && (
-                <div className="space-y-2 pl-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] text-muted-foreground">Farbe</span>
-                    <input
-                      type="color"
-                      value={frameConfig.innerFrame.color}
-                      onChange={(e) => setInnerFrame({ color: e.target.value })}
-                      className="w-6 h-6 rounded-full border border-border cursor-pointer p-0 overflow-hidden"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] text-muted-foreground">Dicke</span>
-                      <span className="text-[11px] text-muted-foreground/70 tabular-nums">{frameConfig.innerFrame.thickness} mm</span>
-                    </div>
-                    <Slider
-                      min={0.3} max={2} step={0.1}
-                      value={[frameConfig.innerFrame.thickness]}
-                      onValueChange={([v]) => setInnerFrame({ thickness: v })}
-                    />
-                  </div>
                 </div>
               )}
             </div>

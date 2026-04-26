@@ -22,6 +22,19 @@ export interface StarMapRenderOptions {
   showSun: boolean
   showMoon: boolean
   showPlanets: boolean
+  /** Toggle for the cardinal-direction labels (N/O/S/W) around the sky circle.
+   *  Defaults to `true` when undefined to keep backward compatibility with
+   *  callers and serialised state from before the flag was introduced. */
+  showCompass?: boolean
+  /** Toggle for the celestial coordinate grid (RA meridians + Dec parallels)
+   *  drawn behind constellations + stars. Defaults to `false` when undefined. */
+  showGrid?: boolean
+  /** Opacity of the grid lines, 0.05..1.0. Defaults to 0.32 when undefined. */
+  gridOpacity?: number
+  /** Star density, 0.05..1.0. Maps linearly to a magnitude cutoff:
+   *  1.0 → ≤ 7.5 (full catalogue), 0.05 → ≤ 3.7 (only the brightest stars).
+   *  Default 0.7 ≈ naked-eye limit. */
+  starDensity?: number
   frameConfig?: StarMapFrameConfig
 }
 
@@ -43,8 +56,17 @@ export function renderStarMap(ctx: CanvasRenderingContext2D, opts: StarMapRender
     posterBgColor, skyBgColor, starColor,
     starData, constellationData, milkyWayData,
     showConstellations, showMilkyWay, showSun, showMoon, showPlanets,
+    showCompass = true,
+    showGrid = false,
+    gridOpacity = 0.32,
+    starDensity = 0.7,
     frameConfig,
   } = opts
+
+  // Magnitude cutoff derived from starDensity. Linear mapping:
+  // density 1.0 → 7.5 (entire catalogue), density 0.05 → 3.725 (~50 stars).
+  // Tuned so 0.7 ≈ 6.3 (classical naked-eye limit, ~3000 stars).
+  const magCutoff = 3.5 + starDensity * 4
 
   const cx = w / 2
   const cy = cx
@@ -77,6 +99,46 @@ export function renderStarMap(ctx: CanvasRenderingContext2D, opts: StarMapRender
   bg.addColorStop(1, skyBgColor)
   ctx.fillStyle = bg
   ctx.fillRect(cx - skyR, cy - skyR, skyR * 2, skyR * 2)
+
+  // Celestial coordinate grid — RA meridians (every 30° = 2h) + Dec parallels
+  // (every 30°). Drawn behind milky way / constellations / stars so it acts
+  // as a subtle reference layer. The clip path above hides line segments
+  // that fall below the horizon (alt < 0 maps outside the sky circle).
+  if (showGrid) {
+    ctx.save()
+    ctx.strokeStyle = hexToRgba(starColor, gridOpacity)
+    ctx.lineWidth = Math.max(0.8, w * 0.0006)
+
+    // RA meridians: fix RA, sweep declination. 15° spacing (24 lines) matches
+    // the dec-parallel density for a balanced grid.
+    for (let raDeg = 0; raDeg < 360; raDeg += 15) {
+      ctx.beginPath()
+      let started = false
+      for (let decDeg = -89; decDeg <= 89; decDeg += 3) {
+        const pt = projectLine(raDeg, decDeg, lat, lng, date, cx, cy, skyR)
+        if (started) ctx.lineTo(pt.x, pt.y)
+        else { ctx.moveTo(pt.x, pt.y); started = true }
+      }
+      ctx.stroke()
+    }
+
+    // Dec parallels: fix declination, sweep RA. 15° spacing matches the visual
+    // density of typical celestial reference posters. Skip the poles (90/-90)
+    // since they collapse to a single point and add no visual information.
+    for (const decDeg of [-75, -60, -45, -30, -15, 0, 15, 30, 45, 60, 75]) {
+      ctx.beginPath()
+      let started = false
+      for (let raDeg = 0; raDeg <= 360; raDeg += 6) {
+        const pt = projectLine(raDeg, decDeg, lat, lng, date, cx, cy, skyR)
+        if (started) ctx.lineTo(pt.x, pt.y)
+        else { ctx.moveTo(pt.x, pt.y); started = true }
+      }
+      ctx.closePath()
+      ctx.stroke()
+    }
+
+    ctx.restore()
+  }
 
   // Milky Way
   if (showMilkyWay && milkyWayData.length > 0) {
@@ -129,7 +191,7 @@ export function renderStarMap(ctx: CanvasRenderingContext2D, opts: StarMapRender
 
   // Stars
   for (const { ra, dec, mag } of starData) {
-    if (mag > 7.5) continue
+    if (mag > magCutoff) continue
     const { alt, az } = equatorialToHorizontal(ra, dec, lat, lng, date)
     const pt = horizontalToCanvas(alt, az, cx, cy, skyR)
     if (!pt) continue
@@ -219,16 +281,18 @@ export function renderStarMap(ctx: CanvasRenderingContext2D, opts: StarMapRender
   }
 
   // Compass labels
-  const COMPASS = [{ label: 'N', az: 0 }, { label: 'O', az: 90 }, { label: 'S', az: 180 }, { label: 'W', az: 270 }]
-  const fontSize = Math.max(10, w * 0.013)
-  ctx.font = `${fontSize}px sans-serif`
-  ctx.fillStyle = hexToRgba(starColor, 0.5)
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'middle'
-  for (const { label, az } of COMPASS) {
-    const azR = az * DEG
-    const dist = skyR + fontSize * 1.4
-    ctx.fillText(label, cx + dist * Math.sin(azR), cy - dist * Math.cos(azR))
+  if (showCompass) {
+    const COMPASS = [{ label: 'N', az: 0 }, { label: 'O', az: 90 }, { label: 'S', az: 180 }, { label: 'W', az: 270 }]
+    const fontSize = Math.max(10, w * 0.013)
+    ctx.font = `${fontSize}px sans-serif`
+    ctx.fillStyle = hexToRgba(starColor, 0.5)
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    for (const { label, az } of COMPASS) {
+      const azR = az * DEG
+      const dist = skyR + fontSize * 1.4
+      ctx.fillText(label, cx + dist * Math.sin(azR), cy - dist * Math.cos(azR))
+    }
   }
 
   // Configurable frames (admin via presets)

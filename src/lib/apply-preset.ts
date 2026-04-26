@@ -22,6 +22,10 @@ export function applyPreset(preset: PresetLike): UndoFn {
       posterBgColor?: string; skyBgColor?: string; starColor?: string
       showConstellations?: boolean; showMilkyWay?: boolean
       showSun?: boolean; showMoon?: boolean; showPlanets?: boolean
+      showCompass?: boolean
+      showGrid?: boolean
+      gridOpacity?: number
+      starDensity?: number
       frameConfig?: {
         outer?: Partial<{ mode: 'none' | 'opacity' | 'full'; opacity: number; margin: number }>
         innerFrame?: Partial<{ enabled: boolean; color: string; thickness: number }>
@@ -42,6 +46,10 @@ export function applyPreset(preset: PresetLike): UndoFn {
       showSun: starMap.showSun,
       showMoon: starMap.showMoon,
       showPlanets: starMap.showPlanets,
+      showCompass: starMap.showCompass,
+      showGrid: starMap.showGrid,
+      gridOpacity: starMap.gridOpacity,
+      starDensity: starMap.starDensity,
       frameConfig: starMap.frameConfig,
       textBlocks: editor.textBlocks,
     }
@@ -54,6 +62,10 @@ export function applyPreset(preset: PresetLike): UndoFn {
     if (s.showSun !== undefined) starMap.setShowSun(s.showSun)
     if (s.showMoon !== undefined) starMap.setShowMoon(s.showMoon)
     if (s.showPlanets !== undefined) starMap.setShowPlanets(s.showPlanets)
+    if (s.showCompass !== undefined) starMap.setShowCompass(s.showCompass)
+    if (s.showGrid !== undefined) starMap.setShowGrid(s.showGrid)
+    if (s.gridOpacity !== undefined) starMap.setGridOpacity(s.gridOpacity)
+    if (s.starDensity !== undefined) starMap.setStarDensity(s.starDensity)
     if (s.frameConfig?.outer) starMap.setOuter(s.frameConfig.outer)
     if (s.frameConfig?.innerFrame) starMap.setInnerFrame(s.frameConfig.innerFrame)
     if (s.frameConfig?.outerFrame) starMap.setOuterFrame(s.frameConfig.outerFrame)
@@ -69,6 +81,10 @@ export function applyPreset(preset: PresetLike): UndoFn {
         showSun: snapshot.showSun,
         showMoon: snapshot.showMoon,
         showPlanets: snapshot.showPlanets,
+        showCompass: snapshot.showCompass,
+        showGrid: snapshot.showGrid,
+        gridOpacity: snapshot.gridOpacity,
+        starDensity: snapshot.starDensity,
         frameConfig: snapshot.frameConfig,
       })
       useEditorStore.setState({ textBlocks: snapshot.textBlocks })

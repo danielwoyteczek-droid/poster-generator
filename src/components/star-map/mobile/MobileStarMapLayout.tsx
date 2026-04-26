@@ -10,6 +10,7 @@ import { MobileHimmelTab } from './MobileHimmelTab'
 import { MobileStarMapExportTab } from './MobileStarMapExportTab'
 import { MobileTextTab } from '@/components/sidebar/mobile/MobileTextTab'
 import { useEditorStore } from '@/hooks/useEditorStore'
+import { useStarMapStore } from '@/hooks/useStarMapStore'
 import { useStarMapExport } from '@/hooks/useStarMapExport'
 import type { PrintFormat } from '@/lib/print-formats'
 import { cn } from '@/lib/utils'
@@ -35,6 +36,7 @@ export function MobileStarMapLayout() {
   const [activeTab, setActiveTab] = useState<MobileStarMapTab>('stars')
 
   const { printFormat } = useEditorStore()
+  const { lat, lng, locationName } = useStarMapStore()
   const { renderPreview } = useStarMapExport()
   const [zimmerOpen, setZimmerOpen] = useState(false)
   const [zimmerImage, setZimmerImage] = useState<string | null>(null)
@@ -112,7 +114,7 @@ export function MobileStarMapLayout() {
       <div className="flex-1 min-h-0 overflow-y-auto bg-white">
         {activeTab === 'stars' && <MobileStarMapTab />}
         {activeTab === 'sky' && <MobileHimmelTab />}
-        {activeTab === 'text' && <MobileTextTab />}
+        {activeTab === 'text' && <MobileTextTab coordinatesSource={{ lat, lng, locationName }} />}
         {activeTab === 'export' && <MobileStarMapExportTab />}
       </div>
 

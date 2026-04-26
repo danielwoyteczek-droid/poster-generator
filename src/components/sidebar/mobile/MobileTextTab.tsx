@@ -43,7 +43,13 @@ const FONT_OPTIONS: { value: string; label: string }[] = [
   { value: 'Arial', label: 'Arial' },
 ]
 
-export function MobileTextTab() {
+interface MobileTextTabProps {
+  /** Optional override for the isCoordinates-block preview text. Star-map
+   *  passes its own store coords here. See TextTab for details. */
+  coordinatesSource?: { lat: number; lng: number; locationName: string }
+}
+
+export function MobileTextTab({ coordinatesSource }: MobileTextTabProps = {}) {
   const t = useTranslations('editor')
   const {
     textBlocks,
@@ -56,7 +62,8 @@ export function MobileTextTab() {
   } = useEditorStore()
 
   const [editingId, setEditingId] = useState<string | null>(null)
-  const coordsText = getCoordinatesText(viewState.lat, viewState.lng, locationName)
+  const coords = coordinatesSource ?? { lat: viewState.lat, lng: viewState.lng, locationName }
+  const coordsText = getCoordinatesText(coords.lat, coords.lng, coords.locationName)
   const editingBlock = textBlocks.find((b) => b.id === editingId) ?? null
 
   const titleIdeas = [

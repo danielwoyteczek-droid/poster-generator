@@ -6,6 +6,8 @@ import { useEditorStore } from '@/hooks/useEditorStore'
 import { PRINT_FORMATS } from '@/lib/print-formats'
 import { renderStarMap, type StarEntry, type GeoFeature } from '@/lib/star-map-renderer'
 import { TextBlockOverlay } from '@/components/editor/TextBlockOverlay'
+import { PreviewTriggerButton } from '@/components/editor/PreviewTriggerButton'
+import { useStarMapExport } from '@/hooks/useStarMapExport'
 import { computeFontScale } from '@/lib/font-scale'
 
 interface StarMapCanvasProps {
@@ -31,10 +33,12 @@ export function StarMapCanvas({ padding = 64, textInteractive }: StarMapCanvasPr
   const {
     lat, lng, datetime, locationName, posterBgColor, skyBgColor, starColor,
     showConstellations, showMilkyWay, showSun, showMoon, showPlanets,
+    showCompass, showGrid, gridOpacity, starDensity,
     frameConfig,
     setPreviewSize,
   } = useStarMapStore()
   const { printFormat, setSelectedBlockId } = useEditorStore()
+  const { renderPreview } = useStarMapExport()
   const format = PRINT_FORMATS[printFormat]
   const ratio = format.widthMm / format.heightMm
 
@@ -102,12 +106,14 @@ export function StarMapCanvas({ padding = 64, textInteractive }: StarMapCanvasPr
       posterBgColor, skyBgColor, starColor,
       starData, constellationData, milkyWayData,
       showConstellations, showMilkyWay, showSun, showMoon, showPlanets,
+      showCompass, showGrid, gridOpacity, starDensity,
       frameConfig,
     })
   }, [
     starData, constellationData, milkyWayData,
     lat, lng, datetime, posterBgColor, skyBgColor, starColor,
     showConstellations, showMilkyWay, showSun, showMoon, showPlanets,
+    showCompass, showGrid, gridOpacity, starDensity,
     frameConfig, posterSize,
   ])
 
@@ -118,6 +124,7 @@ export function StarMapCanvas({ padding = 64, textInteractive }: StarMapCanvasPr
       ref={wrapperRef}
       className="flex-1 relative bg-muted min-h-0 overflow-hidden flex items-center justify-center"
     >
+      <PreviewTriggerButton renderPreview={renderPreview} />
       {posterSize.width > 0 && (
         <div
           className="relative shadow-2xl flex-none overflow-hidden"

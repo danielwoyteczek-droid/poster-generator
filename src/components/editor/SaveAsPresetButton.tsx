@@ -65,6 +65,10 @@ export function SaveAsPresetButton() {
         showSun: starMap.showSun,
         showMoon: starMap.showMoon,
         showPlanets: starMap.showPlanets,
+        showCompass: starMap.showCompass,
+        showGrid: starMap.showGrid,
+        gridOpacity: starMap.gridOpacity,
+        starDensity: starMap.starDensity,
         frameConfig: starMap.frameConfig,
         textBlocks: editor.textBlocks,
       }

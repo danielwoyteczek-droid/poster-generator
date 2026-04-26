@@ -77,6 +77,15 @@ async function renderStarMapCanvas(format: PrintFormat, snapshot: Record<string,
     lat: number; lng: number; datetime: string; locationName: string
     posterBgColor: string; skyBgColor: string; starColor: string
     showConstellations: boolean; showMilkyWay: boolean; showSun: boolean; showMoon: boolean; showPlanets: boolean
+    /** Optional for backward compatibility with snapshots created before the
+     *  compass-toggle feature. Renderer treats undefined as `true`. */
+    showCompass?: boolean
+    /** Optional. Renderer treats undefined as `false`. */
+    showGrid?: boolean
+    /** Optional. Renderer treats undefined as `0.32`. */
+    gridOpacity?: number
+    /** Optional. Renderer treats undefined as `0.7`. */
+    starDensity?: number
     frameConfig?: import('@/hooks/useStarMapStore').StarMapFrameConfig
     textBlocks: TextBlock[]
   }
@@ -104,6 +113,10 @@ async function renderStarMapCanvas(format: PrintFormat, snapshot: Record<string,
     starData, constellationData, milkyWayData,
     showConstellations: s.showConstellations, showMilkyWay: s.showMilkyWay,
     showSun: s.showSun, showMoon: s.showMoon, showPlanets: s.showPlanets,
+    showCompass: s.showCompass,
+    showGrid: s.showGrid,
+    gridOpacity: s.gridOpacity,
+    starDensity: s.starDensity,
     frameConfig: s.frameConfig,
   })
 

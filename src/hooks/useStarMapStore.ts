@@ -47,6 +47,16 @@ interface StarMapStore {
   showSun: boolean
   showMoon: boolean
   showPlanets: boolean
+  showCompass: boolean
+  showGrid: boolean
+  /** Opacity of the celestial coordinate grid lines, 0.05..1.0. Only matters
+   *  when showGrid is true. Stored separately so users can dial in the look. */
+  gridOpacity: number
+  /** How many stars to plot, 0.05..1.0. Maps to a magnitude cutoff: 1.0 plots
+   *  all ~9000 stars in the catalogue (mag ≤ 7.5), 0.05 keeps only the
+   *  brightest ~50 (mag ≤ 3.7). 0.7 ≈ naked-eye limit. Lower values let the
+   *  constellations / coordinate grid breathe. */
+  starDensity: number
   frameConfig: StarMapFrameConfig
   previewWidth: number
   previewHeight: number
@@ -61,6 +71,10 @@ interface StarMapStore {
   setShowSun: (show: boolean) => void
   setShowMoon: (show: boolean) => void
   setShowPlanets: (show: boolean) => void
+  setShowCompass: (show: boolean) => void
+  setShowGrid: (show: boolean) => void
+  setGridOpacity: (opacity: number) => void
+  setStarDensity: (density: number) => void
   setOuter: (updates: Partial<StarMapFrameConfig['outer']>) => void
   setInnerFrame: (updates: Partial<StarMapFrameConfig['innerFrame']>) => void
   setOuterFrame: (updates: Partial<StarMapFrameConfig['outerFrame']>) => void
@@ -86,6 +100,10 @@ export function getStarMapInitialState() {
     showSun: false,
     showMoon: false,
     showPlanets: false,
+    showCompass: true,
+    showGrid: false,
+    gridOpacity: 0.32,
+    starDensity: 0.7,
     frameConfig: DEFAULT_STAR_FRAME_CONFIG,
     previewWidth: 500,
     previewHeight: 707,
@@ -105,6 +123,10 @@ export const useStarMapStore = create<StarMapStore>((set) => ({
   setShowSun: (showSun) => set({ showSun }),
   setShowMoon: (showMoon) => set({ showMoon }),
   setShowPlanets: (showPlanets) => set({ showPlanets }),
+  setShowCompass: (showCompass) => set({ showCompass }),
+  setShowGrid: (showGrid) => set({ showGrid }),
+  setGridOpacity: (gridOpacity) => set({ gridOpacity: Math.max(0.05, Math.min(1, gridOpacity)) }),
+  setStarDensity: (starDensity) => set({ starDensity: Math.max(0.05, Math.min(1, starDensity)) }),
   setOuter: (updates) => set((s) => ({ frameConfig: { ...s.frameConfig, outer: { ...s.frameConfig.outer, ...updates } } })),
   setInnerFrame: (updates) => set((s) => ({ frameConfig: { ...s.frameConfig, innerFrame: { ...s.frameConfig.innerFrame, ...updates } } })),
   setOuterFrame: (updates) => set((s) => ({ frameConfig: { ...s.frameConfig, outerFrame: { ...s.frameConfig.outerFrame, ...updates } } })),

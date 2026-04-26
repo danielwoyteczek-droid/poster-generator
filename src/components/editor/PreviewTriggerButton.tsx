@@ -13,12 +13,17 @@ interface Props {
    *  in the top-left corner with a white shadowed look. The component is
    *  designed to live inside a `relative` wrapper around the live preview. */
   className?: string
+  /** Optional override for the preview-rendering function. Defaults to the
+   *  map exporter so existing callers in PosterCanvas keep working. The
+   *  star-map editor passes useStarMapExport().renderPreview here. */
+  renderPreview?: (format: PrintFormat) => Promise<string>
 }
 
-export function PreviewTriggerButton({ className }: Props) {
+export function PreviewTriggerButton({ className, renderPreview: renderPreviewProp }: Props) {
   const t = useTranslations('editor')
   const { printFormat } = useEditorStore()
-  const { renderPreview } = useMapExport()
+  const mapExport = useMapExport()
+  const renderPreview = renderPreviewProp ?? mapExport.renderPreview
   const [open, setOpen] = useState(false)
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)

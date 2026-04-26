@@ -35,7 +35,16 @@ const FONT_OPTIONS: { value: string; label: string }[] = [
   { value: 'Arial', label: 'Arial' },
 ]
 
-export function TextTab() {
+interface TextTabProps {
+  /** When set, overrides the coordinates source used to display the
+   *  isCoordinates block. The star-map editor passes its own store's
+   *  lat/lng/locationName here so changing the city in the star-map
+   *  search updates the panel preview text. Map editor leaves this
+   *  undefined and the map store values are used. */
+  coordinatesSource?: { lat: number; lng: number; locationName: string }
+}
+
+export function TextTab({ coordinatesSource }: TextTabProps = {}) {
   const t = useTranslations('editor')
   const {
     textBlocks,
@@ -48,7 +57,8 @@ export function TextTab() {
     locationName,
   } = useEditorStore()
 
-  const coordsText = getCoordinatesText(viewState.lat, viewState.lng, locationName)
+  const coords = coordinatesSource ?? { lat: viewState.lat, lng: viewState.lng, locationName }
+  const coordsText = getCoordinatesText(coords.lat, coords.lng, coords.locationName)
 
   const titleIdeas = [
     t('textIdea1'),
