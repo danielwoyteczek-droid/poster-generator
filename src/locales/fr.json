@@ -439,6 +439,7 @@
     "starPoster": "Affiche stellaire",
     "features": "Fonctionnalités",
     "examples": "Exemples",
+    "gallery": "Galerie",
     "pricing": "Tarifs",
     "blog": "Blog",
     "myPosters": "Mes affiches",
@@ -454,5 +455,16 @@
     "adminPalettes": "Palettes de couleurs",
     "adminBusinessCenter": "Business Center",
     "createPoster": "Créer une affiche"
+  },
+  "gallery": {
+    "pageTitle": "Galerie",
+    "metaDescription": "Modèles pour chaque occasion — fête des mères, naissance, mariage et plus. Cliquez sur un design et commencez directement dans l'éditeur.",
+    "headlineFallback": "Modèles pour chaque occasion",
+    "sublineFallback": "Cliquez sur un design, ajustez le lieu et le texte, puis commandez directement.",
+    "posterTypeMap": "Affiche de ville",
+    "posterTypeStarMap": "Carte du ciel",
+    "emptyTitle": "Aucun modèle disponible pour l'instant",
+    "emptyDescription": "Nous travaillons sur des designs pour votre langue. Revenez bientôt ou créez votre propre affiche depuis le début.",
+    "emptyCta": "Créer votre propre affiche"
   }
 }

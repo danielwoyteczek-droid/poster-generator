@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { requireAdmin } from '@/lib/admin-auth'
 import { createAdminClient } from '@/lib/supabase-admin'
 import { TargetLocalesSchema } from '@/lib/preset-locales'
+import { OccasionsSchema } from '@/lib/occasions'
 
 const PatchSchema = z.object({
   name: z.string().trim().min(1).max(200).optional(),
@@ -12,6 +13,8 @@ const PatchSchema = z.object({
   status: z.enum(['draft', 'published']).optional(),
   display_order: z.number().int().optional(),
   target_locales: TargetLocalesSchema.optional(),
+  occasions: OccasionsSchema.optional(),
+  show_in_editor: z.boolean().optional(),
 })
 
 export async function GET(_req: NextRequest, context: { params: Promise<{ id: string }> }) {

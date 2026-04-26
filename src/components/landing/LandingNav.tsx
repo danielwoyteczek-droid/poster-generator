@@ -43,6 +43,7 @@ export function LandingNav() {
     { label: t('starPoster'), href: '/star-map' },
     { label: t('features'), href: '/#features' },
     { label: t('examples'), href: '/#examples' },
+    { label: t('gallery'), href: '/gallery' },
     { label: t('pricing'), href: '/#pricing' },
   ]
 

@@ -17,6 +17,7 @@ export const structure: StructureResolver = (S) =>
         .child(S.document().schemaType('siteSettings').documentId('siteSettings')),
       S.divider(),
       S.documentTypeListItem('homepage').title('Homepage (pro Sprache)'),
+      S.documentTypeListItem('galleryPage').title('Galerie-Seite (pro Sprache)'),
       S.documentTypeListItem('legalPage').title('Rechtliche Seiten'),
       S.documentTypeListItem('faqItem').title('FAQ-Einträge'),
       S.documentTypeListItem('blogPost').title('Blog-Artikel'),

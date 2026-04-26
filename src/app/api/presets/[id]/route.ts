@@ -9,7 +9,7 @@ export async function GET(
   const admin = createAdminClient()
   const { data, error } = await admin
     .from('presets')
-    .select('id, name, description, poster_type, preview_image_url, config_json, display_order')
+    .select('id, name, description, poster_type, preview_image_url, config_json, display_order, target_locales, occasions')
     .eq('id', id)
     .eq('status', 'published')
     .single()

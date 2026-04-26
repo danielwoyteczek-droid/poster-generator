@@ -66,6 +66,22 @@ export interface Homepage {
   examplesImages?: HomepageExample[]
 }
 
+export interface GalleryCategory {
+  tag: string
+  label: string
+  subline?: string
+  categoryImage?: SanityImage
+}
+
+export interface GalleryPage {
+  _id: string
+  language: string
+  pageHeadline: string
+  pageSubline?: string
+  heroImage?: SanityImage
+  categories?: GalleryCategory[]
+}
+
 async function safeFetch<T>(query: string, params?: Record<string, unknown>, fallback: T | null = null): Promise<T | null> {
   if (!isConfigured) return fallback
   try {
@@ -153,5 +169,57 @@ export const getHomepage = async (locale: string = 'de'): Promise<Homepage | nul
       requested.examplesImages && requested.examplesImages.length > 0
         ? requested.examplesImages
         : fallback.examplesImages,
+  }
+}
+
+/**
+ * Liefert das Galerie-Seiten-Dokument fuer die angefragte Locale, mit
+ * Per-Field-Fallback auf das DE-Dokument: einzelne leere Felder werden
+ * vom DE-Default ergaenzt. Wenn weder Locale-Doc noch DE-Doc existieren,
+ * wird `null` zurueckgegeben — der Caller zeigt dann die hardcoded
+ * Default-Headline aus den i18n-Strings.
+ *
+ * Wichtig: `categories[]` faellt als ganzes Array zurueck, NICHT pro
+ * Eintrag. Wenn Marketing fuer FR keine eigenen Sektionen pflegt, sieht
+ * der franzoesische Besucher die DE-Sektionen mit DE-Headings — sprachlich
+ * unsauber, aber besser als eine leere Galerie. Sobald Marketing die FR-
+ * Sektionen pflegt, ueberschreibt das den Fallback komplett.
+ */
+export const getGalleryPage = async (locale: string = 'de'): Promise<GalleryPage | null> => {
+  const projection = groq`{
+    _id,
+    language,
+    pageHeadline,
+    pageSubline,
+    heroImage,
+    categories[]{ tag, label, subline, categoryImage }
+  }`
+  const requested = await safeFetch<GalleryPage>(
+    groq`*[_type == "galleryPage" && language == $locale][0]${projection}`,
+    { locale },
+  )
+  if (locale === 'de') return requested
+  if (
+    requested?.pageHeadline &&
+    requested?.heroImage &&
+    requested?.categories &&
+    requested.categories.length > 0
+  ) {
+    return requested
+  }
+  const fallback = await safeFetch<GalleryPage>(
+    groq`*[_type == "galleryPage" && language == "de"][0]${projection}`,
+  )
+  if (!fallback) return requested
+  if (!requested) return fallback
+  return {
+    ...requested,
+    pageHeadline: requested.pageHeadline || fallback.pageHeadline,
+    pageSubline: requested.pageSubline ?? fallback.pageSubline,
+    heroImage: requested.heroImage ?? fallback.heroImage,
+    categories:
+      requested.categories && requested.categories.length > 0
+        ? requested.categories
+        : fallback.categories,
   }
 }

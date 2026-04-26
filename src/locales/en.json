@@ -439,6 +439,7 @@
     "starPoster": "Star poster",
     "features": "Features",
     "examples": "Examples",
+    "gallery": "Gallery",
     "pricing": "Pricing",
     "blog": "Blog",
     "myPosters": "My posters",
@@ -454,5 +455,16 @@
     "adminPalettes": "Colour palettes",
     "adminBusinessCenter": "Business Center",
     "createPoster": "Create poster"
+  },
+  "gallery": {
+    "pageTitle": "Gallery",
+    "metaDescription": "Templates for every occasion — Mother's Day, birth, wedding and more. Click a design and start right in the editor.",
+    "headlineFallback": "Templates for every occasion",
+    "sublineFallback": "Click a design, adjust the location and text, and order right away.",
+    "posterTypeMap": "City poster",
+    "posterTypeStarMap": "Star map",
+    "emptyTitle": "No templates available yet",
+    "emptyDescription": "We're working on designs for your language. Check back soon or build your own poster from scratch.",
+    "emptyCta": "Build your own poster"
   }
 }

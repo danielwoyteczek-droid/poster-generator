@@ -45,6 +45,7 @@ export async function LandingFooter() {
             <ul className="space-y-2">
               <li><Link href="/map" className="text-sm text-muted-foreground hover:text-foreground">{tNav('cityPoster')}</Link></li>
               <li><Link href="/star-map" className="text-sm text-muted-foreground hover:text-foreground">{tNav('starPoster')}</Link></li>
+              <li><Link href="/gallery" className="text-sm text-muted-foreground hover:text-foreground">{tNav('gallery')}</Link></li>
             </ul>
           </div>
           <div>

@@ -1,0 +1,62 @@
+import Image from 'next/image'
+import Link from 'next/link'
+import { LayoutTemplate } from 'lucide-react'
+
+export interface GalleryPreset {
+  id: string
+  name: string
+  poster_type: 'map' | 'star-map'
+  preview_image_url: string | null
+}
+
+interface Props {
+  preset: GalleryPreset
+  posterTypeMapLabel: string
+  posterTypeStarMapLabel: string
+}
+
+/**
+ * Single card linking to the editor with the preset pre-loaded via the
+ * existing PresetUrlApplier mechanism. Cross-poster_type mismatches are
+ * handled transparently by PresetUrlApplier (it redirects automatically).
+ */
+export function GalleryPresetCard({ preset, posterTypeMapLabel, posterTypeStarMapLabel }: Props) {
+  const editorPath = preset.poster_type === 'star-map' ? '/star-map' : '/map'
+  const href = `${editorPath}?preset=${preset.id}`
+  const typeLabel =
+    preset.poster_type === 'star-map' ? posterTypeStarMapLabel : posterTypeMapLabel
+
+  return (
+    <Link
+      href={href}
+      className="group flex flex-col gap-3"
+      aria-label={`${preset.name} — ${typeLabel}`}
+    >
+      <div
+        className="relative w-full bg-muted rounded-xl overflow-hidden shadow-md group-hover:shadow-xl transition-shadow"
+        style={{ aspectRatio: '2/3' }}
+      >
+        {preset.preview_image_url ? (
+          <Image
+            src={preset.preview_image_url}
+            alt={preset.name}
+            fill
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+            className="object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+            loading="lazy"
+          />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center text-muted-foreground/40">
+            <LayoutTemplate className="w-12 h-12" />
+          </div>
+        )}
+        <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full text-[10px] font-medium bg-white/95 text-foreground/80 backdrop-blur shadow-sm">
+          {typeLabel}
+        </span>
+      </div>
+      <h3 className="text-sm font-medium text-foreground/80 group-hover:text-foreground transition-colors text-center px-1">
+        {preset.name}
+      </h3>
+    </Link>
+  )
+}

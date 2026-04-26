@@ -439,6 +439,7 @@
     "starPoster": "Sternenposter",
     "features": "Features",
     "examples": "Beispiele",
+    "gallery": "Galerie",
     "pricing": "Preise",
     "blog": "Blog",
     "myPosters": "Meine Poster",
@@ -454,5 +455,16 @@
     "adminPalettes": "Farbpaletten",
     "adminBusinessCenter": "Business Center",
     "createPoster": "Poster erstellen"
+  },
+  "gallery": {
+    "pageTitle": "Galerie",
+    "metaDescription": "Vorlagen für jeden Anlass — Muttertag, Geburt, Hochzeit und mehr. Klick auf ein Design und starte direkt im Editor.",
+    "headlineFallback": "Vorlagen für jeden Anlass",
+    "sublineFallback": "Klick auf ein Design, passe Ort und Text an und bestelle direkt.",
+    "posterTypeMap": "Stadtposter",
+    "posterTypeStarMap": "Sternenkarte",
+    "emptyTitle": "Noch keine Vorlagen verfügbar",
+    "emptyDescription": "Wir arbeiten an Designs für deine Sprache. Schau bald wieder vorbei oder gestalte dein eigenes Poster von Grund auf.",
+    "emptyCta": "Eigenes Poster gestalten"
   }
 }

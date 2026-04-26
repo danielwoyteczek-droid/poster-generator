@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { requireAdmin } from '@/lib/admin-auth'
 import { createAdminClient } from '@/lib/supabase-admin'
 import { LocaleSchema, TargetLocalesSchema } from '@/lib/preset-locales'
+import { OccasionSchema, OccasionsSchema } from '@/lib/occasions'
 
 const CreatePresetSchema = z.object({
   name: z.string().trim().min(1).max(200),
@@ -12,6 +13,8 @@ const CreatePresetSchema = z.object({
   preview_image_url: z.string().url().optional(),
   display_order: z.number().int().optional(),
   target_locales: TargetLocalesSchema.optional(),
+  occasions: OccasionsSchema.optional(),
+  show_in_editor: z.boolean().optional(),
 })
 
 export async function GET(req: NextRequest) {
@@ -21,11 +24,12 @@ export async function GET(req: NextRequest) {
   const status = req.nextUrl.searchParams.get('status')
   const posterType = req.nextUrl.searchParams.get('poster_type')
   const localeParam = req.nextUrl.searchParams.get('locale')
+  const occasionParam = req.nextUrl.searchParams.get('occasion')
 
   const admin = createAdminClient()
   let query = admin
     .from('presets')
-    .select('id, name, description, poster_type, preview_image_url, status, display_order, target_locales, created_at, updated_at, published_at')
+    .select('id, name, description, poster_type, preview_image_url, status, display_order, target_locales, occasions, show_in_editor, created_at, updated_at, published_at')
     .order('display_order', { ascending: true })
     .order('created_at', { ascending: false })
     .limit(200)
@@ -39,6 +43,14 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid locale' }, { status: 400 })
     }
     query = query.contains('target_locales', [parsed.data])
+  }
+
+  if (occasionParam) {
+    const parsed = OccasionSchema.safeParse(occasionParam)
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Invalid occasion' }, { status: 400 })
+    }
+    query = query.contains('occasions', [parsed.data])
   }
 
   const { data, error } = await query

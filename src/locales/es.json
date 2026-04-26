@@ -439,6 +439,7 @@
     "starPoster": "Póster estelar",
     "features": "Funciones",
     "examples": "Ejemplos",
+    "gallery": "Galería",
     "pricing": "Precios",
     "blog": "Blog",
     "myPosters": "Mis pósters",
@@ -454,5 +455,16 @@
     "adminPalettes": "Paletas de colores",
     "adminBusinessCenter": "Business Center",
     "createPoster": "Crear póster"
+  },
+  "gallery": {
+    "pageTitle": "Galería",
+    "metaDescription": "Plantillas para cada ocasión — Día de la Madre, nacimiento, boda y más. Haz clic en un diseño y empieza directamente en el editor.",
+    "headlineFallback": "Plantillas para cada ocasión",
+    "sublineFallback": "Haz clic en un diseño, ajusta la ubicación y el texto, y pide directamente.",
+    "posterTypeMap": "Póster de ciudad",
+    "posterTypeStarMap": "Mapa estelar",
+    "emptyTitle": "Aún no hay plantillas disponibles",
+    "emptyDescription": "Estamos trabajando en diseños para tu idioma. Vuelve pronto o crea tu propio póster desde cero.",
+    "emptyCta": "Crea tu propio póster"
   }
 }

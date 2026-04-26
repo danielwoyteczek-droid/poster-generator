@@ -439,6 +439,7 @@
     "starPoster": "Poster stellato",
     "features": "Funzionalità",
     "examples": "Esempi",
+    "gallery": "Galleria",
     "pricing": "Prezzi",
     "blog": "Blog",
     "myPosters": "I miei poster",
@@ -454,5 +455,16 @@
     "adminPalettes": "Palette colori",
     "adminBusinessCenter": "Business Center",
     "createPoster": "Crea poster"
+  },
+  "gallery": {
+    "pageTitle": "Galleria",
+    "metaDescription": "Modelli per ogni occasione — festa della mamma, nascita, matrimonio e altro. Fai clic su un design e inizia subito nell'editor.",
+    "headlineFallback": "Modelli per ogni occasione",
+    "sublineFallback": "Fai clic su un design, regola il luogo e il testo e ordina subito.",
+    "posterTypeMap": "Poster cartografico",
+    "posterTypeStarMap": "Mappa stellare",
+    "emptyTitle": "Nessun modello disponibile",
+    "emptyDescription": "Stiamo lavorando a design per la tua lingua. Torna presto o crea il tuo poster da zero.",
+    "emptyCta": "Crea il tuo poster"
   }
 }

@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useLocale } from 'next-intl'
 import Image from 'next/image'
-import { Loader2, LayoutTemplate, Pencil, Eye, EyeOff, Trash2, Plus, Link as LinkIcon, Copy, Globe, X as XIcon, LayoutGrid, List } from 'lucide-react'
+import { Loader2, LayoutTemplate, Pencil, Eye, EyeOff, Trash2, Plus, Link as LinkIcon, Copy, Globe, Tag, X as XIcon, LayoutGrid, List } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
@@ -32,7 +32,9 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { useEditorStore } from '@/hooks/useEditorStore'
 import { useStarMapStore } from '@/hooks/useStarMapStore'
 import { LocaleMultiSelect } from '@/components/admin/LocaleMultiSelect'
+import { OccasionMultiSelect } from '@/components/admin/OccasionMultiSelect'
 import { locales as ALL_LOCALES, localeNames, type Locale } from '@/i18n/config'
+import { occasionLabels, type OccasionCode } from '@/lib/occasions'
 import { cn } from '@/lib/utils'
 
 type PosterType = 'map' | 'star-map'
@@ -47,17 +49,27 @@ interface Preset {
   status: Status
   display_order: number
   target_locales: string[]
+  occasions: string[]
+  show_in_editor: boolean
   created_at: string
   updated_at: string
   published_at: string | null
 }
 
 type BulkAction = 'set' | 'add' | 'remove'
+type BulkField = 'locales' | 'occasions'
 
-const BULK_ACTION_LABELS: Record<BulkAction, string> = {
-  set: 'Sprachen setzen (überschreibt)',
-  add: 'Sprachen hinzufügen',
-  remove: 'Sprachen entfernen',
+const BULK_ACTION_LABELS: Record<BulkField, Record<BulkAction, string>> = {
+  locales: {
+    set: 'Sprachen setzen (überschreibt)',
+    add: 'Sprachen hinzufügen',
+    remove: 'Sprachen entfernen',
+  },
+  occasions: {
+    set: 'Anlässe setzen (überschreibt)',
+    add: 'Anlässe hinzufügen',
+    remove: 'Anlässe entfernen',
+  },
 }
 
 const FILTER_LABELS: Record<string, string> = {
@@ -80,11 +92,14 @@ export function AdminPresetsList() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [typeFilter, setTypeFilter] = useState('all')
   const [localeFilter, setLocaleFilter] = useState<'all' | 'none' | Locale>('all')
+  const [occasionFilter, setOccasionFilter] = useState<'all' | 'none' | OccasionCode>('all')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [previewModalSrc, setPreviewModalSrc] = useState<{ url: string; alt: string } | null>(null)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [bulkAction, setBulkAction] = useState<BulkAction>('set')
+  const [bulkField, setBulkField] = useState<BulkField>('locales')
   const [bulkLocales, setBulkLocales] = useState<string[]>([])
+  const [bulkOccasions, setBulkOccasions] = useState<string[]>([])
   const [bulkSubmitting, setBulkSubmitting] = useState(false)
   const [copySource, setCopySource] = useState<Preset | null>(null)
   const [copyTarget, setCopyTarget] = useState<Locale | ''>('')
@@ -99,22 +114,28 @@ export function AdminPresetsList() {
     const params = new URLSearchParams()
     if (statusFilter !== 'all') params.set('status', statusFilter)
     if (typeFilter !== 'all') params.set('poster_type', typeFilter)
-    // Locale filter: a concrete locale uses the API filter (target_locales @>);
+    // Locale + occasion filters: concrete value uses API filter (@>);
     // 'none' is handled client-side because the API has no "empty array" filter.
     if (localeFilter !== 'all' && localeFilter !== 'none') {
       params.set('locale', localeFilter)
     }
+    if (occasionFilter !== 'all' && occasionFilter !== 'none') {
+      params.set('occasion', occasionFilter)
+    }
     const res = await fetch(`/api/admin/presets?${params}`)
     const data = await res.json()
     if (res.ok) {
-      const allPresets = (data.presets ?? []) as Preset[]
-      const filtered = localeFilter === 'none'
-        ? allPresets.filter((p) => !p.target_locales || p.target_locales.length === 0)
-        : allPresets
-      setPresets(filtered)
+      let result = (data.presets ?? []) as Preset[]
+      if (localeFilter === 'none') {
+        result = result.filter((p) => !p.target_locales || p.target_locales.length === 0)
+      }
+      if (occasionFilter === 'none') {
+        result = result.filter((p) => !p.occasions || p.occasions.length === 0)
+      }
+      setPresets(result)
     }
     setLoading(false)
-  }, [statusFilter, typeFilter, localeFilter])
+  }, [statusFilter, typeFilter, localeFilter, occasionFilter])
 
   useEffect(() => { fetchPresets() }, [fetchPresets])
 
@@ -190,8 +211,38 @@ export function AdminPresetsList() {
     }
   }
 
+  const updateOccasions = async (preset: Preset, occasions: string[]) => {
+    const res = await fetch(`/api/admin/presets/${preset.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ occasions }),
+    })
+    if (res.ok) {
+      setPresets((prev) => prev.map((p) => (p.id === preset.id ? { ...p, occasions } : p)))
+      toast.success('Anlässe aktualisiert')
+    } else {
+      toast.error('Aktualisierung fehlgeschlagen')
+    }
+  }
+
+  const updateShowInEditor = async (preset: Preset, show_in_editor: boolean) => {
+    const res = await fetch(`/api/admin/presets/${preset.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ show_in_editor }),
+    })
+    if (res.ok) {
+      setPresets((prev) => prev.map((p) => (p.id === preset.id ? { ...p, show_in_editor } : p)))
+      toast.success(show_in_editor ? 'Im Editor sichtbar' : 'Nur in Galerie sichtbar')
+    } else {
+      toast.error('Aktualisierung fehlgeschlagen')
+    }
+  }
+
   const runBulk = async () => {
-    if (selectedIds.size === 0 || bulkLocales.length === 0) return
+    if (selectedIds.size === 0) return
+    const values = bulkField === 'locales' ? bulkLocales : bulkOccasions
+    if (values.length === 0) return
     setBulkSubmitting(true)
     try {
       const res = await fetch('/api/admin/presets/bulk', {
@@ -200,7 +251,7 @@ export function AdminPresetsList() {
         body: JSON.stringify({
           ids: Array.from(selectedIds),
           action: bulkAction,
-          locales: bulkLocales,
+          ...(bulkField === 'locales' ? { locales: values } : { occasions: values }),
         }),
       })
       const data = await res.json()
@@ -211,6 +262,7 @@ export function AdminPresetsList() {
       toast.success(`${data.updated} Preset${data.updated === 1 ? '' : 's'} aktualisiert`)
       clearSelection()
       setBulkLocales([])
+      setBulkOccasions([])
       fetchPresets()
     } finally {
       setBulkSubmitting(false)
@@ -368,25 +420,52 @@ export function AdminPresetsList() {
             {selectedIds.size} ausgewählt
           </div>
           <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex gap-1 bg-white rounded-md border border-border p-0.5">
+              {(['locales', 'occasions'] as const).map((field) => (
+                <button
+                  key={field}
+                  onClick={() => setBulkField(field)}
+                  className={cn(
+                    'px-2.5 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1.5',
+                    bulkField === field ? 'bg-primary text-primary-foreground' : 'text-foreground/70 hover:bg-muted',
+                  )}
+                >
+                  {field === 'locales' ? <Globe className="w-3.5 h-3.5" /> : <Tag className="w-3.5 h-3.5" />}
+                  {field === 'locales' ? 'Sprachen' : 'Anlässe'}
+                </button>
+              ))}
+            </div>
             <select
               value={bulkAction}
               onChange={(e) => setBulkAction(e.target.value as BulkAction)}
               className="h-9 px-3 rounded-md border border-border bg-background text-sm"
             >
-              {(Object.keys(BULK_ACTION_LABELS) as BulkAction[]).map((a) => (
-                <option key={a} value={a}>{BULK_ACTION_LABELS[a]}</option>
+              {(Object.keys(BULK_ACTION_LABELS[bulkField]) as BulkAction[]).map((a) => (
+                <option key={a} value={a}>{BULK_ACTION_LABELS[bulkField][a]}</option>
               ))}
             </select>
-            <LocaleMultiSelect
-              value={bulkLocales}
-              onChange={setBulkLocales}
-              placeholder="Sprachen wählen…"
-              buttonClassName="min-w-[180px]"
-            />
+            {bulkField === 'locales' ? (
+              <LocaleMultiSelect
+                value={bulkLocales}
+                onChange={setBulkLocales}
+                placeholder="Sprachen wählen…"
+                buttonClassName="min-w-[180px]"
+              />
+            ) : (
+              <OccasionMultiSelect
+                value={bulkOccasions}
+                onChange={setBulkOccasions}
+                placeholder="Anlässe wählen…"
+                buttonClassName="min-w-[180px]"
+              />
+            )}
             <Button
               size="sm"
               onClick={runBulk}
-              disabled={bulkLocales.length === 0 || bulkSubmitting}
+              disabled={
+                (bulkField === 'locales' ? bulkLocales.length : bulkOccasions.length) === 0 ||
+                bulkSubmitting
+              }
             >
               {bulkSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
               Anwenden
@@ -450,6 +529,47 @@ export function AdminPresetsList() {
                 </button>
               )
             })}
+          </div>
+          <div className="flex gap-1 bg-white rounded-md border border-border p-0.5">
+            <button
+              onClick={() => setOccasionFilter('all')}
+              className={cn(
+                'px-3 py-1.5 rounded text-xs font-medium transition-colors',
+                occasionFilter === 'all' ? 'bg-primary text-primary-foreground' : 'text-foreground/70 hover:bg-muted',
+              )}
+            >
+              Alle Anlässe
+            </button>
+            <button
+              onClick={() => setOccasionFilter('none')}
+              className={cn(
+                'px-3 py-1.5 rounded text-xs font-medium transition-colors',
+                occasionFilter === 'none' ? 'bg-amber-100 text-amber-800' : 'text-foreground/70 hover:bg-muted',
+              )}
+              title="Presets ohne Anlass-Tag (= nicht in Galerie sichtbar)"
+            >
+              Kein Tag
+            </button>
+            <select
+              value={occasionFilter !== 'all' && occasionFilter !== 'none' ? occasionFilter : ''}
+              onChange={(e) => {
+                const v = e.target.value
+                setOccasionFilter(v ? (v as OccasionCode) : 'all')
+              }}
+              className={cn(
+                'h-7 px-2 rounded text-xs font-medium border-0 bg-transparent focus:outline-none focus:ring-2 focus:ring-ring transition-colors',
+                occasionFilter !== 'all' && occasionFilter !== 'none'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-foreground/70 hover:bg-muted',
+              )}
+            >
+              <option value="">Anlass …</option>
+              {(Object.keys(occasionLabels) as OccasionCode[]).map((code) => (
+                <option key={code} value={code}>
+                  {occasionLabels[code].de}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
@@ -542,6 +662,14 @@ export function AdminPresetsList() {
                 <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full text-[10px] font-medium bg-white/90 text-foreground/70 backdrop-blur">
                   {preset.poster_type === 'star-map' ? 'Sternenposter' : 'Stadtposter'}
                 </span>
+                {!preset.show_in_editor && (
+                  <span
+                    className="absolute top-9 right-2 px-2 py-0.5 rounded-full text-[10px] font-medium bg-purple-100 text-purple-800 backdrop-blur"
+                    title="Erscheint nur in der Galerie, nicht im Editor-Picker"
+                  >
+                    Nur Galerie
+                  </span>
+                )}
               </div>
               <div className="p-4 space-y-3">
                 <div>
@@ -598,6 +726,61 @@ export function AdminPresetsList() {
                       <p className="text-[10px] text-muted-foreground leading-relaxed">
                         Auswahl wird sofort gespeichert. Leere Auswahl = im Editor unsichtbar.
                       </p>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <Tag className="w-3.5 h-3.5 text-muted-foreground/70 shrink-0" />
+                  {preset.occasions.length === 0 ? (
+                    <span className="text-[10px] font-medium uppercase tracking-wider text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">
+                      Kein Anlass
+                    </span>
+                  ) : (
+                    preset.occasions.map((code) => (
+                      <span
+                        key={code}
+                        className="text-[10px] font-medium bg-muted text-foreground/80 px-1.5 py-0.5 rounded"
+                        title={occasionLabels[code as OccasionCode]?.de ?? code}
+                      >
+                        {occasionLabels[code as OccasionCode]?.de ?? code}
+                      </span>
+                    ))
+                  )}
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0 ml-auto text-muted-foreground/70 hover:text-foreground"
+                        title="Anlässe bearbeiten"
+                      >
+                        <Pencil className="w-3 h-3" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent align="end" className="w-72 p-3 space-y-2">
+                      <div className="text-xs font-medium text-foreground">Anlass-Tags für Galerie</div>
+                      <OccasionMultiSelect
+                        value={preset.occasions}
+                        onChange={(next) => updateOccasions(preset, next)}
+                      />
+                      <p className="text-[10px] text-muted-foreground leading-relaxed">
+                        Wird sofort gespeichert. Leer = nicht in der Galerie sichtbar.
+                      </p>
+                      <div className="pt-2 mt-1 border-t border-border">
+                        <label className="flex items-start gap-2 cursor-pointer text-xs text-foreground">
+                          <Checkbox
+                            checked={preset.show_in_editor}
+                            onCheckedChange={(checked) => updateShowInEditor(preset, checked === true)}
+                            className="mt-0.5"
+                          />
+                          <span className="flex-1">
+                            <span className="font-medium">Auch im Editor anzeigen</span>
+                            <span className="block text-[10px] text-muted-foreground leading-relaxed mt-0.5">
+                              Aus = Preset erscheint nur in der Galerie, nicht im „Von Vorlage starten"-Picker.
+                            </span>
+                          </span>
+                        </label>
+                      </div>
                     </PopoverContent>
                   </Popover>
                 </div>
@@ -744,6 +927,14 @@ export function AdminPresetsList() {
                 <span className="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-medium bg-muted text-foreground/70 hidden md:inline">
                   {preset.poster_type === 'star-map' ? 'Sternenposter' : 'Stadtposter'}
                 </span>
+                {!preset.show_in_editor && (
+                  <span
+                    className="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-medium bg-purple-100 text-purple-800 hidden md:inline"
+                    title="Nur in Galerie sichtbar"
+                  >
+                    Nur Galerie
+                  </span>
+                )}
                 <div className="shrink-0 flex items-center gap-1">
                   <Globe className="w-3.5 h-3.5 text-muted-foreground/70" />
                   {preset.target_locales.length === 0 ? (
@@ -770,6 +961,44 @@ export function AdminPresetsList() {
                     <PopoverContent align="end" className="w-60 p-3 space-y-2">
                       <div className="text-xs font-medium text-foreground">Sichtbar in Sprachen</div>
                       <LocaleMultiSelect value={preset.target_locales} onChange={(next) => updateLocales(preset, next)} />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div className="shrink-0 hidden lg:flex items-center gap-1">
+                  <Tag className="w-3.5 h-3.5 text-muted-foreground/70" />
+                  {preset.occasions.length === 0 ? (
+                    <span className="text-[10px] font-medium uppercase tracking-wider text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">
+                      Kein Tag
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-medium bg-muted text-foreground/80 px-1.5 py-0.5 rounded" title={preset.occasions.map((c) => occasionLabels[c as OccasionCode]?.de ?? c).join(', ')}>
+                      {preset.occasions.length} {preset.occasions.length === 1 ? 'Anlass' : 'Anlässe'}
+                    </span>
+                  )}
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground/70 hover:text-foreground" title="Anlässe bearbeiten">
+                        <Pencil className="w-3 h-3" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent align="end" className="w-72 p-3 space-y-2">
+                      <div className="text-xs font-medium text-foreground">Anlass-Tags für Galerie</div>
+                      <OccasionMultiSelect value={preset.occasions} onChange={(next) => updateOccasions(preset, next)} />
+                      <div className="pt-2 mt-1 border-t border-border">
+                        <label className="flex items-start gap-2 cursor-pointer text-xs text-foreground">
+                          <Checkbox
+                            checked={preset.show_in_editor}
+                            onCheckedChange={(checked) => updateShowInEditor(preset, checked === true)}
+                            className="mt-0.5"
+                          />
+                          <span className="flex-1">
+                            <span className="font-medium">Auch im Editor anzeigen</span>
+                            <span className="block text-[10px] text-muted-foreground leading-relaxed mt-0.5">
+                              Aus = nur in Galerie sichtbar.
+                            </span>
+                          </span>
+                        </label>
+                      </div>
                     </PopoverContent>
                   </Popover>
                 </div>

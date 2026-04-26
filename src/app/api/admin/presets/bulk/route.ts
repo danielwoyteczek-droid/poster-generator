@@ -3,14 +3,32 @@ import { z } from 'zod'
 import { requireAdmin } from '@/lib/admin-auth'
 import { createAdminClient } from '@/lib/supabase-admin'
 import { TargetLocalesSchema } from '@/lib/preset-locales'
+import { OccasionsSchema } from '@/lib/occasions'
 
 const BULK_LIMIT = 200
 
-const BulkBodySchema = z.object({
-  ids: z.array(z.string().uuid()).min(1).max(BULK_LIMIT),
-  action: z.enum(['set', 'add', 'remove']),
-  locales: TargetLocalesSchema.min(1),
-})
+/**
+ * Bulk-Tool fuer Tag-Felder auf Presets. Unterstuetzt zwei Felder:
+ *  - target_locales (PROJ-24)
+ *  - occasions (PROJ-11 Beispielgalerie)
+ *
+ * Genau eines der beiden Wert-Arrays (`locales` ODER `occasions`) muss im
+ * Body uebergeben werden. Backward-compatible mit dem bestehenden Admin-UI,
+ * das nur `locales` kennt.
+ */
+const BulkBodySchema = z
+  .object({
+    ids: z.array(z.string().uuid()).min(1).max(BULK_LIMIT),
+    action: z.enum(['set', 'add', 'remove']),
+    locales: TargetLocalesSchema.min(1).optional(),
+    occasions: OccasionsSchema.min(1).optional(),
+  })
+  .refine(
+    (data) => Boolean(data.locales) !== Boolean(data.occasions),
+    { message: 'Genau eines von "locales" oder "occasions" muss gesetzt sein' },
+  )
+
+type BulkField = 'target_locales' | 'occasions'
 
 export async function POST(req: NextRequest) {
   const auth = await requireAdmin()
@@ -22,15 +40,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid body', details: parsed.error.flatten() }, { status: 400 })
   }
 
-  const { ids, action, locales } = parsed.data
+  const { ids, action } = parsed.data
+  const field: BulkField = parsed.data.locales ? 'target_locales' : 'occasions'
+  const values = (parsed.data.locales ?? parsed.data.occasions) as string[]
+
   const admin = createAdminClient()
 
   if (action === 'set') {
     const { data, error } = await admin
       .from('presets')
-      .update({ target_locales: locales, updated_at: new Date().toISOString() })
+      .update({ [field]: values, updated_at: new Date().toISOString() })
       .in('id', ids)
-      .select('id, target_locales')
+      .select(`id, ${field}`)
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     return NextResponse.json({ updated: data?.length ?? 0, presets: data ?? [] })
@@ -39,7 +60,7 @@ export async function POST(req: NextRequest) {
   // add / remove require per-row merge — fetch current values, compute new array, write back
   const { data: currentRows, error: fetchError } = await admin
     .from('presets')
-    .select('id, target_locales')
+    .select(`id, ${field}`)
     .in('id', ids)
 
   if (fetchError) return NextResponse.json({ error: fetchError.message }, { status: 500 })
@@ -49,21 +70,21 @@ export async function POST(req: NextRequest) {
 
   const updatedAt = new Date().toISOString()
   const updates = currentRows.map((row) => {
-    const existing = (row.target_locales ?? []) as string[]
+    const existing = ((row as Record<string, unknown>)[field] ?? []) as string[]
     const next =
       action === 'add'
-        ? Array.from(new Set([...existing, ...locales]))
-        : existing.filter((loc) => !locales.includes(loc as never))
-    return { id: row.id, target_locales: next, updated_at: updatedAt }
+        ? Array.from(new Set([...existing, ...values]))
+        : existing.filter((v) => !values.includes(v))
+    return { id: row.id as string, next, updated_at: updatedAt }
   })
 
   const results = await Promise.all(
     updates.map((u) =>
       admin
         .from('presets')
-        .update({ target_locales: u.target_locales, updated_at: u.updated_at })
+        .update({ [field]: u.next, updated_at: u.updated_at })
         .eq('id', u.id)
-        .select('id, target_locales')
+        .select(`id, ${field}`)
         .single(),
     ),
   )
