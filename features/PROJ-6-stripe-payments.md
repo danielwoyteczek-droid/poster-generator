@@ -8,7 +8,7 @@
 - Requires: PROJ-3 (Poster-Export)
 - Requires: PROJ-4 (User Authentication)
 - Requires: PROJ-5 (Projekt-Verwaltung)
-- Beeinflusst: PROJ-26 (Rechnungswesen) — Versand-/Rechnungsadresse + USt-ID werden hier erfasst und gespeichert; PROJ-26 nutzt diese Daten für die Rechnungsgenerierung
+- **V1.1 (Adress-Erfassung) requires PROJ-26** (Versandkosten-Management): die Liste der unterstützten Lieferländer (`shipping_address_collection.allowed_countries`) und die `shipping_options` der Stripe-Session kommen aus PROJ-26's Tarif-Tabelle. PROJ-26 wird **vor** PROJ-6 V1.1 implementiert.
 
 ## User Stories
 
@@ -53,11 +53,11 @@
 
 ### Adress-Erfassung (V1.1)
 - [ ] **Bei rein digitalen Warenkörben** (nur "Digitaler Download"-Produkte): keine Adresserfassung erforderlich, Stripe-Session ohne `shipping_address_collection`.
-- [ ] **Bei physischen Produkten im Warenkorb** (Poster, Bilderrahmen — auch in Mischwarenkörben): `shipping_address_collection.allowed_countries = ['DE','AT','CH']`. Andere Länder werden im Stripe-Checkout-Formular nicht angeboten; auch Amazon-Pay-/PayPal-Adressen außerhalb DACH werden mit klarer Fehlermeldung abgelehnt.
+- [ ] **Bei physischen Produkten im Warenkorb** (Poster, Bilderrahmen — auch in Mischwarenkörben): `shipping_address_collection.allowed_countries` wird **dynamisch aus PROJ-26** befüllt (Liste aller Länder, für die ein veröffentlichter Tarif existiert). PROJ-26 ist Single Source of Truth für die unterstützten Lieferländer; keine eigene Liste in PROJ-6 hartkodieren. Adressen aus Amazon Pay / PayPal mit Lieferland außerhalb dieser Liste werden mit klarer Fehlermeldung abgelehnt.
 - [ ] Stripe `billing_address_collection: 'auto'` — Adressen aus **Amazon Pay** und **PayPal** werden über die Stripe-Payment-Method automatisch übernommen, der Kunde gibt sie in dem Fall nicht doppelt ein.
 - [ ] **Optionale abweichende Rechnungsadresse**: vor dem Sprung zu Stripe wird im Cart-/Checkout-UI ein Toggle "Rechnungsadresse weicht ab" angeboten. Bei Aktivierung erfasst die App die Rechnungsadresse separat und überträgt sie als Custom-Metadata in die Stripe-Session.
-- [ ] **Optionales USt-ID-Feld** ("Umsatzsteuer-Identifikationsnummer") in der Rechnungsadressen-Sektion. Wird ungeprüft gespeichert (keine VIES-Validierung in V1) und auf der späteren Rechnung (PROJ-26) angedruckt.
-- [ ] Erfasste Adressen + USt-ID werden in der `orders`-Tabelle persistiert (siehe Technical Requirements), nicht nur in der Stripe-Session — damit PROJ-26 (Rechnungswesen) später darauf zugreifen kann, auch nach Ablauf der Stripe-Session-Daten.
+- [ ] **Optionales USt-ID-Feld** ("Umsatzsteuer-Identifikationsnummer") in der Rechnungsadressen-Sektion. Wird ungeprüft gespeichert (keine VIES-Validierung in V1) und auf einer späteren echten Rechnung angedruckt — Rechnungswesen ist aktuell out-of-scope, kommt als eigenes Feature wenn benötigt.
+- [ ] Erfasste Adressen + USt-ID werden in der `orders`-Tabelle persistiert (siehe Technical Requirements), nicht nur in der Stripe-Session — damit ein späteres Rechnungswesen-Feature darauf zugreifen kann, auch nach Ablauf der Stripe-Session-Daten.
 
 ### Nach der Zahlung
 - [ ] Digitaler Download: Sofort-Download-Link wird auf der Erfolgsseite angezeigt und per E-Mail verschickt
@@ -72,9 +72,9 @@
 - Was passiert, wenn der Editor-State zwischen Warenkorb-Hinzufügen und Bezahlen geändert wird? → Poster-Snapshot aus dem Warenkorb wird gedruckt, nicht der aktuelle Stand
 - Was passiert, wenn ein Gast kauft und sich danach registriert? → Bestellung bleibt über Stripe Customer ID verknüpft
 - **Mischwarenkorb digital + physisch** → Adresserfassung ist Pflicht (für die physische Position); die digitale Position kommt trotzdem unmittelbar nach Zahlung als Download-Link.
-- **Amazon-Pay-/PayPal-Adresse außerhalb DACH** → Stripe-Checkout zeigt Fehlermeldung "Lieferung in dieses Land nicht möglich"; Kunde muss eine andere Zahlungsart wählen oder eine DACH-Adresse hinterlegen.
+- **Amazon-Pay-/PayPal-Adresse außerhalb der unterstützten Länder** (Liste kommt aus PROJ-26) → Stripe-Checkout zeigt Fehlermeldung "Lieferung in dieses Land nicht möglich"; Kunde muss eine andere Zahlungsart wählen oder eine Adresse in einem unterstützten Land hinterlegen.
 - **Kunde aktiviert "abweichende Rechnungsadresse" und füllt sie nicht vollständig aus** → Speichern blockiert mit Hinweis auf Pflichtfelder (Name, Straße, PLZ, Ort, Land).
-- **Kunde gibt eine offensichtlich ungültige USt-ID ein** (z. B. "abc") → V1 speichert sie unverändert; spätere Rechnung zeigt sie an. PROJ-26 entscheidet, ob die Validierung dort nachgezogen wird.
+- **Kunde gibt eine offensichtlich ungültige USt-ID ein** (z. B. "abc") → V1 speichert sie unverändert; eine spätere Rechnung zeigt sie an. VIES-Validierung wird im zukünftigen Rechnungswesen-Feature entschieden.
 - **Adresse im Stripe-Webhook stimmt nicht mit der vom Kunden im UI eingegebenen überein** (z. B. Kunde wechselte mitten im Checkout zu Amazon Pay) → Stripe-Daten haben Vorrang, weil sie die Auslieferung steuern.
 
 ## Technical Requirements
@@ -86,7 +86,7 @@
   - `orders.billing_address` (jsonb, nullable) — abweichende Rechnungsadresse, sonst null = identisch zu shipping_address
   - `orders.tax_id` (text, nullable, max 32) — USt-ID-Nummer, ungeprüft gespeichert
 - Stripe-Checkout-Session-Konfiguration:
-  - `shipping_address_collection.allowed_countries: ['DE','AT','CH']` (nur bei physischen Items)
+  - `shipping_address_collection.allowed_countries`: dynamisch aus PROJ-26-Tarif-Tabelle befüllt (alle Länder mit `status='published'`-Tarifen), nur bei physischen Items gesetzt
   - `billing_address_collection: 'auto'`
   - `customer_update.shipping: 'auto'`, `customer_update.address: 'auto'` (für Amazon Pay / PayPal-Adress-Übernahme)
   - `metadata.billing_address_json` und `metadata.tax_id` für die abweichende Rechnungsadresse + USt-ID (Webhook-Handler liest diese und schreibt in `orders.billing_address` / `orders.tax_id`)

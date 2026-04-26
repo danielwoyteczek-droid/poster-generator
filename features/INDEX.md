@@ -40,10 +40,11 @@
 | PROJ-24 | Localized Storefront Content | In Progress | [PROJ-24-localized-storefront-content.md](PROJ-24-localized-storefront-content.md) | 2026-04-25 |
 | PROJ-25 | Editor UX Consistency Pass | Planned | [PROJ-25-editor-ux-consistency.md](PROJ-25-editor-ux-consistency.md) | 2026-04-25 |
 | PROJ-26 | Versandkosten-Management | Planned | [PROJ-26-shipping-rate-management.md](PROJ-26-shipping-rate-management.md) | 2026-04-26 |
+| PROJ-27 | Mobile Star-Map Editor | In Progress | [PROJ-27-mobile-star-map-editor.md](PROJ-27-mobile-star-map-editor.md) | 2026-04-26 |
 
 <!-- Add features above this line -->
 
-## Next Available ID: PROJ-27
+## Next Available ID: PROJ-28
 
 ## Recommended Build Order
 1. **PROJ-1** — Karten-Editor Core (Fundament der App)

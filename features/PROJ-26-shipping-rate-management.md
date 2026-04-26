@@ -113,10 +113,12 @@ PROJ-26 baut die Versandkosten-Verwaltung als **konfigurierbare Tarif-Matrix** (
 - **Keine Geschenk-Versand-Kombinationen** (mehrere Adressen pro Bestellung).
 - **Keine Promo-Codes** für kostenlosen Versand. Das ist Marketing/Coupons-Thema (eigenes späteres Feature).
 
+## Decisions (vor Architecture festgelegt)
+- **Länder-Scope V1**: EU-weit (nicht nur DACH). Konkrete Länderliste = alle EU-27-Mitgliedsstaaten plus CH, UK, NO. Gilt im `shipping_address_collection.allowed_countries` der Stripe-Checkout-Session und als CHECK-Allowlist auf `shipping_rates.country_code`. (Zoll-/MwSt-Sonderfälle CH/UK/NO werden in V1 nicht gesondert behandelt — Stripe Tax übernimmt.)
+- **Versandkosten-Kombinationsregel V1**: "Höchster Item-Tarif gewinnt" — eine Sendung, der Tarif richtet sich nach dem schwersten/größten Item; mehrfache gleiche Position teilt sich diesen einen Tarif. Wenn die Praxis später zeigt, dass mehrere große Bilderrahmen tatsächlich mehrere Pakete bedeuten, kann die Regel in V2 verfeinert werden (z. B. additiv mit Mengenrabatt).
+
 ## Open Questions
-- **Versandkosten-Kombinationsregel** ("höchster Tarif gewinnt") ist eine V1-Annahme. Wenn das in Praxis nicht passt (z. B. mehrere große Bilderrahmen = mehrere Pakete = höhere Kosten), muss die Regel verfeinert werden. → Operativ klären, sobald erste echte Bestellungen kommen.
-- **Auswahl der unterstützten Länder**: V1-Liste exakt definieren (DACH-Erweiterung um welche EU-Länder?). → Sollte beim Architecture-Schritt mit Marketing/Versand-Operations abgestimmt werden.
-- **Migration der Bestands-Tarife** (DACH wurde in PROJ-6 evtl. hartkodiert): nach PROJ-26-Deploy ein Backfill-Script, das die DACH-Tarife in `shipping_rates` anlegt.
+_Aktuell keine offenen Fragen — alle architekturrelevanten Entscheidungen sind unter "Decisions" festgehalten. Reihenfolge mit PROJ-6 V1.1: PROJ-26 wird **vor** PROJ-6 V1.1 implementiert, damit die Adress-Erfassung-Erweiterung das fertige Tarif-System nutzen kann (kein Bestandstarif-Backfill nötig)._
 
 ## Technical Requirements
 - **Performance**: `GET /api/shipping-rates?country=XX` < 100 ms, `POST /api/shipping/calculate` < 200 ms (auch bei 10+ Cart-Items)

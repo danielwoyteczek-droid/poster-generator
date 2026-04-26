@@ -827,10 +827,11 @@ export function MapTab() {
             {shapeSupported && (
             <div className="space-y-2 pt-2 border-t border-border">
               <span className="text-xs font-medium text-foreground/70">{t('outerAreaLabel')}</span>
-              <div className="grid grid-cols-3 gap-1">
+              <div className="grid grid-cols-2 gap-1">
                 {([
                   { key: 'none', label: t('outerModeNone') },
                   { key: 'opacity', label: t('outerModeFaded') },
+                  { key: 'glow', label: t('outerModeGlow') },
                   { key: 'full', label: t('outerModeFull') },
                 ] as const).map((opt) => (
                   <button
@@ -859,6 +860,32 @@ export function MapTab() {
                     value={[shapeConfig.outer.opacity]}
                     onValueChange={([v]) => setShapeOuter({ opacity: v })}
                   />
+                </div>
+              )}
+              {shapeConfig.outer.mode === 'glow' && (
+                <div className="space-y-2 pt-1">
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] text-muted-foreground">{t('outerGlowRadius')}</span>
+                      <span className="text-[11px] text-muted-foreground/70 tabular-nums">{shapeConfig.outer.glowRadius ?? 8} mm</span>
+                    </div>
+                    <Slider
+                      min={1} max={30} step={1}
+                      value={[shapeConfig.outer.glowRadius ?? 8]}
+                      onValueChange={([v]) => setShapeOuter({ glowRadius: v })}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] text-muted-foreground">{t('outerGlowIntensity')}</span>
+                      <span className="text-[11px] text-muted-foreground/70 tabular-nums">{Math.round((shapeConfig.outer.glowIntensity ?? 0.5) * 100)}%</span>
+                    </div>
+                    <Slider
+                      min={0.1} max={1} step={0.05}
+                      value={[shapeConfig.outer.glowIntensity ?? 0.5]}
+                      onValueChange={([v]) => setShapeOuter({ glowIntensity: v })}
+                    />
+                  </div>
                 </div>
               )}
               {shapeConfig.outer.mode !== 'none' && (

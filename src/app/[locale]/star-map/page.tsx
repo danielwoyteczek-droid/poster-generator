@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import { getTranslations } from 'next-intl/server'
 import { LandingNav } from '@/components/landing/LandingNav'
-import { StarMapLayout } from '@/components/star-map/StarMapLayout'
+import { StarMapEditorShell } from '@/components/star-map/StarMapEditorShell'
 import { PresetUrlApplier } from '@/components/editor/PresetUrlApplier'
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -18,7 +18,7 @@ export default function StarMapPage() {
         <PresetUrlApplier posterType="star-map" />
       </Suspense>
       <div className="flex-1 min-h-0">
-        <StarMapLayout />
+        <StarMapEditorShell />
       </div>
     </div>
   )

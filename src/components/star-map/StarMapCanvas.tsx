@@ -6,8 +6,20 @@ import { useEditorStore } from '@/hooks/useEditorStore'
 import { PRINT_FORMATS } from '@/lib/print-formats'
 import { renderStarMap, type StarEntry, type GeoFeature } from '@/lib/star-map-renderer'
 import { TextBlockOverlay } from '@/components/editor/TextBlockOverlay'
+import { computeFontScale } from '@/lib/font-scale'
 
-export function StarMapCanvas() {
+interface StarMapCanvasProps {
+  /** Total horizontal + vertical padding subtracted from wrapper before
+   *  computing the poster size. Desktop default is 64 (32 px each side);
+   *  Mobile passes a smaller value (e.g. 16) to maximise preview area. */
+  padding?: number
+  /** Forwards to TextBlockOverlay. On Mobile only the Text tab activates
+   *  text-block dragging; other tabs pass `false`. Desktop leaves it
+   *  undefined (TextBlockOverlay's own isMobile-fallback decides). */
+  textInteractive?: boolean
+}
+
+export function StarMapCanvas({ padding = 64, textInteractive }: StarMapCanvasProps = {}) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const wrapperRef = useRef<HTMLDivElement>(null)
   const [posterSize, setPosterSize] = useState({ width: 0, height: 0 })
@@ -53,10 +65,9 @@ export function StarMapCanvas() {
 
   useEffect(() => {
     if (!wrapperRef.current) return
-    const PADDING = 64
     const compute = (w: number, h: number) => {
-      const availW = w - PADDING
-      const availH = h - PADDING
+      const availW = w - padding
+      const availH = h - padding
       if (availW <= 0 || availH <= 0) return
       const size = availW / ratio <= availH
         ? { width: availW, height: availW / ratio }
@@ -68,7 +79,9 @@ export function StarMapCanvas() {
     obs.observe(wrapperRef.current)
     compute(wrapperRef.current.clientWidth, wrapperRef.current.clientHeight)
     return () => obs.disconnect()
-  }, [ratio])
+  }, [ratio, padding])
+
+  const fontScale = computeFontScale(posterSize.width)
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current
@@ -115,7 +128,11 @@ export function StarMapCanvas() {
             ref={canvasRef}
             style={{ width: posterSize.width, height: posterSize.height, display: 'block' }}
           />
-          <TextBlockOverlay coordinatesSource={{ lat, lng, locationName }} />
+          <TextBlockOverlay
+            coordinatesSource={{ lat, lng, locationName }}
+            fontScale={fontScale}
+            interactive={textInteractive}
+          />
         </div>
       )}
 
