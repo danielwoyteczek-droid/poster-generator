@@ -1,6 +1,6 @@
 # PROJ-26: Versandkosten-Management
 
-## Status: Planned
+## Status: Architected
 **Created:** 2026-04-26
 **Last Updated:** 2026-04-26
 
@@ -130,7 +130,212 @@ _Aktuell keine offenen Fragen — alle architekturrelevanten Entscheidungen sind
 <!-- Sections below are added by subsequent skills -->
 
 ## Tech Design (Solution Architect)
-_To be added by /architecture_
+
+### A) Gesamtablauf (4-Phasen-Rollout)
+
+```
+Phase 1: Datenbank-Schema + Berechnungs-Lib (Backend, unsichtbar)
+   +-- Migration: shipping_rates + shipping_thresholds Tabellen + RLS + Indexe
+   +-- Migration: orders.shipping_cents Spalte (default 0)
+   +-- Lib: calculateShipping(items, country) — pure Funktion, testbar
+   +-- Public-API: GET /api/shipping-rates?country=XX
+   +-- Public-API: POST /api/shipping/calculate
+             |
+             v
+
+Phase 2: Admin-CRUD (UI + API)
+   +-- Admin-API: /api/admin/shipping-rates (CRUD), /api/admin/shipping-thresholds
+   +-- Admin-UI: /private/admin/shipping/ — Länder-Detail-Ansicht
+   +-- Bulk-Aktionen: "Tarif-Set kopieren von X", "%-Aufschlag auf Selektion"
+   +-- Marketing legt erste Tarife an (mind. DE als Smoke-Test)
+             |
+             v
+
+Phase 3: Stripe-Integration (Checkout-Flow)
+   +-- POST /api/checkout/create erweitert: shipping_options dynamisch generieren
+   +-- Webhook checkout.session.completed: orders.shipping_cents schreiben
+   +-- Country-Allowlist für shipping_address_collection.allowed_countries
+   +-- Damit ist PROJ-26 für Stripe-Checkout funktional einsatzbereit
+             |
+             v
+
+Phase 4: Cart-UI + Marketing-Konsistenz (Frontend)
+   +-- Cart zeigt Versandkosten-Schätzung (Locale-basiert)
+   +-- Free-Shipping-Hinweis "Noch X € bis kostenfreier Versand"
+   +-- Optionaler Country-Dropdown im Cart
+   +-- Hero/Pricing-Sektionen lesen Threshold dynamisch aus DB statt hardcoded
+```
+
+**Wichtige Reihenfolge-Regel:** Phase 3 darf erst deployen, **nachdem Phase 2 mindestens für DACH-Länder published Tarife hat**. Sonst würden Stripe-Sessions ohne `shipping_options` erstellt, der Checkout wäre kostenlos. Phase 2 enthält ein Verifikations-Script: "Mindestens DE muss published sein", das Phase 3 als Pre-Deploy-Check nutzt.
+
+### B) Komponenten-Struktur
+
+```
+poster-generator
+│
+├── supabase/migrations/
+│   ├── create_shipping_rates              ← NEU: Tabelle + RLS + Indexe
+│   ├── create_shipping_thresholds         ← NEU: Tabelle + RLS
+│   └── add_shipping_cents_to_orders       ← NEU: Spalte mit default 0
+│
+├── src/lib/
+│   ├── shipping-countries.ts              ← NEU: ISO-Liste EU-27 + CH/UK/NO als TS-Const
+│   └── shipping-calculation.ts            ← NEU: pure Funktion calculateShipping(items, country)
+│
+├── src/app/api/
+│   ├── shipping-rates/route.ts            ← NEU: GET ?country=XX (öffentlich, gecached)
+│   ├── shipping/
+│   │   └── calculate/route.ts             ← NEU: POST { items, countryCode }
+│   ├── admin/shipping-rates/
+│   │   ├── route.ts                       ← NEU: GET (Liste), POST (Create)
+│   │   └── [id]/route.ts                  ← NEU: GET/PATCH/DELETE
+│   ├── admin/shipping-rates/bulk/route.ts ← NEU: Bulk-Update (Set/Add/Percent)
+│   ├── admin/shipping-rates/copy-from-country/route.ts ← NEU: Tarif-Set kopieren
+│   ├── admin/shipping-thresholds/[country]/route.ts    ← NEU: GET/PUT
+│   └── checkout/create/route.ts           ← MODIFIZIERT: shipping_options dynamisch
+│
+├── src/app/private/admin/shipping/
+│   └── page.tsx                           ← NEU: Länder-Detail-Ansicht (Master-Detail)
+│
+├── src/components/admin/shipping/
+│   ├── CountryList.tsx                    ← NEU: Linke Liste, Status-Indikator
+│   ├── CountryRatesPanel.tsx              ← NEU: Rechtes Detail-Panel
+│   ├── ShippingRateInput.tsx              ← NEU: Inline-Edit eines Preises
+│   ├── ThresholdInput.tsx                 ← NEU: Inline-Edit der Free-Shipping-Schwelle
+│   ├── CopyFromCountryDialog.tsx          ← NEU: Modal "von welchem Land kopieren"
+│   └── BulkPriceAdjustDialog.tsx          ← NEU: Modal "%-Aufschlag auf Selektion"
+│
+├── src/components/cart/
+│   └── ShippingEstimate.tsx               ← NEU: Versandkosten-Block im Cart, mit Threshold-Hinweis
+│
+├── src/components/landing/
+│   ├── HeroSection.tsx                    ← MODIFIZIERT: Free-Shipping-Aussage dynamisch
+│   └── PricingSection.tsx                 ← MODIFIZIERT: Free-Shipping-Aussage dynamisch
+│
+└── src/hooks/
+    └── useShippingRates.ts                ← NEU: client-seitiger Cache + Country-Resolver
+```
+
+### C) Datenmodell
+
+**Zwei getrennte Tabellen** (Empfehlung) statt einer kombinierten — die Kardinalitäten sind unterschiedlich (~180 Tarife vs. ~30 Thresholds), und die Pflege-Frequenz auch (Tarife öfter, Thresholds selten).
+
+**Tabelle `shipping_rates`:**
+- `id` (UUID, Primärschlüssel)
+- `country_code` (ISO-3166-2 Text, CHECK gegen die EU-27+CH/UK/NO-Liste aus `src/lib/shipping-countries.ts`)
+- `product_type` (Text, CHECK in `'poster' | 'frame'` — `'download'` ist explizit ausgeschlossen, da kein Versand)
+- `format` (Text, CHECK in `'a4' | 'a3' | 'a2'`)
+- `price_cents` (Integer, > 0)
+- `status` (Text, CHECK in `'draft' | 'published'`, default `'draft'`)
+- `created_at`, `updated_at`, `published_at` (Timestamps)
+- **Unique-Constraint** auf `(country_code, product_type, format)` für `status='published'` — pro Kombination max. ein veröffentlichter Tarif
+
+**Tabelle `shipping_thresholds`:**
+- `country_code` (Text, Primärschlüssel)
+- `free_shipping_threshold_cents` (Integer, nullable — null = keine Schwelle)
+- `updated_at`
+
+**Erweiterung `orders` (existing Tabelle):**
+- Neue Spalte `shipping_cents` (Integer, nullable, default 0) — wird vom Stripe-Webhook geschrieben
+
+**Indexe:**
+- B-Tree auf `shipping_rates.country_code` (Single-Column-Lookup)
+- Composite Index auf `(country_code, status)` für die häufige "alle published Tarife für Land X"-Abfrage
+- `shipping_thresholds` braucht keinen Extra-Index (PK = country_code)
+
+**RLS-Policies:**
+- `shipping_rates`: anon + authenticated dürfen nur `status='published'` lesen; Schreibzugriffe ausschließlich Service-Role (admin-API)
+- `shipping_thresholds`: anon + authenticated dürfen alles lesen; Schreibzugriffe Service-Role
+- Pattern identisch zu `map_palettes` (PROJ-22)
+
+**Wo gespeichert:**
+- Versandtarife + Thresholds: **Supabase Postgres**
+- Echte Versandkosten pro Bestellung: **`orders.shipping_cents`**, gefüllt vom Stripe-Webhook
+- Cart-Schätzung: berechnet beim Cart-Render, nicht persistiert (immer live aus aktuellen Tarifen)
+
+### D) Tech-Entscheidungen (mit Begründung)
+
+| Entscheidung | Begründung |
+|--------------|-----------|
+| **Zwei Tabellen statt einer** (rates + thresholds) | Unterschiedliche Kardinalität (~180 vs. ~30) und unterschiedliche Pflege-Frequenz. Eine kombinierte Tabelle würde redundante Threshold-Werte pro Tarif speichern oder Sonderzeilen pro Land brauchen — beides hässlich. |
+| **Country-Allowlist als TS-Const** (`src/lib/shipping-countries.ts`) | Single Source of Truth für die unterstützte Länderliste. Wird in DB-CHECK-Constraint verwendet (per Migration), in Zod-Validierung der API, und vom Stripe-Checkout. Kein Sync-Problem, weil zur Build-Zeit eingebunden. |
+| **Country-Allowlist für Stripe wird dynamisch aus DB-Tarifen berechnet** (= alle Länder mit mind. einem published Tarif), nicht aus der TS-Const | Trennt "potentiell unterstützt" (TS-Const) von "operativ verfügbar" (DB-Tarife). Marketing kann ein Land "vorbereiten" (Tarife als Draft anlegen) ohne dass Bestellungen reinkommen. |
+| **Berechnungs-Logik als pure Funktion** (`calculateShipping`) ohne DB-Zugriff | Testbar in Unit-Tests, deterministisch, trivial zu cachen. Caller laden die Tarife einmal, übergeben sie der Funktion. |
+| **"Höchster Tarif gewinnt"-Regel als V1** | User-Decision. Verhindert die "10× A4-Poster zahlen 10× Versand"-Falle, die für Boutique-Volumen unrealistisch wäre. Wenn Praxis das wiederlegt → V2-Regel. |
+| **Stripe `shipping_options` statisch pro Session** (V1) | Stripe-Calculated-Shipping (dynamische Re-Berechnung bei Adressänderung) ist eine fortgeschrittene Stripe-Funktion mit eigener Konfiguration. V1 generiert die Optionen einmal beim Session-Create basierend auf dem Cart-Land; bei Land-Wechsel im Stripe-Checkout muss der Kunde zurück zum Cart. Akzeptabel für V1, V2-Verbesserung möglich. |
+| **Admin-UI: Länder-Detail-Ansicht** (User-Entscheidung) | Master-Detail-Pattern skaliert auch bei 30+ Ländern und 6 Tarifen pro Land übersichtlich. Linke Liste zeigt Status auf einen Blick (welche Länder sind komplett vs. lückenhaft), rechtes Panel ist fokussiertes Editing. |
+| **Bulk-Tools als Phase-2-Add-Ons** (Copy-from-Country, %-Adjust) | Nicht-blockierend für V1 — Marketing kann anfangs jeden Tarif einzeln pflegen. Sobald >5 Länder gepflegt, sparen Bulk-Tools spürbar Zeit. |
+| **Free-Shipping-Aussage auf Hero/Pricing dynamisch** | User-Anforderung. Vermeidet Marketing-Versprechen-vs.-Realität-Mismatch. Klein, aber wichtig für Vertrauen. |
+
+### E) Kritische Berechnungs-Details
+
+**`calculateShipping(items, country)` Pseudo-Logik** (zur Klärung, kein Code):
+
+1. Filter Items: nur die mit `product_type ∈ {'poster','frame'}` zählen für Versand
+2. Wenn keine physischen Items → return `{ subtotal: 0, shipping: 0, threshold_remaining: null }`
+3. Tarife für `country` aus DB laden (alle published, alle Produkt/Format-Kombis)
+4. Pro physisches Item den passenden Tarif suchen (`country × product_type × format`)
+   - Wenn Tarif fehlt für eine Kombi → Bestellung in dieses Land aktuell nicht möglich, return `{ unavailable: true, reason: 'no_rate_for_X' }`
+5. **Höchster Item-Tarif gewinnt**: `shipping = max(rates_per_item)`
+6. Threshold für `country` laden
+7. Wenn `subtotal_physical >= threshold` → `shipping = 0`, `reason = 'free_shipping_threshold'`
+8. Return `{ subtotal_physical, shipping, threshold, threshold_remaining }`
+
+**Performance:** Ein Country-Lookup zieht ~6 Tarife (2 Produkte × 3 Formate); selbst bei 20-Item-Cart ist das in <10 ms machbar. Kein Caching nötig auf Server-Seite, Edge-Cache für Public-API ausreichend.
+
+### F) Stripe-`shipping_options`-Generierung (Phase 3)
+
+Beim `POST /api/checkout/create`:
+
+1. Cart-Inhalt + ausgewähltes Land kommen aus dem Request
+2. `calculateShipping(cart, country)` → `{ shipping_cents }`
+3. Stripe-Session-Konfig:
+   - `shipping_address_collection.allowed_countries` = alle Länder mit mind. einem published Tarif (Liste aus `getSupportedCountries()`)
+   - `shipping_options` = ein Eintrag mit:
+     - Display-Name lokalisiert (z. B. "Standardversand" / "Standard shipping" / "Livraison standard")
+     - `fixed_amount.amount = shipping_cents`, `currency = 'eur'`
+     - Optional Estimated-Delivery-Days (kann später ergänzt werden)
+
+**Edge-Case:** Wenn `shipping_cents = 0` (Threshold erreicht), Display-Name wird "Kostenfrei (ab X € Bestellwert)" — visuelles Highlight.
+
+### G) Migrations-Strategie
+
+**Schritt 1 (Phase 1): DB-Migration**
+- `shipping_rates` und `shipping_thresholds` werden leer angelegt
+- `orders.shipping_cents` Spalte mit default `0` — alle bestehenden Bestellungen bleiben gültig (alte Werte = 0, was historisch stimmt: PROJ-6 V1 hatte keine separat berechneten Versandkosten, alles war im Produktpreis enthalten)
+- Keine Backfill-Daten nötig
+
+**Schritt 2 (Phase 2): Marketing pflegt erste Tarife**
+- Mindestens DE als Pilot, dann AT/CH, dann EU-Erweiterung
+- Vor Phase 3-Deploy: Verifikations-Script prüft "DE muss published sein" — sonst Build-Fail
+
+**Schritt 3 (Phase 3): Stripe-Integration scharfschalten**
+- `POST /api/checkout/create` nutzt jetzt das echte Tarif-System
+- Stripe-Sessions vor Phase-3-Deploy bleiben ohne `shipping_options` (existing behavior)
+- Stripe-Sessions ab Phase-3-Deploy haben `shipping_options` aus Tarif-Berechnung
+
+**Schritt 4 (Phase 4): Cart + Marketing-Komponenten**
+- Cart zeigt Schätzung
+- Hero/Pricing lesen Threshold dynamisch
+- Kann in beliebiger Reihenfolge nach Phase 3 ausgerollt werden
+
+### H) Abhängige Packages
+
+**Keine neuen Dependencies.** Alles nutzt Installiertes:
+- `@supabase/supabase-js` — DB-Zugriff
+- `stripe` — Checkout-Session-Erstellung
+- `zod` — API-Body-Validierung
+- `next-intl` — Locale für Cart-Anzeige + Stripe-Display-Names
+- shadcn/ui Components — Admin-UI (Card, Dialog, Input, Button, Select)
+
+### I) Risiken / Offene Punkte
+
+- **Stripe-Tax-Konfiguration**: PROJ-26 geht davon aus, dass MwSt. via Stripe Tax separat behandelt wird. Wenn Stripe Tax nicht aktiviert ist, müssen die Tarife inklusive MwSt. eingegeben werden, und der Tarif wird auf der Rechnung als Brutto angedruckt. → Backend-Phase: prüfen, wie PROJ-6 V1 mit MwSt. umgeht; ggf. eine Notiz im Admin-UI ergänzen ("Tarife sind Brutto inkl. MwSt.").
+- **Currency**: Alles in EUR. UK/NO/CH zahlen in EUR auf Stripe-Seite. Wenn später Multi-Currency gewünscht → eigenes Feature (würde `price_cents` in `prices` JSONB-Spalte mit Währungs-Keys umbauen).
+- **Race-Condition: Tarif geändert während Cart befüllt** — Cart zeigt evtl. veralteten Wert, Stripe nimmt aber live-aktuellen. Akzeptabel; falls relevant, kann Cart-Komponente ein Polling/Revalidate alle paar Minuten machen.
+- **Stripe-Session-Refresh bei Land-Wechsel**: Wenn Kunde im Stripe-Checkout das Lieferland wechselt, greift V1 nicht dynamisch nach. Das Stripe-UI zeigt aber eine Warnung. V2 wäre Stripe-Calculated-Shipping mit Webhook für Live-Berechnung.
+- **Marketing-Threshold-Aussage in Sanity-Hero**: PROJ-23 hatte "ab 49 € versandkostenfrei" als Beispiel-Aussage. Die Texte aus Sanity sind frei editierbar. → Empfehlung: Sanity-Schema um `useDynamicShipping`-Boolean ergänzen, das die Komponente anweist, statt des Sanity-Texts den DB-Threshold dynamisch zu zeigen. Klärung beim Frontend-Schritt.
+- **Verifikations-Script vor Phase-3-Deploy**: Auto-fail wenn keine published-Tarife für DE existieren. Sollte in CI laufen, vorerst manuell prüfbar mit kleinem npm-Script.
 
 ## QA Test Results
 _To be added by /qa_
