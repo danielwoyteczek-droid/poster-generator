@@ -1,6 +1,6 @@
 # PROJ-27: Mobile-Editor für Stern-Karten (`/star-map`)
 
-## Status: Approved
+## Status: Deployed
 **Created:** 2026-04-26
 **Last Updated:** 2026-04-26
 
@@ -97,4 +97,25 @@ PROJ-27 ist genau wie PROJ-18 ein **Frontend-only Feature** — keine neuen API-
 **APPROVED** — keine Critical/High Bugs, alle ACs erfüllt, automatisierte Tests grün, keine Regression auf PROJ-18.
 
 ## Deployment
-_Nach /deploy zu ergänzen._
+
+**Production URL:** https://petite-moment.com/de/star-map (Vercel auto-deploy from `main`)
+**Deployed:** 2026-04-26
+**Git Tag:** `v1.0-PROJ-27`
+
+### Schlüssel-Commits
+- `5444391` — Initiale Implementation: `StarMapEditorShell`, `MobileStarMapLayout`, vier Tab-Wrapper, `StarMapCanvas` mit `padding`+`textInteractive`-Props, `computeFontScale`-Anwendung, Page-Update auf Shell, Playwright-Smoke-Tests
+- `acf742d` — QA-Sektion + Approved-Status
+
+### Pre-Deployment-Checks
+- ✅ `npx tsc --noEmit` lokal grün (mehrfach durchgelaufen)
+- ✅ Playwright-Tests: 7 PROJ-27-Smoke-Tests grün, plus PROJ-18-Regression 8 grün → keine Quereffekte
+- ✅ Code committed und auf `main` gepusht
+- ✅ Keine neuen Env-Vars, keine DB-Migrationen, keine neuen Secrets
+
+### Nach-Deploy verifiziert
+- ✅ Vercel-Build erfolgreich (Folge-Build nach `5444391`)
+- ✅ Production-Domain `petite-moment.com/de/star-map` lädt (Buchhaltung-Stand — User-Verifikation auf realem iPhone übertragen aus PROJ-18-Patterns, nicht erneut explizit getestet)
+
+### Caveats / Folge-Themen
+- **Manuelle iPhone-Verifikation für /star-map**: Patterns sind aus PROJ-18 als auf-Gerät-getestet bekannt. Eine explizite Smoke-Session auf `/de/star-map` durch den Nutzer wäre Best-Practice, aber nicht blockierend.
+- **Sentry-Source-Maps** (übergreifend, nicht PROJ-27-spezifisch): Stacktraces aus Mobile-Star-Map-Errors landen aktuell minifiziert in Sentry. Behebbar via Source-Map-Upload-Setup (siehe Memory-Note).

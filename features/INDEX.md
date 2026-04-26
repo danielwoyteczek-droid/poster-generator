@@ -22,7 +22,7 @@
 | PROJ-6 | Stripe-Bezahlsystem | In Review | [PROJ-6-stripe-payments.md](PROJ-6-stripe-payments.md) | 2026-04-19 |
 | PROJ-7 | Stern-Karten-Generator | In Review | [PROJ-7-star-map-generator.md](PROJ-7-star-map-generator.md) | 2026-04-19 |
 | PROJ-8 | Design-Presets | In Progress | [PROJ-8-design-presets.md](PROJ-8-design-presets.md) | 2026-04-19 |
-| PROJ-9 | Admin-Editor-Werkzeuge | Planned | [PROJ-9-admin-editor-tools.md](PROJ-9-admin-editor-tools.md) | 2026-04-19 |
+| PROJ-9 | Admin-Editor-Werkzeuge | Architected | [PROJ-9-admin-editor-tools.md](PROJ-9-admin-editor-tools.md) | 2026-04-19 |
 | PROJ-10 | Admin-Bestellverwaltung | In Review | [PROJ-10-admin-order-management.md](PROJ-10-admin-order-management.md) | 2026-04-19 |
 | PROJ-11 | Homepage (Landing Page) | In Progress | [PROJ-11-homepage.md](PROJ-11-homepage.md) | 2026-04-19 |
 | PROJ-12 | Client-Order-Management | In Progress | [PROJ-12-client-order-management.md](PROJ-12-client-order-management.md) | 2026-04-20 |
