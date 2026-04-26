@@ -68,12 +68,12 @@ export function MapTab() {
 
   const {
     styleId, maskKey, marker, secondMarker, shapeConfig,
-    paletteId, customPaletteBase, customPalette, streetLabelsVisible,
+    paletteId, customPaletteBase, customPalette, streetLabelsVisible, posterDarkMode,
     layoutId,
     setStyleId, setMaskKey, setMarker, setSecondMarker,
     setShapeOuter, setInnerFrame, setOuterFrame,
     setLayoutId,
-    setPaletteId, setCustomPaletteBase, setCustomPalette, updateCustomPaletteColor, setStreetLabelsVisible,
+    setPaletteId, setCustomPaletteBase, setCustomPalette, updateCustomPaletteColor, setStreetLabelsVisible, setPosterDarkMode,
     flyToLocation, setLocationName,
     secondMap, setSecondMapStyleId, setSecondMapPaletteId, setSecondMapCustomPaletteBase, setSecondMapCustomPalette, updateSecondMapCustomPaletteColor, flyToSecondLocation,
     splitMode, setSplitMode,
@@ -827,6 +827,13 @@ export function MapTab() {
             {shapeSupported && (
             <div className="space-y-2 pt-2 border-t border-border">
               <span className="text-xs font-medium text-foreground/70">{t('outerAreaLabel')}</span>
+              <div className="flex items-center justify-between">
+                <Label className="text-[11px] text-muted-foreground">{t('outerDarkMode')}</Label>
+                <Switch
+                  checked={posterDarkMode}
+                  onCheckedChange={setPosterDarkMode}
+                />
+              </div>
               <div className="grid grid-cols-2 gap-1">
                 {([
                   { key: 'none', label: t('outerModeNone') },
@@ -867,11 +874,11 @@ export function MapTab() {
                   <div className="space-y-1">
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] text-muted-foreground">{t('outerGlowRadius')}</span>
-                      <span className="text-[11px] text-muted-foreground/70 tabular-nums">{shapeConfig.outer.glowRadius ?? 8} mm</span>
+                      <span className="text-[11px] text-muted-foreground/70 tabular-nums">{shapeConfig.outer.glowRadius ?? 250} mm</span>
                     </div>
                     <Slider
-                      min={1} max={30} step={1}
-                      value={[shapeConfig.outer.glowRadius ?? 8]}
+                      min={150} max={500} step={10}
+                      value={[shapeConfig.outer.glowRadius ?? 250]}
                       onValueChange={([v]) => setShapeOuter({ glowRadius: v })}
                     />
                   </div>
@@ -881,7 +888,7 @@ export function MapTab() {
                       <span className="text-[11px] text-muted-foreground/70 tabular-nums">{Math.round((shapeConfig.outer.glowIntensity ?? 0.5) * 100)}%</span>
                     </div>
                     <Slider
-                      min={0.1} max={1} step={0.05}
+                      min={0.05} max={1} step={0.05}
                       value={[shapeConfig.outer.glowIntensity ?? 0.5]}
                       onValueChange={([v]) => setShapeOuter({ glowIntensity: v })}
                     />

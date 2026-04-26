@@ -6,13 +6,16 @@ import { useEditorStore, LAYOUT_MAP_HEIGHT } from '@/hooks/useEditorStore'
 import { computeFontScale } from '@/lib/font-scale'
 import { useCustomMasks } from '@/hooks/useCustomMasks'
 import { MAP_MASKS } from '@/lib/map-masks'
+import { getPalette } from '@/lib/map-palettes'
 import { composeMaskSvg, composeFrameSvg, svgToDataUrl, hasAnyFrame } from '@/lib/mask-composer'
+import { useRasterizedMaskUrl } from '@/hooks/useRasterizedMaskUrl'
 import { PRINT_FORMATS } from '@/lib/print-formats'
 import { MapPreview } from './MapPreview'
 import { TextBlockOverlay } from './TextBlockOverlay'
 import { DraggablePin } from './DraggablePin'
 import { PhotoOverlay } from './PhotoOverlay'
 import { SplitPhotoOverlay } from './SplitPhotoOverlay'
+import { PreviewTriggerButton } from './PreviewTriggerButton'
 
 function ClassicPin({ color }: { color: string }) {
   return (
@@ -79,7 +82,7 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
   const photoInteractive = activeMobileTool === undefined || activeMobileTool === 'photo'
   const markerInteractive = activeMobileTool === undefined || activeMobileTool === 'marker'
 
-  const { maskKey, printFormat, zoomIn, zoomOut, flyToLocation, zoomInSecond, zoomOutSecond, secondMap, marker, secondMarker, shapeConfig, viewState, setMarker, setSecondMarker, setSelectedBlockId, splitMode, splitPhoto, splitPhotoZone, layoutId, innerMarginMm } = useEditorStore()
+  const { maskKey, printFormat, zoomIn, zoomOut, flyToLocation, zoomInSecond, zoomOutSecond, secondMap, marker, secondMarker, shapeConfig, viewState, setMarker, setSecondMarker, setSelectedBlockId, splitMode, splitPhoto, splitPhotoZone, layoutId, innerMarginMm, paletteId, customPalette, posterDarkMode } = useEditorStore()
   const mapAreaRef = useRef<HTMLDivElement>(null)
   const { masks: customMasks } = useCustomMasks()
   const mask =
@@ -101,9 +104,18 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
     : null
   const useComposedMask = !!mask.shape && !isDualMap && !isSplitPhoto
   const layoutMapHeight = LAYOUT_MAP_HEIGHT[layoutId]
-  const composedMaskDataUrl = useComposedMask && mask.shape
-    ? svgToDataUrl(composeMaskSvg(mask.shape, shapeConfig, layoutMapHeight))
+  const composedMaskSvgString = useComposedMask && mask.shape
+    ? composeMaskSvg(mask.shape, shapeConfig, layoutMapHeight)
     : null
+  // Glow mode uses <radialGradient>, which Chromium doesn't always
+  // rasterise from a CSS mask-image SVG data URL. Render those masks
+  // through canvas first so the gradient is baked into a PNG.
+  const composedMaskDataUrl = useRasterizedMaskUrl(
+    composedMaskSvgString,
+    shapeConfig.outer.mode === 'glow',
+    mask.shape?.width ?? 0,
+    mask.shape?.height ?? 0,
+  )
   const composedFrameDataUrl = useComposedMask && mask.shape && hasAnyFrame(shapeConfig)
     ? svgToDataUrl(composeFrameSvg(mask.shape, shapeConfig, layoutMapHeight))
     : null
@@ -160,6 +172,7 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
 
   return (
     <div ref={wrapperRef} className="flex-1 relative bg-muted min-h-0 overflow-hidden flex items-center justify-center">
+      <PreviewTriggerButton />
       {posterSize.width > 0 && (() => {
         const mmToPx = posterSize.width / format.widthMm
         const marginPx = innerMarginMm * mmToPx
@@ -173,8 +186,16 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
         <>
           <div
             ref={posterRef}
-            className="relative bg-white shadow-2xl overflow-hidden flex-none"
-            style={{ width: posterSize.width, height: posterSize.height }}
+            className="relative shadow-2xl overflow-hidden flex-none"
+            style={{
+              width: posterSize.width,
+              height: posterSize.height,
+              backgroundColor: posterDarkMode
+                ? (customPalette?.background
+                    ?? getPalette(paletteId)?.colors.background
+                    ?? '#ffffff')
+                : '#ffffff',
+            }}
             onPointerDown={() => setSelectedBlockId(null)}
           >
             <div

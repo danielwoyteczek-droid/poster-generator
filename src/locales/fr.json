@@ -180,6 +180,8 @@
     "paperFormatPrintHint": "{w} × {h} mm · 300 PPP · qualité d'impression",
     "exportPreviewCta": "Voir en mise en scène",
     "exportPreviewFailed": "Échec de l'aperçu",
+    "previewTooltip": "Aperçu",
+    "previewAriaLabel": "Ouvrir l'aperçu d'impression",
     "exportProductLabel": "Choisir un produit",
     "exportAddedToCart": "Ajouté au panier",
     "exportAddFailed": "Impossible d'ajouter au panier",
@@ -253,6 +255,7 @@
     "outerModeFaded": "Atténué",
     "outerModeFull": "Plein",
     "outerModeGlow": "Halo",
+    "outerDarkMode": "Mode sombre",
     "outerOpacity": "Transparence",
     "outerGlowRadius": "Rayon du halo",
     "outerGlowIntensity": "Intensité du halo",
@@ -363,6 +366,7 @@
     "circle": "Cercle",
     "heart": "Cœur partagé",
     "heart-single": "Cœur",
+    "house": "Maison",
     "frame1": "Cadre",
     "text-below": "Classic",
     "split-circles": "Cercles partagés",
@@ -448,6 +452,7 @@
     "adminPresets": "Préréglages de design",
     "adminMasks": "Bibliothèque de masques",
     "adminPalettes": "Palettes de couleurs",
+    "adminBusinessCenter": "Business Center",
     "createPoster": "Créer une affiche"
   }
 }

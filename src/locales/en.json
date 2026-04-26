@@ -180,6 +180,8 @@
     "paperFormatPrintHint": "{w} × {h} mm · 300 DPI · print quality",
     "exportPreviewCta": "View in room mockup",
     "exportPreviewFailed": "Preview failed",
+    "previewTooltip": "Preview",
+    "previewAriaLabel": "Open print preview",
     "exportProductLabel": "Choose product",
     "exportAddedToCart": "Added to cart",
     "exportAddFailed": "Failed to add to cart",
@@ -253,6 +255,7 @@
     "outerModeFaded": "Faded",
     "outerModeFull": "Full",
     "outerModeGlow": "Glow",
+    "outerDarkMode": "Dark mode",
     "outerOpacity": "Transparency",
     "outerGlowRadius": "Glow radius",
     "outerGlowIntensity": "Glow intensity",
@@ -363,6 +366,7 @@
     "circle": "Circle",
     "heart": "Split heart",
     "heart-single": "Heart",
+    "house": "House",
     "frame1": "Frame",
     "text-below": "Classic",
     "split-circles": "Split circles",
@@ -448,6 +452,7 @@
     "adminPresets": "Design presets",
     "adminMasks": "Masks library",
     "adminPalettes": "Colour palettes",
+    "adminBusinessCenter": "Business Center",
     "createPoster": "Create poster"
   }
 }

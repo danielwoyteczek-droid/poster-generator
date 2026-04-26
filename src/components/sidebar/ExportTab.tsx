@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { useTranslatedLabel } from '@/lib/i18n-catalog'
-import { Loader2, FileImage, FileText, Download, Image, Frame, ShoppingCart, Eye } from 'lucide-react'
+import { Loader2, FileImage, FileText, Download, Image, Frame, ShoppingCart } from 'lucide-react'
 import { toast } from 'sonner'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
@@ -14,7 +14,6 @@ import { useCartStore } from '@/hooks/useCartStore'
 import { PRINT_FORMAT_OPTIONS, type PrintFormat } from '@/lib/print-formats'
 import { PRODUCTS, formatPrice, type ProductId } from '@/lib/products'
 import { cn } from '@/lib/utils'
-import { PosterFrameModal } from '@/components/editor/PosterFrameModal'
 import { trackAddToCart } from '@/lib/analytics'
 import { priceFromCatalog, useProductCatalog } from '@/hooks/useProductCatalog'
 import { DiscountBadge } from '@/components/ui/discount-badge'
@@ -271,50 +270,6 @@ function CustomerProductView({ printFormat }: { printFormat: string }) {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-function PreviewButton({ printFormat }: { printFormat: string }) {
-  const t = useTranslations('editor')
-  const { renderPreview } = useMapExport()
-  const [open, setOpen] = useState(false)
-  const [imageDataUrl, setImageDataUrl] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  const handleClick = async () => {
-    setOpen(true)
-    setIsLoading(true)
-    setImageDataUrl(null)
-    setError(null)
-    try {
-      const url = await renderPreview(printFormat as PrintFormat)
-      setImageDataUrl(url)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t('exportPreviewFailed'))
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  return (
-    <>
-      <button
-        type="button"
-        onClick={handleClick}
-        className="w-full h-10 flex items-center justify-center gap-2 rounded-md border border-border text-foreground/70 text-sm font-medium hover:bg-muted transition-colors"
-      >
-        <Eye className="w-4 h-4" />
-        {t('exportPreviewCta')}
-      </button>
-      <PosterFrameModal
-        open={open}
-        onOpenChange={setOpen}
-        imageDataUrl={imageDataUrl}
-        isLoading={isLoading}
-        error={error}
-      />
-    </>
-  )
-}
-
 export function ExportTab() {
   const { printFormat, setPrintFormat } = useEditorStore()
   const { isAdmin, loading } = useAuth()
@@ -324,10 +279,6 @@ export function ExportTab() {
   return (
     <div className="space-y-5 p-4">
       <FormatSelector printFormat={printFormat} setPrintFormat={setPrintFormat} fmt={fmt} />
-
-      <Separator />
-
-      <PreviewButton printFormat={printFormat} />
 
       <Separator />
 

@@ -180,6 +180,8 @@
     "paperFormatPrintHint": "{w} × {h} mm · 300 DPI · qualità di stampa",
     "exportPreviewCta": "Vedi in anteprima ambiente",
     "exportPreviewFailed": "Anteprima non riuscita",
+    "previewTooltip": "Anteprima",
+    "previewAriaLabel": "Apri l'anteprima di stampa",
     "exportProductLabel": "Scegli prodotto",
     "exportAddedToCart": "Aggiunto al carrello",
     "exportAddFailed": "Aggiunta al carrello non riuscita",
@@ -253,6 +255,7 @@
     "outerModeFaded": "Attenuata",
     "outerModeFull": "Piena",
     "outerModeGlow": "Bagliore",
+    "outerDarkMode": "Modalità scura",
     "outerOpacity": "Trasparenza",
     "outerGlowRadius": "Raggio bagliore",
     "outerGlowIntensity": "Intensità bagliore",
@@ -363,6 +366,7 @@
     "circle": "Cerchio",
     "heart": "Cuore diviso",
     "heart-single": "Cuore",
+    "house": "Casa",
     "frame1": "Cornice",
     "text-below": "Classic",
     "split-circles": "Cerchi divisi",
@@ -448,6 +452,7 @@
     "adminPresets": "Preset di design",
     "adminMasks": "Libreria maschere",
     "adminPalettes": "Palette colori",
+    "adminBusinessCenter": "Business Center",
     "createPoster": "Crea poster"
   }
 }

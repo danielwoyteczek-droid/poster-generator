@@ -11,7 +11,7 @@ import { PHOTO_MASKS, type PhotoMaskKey } from '@/lib/photo-masks'
 import { filterCss } from '@/lib/photo-filters'
 import { buildPetiteStyle } from '@/lib/petite-style-loader'
 import { computeFontScale } from '@/lib/font-scale'
-import type { MapPaletteColors } from '@/lib/map-palettes'
+import { getPalette, type MapPaletteColors } from '@/lib/map-palettes'
 import type { PhotoItem, SplitPhoto } from './useEditorStore'
 
 // ─── Types ─────────────────────────────────────────────────────────────────
@@ -23,6 +23,7 @@ export interface ExportSnapshot {
   customPaletteBase?: string | null
   customPalette?: MapPaletteColors | null
   streetLabelsVisible?: boolean
+  posterDarkMode?: boolean
   maskKey: MapMaskKey
   marker: MarkerState
   secondMarker: MarkerState
@@ -469,7 +470,16 @@ export async function buildPosterCanvas(
   canvas.width = W
   canvas.height = H
   const ctx = canvas.getContext('2d')!
-  ctx.fillStyle = '#ffffff'
+  // Match the live preview's poster background. When darkMode is on,
+  // bleed the active palette's background colour through so the area
+  // outside the shape blends with the map's land colour (otherwise the
+  // mask edge against pure white is jarring on dark palettes).
+  const posterBg = store.posterDarkMode
+    ? (store.customPalette?.background
+        ?? getPalette(store.paletteId ?? '')?.colors.background
+        ?? '#ffffff')
+    : '#ffffff'
+  ctx.fillStyle = posterBg
   ctx.fillRect(0, 0, W, H)
 
   if (isDualMap) {
@@ -658,7 +668,7 @@ function slugify(name: string): string {
 export function useMapExport() {
   const [isExporting, setIsExporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const { viewState, styleId, paletteId, customPaletteBase, customPalette, streetLabelsVisible, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos, splitMode, splitPhoto, splitPhotoZone, layoutId, innerMarginMm } =
+  const { viewState, styleId, paletteId, customPaletteBase, customPalette, streetLabelsVisible, posterDarkMode, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos, splitMode, splitPhoto, splitPhotoZone, layoutId, innerMarginMm } =
     useEditorStore()
 
   const run = async (format: PrintFormat, type: 'png' | 'pdf') => {
@@ -666,7 +676,7 @@ export function useMapExport() {
     setError(null)
     try {
       const snapshot: ExportSnapshot = {
-        viewState, styleId, paletteId, customPaletteBase, customPalette, streetLabelsVisible, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos, splitMode, splitPhoto, splitPhotoZone, layoutId, innerMarginMm,
+        viewState, styleId, paletteId, customPaletteBase, customPalette, streetLabelsVisible, posterDarkMode, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos, splitMode, splitPhoto, splitPhotoZone, layoutId, innerMarginMm,
       }
       const canvas = await buildPosterCanvas(format, snapshot)
       const pngBlob = await canvasToBlob(canvas)
@@ -705,7 +715,7 @@ export function useMapExport() {
 
   const renderPreview = async (format: PrintFormat): Promise<string> => {
     const snapshot: ExportSnapshot = {
-      viewState, styleId, paletteId, customPaletteBase, customPalette, streetLabelsVisible, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos, splitMode, splitPhoto, splitPhotoZone, layoutId, innerMarginMm,
+      viewState, styleId, paletteId, customPaletteBase, customPalette, streetLabelsVisible, posterDarkMode, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos, splitMode, splitPhoto, splitPhotoZone, layoutId, innerMarginMm,
     }
     const canvas = await buildPosterCanvas(format, snapshot)
     return canvas.toDataURL('image/png')

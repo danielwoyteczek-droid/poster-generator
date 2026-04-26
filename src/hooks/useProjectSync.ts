@@ -17,6 +17,7 @@ function getConfig(): EditorConfig {
     customPaletteBase: s.customPaletteBase,
     customPalette: s.customPalette,
     streetLabelsVisible: s.streetLabelsVisible,
+    posterDarkMode: s.posterDarkMode,
     maskKey: s.maskKey,
     printFormat: s.printFormat,
     marker: s.marker,

@@ -42,7 +42,7 @@ export interface ShapeConfigState {
 }
 
 export const DEFAULT_SHAPE_CONFIG: ShapeConfigState = {
-  outer: { mode: 'none', opacity: 0.3, margin: 10, marginLocked: true, glowRadius: 8, glowIntensity: 0.5 },
+  outer: { mode: 'none', opacity: 0.3, margin: 10, marginLocked: true, glowRadius: 250, glowIntensity: 0.5 },
   innerFrame: { enabled: false, color: '#1a1a1a', thickness: 0.7 },
   outerFrame: { enabled: false, color: '#1a1a1a', thickness: 0.7, style: 'single', gap: 1.5 },
 }
@@ -166,26 +166,35 @@ export function composeMaskSvg(
     )
   }
 
-  // Glow: a Gaussian-blurred copy of the shape painted underneath the solid
-  // shape produces a soft radial halo that follows the shape's contour.
+  // Glow: a true radial gradient on a circle centred on the shape's
+  // visual midpoint. Rendering correctness in CSS mask-image relies on
+  // the consumer rasterising this SVG to a PNG first (see
+  // useRasterizedMaskUrl in PosterCanvas) — Chromium doesn't always
+  // honour <radialGradient> when an SVG data URL is used directly as a
+  // mask source. The canvas export pipeline rasterises by default.
   let defs = ''
   if (outer.mode === 'glow') {
-    const radiusMm = outer.glowRadius ?? 8
+    const radiusMm = outer.glowRadius ?? 250
     const intensity = outer.glowIntensity ?? 0.5
-    const stdDev = mmToUnits(radiusMm, shape.width).toFixed(2)
-    // Oversize the filter region so the halo isn't clipped at the viewBox edge.
+    const r = mmToUnits(radiusMm, shape.width).toFixed(2)
+    const bottomFraction = shape.bottomFraction ?? 1
+    const visibleBottom = Math.min(bottomFraction, layoutMapHeight)
+    const cx = (shape.width / 2).toFixed(2)
+    const cy = ((shape.height * visibleBottom) / 2).toFixed(2)
     defs =
-      `<defs><filter id="m-glow" x="-30%" y="-30%" width="160%" height="160%">` +
-      `<feGaussianBlur stdDeviation="${stdDev}"/></filter></defs>`
+      `<defs><radialGradient id="m-glow">` +
+      `<stop offset="0%" stop-color="#fff" stop-opacity="${intensity}"/>` +
+      `<stop offset="100%" stop-color="#fff" stop-opacity="0"/>` +
+      `</radialGradient></defs>`
     parts.push(
-      `<g fill="#fff" fill-opacity="${intensity}" filter="url(#m-glow)"${shapeTransform}>${shape.markup}</g>`,
+      `<circle cx="${cx}" cy="${cy}" r="${r}" fill="url(#m-glow)"/>`,
     )
   }
 
   // Shape always drawn at full opacity on top (unless mode=full made it redundant)
   parts.push(`<g fill="#fff" fill-opacity="1"${shapeTransform}>${shape.markup}</g>`)
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${shape.viewBox}">${defs}${parts.join('')}</svg>`
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${shape.viewBox}" width="${shape.width}" height="${shape.height}">${defs}${parts.join('')}</svg>`
 }
 
 /**

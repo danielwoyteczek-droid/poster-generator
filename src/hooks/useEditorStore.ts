@@ -126,6 +126,10 @@ export interface EditorStore {
   customPaletteBase: string | null
   customPalette: MapPaletteColors | null
   streetLabelsVisible: boolean
+  /** When true, the poster background follows the active palette's
+   *  `background` colour (so the area outside the shape blends with the
+   *  map's land colour). When false, the poster bg stays white. */
+  posterDarkMode: boolean
   maskKey: MapMaskKey
   printFormat: PrintFormat
   marker: MarkerState
@@ -166,6 +170,7 @@ export interface EditorStore {
   setCustomPalette: (colors: MapPaletteColors | null) => void
   updateCustomPaletteColor: (key: keyof MapPaletteColors, hex: string) => void
   setStreetLabelsVisible: (visible: boolean) => void
+  setPosterDarkMode: (value: boolean) => void
   setMaskKey: (key: MapMaskKey) => void
   setPrintFormat: (format: PrintFormat) => void
   setMarker: (updates: Partial<MarkerState>) => void
@@ -214,6 +219,7 @@ export interface EditorConfig {
   customPaletteBase: string | null
   customPalette: MapPaletteColors | null
   streetLabelsVisible: boolean
+  posterDarkMode: boolean
   maskKey: MapMaskKey
   printFormat: PrintFormat
   marker: MarkerState
@@ -253,6 +259,7 @@ export const EDITOR_INITIAL_STATE = {
   customPaletteBase: null,
   customPalette: null,
   streetLabelsVisible: false,
+  posterDarkMode: false,
   maskKey: 'none',
   printFormat: 'a4' as const,
   marker: { enabled: false, type: 'classic' as const, color: '#e63946' },
@@ -329,6 +336,7 @@ export const useEditorStore = create<EditorStore>((set) => ({
       customPalette: { ...(s.customPalette ?? ({} as MapPaletteColors)), [key]: hex },
     })),
   setStreetLabelsVisible: (streetLabelsVisible) => set({ streetLabelsVisible }),
+  setPosterDarkMode: (posterDarkMode) => set({ posterDarkMode }),
   setMaskKey: (maskKey) => set({ maskKey }),
   setPrintFormat: (printFormat) => set({ printFormat }),
   setMarker: (updates) => set((s) => ({ marker: { ...s.marker, ...updates } })),
@@ -443,6 +451,7 @@ export const useEditorStore = create<EditorStore>((set) => ({
     customPaletteBase: config.customPaletteBase ?? s.customPaletteBase,
     customPalette: config.customPalette ?? s.customPalette,
     streetLabelsVisible: config.streetLabelsVisible ?? s.streetLabelsVisible,
+    posterDarkMode: config.posterDarkMode ?? s.posterDarkMode,
     maskKey: config.maskKey ?? s.maskKey,
     printFormat: config.printFormat ?? s.printFormat,
     marker: config.marker ?? s.marker,

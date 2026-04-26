@@ -180,6 +180,8 @@
     "paperFormatPrintHint": "{w} × {h} mm · 300 PPP · calidad de impresión",
     "exportPreviewCta": "Ver en vista de habitación",
     "exportPreviewFailed": "Error en la vista previa",
+    "previewTooltip": "Vista previa",
+    "previewAriaLabel": "Abrir vista previa de impresión",
     "exportProductLabel": "Elegir producto",
     "exportAddedToCart": "Añadido al carrito",
     "exportAddFailed": "No se pudo añadir al carrito",
@@ -253,6 +255,7 @@
     "outerModeFaded": "Atenuada",
     "outerModeFull": "Llena",
     "outerModeGlow": "Resplandor",
+    "outerDarkMode": "Modo oscuro",
     "outerOpacity": "Transparencia",
     "outerGlowRadius": "Radio del resplandor",
     "outerGlowIntensity": "Intensidad del resplandor",
@@ -363,6 +366,7 @@
     "circle": "Círculo",
     "heart": "Corazón dividido",
     "heart-single": "Corazón",
+    "house": "Casa",
     "frame1": "Marco",
     "text-below": "Classic",
     "split-circles": "Círculos divididos",
@@ -448,6 +452,7 @@
     "adminPresets": "Preajustes de diseño",
     "adminMasks": "Biblioteca de máscaras",
     "adminPalettes": "Paletas de colores",
+    "adminBusinessCenter": "Business Center",
     "createPoster": "Crear póster"
   }
 }
