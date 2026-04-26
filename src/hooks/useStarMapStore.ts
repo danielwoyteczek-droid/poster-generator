@@ -67,22 +67,33 @@ interface StarMapStore {
   setPreviewSize: (width: number, height: number) => void
 }
 
+/**
+ * Initial data state (no actions). Called as a function so `datetime` reflects
+ * the current moment when the user resets — old date wouldn't make sense.
+ * Used by the Admin "Editor zurücksetzen" tool (PROJ-9).
+ */
+export function getStarMapInitialState() {
+  return {
+    lat: 48.137154,
+    lng: 11.576124,
+    locationName: 'München',
+    datetime: toDatetimeLocal(new Date()),
+    posterBgColor: '#ffffff',
+    skyBgColor: '#000000',
+    starColor: '#ffffff',
+    showConstellations: false,
+    showMilkyWay: false,
+    showSun: false,
+    showMoon: false,
+    showPlanets: false,
+    frameConfig: DEFAULT_STAR_FRAME_CONFIG,
+    previewWidth: 500,
+    previewHeight: 707,
+  }
+}
+
 export const useStarMapStore = create<StarMapStore>((set) => ({
-  lat: 48.137154,
-  lng: 11.576124,
-  locationName: 'München',
-  datetime: toDatetimeLocal(new Date()),
-  posterBgColor: '#ffffff',
-  skyBgColor: '#000000',
-  starColor: '#ffffff',
-  showConstellations: false,
-  showMilkyWay: false,
-  showSun: false,
-  showMoon: false,
-  showPlanets: false,
-  frameConfig: DEFAULT_STAR_FRAME_CONFIG,
-  previewWidth: 500,
-  previewHeight: 707,
+  ...getStarMapInitialState(),
 
   setLocation: (lat, lng, locationName) => set({ lat, lng, locationName }),
   setDatetime: (datetime) => set({ datetime }),

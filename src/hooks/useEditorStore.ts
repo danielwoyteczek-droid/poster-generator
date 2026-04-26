@@ -239,7 +239,12 @@ const DEFAULT_VIEW: ViewState = {
   bounds: { west: 0, south: 0, east: 0, north: 0 },
 }
 
-export const useEditorStore = create<EditorStore>((set) => ({
+/**
+ * Initial state for all data fields in the editor (no actions). Exported so
+ * tools like the Admin "Editor zurücksetzen" button (PROJ-9) can restore it
+ * without duplicating defaults.
+ */
+export const EDITOR_INITIAL_STATE = {
   viewState: DEFAULT_VIEW,
   pendingCenter: null,
   pendingZoomDelta: null,
@@ -249,11 +254,11 @@ export const useEditorStore = create<EditorStore>((set) => ({
   customPalette: null,
   streetLabelsVisible: false,
   maskKey: 'none',
-  printFormat: 'a4',
-  marker: { enabled: false, type: 'classic', color: '#e63946' },
-  secondMarker: { enabled: false, type: 'classic', color: '#e63946' },
+  printFormat: 'a4' as const,
+  marker: { enabled: false, type: 'classic' as const, color: '#e63946' },
+  secondMarker: { enabled: false, type: 'classic' as const, color: '#e63946' },
   shapeConfig: DEFAULT_SHAPE_CONFIG,
-  layoutId: 'full',
+  layoutId: 'full' as const,
   innerMarginMm: 0,
   secondMap: {
     enabled: false,
@@ -272,7 +277,7 @@ export const useEditorStore = create<EditorStore>((set) => ({
       x: 0.1, y: 0.75, width: 0.8,
       fontFamily: 'Amsterdam',
       fontSize: 32, color: '#000000',
-      align: 'center', bold: false, uppercase: false,
+      align: 'center' as const, bold: false, uppercase: false,
       locked: false, isCoordinates: false,
     },
     {
@@ -281,7 +286,7 @@ export const useEditorStore = create<EditorStore>((set) => ({
       x: 0.1, y: 0.87, width: 0.8,
       fontFamily: 'CaviarDreams',
       fontSize: 13, color: '#555555',
-      align: 'center', bold: false, uppercase: true,
+      align: 'center' as const, bold: false, uppercase: true,
       locked: false, isCoordinates: false, label: 'Name',
     },
     {
@@ -290,7 +295,7 @@ export const useEditorStore = create<EditorStore>((set) => ({
       x: 0.1, y: 0.91, width: 0.8,
       fontFamily: 'CaviarDreams',
       fontSize: 11, color: '#888888',
-      align: 'center', bold: false, uppercase: false,
+      align: 'center' as const, bold: false, uppercase: false,
       locked: false, isCoordinates: true, label: 'Ort & Koordinaten',
     },
   ],
@@ -299,9 +304,13 @@ export const useEditorStore = create<EditorStore>((set) => ({
   projectId: null,
   editingPreset: null,
   photos: [],
-  splitMode: 'none',
+  splitMode: 'none' as const,
   splitPhoto: null,
   splitPhotoZone: 1,
+}
+
+export const useEditorStore = create<EditorStore>((set) => ({
+  ...EDITOR_INITIAL_STATE,
 
   setViewState: (viewState) => set({ viewState }),
   flyToLocation: (lng, lat, zoom = 13) =>

@@ -19,6 +19,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { createClient } from '@/lib/supabase-browser'
 import { SaveButton } from '@/components/editor/SaveButton'
 import { SaveAsPresetButton } from '@/components/editor/SaveAsPresetButton'
+import { ResetEditorButton } from '@/components/editor/ResetEditorButton'
 import { useCartStore } from '@/hooks/useCartStore'
 import { EmailConfirmBanner } from '@/components/EmailConfirmBanner'
 import { LanguageSwitcher } from '@/components/LanguageSwitcher'
@@ -82,6 +83,7 @@ export function LandingNav() {
         <div className="hidden md:flex items-center gap-3">
           {isEditor && user && <SaveButton />}
           {isEditor && isAdmin && <SaveAsPresetButton />}
+          {isEditor && isAdmin && <ResetEditorButton />}
 
           <LanguageSwitcher />
 
