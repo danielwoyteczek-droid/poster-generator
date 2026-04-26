@@ -29,6 +29,8 @@ Ein webbasierter Karten-Poster-Generator, mit dem Nutzer ohne Designkenntnisse p
 | P1 | Localized Storefront Content (Presets + Hero/Beispiel-Bilder pro Locale) | Planned |
 | P1 | Admin-Editor-Werkzeuge (Editor-Toolbar: Reset etc.) | Planned |
 | P1 | Versandkosten-Management (EU-Tarife pro Land × Produkt × Format) | Planned |
+| P2 | Business Center (Internes Operator-Tool: Business-Case + Plan-vs-Ist) | Planned |
+| P1 | Anlass-Landing-Pages (SEO-Marketing-Hubs pro Anlass × Locale) | Planned |
 
 ## Success Metrics
 - Conversion Rate: >5% der anonymen Nutzer erstellen ein Konto

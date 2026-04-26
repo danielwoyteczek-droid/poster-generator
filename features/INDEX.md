@@ -22,7 +22,7 @@
 | PROJ-6 | Stripe-Bezahlsystem | In Review | [PROJ-6-stripe-payments.md](PROJ-6-stripe-payments.md) | 2026-04-19 |
 | PROJ-7 | Stern-Karten-Generator | In Review | [PROJ-7-star-map-generator.md](PROJ-7-star-map-generator.md) | 2026-04-19 |
 | PROJ-8 | Design-Presets | In Progress | [PROJ-8-design-presets.md](PROJ-8-design-presets.md) | 2026-04-19 |
-| PROJ-9 | Admin-Editor-Werkzeuge | Architected | [PROJ-9-admin-editor-tools.md](PROJ-9-admin-editor-tools.md) | 2026-04-19 |
+| PROJ-9 | Admin-Editor-Werkzeuge | In Progress | [PROJ-9-admin-editor-tools.md](PROJ-9-admin-editor-tools.md) | 2026-04-19 |
 | PROJ-10 | Admin-Bestellverwaltung | In Review | [PROJ-10-admin-order-management.md](PROJ-10-admin-order-management.md) | 2026-04-19 |
 | PROJ-11 | Homepage (Landing Page) | In Progress | [PROJ-11-homepage.md](PROJ-11-homepage.md) | 2026-04-19 |
 | PROJ-12 | Client-Order-Management | In Progress | [PROJ-12-client-order-management.md](PROJ-12-client-order-management.md) | 2026-04-20 |
@@ -41,10 +41,12 @@
 | PROJ-25 | Editor UX Consistency Pass | Planned | [PROJ-25-editor-ux-consistency.md](PROJ-25-editor-ux-consistency.md) | 2026-04-25 |
 | PROJ-26 | Versandkosten-Management | Architected | [PROJ-26-shipping-rate-management.md](PROJ-26-shipping-rate-management.md) | 2026-04-26 |
 | PROJ-27 | Mobile Star-Map Editor | Deployed | [PROJ-27-mobile-star-map-editor.md](PROJ-27-mobile-star-map-editor.md) | 2026-04-26 |
+| PROJ-28 | Business Center | In Progress | [PROJ-28-business-center.md](PROJ-28-business-center.md) | 2026-04-26 |
+| PROJ-29 | Anlass-Landing-Pages (SEO) | Architected | [PROJ-29-occasion-landing-pages.md](PROJ-29-occasion-landing-pages.md) | 2026-04-26 |
 
 <!-- Add features above this line -->
 
-## Next Available ID: PROJ-28
+## Next Available ID: PROJ-30
 
 ## Recommended Build Order
 1. **PROJ-1** — Karten-Editor Core (Fundament der App)
