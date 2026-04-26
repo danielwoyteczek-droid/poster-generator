@@ -45,3 +45,9 @@ next-env.d.ts
 
 # blog automation runtime state
 scripts/blog-automation/.budget.json
+
+# playwright test artifacts
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
