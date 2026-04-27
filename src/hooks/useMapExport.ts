@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useEditorStore, type TextBlock, type ViewState, type MarkerState, type SecondMapState, type ShapeConfigState } from './useEditorStore'
-import { composeMaskSvg, composeFrameSvg, composeFullbleedMaskSvg, parseShapeSvg, svgToDataUrl, hasAnyFrame } from '@/lib/mask-composer'
+import { composeMaskSvg, composeFrameSvg, composeFullbleedMaskSvg, composeSplitSeamSvg, parseShapeSvg, svgToDataUrl, hasAnyFrame } from '@/lib/mask-composer'
 import { PRINT_FORMATS, type PrintFormat } from '@/lib/print-formats'
 import { MAP_MASKS, type MapMaskKey } from '@/lib/map-masks'
 import { resolveMask } from '@/hooks/useCustomMasks'
@@ -610,26 +610,65 @@ export async function buildPosterCanvas(
 
   // Decorative frame (inner + outer), composed from shape + shapeConfig.
   // For shape masks the frame hugs the silhouette and draws into the map
-  // target rect. For dual/split modes AND fullbleed (no shape, no split) there's
-  // no single shape, so use a synthetic full-poster rectangle and skip the
-  // inner frame (which requires a silhouette).
+  // target rect. For dual/split modes the outer frame is synthesised against
+  // a full-poster rectangle, while the inner frame ("Formkontur") strokes
+  // the split mask's combined silhouette when one is defined.
   if (!isDualMap && !isSplitPhoto && mask.shape && shapeConfig && hasAnyFrame(shapeConfig)) {
     const frameSvg = composeFrameSvg(mask.shape, shapeConfig, layoutMapHeightForShape)
     const frameImg = await loadImage(svgToDataUrl(frameSvg))
     ctx.drawImage(frameImg, mapTargetX, mapTargetY, mapTargetW, mapTargetH)
-  } else if (shapeConfig && shapeConfig.outerFrame.enabled && (isDualMap || isSplitPhoto || !mask.shape)) {
-    const syntheticShape = {
-      viewBox: '0 0 595.3 841.9',
-      width: 595.3, height: 841.9,
-      markup: '<rect x="0" y="0" width="595.3" height="841.9"/>',
+  } else if (shapeConfig && (isDualMap || isSplitPhoto || !mask.shape)) {
+    if (shapeConfig.outerFrame.enabled) {
+      const syntheticShape = {
+        viewBox: '0 0 595.3 841.9',
+        width: 595.3, height: 841.9,
+        markup: '<rect x="0" y="0" width="595.3" height="841.9"/>',
+      }
+      const frameSvg = composeFrameSvg(
+        syntheticShape,
+        { ...shapeConfig, innerFrame: { ...shapeConfig.innerFrame, enabled: false } },
+        1,
+      )
+      const frameImg = await loadImage(svgToDataUrl(frameSvg))
+      ctx.drawImage(frameImg, mapTargetX, mapTargetY, mapTargetW, mapTargetH)
     }
-    const frameSvg = composeFrameSvg(
-      syntheticShape,
-      { ...shapeConfig, innerFrame: { ...shapeConfig.innerFrame, enabled: false } },
-      1,
-    )
-    const frameImg = await loadImage(svgToDataUrl(frameSvg))
-    ctx.drawImage(frameImg, mapTargetX, mapTargetY, mapTargetW, mapTargetH)
+    if (shapeConfig.innerFrame.enabled && mask.shape && (isDualMap || isSplitPhoto)) {
+      // Outer silhouette stroke — clipped per half so the contour ends at
+      // the centre gap on each side instead of crossing the seam.
+      const contourSvg = composeFrameSvg(
+        mask.shape,
+        { ...shapeConfig, outerFrame: { ...shapeConfig.outerFrame, enabled: false } },
+        1,
+      )
+      const contourImg = await loadImage(svgToDataUrl(contourSvg))
+      if (mask.noHalfClip) {
+        ctx.drawImage(contourImg, mapTargetX, mapTargetY, mapTargetW, mapTargetH)
+      } else {
+        const gapHalfPx = mmToPx * 1
+        const midX = mapTargetX + mapTargetW / 2
+        const leftW = midX - gapHalfPx - mapTargetX
+        const rightX = midX + gapHalfPx
+        const rightW = mapTargetX + mapTargetW - rightX
+        ctx.save()
+        ctx.beginPath()
+        ctx.rect(mapTargetX, mapTargetY, leftW, mapTargetH)
+        ctx.clip()
+        ctx.drawImage(contourImg, mapTargetX, mapTargetY, mapTargetW, mapTargetH)
+        ctx.restore()
+        ctx.save()
+        ctx.beginPath()
+        ctx.rect(rightX, mapTargetY, rightW, mapTargetH)
+        ctx.clip()
+        ctx.drawImage(contourImg, mapTargetX, mapTargetY, mapTargetW, mapTargetH)
+        ctx.restore()
+        // Seam lines — drawn ungiclipped so the full stroke thickness stays
+        // visible across the gap. SVG-internal clipPath confines them to
+        // the shape's interior.
+        const seamSvg = composeSplitSeamSvg(mask.shape, shapeConfig.innerFrame)
+        const seamImg = await loadImage(svgToDataUrl(seamSvg))
+        ctx.drawImage(seamImg, mapTargetX, mapTargetY, mapTargetW, mapTargetH)
+      }
+    }
   }
 
   // Marker pins — position from marker.lat/lng when dragged, else centered above mask.

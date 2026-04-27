@@ -7,7 +7,7 @@ import { computeFontScale } from '@/lib/font-scale'
 import { useCustomMasks } from '@/hooks/useCustomMasks'
 import { MAP_MASKS } from '@/lib/map-masks'
 import { getPalette } from '@/lib/map-palettes'
-import { composeMaskSvg, composeFrameSvg, composeFullbleedMaskSvg, svgToDataUrl, hasAnyFrame } from '@/lib/mask-composer'
+import { composeMaskSvg, composeFrameSvg, composeFullbleedMaskSvg, composeSplitSeamSvg, svgToDataUrl, hasAnyFrame } from '@/lib/mask-composer'
 import { useRasterizedMaskUrl } from '@/hooks/useRasterizedMaskUrl'
 import { PRINT_FORMATS } from '@/lib/print-formats'
 import { MapPreview } from './MapPreview'
@@ -132,8 +132,7 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
   // For dual-map / split-photo modes — and for fullbleed (no shape, no split) —
   // the shape-bound frame composer doesn't fire because there's no single shape
   // to hug. Render the OUTER frame here too, synthesised against a full-poster
-  // rectangle. Inner-frame ("Formkontur") is intentionally suppressed because
-  // it requires a real silhouette.
+  // rectangle.
   const needsSyntheticFrame = (isDualMap || isSplitPhoto || !mask.shape) && shapeConfig.outerFrame.enabled
   const outerFrameForSplit = needsSyntheticFrame
     ? svgToDataUrl(composeFrameSvg(
@@ -145,6 +144,25 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
         { ...shapeConfig, innerFrame: { ...shapeConfig.innerFrame, enabled: false } },
         1,
       ))
+    : null
+
+  // Inner-frame ("Formkontur") for split modes — split into two SVGs:
+  // (1) the silhouette stroke, rendered twice with a left/right half-clip so
+  //     each half ends at the centre gap, and
+  // (2) the seam lines that close the inner edge of each half, rendered as
+  //     a single ungiclipped layer with an SVG <clipPath> on the shape's
+  //     interior. Keeping the seams out of the half-clip preserves their
+  //     full stroke thickness on both sides of the gap.
+  const splitInner = (isDualMap || isSplitPhoto) && mask.shape && shapeConfig.innerFrame.enabled
+  const innerFrameForSplit = splitInner && mask.shape
+    ? svgToDataUrl(composeFrameSvg(
+        mask.shape,
+        { ...shapeConfig, outerFrame: { ...shapeConfig.outerFrame, enabled: false } },
+        1,
+      ))
+    : null
+  const innerSeamForSplit = splitInner && mask.shape && !mask.noHalfClip
+    ? svgToDataUrl(composeSplitSeamSvg(mask.shape, shapeConfig.innerFrame))
     : null
 
   useEffect(() => {
@@ -312,6 +330,60 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={outerFrameForSplit}
+                alt=""
+                className="absolute inset-0 w-full h-full pointer-events-none"
+                style={{ objectFit: 'fill' }}
+              />
+            )}
+            {/* Inner-frame contour ("Formkontur") for dual-map / split-photo
+                modes — strokes the silhouette per half so both sides have an
+                independent contour ending at the centre gap. Without
+                noHalfClip we clip each stroke to its half exactly like the
+                maps, so heart/circle splits open up at the midline. */}
+            {innerFrameForSplit && (() => {
+              if (mask.noHalfClip) {
+                return (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={innerFrameForSplit}
+                    alt=""
+                    className="absolute inset-0 w-full h-full pointer-events-none"
+                    style={{ objectFit: 'fill' }}
+                  />
+                )
+              }
+              const gap = mmToPx * 1
+              const leftEdge = `calc(50% - ${gap}px)`
+              const rightEdge = `calc(50% + ${gap}px)`
+              const leftClip = `polygon(0 0, ${leftEdge} 0, ${leftEdge} 100%, 0 100%)`
+              const rightClip = `polygon(${rightEdge} 0, 100% 0, 100% 100%, ${rightEdge} 100%)`
+              return (
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={innerFrameForSplit}
+                    alt=""
+                    className="absolute inset-0 w-full h-full pointer-events-none"
+                    style={{ objectFit: 'fill', clipPath: leftClip, WebkitClipPath: leftClip }}
+                  />
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={innerFrameForSplit}
+                    alt=""
+                    className="absolute inset-0 w-full h-full pointer-events-none"
+                    style={{ objectFit: 'fill', clipPath: rightClip, WebkitClipPath: rightClip }}
+                  />
+                </>
+              )
+            })()}
+            {/* Inner seam lines — closes each half's contour at the centre
+                gap. Rendered without a half-clip so the full stroke thickness
+                stays visible; the SVG itself confines the lines to the
+                shape's interior. */}
+            {innerSeamForSplit && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={innerSeamForSplit}
                 alt=""
                 className="absolute inset-0 w-full h-full pointer-events-none"
                 style={{ objectFit: 'fill' }}

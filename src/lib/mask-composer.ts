@@ -255,6 +255,33 @@ export function composeFrameSvg(
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${shape.viewBox}">${parts.join('')}</svg>`
 }
 
+/**
+ * Seam lines for split modes — two vertical strokes at x = midline ±
+ * splitGapMm, clipped to the shape's interior so they only appear inside
+ * the silhouette. Rendered as a separate layer (without the per-half CSS
+ * clip used for the outer contour) so the full stroke thickness stays
+ * visible on both sides of the gap.
+ */
+export function composeSplitSeamSvg(
+  shape: ShapeDefinition,
+  innerFrame: ShapeConfigState['innerFrame'],
+  splitGapMm: number = 1,
+): string {
+  const thickness = mmToUnits(innerFrame.thickness, shape.width)
+  const mid = shape.width / 2
+  const gap = mmToUnits(splitGapMm, shape.width)
+  const clipId = 'split-seam-clip'
+  return (
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${shape.viewBox}">` +
+      `<defs><clipPath id="${clipId}">${shape.markup}</clipPath></defs>` +
+      `<g fill="none" stroke="${innerFrame.color}" stroke-width="${thickness}" stroke-linecap="butt" clip-path="url(#${clipId})">` +
+        `<line x1="${(mid - gap).toFixed(2)}" y1="0" x2="${(mid - gap).toFixed(2)}" y2="${shape.height}"/>` +
+        `<line x1="${(mid + gap).toFixed(2)}" y1="0" x2="${(mid + gap).toFixed(2)}" y2="${shape.height}"/>` +
+      `</g>` +
+    `</svg>`
+  )
+}
+
 export function svgToDataUrl(svg: string): string {
   return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg)
 }

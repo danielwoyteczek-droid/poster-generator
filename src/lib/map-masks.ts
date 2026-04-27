@@ -56,6 +56,12 @@ export const MAP_MASKS: Record<MapMaskKey, MapMaskDefinition> = {
     isSplit: true,
     leftSvgPath: '/masks/heart1-left.svg',
     rightSvgPath: '/masks/heart1-right.svg',
+    shape: {
+      viewBox: '0 0 595.3 841.9',
+      width: 595.3, height: 841.9,
+      markup: '<path d="M298 543 C 298 543, 48 375, 48 228 C 48 108, 198 60, 298 178 C 398 60, 548 108, 548 228 C 548 375, 298 543, 298 543 Z"/>',
+      bottomFraction: 0.645,
+    },
   },
   'heart-single': {
     key: 'heart-single',
@@ -107,6 +113,12 @@ export const MAP_MASKS: Record<MapMaskKey, MapMaskDefinition> = {
     isSplit: true,
     leftSvgPath: '/masks/split-circles-left.svg',
     rightSvgPath: '/masks/split-circles-right.svg',
+    shape: {
+      viewBox: '0 0 595.3 841.9',
+      width: 595.3, height: 841.9,
+      markup: '<circle cx="297.65" cy="419.95" r="273.84"/>',
+      bottomFraction: 0.824,
+    },
   },
 'split-halves': {
     key: 'split-halves',
@@ -115,6 +127,12 @@ export const MAP_MASKS: Record<MapMaskKey, MapMaskDefinition> = {
     isSplit: true,
     leftSvgPath: '/masks/split-halves-left.svg',
     rightSvgPath: '/masks/split-halves-right.svg',
+    shape: {
+      viewBox: '0 0 595.3 841.9',
+      width: 595.3, height: 841.9,
+      markup: '<rect x="17.86" y="17.86" width="261.93" height="803.66" rx="29.77"/><rect x="315.51" y="17.86" width="261.93" height="803.66" rx="29.77"/>',
+      bottomFraction: 0.976,
+    },
   },
 }
 
