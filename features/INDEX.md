@@ -43,10 +43,12 @@
 | PROJ-27 | Mobile Star-Map Editor | Deployed | [PROJ-27-mobile-star-map-editor.md](PROJ-27-mobile-star-map-editor.md) | 2026-04-26 |
 | PROJ-28 | Business Center | In Progress | [PROJ-28-business-center.md](PROJ-28-business-center.md) | 2026-04-26 |
 | PROJ-29 | Anlass-Landing-Pages (SEO) | Architected | [PROJ-29-occasion-landing-pages.md](PROJ-29-occasion-landing-pages.md) | 2026-04-26 |
+| PROJ-30 | Preset-Render-Pipeline | Architected | [PROJ-30-preset-render-pipeline.md](PROJ-30-preset-render-pipeline.md) | 2026-04-27 |
+| PROJ-31 | Amazon-Bestellungs-Importer (SP-API) | Planned | [PROJ-31-amazon-order-importer.md](PROJ-31-amazon-order-importer.md) | 2026-04-28 |
 
 <!-- Add features above this line -->
 
-## Next Available ID: PROJ-30
+## Next Available ID: PROJ-32
 
 ## Recommended Build Order
 1. **PROJ-1** — Karten-Editor Core (Fundament der App)
