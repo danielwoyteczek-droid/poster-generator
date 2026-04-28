@@ -41,6 +41,12 @@ export const MAP_LAYOUTS: MapLayoutDefinition[] = [
     description: 'Hoher Detailgrad ab z13 — schwarze Gebäude, hellblaues Wasser, weiße Straßen.',
     file: '/map-styles/layout-detail.json',
   },
+  {
+    id: 'tusche',
+    label: 'Tusche',
+    description: 'Hochkontrastige Etching-Optik — nur Wasser und Straßen, starke Strichstärken-Hierarchie.',
+    file: '/map-styles/layout-tusche.json',
+  },
   // Additional layouts get added here once the operator exports them.
 ]
 

@@ -1,4 +1,4 @@
-import type { MapPalette } from './map-palettes'
+import type { MapPalette, MapPaletteColors } from './map-palettes'
 
 type Role =
   | 'background'
@@ -115,4 +115,79 @@ export function transformStyle(baseStyle: Style, opts: TransformOptions): Style 
     }
   }
   return style
+}
+
+/**
+ * Walk every layer and extract a representative colour for each palette role,
+ * so we can seed the "Eigene Farbe" picker from whatever the active layout
+ * looks like in its native (Original) state. Later layers overwrite earlier
+ * ones — so the visually dominant variant of a role wins (e.g. major roads
+ * are drawn last and end up as the road colour, instead of paths).
+ */
+export function extractPaletteFromStyle(style: Style): MapPaletteColors {
+  const colors: MapPaletteColors = {
+    background: '#ffffff',
+    land: '#eeeeee',
+    water: '#aac8e2',
+    road: '#ffffff',
+    building: '#dddddd',
+    border: '#888888',
+    label: '#222222',
+    labelHalo: '#ffffff',
+  }
+
+  const readString = (paint: Record<string, unknown> | undefined, key: string): string | null => {
+    if (!paint) return null
+    const v = paint[key]
+    return typeof v === 'string' && v.startsWith('#') ? v : null
+  }
+
+  for (const layer of style.layers as Layer[]) {
+    const role = detectRole(layer)
+    if (!role) continue
+    const paint = layer.paint as Record<string, unknown> | undefined
+    switch (role) {
+      case 'background': {
+        const c = readString(paint, 'background-color')
+        if (c) colors.background = c
+        break
+      }
+      case 'water': {
+        const c = layer.type === 'fill' ? readString(paint, 'fill-color') : readString(paint, 'line-color')
+        if (c) colors.water = c
+        break
+      }
+      case 'land': {
+        const c = readString(paint, 'fill-color')
+        if (c) colors.land = c
+        break
+      }
+      case 'road': {
+        const c = layer.type === 'line' ? readString(paint, 'line-color') : readString(paint, 'fill-color')
+        if (c) colors.road = c
+        break
+      }
+      case 'building': {
+        const c = readString(paint, 'fill-color')
+        if (c) colors.building = c
+        break
+      }
+      case 'border': {
+        const c = readString(paint, 'line-color')
+        if (c) colors.border = c
+        break
+      }
+      case 'label-road':
+      case 'label-water':
+      case 'label-place': {
+        const text = readString(paint, 'text-color')
+        if (text) colors.label = text
+        const halo = readString(paint, 'text-halo-color')
+        if (halo) colors.labelHalo = halo
+        break
+      }
+    }
+  }
+
+  return colors
 }

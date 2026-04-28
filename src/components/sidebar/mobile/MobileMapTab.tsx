@@ -18,6 +18,7 @@ import { useCustomMasks } from '@/hooks/useCustomMasks'
 import { MAP_MASKS } from '@/lib/map-masks'
 import { MAP_LAYOUTS } from '@/lib/map-layouts'
 import { MAP_PALETTES, type MapPaletteColors } from '@/lib/map-palettes'
+import { extractPaletteFromLayout } from '@/lib/petite-style-loader'
 import { useMapPalettes } from '@/hooks/useMapPalettes'
 import { uploadPhoto, deletePhoto } from '@/lib/photo-upload'
 import { getOrCreateGuestSessionId } from '@/lib/guest-session'
@@ -325,13 +326,21 @@ export function MobileMapTab() {
                     )
                   })}
                   <button
-                    onClick={() => {
-                      setSecondMapPaletteId('custom')
-                      if (!secondMap.customPalette) {
-                        const seed = (availablePalettes.find((p) => p.id === secondMap.paletteId) ?? availablePalettes[0] ?? MAP_PALETTES[0]).colors
-                        setSecondMapCustomPalette({ ...seed })
-                        if (!secondMap.customPaletteBase) setSecondMapCustomPaletteBase(seed.water)
+                    onClick={async () => {
+                      if (secondMap.paletteId === 'custom') return
+                      let seed: MapPaletteColors
+                      if (secondMap.paletteId === 'original') {
+                        try {
+                          seed = await extractPaletteFromLayout(secondMap.styleId)
+                        } catch {
+                          seed = (availablePalettes[0] ?? MAP_PALETTES[0]).colors
+                        }
+                      } else {
+                        seed = (availablePalettes.find((p) => p.id === secondMap.paletteId) ?? availablePalettes[0] ?? MAP_PALETTES[0]).colors
                       }
+                      setSecondMapCustomPalette({ ...seed })
+                      setSecondMapCustomPaletteBase(seed.water)
+                      setSecondMapPaletteId('custom')
                     }}
                     className={cn(
                       'shrink-0 w-20 snap-start rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
@@ -431,13 +440,21 @@ export function MobileMapTab() {
             )
           })}
           <button
-            onClick={() => {
-              setPaletteId('custom')
-              if (!customPalette) {
-                const seed = (availablePalettes.find((p) => p.id === paletteId) ?? availablePalettes[0] ?? MAP_PALETTES[0]).colors
-                setCustomPalette({ ...seed })
-                if (!customPaletteBase) setCustomPaletteBase(seed.water)
+            onClick={async () => {
+              if (paletteId === 'custom') return
+              let seed: MapPaletteColors
+              if (paletteId === 'original') {
+                try {
+                  seed = await extractPaletteFromLayout(styleId)
+                } catch {
+                  seed = (availablePalettes[0] ?? MAP_PALETTES[0]).colors
+                }
+              } else {
+                seed = (availablePalettes.find((p) => p.id === paletteId) ?? availablePalettes[0] ?? MAP_PALETTES[0]).colors
               }
+              setCustomPalette({ ...seed })
+              setCustomPaletteBase(seed.water)
+              setPaletteId('custom')
             }}
             className={cn(
               'shrink-0 w-20 snap-start rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',

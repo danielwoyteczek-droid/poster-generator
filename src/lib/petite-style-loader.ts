@@ -1,6 +1,6 @@
 import { MAP_PALETTES, paletteFromBaseColor, type MapPalette, type MapPaletteColors } from './map-palettes'
 import { getLayout } from './map-layouts'
-import { transformStyle } from './map-style-transformer'
+import { transformStyle, extractPaletteFromStyle } from './map-style-transformer'
 
 const cachedBases = new Map<string, unknown>()
 const pendingBases = new Map<string, Promise<unknown>>()
@@ -81,6 +81,17 @@ export interface PetiteStyleOptions {
   customPalette?: MapPaletteColors | null
   streetLabelsVisible: boolean
   apiKey: string
+}
+
+/**
+ * Read the active layout's raw colours so the "Eigene Farbe" picker can
+ * default to "Original" instead of an unrelated preset palette. Uses the
+ * already-cached layout JSON (no extra network round-trip if the layout
+ * has been rendered once).
+ */
+export async function extractPaletteFromLayout(layoutId: string): Promise<MapPaletteColors> {
+  const style = await fetchLayoutStyle(layoutId)
+  return extractPaletteFromStyle(style as Parameters<typeof extractPaletteFromStyle>[0])
 }
 
 export async function buildPetiteStyle(opts: PetiteStyleOptions): Promise<unknown> {

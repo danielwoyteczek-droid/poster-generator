@@ -28,6 +28,7 @@ import { useCustomMasks } from '@/hooks/useCustomMasks'
 import { MAP_MASK_OPTIONS, MAP_MASKS } from '@/lib/map-masks'
 import { MAP_LAYOUTS } from '@/lib/map-layouts'
 import { MAP_PALETTES, type MapPaletteColors } from '@/lib/map-palettes'
+import { extractPaletteFromLayout } from '@/lib/petite-style-loader'
 import { useMapPalettes } from '@/hooks/useMapPalettes'
 import { uploadPhoto, deletePhoto } from '@/lib/photo-upload'
 import { getOrCreateGuestSessionId } from '@/lib/guest-session'
@@ -438,13 +439,21 @@ export function MapTab() {
                       )
                     })}
                     <button
-                      onClick={() => {
-                        setSecondMapPaletteId('custom')
-                        if (!secondMap.customPalette) {
-                          const seed = (availablePalettes.find((p) => p.id === secondMap.paletteId) ?? availablePalettes[0] ?? MAP_PALETTES[0]).colors
-                          setSecondMapCustomPalette({ ...seed })
-                          if (!secondMap.customPaletteBase) setSecondMapCustomPaletteBase(seed.water)
+                      onClick={async () => {
+                        if (secondMap.paletteId === 'custom') return
+                        let seed: MapPaletteColors
+                        if (secondMap.paletteId === 'original') {
+                          try {
+                            seed = await extractPaletteFromLayout(secondMap.styleId)
+                          } catch {
+                            seed = (availablePalettes[0] ?? MAP_PALETTES[0]).colors
+                          }
+                        } else {
+                          seed = (availablePalettes.find((p) => p.id === secondMap.paletteId) ?? availablePalettes[0] ?? MAP_PALETTES[0]).colors
                         }
+                        setSecondMapCustomPalette({ ...seed })
+                        setSecondMapCustomPaletteBase(seed.water)
+                        setSecondMapPaletteId('custom')
                       }}
                       className={cn(
                         'rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
@@ -588,13 +597,21 @@ export function MapTab() {
               )
             })}
             <button
-              onClick={() => {
-                setPaletteId('custom')
-                if (!customPalette) {
-                  const seed = (availablePalettes.find((p) => p.id === paletteId) ?? availablePalettes[0] ?? MAP_PALETTES[0]).colors
-                  setCustomPalette({ ...seed })
-                  if (!customPaletteBase) setCustomPaletteBase(seed.water)
+              onClick={async () => {
+                if (paletteId === 'custom') return
+                let seed: MapPaletteColors
+                if (paletteId === 'original') {
+                  try {
+                    seed = await extractPaletteFromLayout(styleId)
+                  } catch {
+                    seed = (availablePalettes[0] ?? MAP_PALETTES[0]).colors
+                  }
+                } else {
+                  seed = (availablePalettes.find((p) => p.id === paletteId) ?? availablePalettes[0] ?? MAP_PALETTES[0]).colors
                 }
+                setCustomPalette({ ...seed })
+                setCustomPaletteBase(seed.water)
+                setPaletteId('custom')
               }}
               className={cn(
                 'rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
@@ -815,6 +832,17 @@ export function MapTab() {
                         />
                       </div>
                     )}
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] text-muted-foreground">Abstand vom Rand</span>
+                        <span className="text-[11px] text-muted-foreground/70 tabular-nums">{shapeConfig.outerFrame.offset ?? 10} mm</span>
+                      </div>
+                      <Slider
+                        min={0} max={30} step={1}
+                        value={[shapeConfig.outerFrame.offset ?? 10]}
+                        onValueChange={([v]) => setOuterFrame({ offset: v })}
+                      />
+                    </div>
                   </div>
                 )}
               </div>
@@ -868,7 +896,7 @@ export function MapTab() {
                     <span className="text-[11px] text-muted-foreground/70 tabular-nums">{Math.round(shapeConfig.outer.opacity * 100)}%</span>
                   </div>
                   <Slider
-                    min={0.1} max={1} step={0.05}
+                    min={0} max={1} step={0.05}
                     value={[shapeConfig.outer.opacity]}
                     onValueChange={([v]) => setShapeOuter({ opacity: v })}
                   />
@@ -893,7 +921,7 @@ export function MapTab() {
                       <span className="text-[11px] text-muted-foreground/70 tabular-nums">{Math.round((shapeConfig.outer.glowIntensity ?? 0.5) * 100)}%</span>
                     </div>
                     <Slider
-                      min={0.05} max={1} step={0.05}
+                      min={0} max={1} step={0.05}
                       value={[shapeConfig.outer.glowIntensity ?? 0.5]}
                       onValueChange={([v]) => setShapeOuter({ glowIntensity: v })}
                     />
