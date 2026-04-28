@@ -16,6 +16,7 @@
     "blog:generate": "tsx scripts/blog-automation/generate.ts",
     "blog:publish": "tsx scripts/blog-automation/publish.ts",
     "seed:occasion-pages": "tsx scripts/seed-occasion-pages.ts",
+    "seed:occasion-hero": "tsx scripts/seed-occasion-hero-placeholder.ts",
     "render:test-headless": "tsx scripts/test-headless-render.ts",
     "render:test-mockup": "tsx scripts/test-mockup-render.ts",
     "render:worker": "tsx scripts/render-worker.ts",
