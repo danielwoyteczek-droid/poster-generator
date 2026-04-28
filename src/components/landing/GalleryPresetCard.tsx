@@ -22,6 +22,13 @@ interface Props {
    *  (e.g. `aspect-[2/3] md:aspect-square` for occasion landing pages,
    *  where desktop shows 1:1 room-mockups but mobile shows 2:3 poster previews). */
   aspectClassName?: string
+  /** Tailwind class(es) controlling how the image fits the card frame.
+   *  Default `object-cover` matches the gallery's clean grid look. Use
+   *  responsive variants when the desktop/mobile aspect ratios differ
+   *  (e.g. `object-cover md:object-contain` on the occasion page, where
+   *  mobile keeps a snug 2:3 fit but desktop letterboxes the 2:3 poster
+   *  inside the 1:1 frame). */
+  objectFitClassName?: string
 }
 
 /**
@@ -35,6 +42,7 @@ export function GalleryPresetCard({
   posterTypeStarMapLabel,
   aspectRatio = '2/3',
   aspectClassName,
+  objectFitClassName = 'object-cover',
 }: Props) {
   const editorPath = preset.poster_type === 'star-map' ? '/star-map' : '/map'
   const href = `${editorPath}?preset=${preset.id}`
@@ -57,7 +65,7 @@ export function GalleryPresetCard({
             alt={preset.name}
             fill
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-            className="object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+            className={`${objectFitClassName} transition-transform duration-300 group-hover:scale-[1.02]`}
             loading="lazy"
           />
         ) : (

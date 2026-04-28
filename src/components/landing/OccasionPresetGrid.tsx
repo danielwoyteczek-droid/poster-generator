@@ -71,6 +71,7 @@ export function OccasionPresetGrid({
               posterTypeMapLabel={posterTypeMapLabel}
               posterTypeStarMapLabel={posterTypeStarMapLabel}
               aspectClassName="aspect-[2/3] md:aspect-square"
+              objectFitClassName="object-cover md:object-contain"
             />
           ))}
         </PresetCarousel>
