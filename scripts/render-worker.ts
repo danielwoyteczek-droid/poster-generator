@@ -33,6 +33,11 @@ const HEADLESS_TOKEN = process.env.RENDER_HEADLESS_TOKEN
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
 const SUPABASE_KEY = process.env.SUPABASE_SECRET_KEY
 const POLL_INTERVAL_MS = Number.parseInt(process.env.RENDER_POLL_INTERVAL_MS ?? '5000', 10)
+// Drain-Mode (für GitHub Actions): Worker beendet sich, wenn 2 Polls in
+// Folge nichts zu tun fanden. Lokal (Default) bleibt der Worker am Leben
+// und pollt unbegrenzt.
+const DRAIN_MODE = process.env.RENDER_WORKER_DRAIN === '1'
+const DRAIN_EMPTY_THRESHOLD = 2
 const READY_TIMEOUT_MS = 60_000
 const RENDER_TIMEOUT_MS = 60_000
 const DEFAULT_LOCALE = 'de'
@@ -627,8 +632,11 @@ async function main() {
     })
 
     let running = true
+    let consecutiveEmptyPolls = 0
     process.on('SIGINT', () => { log('SIGINT — graceful shutdown'); running = false })
     process.on('SIGTERM', () => { log('SIGTERM — graceful shutdown'); running = false })
+
+    if (DRAIN_MODE) log(`Drain-Mode aktiv — Exit nach ${DRAIN_EMPTY_THRESHOLD} leeren Polls`)
 
     while (running) {
       // 1. Erst Presets versuchen
@@ -640,6 +648,7 @@ async function main() {
       }
 
       if (claimedPreset) {
+        consecutiveEmptyPolls = 0
         const t0 = Date.now()
         try {
           await renderPresetEnd2End(supabase, context, claimedPreset)
@@ -665,6 +674,7 @@ async function main() {
       }
 
       if (claimedComp) {
+        consecutiveEmptyPolls = 0
         const t0 = Date.now()
         try {
           await renderCompositionEnd2End(supabase, context, claimedComp)
@@ -681,7 +691,13 @@ async function main() {
         continue
       }
 
-      // Nichts da → Pause
+      // Nichts da
+      consecutiveEmptyPolls++
+      if (DRAIN_MODE && consecutiveEmptyPolls >= DRAIN_EMPTY_THRESHOLD) {
+        log(`Queue leer (${consecutiveEmptyPolls} leere Polls) — Drain-Mode beendet`)
+        running = false
+        break
+      }
       await sleep(POLL_INTERVAL_MS)
     }
   } finally {

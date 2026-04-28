@@ -1,0 +1,51 @@
+name: Preset Render Worker
+
+# PROJ-30: Headless-Render-Pipeline online ohne lokalen Worker.
+#
+# Manuell auslösbar: Actions-Tab → "Preset Render Worker" → "Run workflow".
+# Im Drain-Mode beendet sich der Worker, sobald die Queue leer ist (2 leere
+# Polls in Folge), spätestens nach `timeout-minutes`.
+#
+# Workflow läuft NICHT auf Cron — du startest ihn nach Bulk-Render-Trigger im
+# Admin-UI selbst, sonst frisst er Actions-Minuten ohne Job. Wenn du ihn
+# regelmäßig willst, einfach den `schedule:`-Block unten einkommentieren.
+on:
+  workflow_dispatch:
+  # schedule:
+  #   # Alle 30 Minuten — drained pending Jobs
+  #   - cron: '*/30 * * * *'
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    # Hard-stop nach 30 Min, falls Drain-Mode aus irgendeinem Grund hängt.
+    # Bei normalem Betrieb endet der Worker viel früher selbst.
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install chromium --with-deps
+
+      - name: Run render worker (drain mode)
+        env:
+          RENDER_WORKER_DRAIN: '1'
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          APP_BASE_URL: ${{ secrets.APP_BASE_URL }}
+          RENDER_HEADLESS_TOKEN: ${{ secrets.RENDER_HEADLESS_TOKEN }}
+          DYNAMIC_MOCKUPS_API_KEY: ${{ secrets.DYNAMIC_MOCKUPS_API_KEY }}
+          DYNAMIC_MOCKUPS_API_URL: ${{ secrets.DYNAMIC_MOCKUPS_API_URL }}
+          DYNAMIC_MOCKUPS_TIMEOUT_MS: ${{ secrets.DYNAMIC_MOCKUPS_TIMEOUT_MS }}
+          RENDER_PARALLEL_BROWSERS: ${{ secrets.RENDER_PARALLEL_BROWSERS }}
+          RENDER_BROWSER_TIMEOUT_MS: ${{ secrets.RENDER_BROWSER_TIMEOUT_MS }}
+          RENDER_POLL_INTERVAL_MS: ${{ secrets.RENDER_POLL_INTERVAL_MS }}
+        run: npm run render:worker
