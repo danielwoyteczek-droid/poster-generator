@@ -223,7 +223,13 @@ async function waitForMapStable(map: any) {
   if (!map.loaded()) {
     await waitForEventOnce(map, 'load')
   }
-  await new Promise<void>((resolve) => { map.once('idle', () => resolve()) })
+  // Headless-Browser-Quirk (PROJ-30): idle-Event feuert in Headless-Chromium
+  // manchmal nicht zuverlässig. Fallback nach 8s — Tiles sind dann praktisch
+  // immer da, und triggerRepaint() unten erzwingt einen frischen Render.
+  await Promise.race([
+    new Promise<void>((resolve) => { map.once('idle', () => resolve()) }),
+    new Promise<void>((resolve) => setTimeout(resolve, 8000)),
+  ])
   await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
   await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
   await wait(150)
@@ -253,7 +259,7 @@ async function renderMapOffscreen({
   customPaletteBase?: string | null
   customPalette?: MapPaletteColors | null
   streetLabelsVisible?: boolean
-}): Promise<HTMLCanvasElement> {
+}): Promise<{ canvas: HTMLCanvasElement; bounds: ViewState['bounds'] }> {
   const maptilersdk = await import('@maptiler/sdk')
   const apiKey = process.env.NEXT_PUBLIC_MAPTILER_API_KEY!
 
@@ -324,7 +330,19 @@ async function renderMapOffscreen({
     dst.width = outputW
     dst.height = outputH
     dst.getContext('2d')!.drawImage(srcCanvas, 0, 0, outputW, outputH)
-    return dst
+
+    // Bounds aus dem tatsächlich gerenderten Map-Viewport ablesen — überschreibt
+    // ggf. veraltete bounds aus dem Editor-Store (im Headless-Mode bleiben die
+    // sonst auf den Default-Werten {0,0,0,0} und brechen die Marker-Projektion).
+    const lngLatBounds = map.getBounds()
+    const bounds = {
+      west: lngLatBounds.getWest(),
+      south: lngLatBounds.getSouth(),
+      east: lngLatBounds.getEast(),
+      north: lngLatBounds.getNorth(),
+    }
+
+    return { canvas: dst, bounds }
   } finally {
     try { map?.remove?.() } catch { /* ignore */ }
     container.remove()
@@ -501,6 +519,13 @@ export async function buildPosterCanvas(
   ctx.fillStyle = posterBg
   ctx.fillRect(0, 0, W, H)
 
+  // Bounds, die der Offscreen-Render-Schritt tatsächlich produziert hat —
+  // werden für die Marker-Pin-Projektion verwendet. Im Headless-Mode sind
+  // die Editor-Store-Bounds nämlich Default-Null, weil keine live MapPreview
+  // sie aktualisiert. (Im Editor stimmen sie zufällig.)
+  let renderedBounds: ViewState['bounds'] | null = null
+  let secondRenderedBounds: ViewState['bounds'] | null = null
+
   if (isDualMap) {
     // 2 mm visual split between the two halves, matching the preview clip-path
     const splitGapHalfPx = (mmToPx * 1)
@@ -510,7 +535,9 @@ export async function buildPosterCanvas(
     const rightClipW = mapTargetX + mapTargetW - rightClipX
 
     // Left map (primary)
-    let leftCanvas = await renderMapOffscreen({ styleId, vs: viewState, previewW, previewH, outputW: W, outputH: H, paletteId: store.paletteId, customPaletteBase: store.customPaletteBase, customPalette: store.customPalette, streetLabelsVisible: store.streetLabelsVisible })
+    const leftRender = await renderMapOffscreen({ styleId, vs: viewState, previewW, previewH, outputW: W, outputH: H, paletteId: store.paletteId, customPaletteBase: store.customPaletteBase, customPalette: store.customPalette, streetLabelsVisible: store.streetLabelsVisible })
+    let leftCanvas = leftRender.canvas
+    renderedBounds = leftRender.bounds
     if (mask.leftSvgPath) leftCanvas = await applyMask(leftCanvas, mask.leftSvgPath)
     ctx.save()
     ctx.beginPath()
@@ -523,7 +550,9 @@ export async function buildPosterCanvas(
     const secVS = secondMap.viewState
     const secPreviewW = secVS.viewportWidth > 0 ? secVS.viewportWidth : previewW
     const secPreviewH = secVS.viewportHeight > 0 ? secVS.viewportHeight : previewH
-    let rightCanvas = await renderMapOffscreen({ styleId: secondMap.styleId, vs: secVS, previewW: secPreviewW, previewH: secPreviewH, outputW: W, outputH: H, paletteId: secondMap.paletteId, customPaletteBase: secondMap.customPaletteBase, customPalette: secondMap.customPalette, streetLabelsVisible: store.streetLabelsVisible })
+    const rightRender = await renderMapOffscreen({ styleId: secondMap.styleId, vs: secVS, previewW: secPreviewW, previewH: secPreviewH, outputW: W, outputH: H, paletteId: secondMap.paletteId, customPaletteBase: secondMap.customPaletteBase, customPalette: secondMap.customPalette, streetLabelsVisible: store.streetLabelsVisible })
+    let rightCanvas = rightRender.canvas
+    secondRenderedBounds = rightRender.bounds
     if (mask.rightSvgPath) rightCanvas = await applyMask(rightCanvas, mask.rightSvgPath)
     ctx.save()
     ctx.beginPath()
@@ -566,7 +595,9 @@ export async function buildPosterCanvas(
       ctx.restore()
     }
 
-    let mapCanvas = await renderMapOffscreen({ styleId, vs: viewState, previewW, previewH, outputW: W, outputH: H, paletteId: store.paletteId, customPaletteBase: store.customPaletteBase, customPalette: store.customPalette, streetLabelsVisible: store.streetLabelsVisible })
+    const splitRender = await renderMapOffscreen({ styleId, vs: viewState, previewW, previewH, outputW: W, outputH: H, paletteId: store.paletteId, customPaletteBase: store.customPaletteBase, customPalette: store.customPalette, streetLabelsVisible: store.streetLabelsVisible })
+    let mapCanvas = splitRender.canvas
+    renderedBounds = splitRender.bounds
     mapCanvas = await applyMask(mapCanvas, mapSideSvg)
     drawHalf(mapCanvas, mapHalfRect)
 
@@ -579,7 +610,9 @@ export async function buildPosterCanvas(
     await drawSplitPhoto(photoCtx, splitPhoto, photoSideSvg, W, H)
     drawHalf(photoCanvas, photoHalfRect)
   } else {
-    let mapCanvas = await renderMapOffscreen({ styleId, vs: viewState, previewW, previewH, outputW: W, outputH: H, paletteId: store.paletteId, customPaletteBase: store.customPaletteBase, customPalette: store.customPalette, streetLabelsVisible: store.streetLabelsVisible })
+    const mainRender = await renderMapOffscreen({ styleId, vs: viewState, previewW, previewH, outputW: W, outputH: H, paletteId: store.paletteId, customPaletteBase: store.customPaletteBase, customPalette: store.customPalette, streetLabelsVisible: store.streetLabelsVisible })
+    let mapCanvas = mainRender.canvas
+    renderedBounds = mainRender.bounds
     if (mask.shape) {
       mapCanvas = await applyComposedMask(mapCanvas)
     } else if (mask.svgPath) {
@@ -683,8 +716,11 @@ export async function buildPosterCanvas(
     const [pw, ph] = marker.type === 'heart' ? [32, 32] : [28, 40]
     let cx = (isDualMap ? 0.25 : 0.5) * W
     let cy = 0.5 * H
-    if (marker.lat != null && marker.lng != null && viewState.bounds) {
-      const pt = projectLngLat(marker.lng, marker.lat, viewState.bounds, W, H)
+    // Bevorzuge die tatsächlich gerenderten Bounds (aus Offscreen-Map),
+    // weil viewState.bounds im Headless-Mode auf Default-Null bleibt.
+    const projBounds = renderedBounds ?? viewState.bounds
+    if (marker.lat != null && marker.lng != null && projBounds) {
+      const pt = projectLngLat(marker.lng, marker.lat, projBounds, W, H)
       cx = pt.x; cy = pt.y
     }
     ctx.drawImage(pinImg, toTargetX(cx) - (pw * pinScale) / 2, toTargetY(cy) - ph * pinScale, pw * pinScale, ph * pinScale)
@@ -695,10 +731,11 @@ export async function buildPosterCanvas(
     let cx = 0.75 * W
     let cy = 0.5 * H
     const sVS = secondMap.viewState
-    if (secondMarker.lat != null && secondMarker.lng != null && sVS?.bounds) {
+    const secProjBounds = secondRenderedBounds ?? sVS?.bounds
+    if (secondMarker.lat != null && secondMarker.lng != null && secProjBounds) {
       // Offscreen the right map is also rendered at full width — project using its bounds
       // then shift into the right half of the poster.
-      const pt = projectLngLat(secondMarker.lng, secondMarker.lat, sVS.bounds, W, H)
+      const pt = projectLngLat(secondMarker.lng, secondMarker.lat, secProjBounds, W, H)
       cx = 0.5 * W + pt.x * 0.5  // right map lives in the 0.5..1.0 x-range
       cy = pt.y
     }

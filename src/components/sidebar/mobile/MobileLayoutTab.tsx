@@ -226,6 +226,17 @@ export function MobileLayoutTab() {
                         />
                       </div>
                     )}
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground">Abstand vom Rand</span>
+                        <span className="text-xs text-muted-foreground/70 tabular-nums">{shapeConfig.outerFrame.offset ?? 10} mm</span>
+                      </div>
+                      <Slider
+                        min={0} max={30} step={1}
+                        value={[shapeConfig.outerFrame.offset ?? 10]}
+                        onValueChange={([v]) => setOuterFrame({ offset: v })}
+                      />
+                    </div>
                   </div>
                 )}
               </div>
@@ -277,7 +288,7 @@ export function MobileLayoutTab() {
                     <span className="text-xs text-muted-foreground/70 tabular-nums">{Math.round(shapeConfig.outer.opacity * 100)}%</span>
                   </div>
                   <Slider
-                    min={0.1} max={1} step={0.05}
+                    min={0} max={1} step={0.05}
                     value={[shapeConfig.outer.opacity]}
                     onValueChange={([v]) => setShapeOuter({ opacity: v })}
                   />
@@ -302,7 +313,7 @@ export function MobileLayoutTab() {
                       <span className="text-xs text-muted-foreground/70 tabular-nums">{Math.round((shapeConfig.outer.glowIntensity ?? 0.5) * 100)}%</span>
                     </div>
                     <Slider
-                      min={0.05} max={1} step={0.05}
+                      min={0} max={1} step={0.05}
                       value={[shapeConfig.outer.glowIntensity ?? 0.5]}
                       onValueChange={([v]) => setShapeOuter({ glowIntensity: v })}
                     />

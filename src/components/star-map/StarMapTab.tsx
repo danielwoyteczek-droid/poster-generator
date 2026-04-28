@@ -160,7 +160,7 @@ export function StarMapTab() {
                     <span className="text-[11px] text-muted-foreground/70 tabular-nums">{Math.round(frameConfig.outer.opacity * 100)}%</span>
                   </div>
                   <Slider
-                    min={0.1} max={1} step={0.05}
+                    min={0} max={1} step={0.05}
                     value={[frameConfig.outer.opacity]}
                     onValueChange={([v]) => setOuter({ opacity: v })}
                   />

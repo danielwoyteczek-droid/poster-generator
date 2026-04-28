@@ -51,3 +51,6 @@ scripts/blog-automation/.budget.json
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# render pipeline test artifacts (PROJ-30)
+/tmp/

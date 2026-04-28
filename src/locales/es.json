@@ -113,7 +113,8 @@
     "terms": "Términos",
     "withdrawal": "Derecho de desistimiento",
     "cookies": "Política de cookies",
-    "fallbackCopyright": "© {year} Poster Generator"
+    "fallbackCopyright": "© {year} Poster Generator",
+    "occasions": "Ocasiones"
   },
   "cart": {
     "pageTitle": "Carrito | Poster Generator",
@@ -465,6 +466,7 @@
     "posterTypeStarMap": "Mapa estelar",
     "emptyTitle": "Aún no hay plantillas disponibles",
     "emptyDescription": "Estamos trabajando en diseños para tu idioma. Vuelve pronto o crea tu propio póster desde cero.",
-    "emptyCta": "Crea tu propio póster"
+    "emptyCta": "Crea tu propio póster",
+    "moreOnOccasion": "Más sobre esta ocasión →"
   }
 }

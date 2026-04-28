@@ -113,7 +113,8 @@
     "terms": "Termini",
     "withdrawal": "Diritto di recesso",
     "cookies": "Politica sui cookie",
-    "fallbackCopyright": "© {year} Poster Generator"
+    "fallbackCopyright": "© {year} Poster Generator",
+    "occasions": "Occasioni"
   },
   "cart": {
     "pageTitle": "Carrello | Poster Generator",
@@ -465,6 +466,7 @@
     "posterTypeStarMap": "Mappa stellare",
     "emptyTitle": "Nessun modello disponibile",
     "emptyDescription": "Stiamo lavorando a design per la tua lingua. Torna presto o crea il tuo poster da zero.",
-    "emptyCta": "Crea il tuo poster"
+    "emptyCta": "Crea il tuo poster",
+    "moreOnOccasion": "Scopri di più →"
   }
 }

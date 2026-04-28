@@ -113,7 +113,8 @@
     "terms": "CGV",
     "withdrawal": "Droit de rétractation",
     "cookies": "Politique de cookies",
-    "fallbackCopyright": "© {year} Poster Generator"
+    "fallbackCopyright": "© {year} Poster Generator",
+    "occasions": "Occasions"
   },
   "cart": {
     "pageTitle": "Panier | Poster Generator",
@@ -465,6 +466,7 @@
     "posterTypeStarMap": "Carte du ciel",
     "emptyTitle": "Aucun modèle disponible pour l'instant",
     "emptyDescription": "Nous travaillons sur des designs pour votre langue. Revenez bientôt ou créez votre propre affiche depuis le début.",
-    "emptyCta": "Créer votre propre affiche"
+    "emptyCta": "Créer votre propre affiche",
+    "moreOnOccasion": "En savoir plus →"
   }
 }

@@ -14,7 +14,12 @@
     "test:e2e:ui": "playwright test --ui",
     "test:all": "vitest run && playwright test",
     "blog:generate": "tsx scripts/blog-automation/generate.ts",
-    "blog:publish": "tsx scripts/blog-automation/publish.ts"
+    "blog:publish": "tsx scripts/blog-automation/publish.ts",
+    "seed:occasion-pages": "tsx scripts/seed-occasion-pages.ts",
+    "render:test-headless": "tsx scripts/test-headless-render.ts",
+    "render:test-mockup": "tsx scripts/test-mockup-render.ts",
+    "render:worker": "tsx scripts/render-worker.ts",
+    "regen-thumbnails": "tsx scripts/regen-preset-thumbnails.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.90.0",

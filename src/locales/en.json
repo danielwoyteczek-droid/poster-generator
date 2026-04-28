@@ -113,7 +113,8 @@
     "terms": "Terms",
     "withdrawal": "Right of withdrawal",
     "cookies": "Cookie policy",
-    "fallbackCopyright": "© {year} Poster Generator"
+    "fallbackCopyright": "© {year} Poster Generator",
+    "occasions": "Occasions"
   },
   "cart": {
     "pageTitle": "Cart | Poster Generator",
@@ -465,6 +466,7 @@
     "posterTypeStarMap": "Star map",
     "emptyTitle": "No templates available yet",
     "emptyDescription": "We're working on designs for your language. Check back soon or build your own poster from scratch.",
-    "emptyCta": "Build your own poster"
+    "emptyCta": "Build your own poster",
+    "moreOnOccasion": "More about this occasion →"
   }
 }

@@ -2,6 +2,11 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import createIntlMiddleware from 'next-intl/middleware'
 import { routing } from './i18n/routing'
+import {
+  HEADLESS_TOKEN_HEADER,
+  isHeadlessUrl,
+  validateHeadlessToken,
+} from './lib/headless-render'
 
 const intlMiddleware = createIntlMiddleware(routing)
 
@@ -22,6 +27,18 @@ const ADMIN_PREFIX = '/private/admin'
  */
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
+
+  // PROJ-30: Headless-Render-Modus — Worker ruft Editor-Pages mit
+  // `?headless=1` + `X-Render-Token`-Header. Token muss matchen, sonst 403.
+  if (isHeadlessUrl(request.nextUrl)) {
+    const provided = request.headers.get(HEADLESS_TOKEN_HEADER)
+    if (!validateHeadlessToken(provided)) {
+      return new NextResponse(
+        'Forbidden: invalid or missing X-Render-Token header for headless render mode',
+        { status: 403 },
+      )
+    }
+  }
 
   const skipsLocale =
     pathname.startsWith('/api') ||

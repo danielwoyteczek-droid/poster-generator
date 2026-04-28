@@ -19,6 +19,7 @@ export function applyPreset(preset: PresetLike): UndoFn {
 
   if (preset.poster_type === 'star-map') {
     const s = config as {
+      lat?: number; lng?: number; locationName?: string; datetime?: string
       posterBgColor?: string; skyBgColor?: string; starColor?: string
       showConstellations?: boolean; showMilkyWay?: boolean
       showSun?: boolean; showMoon?: boolean; showPlanets?: boolean
@@ -38,6 +39,10 @@ export function applyPreset(preset: PresetLike): UndoFn {
 
     // Snapshot everything we might touch
     const snapshot = {
+      lat: starMap.lat,
+      lng: starMap.lng,
+      locationName: starMap.locationName,
+      datetime: starMap.datetime,
       posterBgColor: starMap.posterBgColor,
       skyBgColor: starMap.skyBgColor,
       starColor: starMap.starColor,
@@ -54,6 +59,10 @@ export function applyPreset(preset: PresetLike): UndoFn {
       textBlocks: editor.textBlocks,
     }
 
+    if (typeof s.lat === 'number' && typeof s.lng === 'number') {
+      starMap.setLocation(s.lat, s.lng, s.locationName ?? starMap.locationName)
+    }
+    if (s.datetime) starMap.setDatetime(s.datetime)
     if (s.posterBgColor) starMap.setPosterBgColor(s.posterBgColor)
     if (s.skyBgColor) starMap.setSkyBgColor(s.skyBgColor)
     if (s.starColor) starMap.setStarColor(s.starColor)
@@ -73,6 +82,10 @@ export function applyPreset(preset: PresetLike): UndoFn {
 
     return () => {
       useStarMapStore.setState({
+        lat: snapshot.lat,
+        lng: snapshot.lng,
+        locationName: snapshot.locationName,
+        datetime: snapshot.datetime,
         posterBgColor: snapshot.posterBgColor,
         skyBgColor: snapshot.skyBgColor,
         starColor: snapshot.starColor,
@@ -99,6 +112,7 @@ export function applyPreset(preset: PresetLike): UndoFn {
     customPaletteBase: editor.customPaletteBase,
     customPalette: editor.customPalette,
     streetLabelsVisible: editor.streetLabelsVisible,
+    posterDarkMode: editor.posterDarkMode,
     maskKey: editor.maskKey,
     marker: editor.marker,
     secondMarker: editor.secondMarker,
@@ -135,6 +149,7 @@ export function applyPreset(preset: PresetLike): UndoFn {
       customPaletteBase: c.customPaletteBase ?? state.customPaletteBase,
       customPalette: c.customPalette ?? state.customPalette,
       streetLabelsVisible: c.streetLabelsVisible ?? state.streetLabelsVisible,
+      posterDarkMode: c.posterDarkMode ?? state.posterDarkMode,
       maskKey: c.maskKey ?? state.maskKey,
       marker: c.marker ?? state.marker,
       secondMarker: c.secondMarker ?? state.secondMarker,

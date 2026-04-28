@@ -33,6 +33,7 @@ export function PresetUrlApplier({ posterType }: Props) {
       .then((data) => {
         if (!data.preset) {
           toast.error('Preset nicht gefunden')
+          if (typeof window !== 'undefined') (window as Window & { __presetApplied?: boolean }).__presetApplied = false
           return
         }
         if (data.preset.poster_type !== posterType) {
@@ -48,13 +49,18 @@ export function PresetUrlApplier({ posterType }: Props) {
           action: { label: 'Rückgängig', onClick: () => undo() },
         })
 
+        if (typeof window !== 'undefined') (window as Window & { __presetApplied?: boolean }).__presetApplied = true
+
         // Strip the query param so a page reload doesn't re-apply
         const params = new URLSearchParams(searchParams.toString())
         params.delete('preset')
         const query = params.toString()
         router.replace(query ? `${pathname}?${query}` : pathname)
       })
-      .catch(() => toast.error('Preset konnte nicht geladen werden'))
+      .catch(() => {
+        toast.error('Preset konnte nicht geladen werden')
+        if (typeof window !== 'undefined') (window as Window & { __presetApplied?: boolean }).__presetApplied = false
+      })
   }, [searchParams, router, pathname, posterType])
 
   return null

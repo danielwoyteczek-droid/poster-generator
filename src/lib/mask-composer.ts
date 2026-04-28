@@ -38,13 +38,19 @@ export interface ShapeConfigState {
     thickness: number // mm, 0.3–2
     style: FrameStyle
     gap: number       // mm between double lines
+    offset?: number   // mm, Abstand vom Poster-Rand (Default 10). Eigener Wert,
+                      // damit der Rahmen nicht an `outer.margin` gekoppelt ist.
   }
 }
 
 export const DEFAULT_SHAPE_CONFIG: ShapeConfigState = {
-  outer: { mode: 'none', opacity: 0.3, margin: 10, marginLocked: true, glowRadius: 250, glowIntensity: 0.5 },
+  // Opt-in-Defaults: Toggle auf "Fade" zeigt zunächst KEIN sichtbares Fade
+  // (opacity=1 = volle Deckkraft am Rand). Operator dreht den Slider runter,
+  // um Fade-Stärke zu setzen. Verhindert Überraschungen, wenn jemand "Fade"/
+  // "Glow" toggelt und plötzlich einen unerwarteten Effekt bekommt.
+  outer: { mode: 'none', opacity: 1, margin: 0, marginLocked: true, glowRadius: 0, glowIntensity: 0 },
   innerFrame: { enabled: false, color: '#1a1a1a', thickness: 0.7 },
-  outerFrame: { enabled: false, color: '#1a1a1a', thickness: 0.7, style: 'single', gap: 1.5 },
+  outerFrame: { enabled: false, color: '#1a1a1a', thickness: 0.7, style: 'single', gap: 1.5, offset: 10 },
 }
 
 export interface ShapeDefinition {
@@ -216,24 +222,22 @@ export function composeFrameSvg(
   const { innerFrame, outerFrame } = config
 
   if (outerFrame.enabled) {
-    const sides = resolveSideMarginsMm(config)
-    const mT = mmToUnits(sides.top, shape.width)
-    const mR = mmToUnits(sides.right, shape.width)
-    const mB = mmToUnits(sides.bottom, shape.width)
-    const mL = mmToUnits(sides.left, shape.width)
+    // Eigener Offset (alle Seiten gleich), nicht an outer.margin gekoppelt.
+    const offsetMm = outerFrame.offset ?? 10
+    const off0 = mmToUnits(offsetMm, shape.width)
     const thickness = mmToUnits(outerFrame.thickness, shape.width)
-    const w = shape.width - mL - mR
-    const h = shape.height - mT - mB
+    const w = shape.width - 2 * off0
+    const h = shape.height - 2 * off0
     parts.push(
-      `<rect x="${mL}" y="${mT}" width="${w}" height="${h}" fill="none" stroke="${outerFrame.color}" stroke-width="${thickness}"/>`,
+      `<rect x="${off0}" y="${off0}" width="${w}" height="${h}" fill="none" stroke="${outerFrame.color}" stroke-width="${thickness}"/>`,
     )
     if (outerFrame.style === 'double') {
       const gap = mmToUnits(outerFrame.gap, shape.width)
       const off = thickness + gap
-      const innerX = mL + off
-      const innerY = mT + off
-      const innerW = shape.width - mL - mR - 2 * off
-      const innerH = shape.height - mT - mB - 2 * off
+      const innerX = off0 + off
+      const innerY = off0 + off
+      const innerW = shape.width - 2 * off0 - 2 * off
+      const innerH = shape.height - 2 * off0 - 2 * off
       if (innerW > 0 && innerH > 0) {
         parts.push(
           `<rect x="${innerX}" y="${innerY}" width="${innerW}" height="${innerH}" fill="none" stroke="${outerFrame.color}" stroke-width="${thickness}"/>`,

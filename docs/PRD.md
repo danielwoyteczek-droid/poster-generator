@@ -31,6 +31,7 @@ Ein webbasierter Karten-Poster-Generator, mit dem Nutzer ohne Designkenntnisse p
 | P1 | Versandkosten-Management (EU-Tarife pro Land × Produkt × Format) | Planned |
 | P2 | Business Center (Internes Operator-Tool: Business-Case + Plan-vs-Ist) | Planned |
 | P1 | Anlass-Landing-Pages (SEO-Marketing-Hubs pro Anlass × Locale) | Planned |
+| P1 | Preset-Render-Pipeline (Bulk-Preview-Generierung mit Mockup-Compositing) | Planned |
 
 ## Success Metrics
 - Conversion Rate: >5% der anonymen Nutzer erstellen ein Konto

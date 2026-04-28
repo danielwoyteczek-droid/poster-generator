@@ -6,8 +6,14 @@ import { GalleryHero } from '@/components/landing/GalleryHero'
 import { GallerySection } from '@/components/landing/GallerySection'
 import { GalleryEmpty } from '@/components/landing/GalleryEmpty'
 import type { GalleryPreset } from '@/components/landing/GalleryPresetCard'
-import { getGalleryPage, type GalleryCategory } from '@/sanity/queries'
+import { getGalleryPage, listOccasionPagesForLocale, type GalleryCategory } from '@/sanity/queries'
 import { createAdminClient } from '@/lib/supabase-admin'
+import { buildOccasionPagePath } from '@/lib/occasion-routing'
+import { locales, type Locale } from '@/i18n/config'
+
+function isLocale(value: string): value is Locale {
+  return (locales as readonly string[]).includes(value)
+}
 
 export const revalidate = 3600
 
@@ -47,16 +53,51 @@ async function fetchPresetsForCategory(
     .order('display_order', { ascending: true })
     .limit(24)
 
-  if (error || !data) return []
-  return data as GalleryPreset[]
+  if (error || !data || data.length === 0) return []
+
+  // Bevorzuge Mockup-Composite-Renders über das nackte Poster
+  const presetIds = data.map((p) => p.id)
+  const { data: renders } = await admin
+    .from('preset_renders')
+    .select('preset_id, image_url, rendered_at')
+    .in('preset_id', presetIds)
+    .eq('variant', 'desktop')
+    .order('rendered_at', { ascending: false })
+
+  const firstRenderByPreset: Record<string, string> = {}
+  for (const r of renders ?? []) {
+    if (!firstRenderByPreset[r.preset_id]) firstRenderByPreset[r.preset_id] = r.image_url
+  }
+
+  return data.map((p) => ({
+    ...p,
+    preview_image_url: firstRenderByPreset[p.id] ?? p.preview_image_url,
+  })) as GalleryPreset[]
 }
 
 export default async function GalleryPageRoute() {
-  const locale = await getLocale().catch(() => 'de')
+  const rawLocale = await getLocale().catch(() => 'de')
+  const locale = rawLocale
   const t = await getTranslations('gallery')
 
-  const page = await getGalleryPage(locale)
+  const [page, occasionRefs] = await Promise.all([
+    getGalleryPage(locale),
+    listOccasionPagesForLocale(locale),
+  ])
   const categories = page?.categories ?? []
+
+  // Build a tag → occasion-page-href lookup so each GallerySection can render
+  // a "More about this occasion →" link without triggering N+1 Sanity queries.
+  // Empty when no occasion-page docs exist for this locale yet — links stay
+  // hidden until marketing publishes a doc.
+  const typedLocale: Locale | null = isLocale(locale) ? locale : null
+  const occasionHrefByTag: Record<string, string> = {}
+  if (typedLocale) {
+    for (const ref of occasionRefs ?? []) {
+      if (!ref.slug) continue
+      occasionHrefByTag[ref.occasion] = buildOccasionPagePath(typedLocale, ref.slug)
+    }
+  }
 
   // Fetch presets for all categories in parallel, then drop empty sections.
   const sectionData = await Promise.all(
@@ -99,6 +140,8 @@ export default async function GalleryPageRoute() {
                 presets={presets}
                 posterTypeMapLabel={t('posterTypeMap')}
                 posterTypeStarMapLabel={t('posterTypeStarMap')}
+                occasionPageHref={occasionHrefByTag[category.tag]}
+                occasionPageLinkLabel={t('moreOnOccasion')}
               />
             ))}
           </div>

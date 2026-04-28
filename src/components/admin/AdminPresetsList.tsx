@@ -2,10 +2,10 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter } from '@/i18n/navigation'
 import { useLocale } from 'next-intl'
 import Image from 'next/image'
-import { Loader2, LayoutTemplate, Pencil, Eye, EyeOff, Trash2, Plus, Link as LinkIcon, Copy, Globe, Tag, X as XIcon, LayoutGrid, List } from 'lucide-react'
+import { Loader2, LayoutTemplate, Pencil, Eye, EyeOff, Trash2, Plus, Link as LinkIcon, Copy, Globe, Tag, X as XIcon, LayoutGrid, List, RefreshCw, AlertCircle, Clock, CheckCircle2, Image as ImageIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
@@ -30,7 +30,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useEditorStore } from '@/hooks/useEditorStore'
-import { useStarMapStore } from '@/hooks/useStarMapStore'
+import { applyPreset } from '@/lib/apply-preset'
 import { LocaleMultiSelect } from '@/components/admin/LocaleMultiSelect'
 import { OccasionMultiSelect } from '@/components/admin/OccasionMultiSelect'
 import { locales as ALL_LOCALES, localeNames, type Locale } from '@/i18n/config'
@@ -39,6 +39,8 @@ import { cn } from '@/lib/utils'
 
 type PosterType = 'map' | 'star-map'
 type Status = 'draft' | 'published'
+
+type RenderStatus = 'pending' | 'rendering' | 'done' | 'failed' | 'stale'
 
 interface Preset {
   id: string
@@ -54,6 +56,20 @@ interface Preset {
   created_at: string
   updated_at: string
   published_at: string | null
+  render_status: RenderStatus
+  render_error: string | null
+  render_completed_at: string | null
+  mockup_set_ids: string[]
+}
+
+interface RenderListItem {
+  mockup_set_id: string
+  variant: 'desktop' | 'mobile'
+  image_url: string
+  image_width: number | null
+  image_height: number | null
+  rendered_at: string
+  mockup_set: { id: string; name: string; slug: string } | null
 }
 
 type BulkAction = 'set' | 'add' | 'remove'
@@ -84,6 +100,28 @@ const TYPE_LABELS: Record<string, string> = {
   'star-map': 'Sternenposter',
 }
 
+const RENDER_STATUS_CONFIG: Record<RenderStatus, { label: string; className: string; icon: typeof Loader2 }> = {
+  pending: { label: 'In Queue', className: 'bg-yellow-100 text-yellow-900 border-yellow-300', icon: Clock },
+  rendering: { label: 'Rendert…', className: 'bg-blue-100 text-blue-900 border-blue-300', icon: Loader2 },
+  done: { label: 'Fertig', className: 'bg-green-100 text-green-900 border-green-300', icon: CheckCircle2 },
+  failed: { label: 'Fehler', className: 'bg-red-100 text-red-900 border-red-300', icon: AlertCircle },
+  stale: { label: 'Veraltet', className: 'bg-orange-100 text-orange-900 border-orange-300', icon: AlertCircle },
+}
+
+function RenderStatusBadge({ status }: { status: RenderStatus }) {
+  const cfg = RENDER_STATUS_CONFIG[status]
+  const Icon = cfg.icon
+  return (
+    <span
+      className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[10px] font-medium leading-tight ${cfg.className}`}
+      title={`Render-Status: ${cfg.label}`}
+    >
+      <Icon className={`w-3 h-3 ${status === 'rendering' ? 'animate-spin' : ''}`} />
+      {cfg.label}
+    </span>
+  )
+}
+
 export function AdminPresetsList() {
   const router = useRouter()
   const currentLocale = useLocale()
@@ -108,9 +146,16 @@ export function AdminPresetsList() {
   const [metaEditName, setMetaEditName] = useState('')
   const [metaEditDescription, setMetaEditDescription] = useState('')
   const [metaEditSubmitting, setMetaEditSubmitting] = useState(false)
+  const [rendersFor, setRendersFor] = useState<Preset | null>(null)
+  const [renders, setRenders] = useState<RenderListItem[] | null>(null)
+  const [rendersLoading, setRendersLoading] = useState(false)
+  const [renderTarget, setRenderTarget] = useState<Preset | null>(null)
+  const [availableMockupSets, setAvailableMockupSets] = useState<{ id: string; name: string; slug: string; is_active: boolean }[]>([])
+  const [selectedMockupSetIds, setSelectedMockupSetIds] = useState<string[]>([])
+  const [renderTriggering, setRenderTriggering] = useState(false)
 
-  const fetchPresets = useCallback(async () => {
-    setLoading(true)
+  const fetchPresets = useCallback(async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setLoading(true)
     const params = new URLSearchParams()
     if (statusFilter !== 'all') params.set('status', statusFilter)
     if (typeFilter !== 'all') params.set('poster_type', typeFilter)
@@ -134,10 +179,22 @@ export function AdminPresetsList() {
       }
       setPresets(result)
     }
-    setLoading(false)
+    if (!opts?.silent) setLoading(false)
   }, [statusFilter, typeFilter, localeFilter, occasionFilter])
 
   useEffect(() => { fetchPresets() }, [fetchPresets])
+
+  // Live-Polling: solange mind. ein Preset gerade rendert oder pending ist,
+  // alle 3s neu laden — silent (kein Loading-Spinner), damit's nicht
+  // wie ein Page-Reload aussieht.
+  useEffect(() => {
+    const hasActive = presets.some(
+      (p) => p.render_status === 'pending' || p.render_status === 'rendering',
+    )
+    if (!hasActive) return
+    const interval = setInterval(() => { fetchPresets({ silent: true }) }, 3000)
+    return () => clearInterval(interval)
+  }, [presets, fetchPresets])
 
   const toggleSelected = (id: string) => {
     setSelectedIds((prev) => {
@@ -294,6 +351,85 @@ export function AdminPresetsList() {
     }
   }
 
+  const openRenderDialog = async (preset: Preset) => {
+    setRenderTarget(preset)
+    setSelectedMockupSetIds(preset.mockup_set_ids ?? [])
+    // Mockup-Set-Liste nachladen falls noch nicht da
+    if (availableMockupSets.length === 0) {
+      try {
+        const res = await fetch('/api/admin/mockup-sets')
+        const data = await res.json()
+        if (res.ok) setAvailableMockupSets(data.mockup_sets ?? [])
+      } catch {
+        toast.error('Konnte Mockup-Sets nicht laden')
+      }
+    }
+  }
+
+  const confirmRender = async () => {
+    if (!renderTarget) return
+    setRenderTriggering(true)
+    try {
+      const res = await fetch(`/api/admin/presets/${renderTarget.id}/render`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mockup_set_ids: selectedMockupSetIds }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        toast.error(data.error ?? 'Render-Trigger fehlgeschlagen')
+        return
+      }
+      toast.success(`„${renderTarget.name}" in Render-Queue`, {
+        description: 'Worker pickt es im nächsten Poll-Zyklus auf (max 5s).',
+      })
+      setPresets((prev) =>
+        prev.map((p) =>
+          p.id === renderTarget.id
+            ? { ...p, render_status: 'pending' as RenderStatus, render_error: null, mockup_set_ids: selectedMockupSetIds }
+            : p,
+        ),
+      )
+      setRenderTarget(null)
+    } finally {
+      setRenderTriggering(false)
+    }
+  }
+
+  const openRendersFor = async (preset: Preset) => {
+    setRendersFor(preset)
+    setRenders(null)
+    setRendersLoading(true)
+    try {
+      const res = await fetch(`/api/admin/presets/${preset.id}/renders`)
+      const data = await res.json()
+      if (!res.ok) {
+        toast.error(data.error ?? 'Konnte Renders nicht laden')
+        return
+      }
+      setRenders(data.renders ?? [])
+    } finally {
+      setRendersLoading(false)
+    }
+  }
+
+  const triggerBulkRender = async () => {
+    if (selectedIds.size === 0) return
+    const res = await fetch('/api/admin/presets/bulk-render', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids: Array.from(selectedIds) }),
+    })
+    const data = await res.json()
+    if (!res.ok) {
+      toast.error(data.error ?? 'Bulk-Render fehlgeschlagen')
+      return
+    }
+    toast.success(`${data.count} Preset${data.count === 1 ? '' : 's'} in Render-Queue`)
+    clearSelection()
+    fetchPresets()
+  }
+
   const updateStatus = async (preset: Preset, status: Status) => {
     const res = await fetch(`/api/admin/presets/${preset.id}`, {
       method: 'PATCH',
@@ -352,59 +488,15 @@ export function AdminPresetsList() {
     }
     const config = data.preset.config_json as Record<string, unknown>
 
-    // Apply the preset's config to the respective editor store
-    if (preset.poster_type === 'star-map') {
-      const s = config as {
-        posterBgColor?: string; skyBgColor?: string; starColor?: string
-        showConstellations?: boolean; showMilkyWay?: boolean
-        showSun?: boolean; showMoon?: boolean; showPlanets?: boolean
-        frameConfig?: {
-          outer?: Partial<{ mode: 'none' | 'opacity' | 'full'; opacity: number; margin: number }>
-          innerFrame?: Partial<{ enabled: boolean; color: string; thickness: number }>
-          outerFrame?: Partial<{ enabled: boolean; color: string; thickness: number; style: 'single' | 'double'; gap: number }>
-        }
-        textBlocks?: unknown
-      }
-      const starMap = useStarMapStore.getState()
-      if (s.posterBgColor) starMap.setPosterBgColor(s.posterBgColor)
-      if (s.skyBgColor) starMap.setSkyBgColor(s.skyBgColor)
-      if (s.starColor) starMap.setStarColor(s.starColor)
-      if (s.showConstellations !== undefined) starMap.setShowConstellations(s.showConstellations)
-      if (s.showMilkyWay !== undefined) starMap.setShowMilkyWay(s.showMilkyWay)
-      if (s.showSun !== undefined) starMap.setShowSun(s.showSun)
-      if (s.showMoon !== undefined) starMap.setShowMoon(s.showMoon)
-      if (s.showPlanets !== undefined) starMap.setShowPlanets(s.showPlanets)
-      if (s.frameConfig?.outer) starMap.setOuter(s.frameConfig.outer)
-      if (s.frameConfig?.innerFrame) starMap.setInnerFrame(s.frameConfig.innerFrame)
-      if (s.frameConfig?.outerFrame) starMap.setOuterFrame(s.frameConfig.outerFrame)
-      if (s.textBlocks) {
-        useEditorStore.setState({ textBlocks: s.textBlocks as never })
-      }
-      useEditorStore.getState().setEditingPreset({
-        id: preset.id,
-        name: preset.name,
-        description: preset.description,
-        posterType: 'star-map',
-      })
-      router.push('/star-map')
-    } else {
-      // Map preset: apply to editor store
-      useEditorStore.setState((state) => ({
-        ...state,
-        ...(config as Partial<typeof state>),
-        // Important: keep the user's current viewState/location, not the preset's
-        viewState: state.viewState,
-        locationName: state.locationName,
-        projectId: null, // Don't associate with a locked project
-        editingPreset: {
-          id: preset.id,
-          name: preset.name,
-          description: preset.description,
-          posterType: 'map',
-        },
-      }))
-      router.push('/map')
-    }
+    applyPreset({ poster_type: preset.poster_type, config_json: config })
+
+    useEditorStore.getState().setEditingPreset({
+      id: preset.id,
+      name: preset.name,
+      description: preset.description,
+      posterType: preset.poster_type,
+    })
+    router.push(preset.poster_type === 'star-map' ? '/star-map' : '/map')
     toast.success(`Preset "${preset.name}" geladen — Editor wird geöffnet`)
   }
 
@@ -419,6 +511,15 @@ export function AdminPresetsList() {
           <div className="text-sm font-medium text-foreground">
             {selectedIds.size} ausgewählt
           </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-9"
+            onClick={triggerBulkRender}
+          >
+            <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+            Markierte rendern
+          </Button>
           <div className="flex items-center gap-2 flex-wrap">
             <div className="flex gap-1 bg-white rounded-md border border-border p-0.5">
               {(['locales', 'occasions'] as const).map((field) => (
@@ -662,6 +763,9 @@ export function AdminPresetsList() {
                 <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full text-[10px] font-medium bg-white/90 text-foreground/70 backdrop-blur">
                   {preset.poster_type === 'star-map' ? 'Sternenposter' : 'Stadtposter'}
                 </span>
+                <div className="absolute bottom-2 left-2">
+                  <RenderStatusBadge status={preset.render_status} />
+                </div>
                 {!preset.show_in_editor && (
                   <span
                     className="absolute top-9 right-2 px-2 py-0.5 rounded-full text-[10px] font-medium bg-purple-100 text-purple-800 backdrop-blur"
@@ -784,7 +888,7 @@ export function AdminPresetsList() {
                     </PopoverContent>
                   </Popover>
                 </div>
-                <div className="flex gap-1.5">
+                <div className="flex gap-1.5 flex-wrap">
                   <Button
                     variant="outline"
                     size="sm"
@@ -814,6 +918,36 @@ export function AdminPresetsList() {
                       Zurückziehen
                     </Button>
                   )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 text-xs"
+                    onClick={() => openRenderDialog(preset)}
+                    disabled={
+                      preset.status !== 'published' ||
+                      preset.render_status === 'pending' ||
+                      preset.render_status === 'rendering'
+                    }
+                    title={
+                      preset.status !== 'published'
+                        ? 'Erst veröffentlichen, dann rendern'
+                        : preset.render_error
+                          ? `Letzter Fehler: ${preset.render_error}`
+                          : 'Mockup-Render anstoßen'
+                    }
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 mr-1 ${preset.render_status === 'rendering' ? 'animate-spin' : ''}`} />
+                    Rendern
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                    onClick={() => openRendersFor(preset)}
+                    title="Gerenderte Mockup-Bilder anzeigen"
+                  >
+                    <ImageIcon className="w-3.5 h-3.5" />
+                  </Button>
                   {preset.status === 'published' && (
                     <Button
                       variant="ghost"
@@ -1164,6 +1298,96 @@ export function AdminPresetsList() {
                 sizes="(max-width: 768px) 100vw, 700px"
                 className="object-contain rounded-lg"
               />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={renderTarget !== null} onOpenChange={(open) => { if (!open) setRenderTarget(null) }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Mockups auswählen</DialogTitle>
+            <DialogDescription>
+              In welchen Mockup-Sets soll „{renderTarget?.name}" gerendert werden?
+              Pro Set werden Desktop + Mobile erstellt.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 max-h-[50vh] overflow-y-auto py-2">
+            {availableMockupSets.length === 0 && (
+              <p className="text-sm text-muted-foreground">
+                Noch keine Mockup-Sets angelegt. Erstelle eines in <code>/private/admin/mockup-sets</code> oder direkt in der DB.
+              </p>
+            )}
+            {availableMockupSets.filter((m) => m.is_active).map((m) => (
+              <label key={m.id} className="flex items-center gap-2 p-2 rounded-md hover:bg-muted cursor-pointer">
+                <Checkbox
+                  checked={selectedMockupSetIds.includes(m.id)}
+                  onCheckedChange={(checked) => {
+                    if (checked) setSelectedMockupSetIds((prev) => [...prev, m.id])
+                    else setSelectedMockupSetIds((prev) => prev.filter((x) => x !== m.id))
+                  }}
+                />
+                <div className="text-sm">
+                  <div className="font-medium">{m.name}</div>
+                  <div className="text-xs text-muted-foreground">{m.slug}</div>
+                </div>
+              </label>
+            ))}
+            <p className="text-xs text-muted-foreground pt-2">
+              Tipp: Wenn keine ausgewählt, rendert der Worker den nackten Poster (ohne Mockup-Frame).
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRenderTarget(null)}>Abbrechen</Button>
+            <Button onClick={confirmRender} disabled={renderTriggering}>
+              {renderTriggering && <Loader2 className="w-4 h-4 animate-spin mr-1" />}
+              Rendern starten
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={rendersFor !== null} onOpenChange={(open) => { if (!open) { setRendersFor(null); setRenders(null) } }}>
+        <DialogContent className="max-w-5xl">
+          <DialogHeader>
+            <DialogTitle>Mockup-Renders: {rendersFor?.name}</DialogTitle>
+            <DialogDescription>
+              Alle gerenderten Composite-Bilder dieses Presets — pro Mockup-Set + Variante (Desktop + Mobile).
+            </DialogDescription>
+          </DialogHeader>
+          {rendersLoading && (
+            <div className="py-12 text-center text-sm text-muted-foreground">
+              <Loader2 className="w-5 h-5 animate-spin inline mr-2" />
+              Lade Renders…
+            </div>
+          )}
+          {!rendersLoading && renders !== null && renders.length === 0 && (
+            <div className="py-12 text-center text-sm text-muted-foreground">
+              Noch keine Renders vorhanden. Klick „Rendern" am Preset, um den Worker anzustoßen.
+            </div>
+          )}
+          {!rendersLoading && renders !== null && renders.length > 0 && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 max-h-[70vh] overflow-y-auto">
+              {renders.map((r) => (
+                <a
+                  key={`${r.mockup_set_id}-${r.variant}`}
+                  href={r.image_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="block group"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={r.image_url}
+                    alt={`${r.mockup_set?.name ?? 'Mockup'} (${r.variant})`}
+                    className="w-full aspect-square object-contain rounded-md border border-border bg-muted"
+                  />
+                  <div className="mt-1.5 text-xs">
+                    <div className="font-medium truncate">{r.mockup_set?.name ?? 'Unbekanntes Set'}</div>
+                    <div className="text-muted-foreground capitalize">{r.variant}</div>
+                  </div>
+                </a>
+              ))}
             </div>
           )}
         </DialogContent>

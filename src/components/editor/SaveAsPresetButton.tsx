@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { usePathname } from 'next/navigation'
+import { usePathname } from '@/i18n/navigation'
 import { LayoutTemplate, Loader2, RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -57,6 +57,13 @@ export function SaveAsPresetButton() {
   const buildConfigJson = (): Record<string, unknown> => {
     if (posterType === 'star-map') {
       return {
+        // Location + Datetime sind essentiell — bestimmen welche Sterne wo stehen.
+        // Ohne die zeigt das Preset beim Re-Open Default-Sternbilder statt der
+        // designten Konfiguration.
+        lat: starMap.lat,
+        lng: starMap.lng,
+        locationName: starMap.locationName,
+        datetime: starMap.datetime,
         posterBgColor: starMap.posterBgColor,
         skyBgColor: starMap.skyBgColor,
         starColor: starMap.starColor,
@@ -79,6 +86,7 @@ export function SaveAsPresetButton() {
       customPaletteBase: editor.customPaletteBase,
       customPalette: editor.customPalette,
       streetLabelsVisible: editor.streetLabelsVisible,
+      posterDarkMode: editor.posterDarkMode,
       maskKey: editor.maskKey,
       marker: editor.marker,
       secondMarker: editor.secondMarker,

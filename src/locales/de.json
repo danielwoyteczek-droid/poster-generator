@@ -113,7 +113,8 @@
     "terms": "AGB",
     "withdrawal": "Widerrufsbelehrung",
     "cookies": "Cookie-Richtlinie",
-    "fallbackCopyright": "© {year} Poster Generator"
+    "fallbackCopyright": "© {year} Poster Generator",
+    "occasions": "Anlässe"
   },
   "cart": {
     "pageTitle": "Warenkorb | Poster Generator",
@@ -465,6 +466,7 @@
     "posterTypeStarMap": "Sternenkarte",
     "emptyTitle": "Noch keine Vorlagen verfügbar",
     "emptyDescription": "Wir arbeiten an Designs für deine Sprache. Schau bald wieder vorbei oder gestalte dein eigenes Poster von Grund auf.",
-    "emptyCta": "Eigenes Poster gestalten"
+    "emptyCta": "Eigenes Poster gestalten",
+    "moreOnOccasion": "Mehr zum Anlass →"
   }
 }
