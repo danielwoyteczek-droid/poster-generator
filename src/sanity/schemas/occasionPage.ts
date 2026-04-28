@@ -204,6 +204,32 @@ export const occasionPage = defineType({
       fields: [{ name: 'alt', type: 'string', title: 'Alt-Text' }],
     }),
     defineField({
+      name: 'featuredPresetIds',
+      title: 'Featured Presets (Carousel)',
+      type: 'array',
+      description:
+        'Optional. UUIDs der Presets aus dem Admin-Bereich, die in der ' +
+        '„Inspiration"-Sektion angezeigt werden sollen — in der hier ' +
+        'gepflegten Reihenfolge. Wenn leer, werden automatisch alle ' +
+        'Presets gezeigt, die für diese Locale + diesen Anlass getaggt ' +
+        'sind (Reihenfolge: display_order). UUIDs findest du im Admin ' +
+        'unter /private/admin/presets in der Adresszeile beim Edit-Link.',
+      of: [{ type: 'string' }],
+      options: { layout: 'tags' },
+      validation: (rule) =>
+        rule.max(12).custom((value) => {
+          const list = (value as string[] | undefined) ?? []
+          const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+          for (const entry of list) {
+            if (!uuid.test(entry)) return `„${entry}" ist keine gültige Preset-UUID.`
+          }
+          if (new Set(list).size !== list.length) {
+            return 'Doppelte UUIDs in der Liste.'
+          }
+          return true
+        }),
+    }),
+    defineField({
       name: 'bodySections',
       title: 'Body-Sektionen',
       type: 'array',

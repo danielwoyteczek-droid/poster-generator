@@ -21,21 +21,39 @@ interface Props {
 async function fetchPresetsForOccasion(
   locale: Locale,
   occasion: string,
+  featuredIds?: string[],
 ): Promise<GalleryPreset[]> {
   const admin = createAdminClient()
-  const { data, error } = await admin
-    .from('presets')
-    .select('id, name, poster_type, preview_image_url')
-    .eq('status', 'published')
-    .contains('target_locales', [locale])
-    .contains('occasions', [occasion])
-    .order('display_order', { ascending: true })
-    .limit(4)
+  const useFeatured = featuredIds && featuredIds.length > 0
+
+  // Variante A: kuratierte Liste aus Sanity → genau diese Presets in
+  // gepflegter Reihenfolge laden. Variante B (Fallback): Auto-Match per
+  // Locale + Anlass-Tag, sortiert nach display_order.
+  const baseQuery = admin.from('presets').select('id, name, poster_type, preview_image_url').eq('status', 'published')
+
+  const { data, error } = useFeatured
+    ? await baseQuery.in('id', featuredIds!)
+    : await baseQuery
+        .contains('target_locales', [locale])
+        .contains('occasions', [occasion])
+        .order('display_order', { ascending: true })
+        .limit(4)
+
   if (error || !data || data.length === 0) return []
+
+  // Bei Featured-Liste: die Reihenfolge aus Sanity wiederherstellen
+  // (Supabase .in() liefert nicht garantiert in der Eingabe-Reihenfolge).
+  let ordered = data as GalleryPreset[]
+  if (useFeatured) {
+    const byId = new Map(data.map((p) => [p.id, p]))
+    ordered = featuredIds!
+      .map((id) => byId.get(id))
+      .filter((p): p is typeof data[number] => Boolean(p)) as GalleryPreset[]
+  }
 
   // Fetch desktop mockup-renders, falls vorhanden — die zeigen wir bevorzugt
   // statt des nackten Posters, weil sie bereits im Mockup-Frame stecken.
-  const presetIds = data.map((p) => p.id)
+  const presetIds = ordered.map((p) => p.id)
   const { data: renders } = await admin
     .from('preset_renders')
     .select('preset_id, image_url, rendered_at')
@@ -48,7 +66,7 @@ async function fetchPresetsForOccasion(
     if (!firstRenderByPreset[r.preset_id]) firstRenderByPreset[r.preset_id] = r.image_url
   }
 
-  return data.map((p) => ({
+  return ordered.map((p) => ({
     ...p,
     preview_image_url: firstRenderByPreset[p.id] ?? p.preview_image_url,
   })) as GalleryPreset[]
@@ -79,7 +97,7 @@ export async function OccasionLandingPage({ locale, slug, preview }: Props) {
   const editorPath = page.ctaPosterType === 'star-map' ? '/star-map' : '/map'
   const ctaHref = `/${locale}${editorPath}`
 
-  const presets = await fetchPresetsForOccasion(locale, page.occasion)
+  const presets = await fetchPresetsForOccasion(locale, page.occasion, page.featuredPresetIds)
 
   return (
     <div className="min-h-screen flex flex-col bg-white">

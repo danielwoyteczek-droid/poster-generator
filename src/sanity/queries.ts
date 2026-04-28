@@ -102,6 +102,9 @@ export interface OccasionPage {
   pageSubline?: string
   heroImage: SanityImage
   heroImageMobile?: SanityImage
+  /** Optional kuratierte Liste von Preset-UUIDs für die Inspiration-Sektion.
+   *  Leere Liste oder undefined → Auto-Match per Locale + Anlass-Tag. */
+  featuredPresetIds?: string[]
   bodySections: OccasionBodySection[]
   faq?: OccasionFaqEntry[]
   metaTitle: string
@@ -287,6 +290,7 @@ const OCCASION_PAGE_PROJECTION = groq`{
   pageSubline,
   heroImage,
   heroImageMobile,
+  featuredPresetIds,
   bodySections[]{ heading, body },
   faq[]{ question, answer },
   metaTitle,
