@@ -27,8 +27,9 @@ function getLabelLocale(locale: string): keyof (typeof occasionLabels)['mutterta
 
 /**
  * Mini gallery on an occasion landing page — presented as a single-card
- * carousel with dot pagination (no native scrollbar). Cards use a square
- * aspect ratio so room-mockup images of the posters fit naturally.
+ * carousel with dot pagination (no native scrollbar). Cards use the 2:3
+ * poster aspect ratio so naked preset previews fit without cropping.
+ * Mockup-Composites (PROJ-30) werden ebenfalls in 2:3 gerendert.
  *
  * Production rule (per spec): hide the entire section when no presets match,
  * so the storytelling + CTA still feel intentional. Preview mode breaks this
@@ -68,7 +69,7 @@ export function OccasionPresetGrid({
               preset={preset}
               posterTypeMapLabel={posterTypeMapLabel}
               posterTypeStarMapLabel={posterTypeStarMapLabel}
-              aspectRatio="1/1"
+              aspectRatio="2/3"
             />
           ))}
         </PresetCarousel>
@@ -99,7 +100,7 @@ function PlaceholderCarousel({ occasion, locale }: { occasion: string; locale: s
         <PresetCarousel itemLabel="Vorlage">
           {placeholders.map((i) => (
             <div key={i} className="flex flex-col gap-3">
-              <div className="aspect-square rounded-xl border-2 border-dashed border-border bg-background flex items-center justify-center text-muted-foreground/50">
+              <div className="rounded-xl border-2 border-dashed border-border bg-background flex items-center justify-center text-muted-foreground/50" style={{ aspectRatio: '2/3' }}>
                 <LayoutTemplate className="w-12 h-12" />
               </div>
               <p className="text-sm font-medium text-muted-foreground/60 text-center">
