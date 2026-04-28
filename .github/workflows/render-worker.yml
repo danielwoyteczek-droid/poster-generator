@@ -38,14 +38,18 @@ jobs:
       - name: Run render worker (drain mode)
         env:
           RENDER_WORKER_DRAIN: '1'
+          # Pflicht — Worker startet nicht, wenn fehlend
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
           APP_BASE_URL: ${{ secrets.APP_BASE_URL }}
           RENDER_HEADLESS_TOKEN: ${{ secrets.RENDER_HEADLESS_TOKEN }}
           DYNAMIC_MOCKUPS_API_KEY: ${{ secrets.DYNAMIC_MOCKUPS_API_KEY }}
-          DYNAMIC_MOCKUPS_API_URL: ${{ secrets.DYNAMIC_MOCKUPS_API_URL }}
-          DYNAMIC_MOCKUPS_TIMEOUT_MS: ${{ secrets.DYNAMIC_MOCKUPS_TIMEOUT_MS }}
-          RENDER_PARALLEL_BROWSERS: ${{ secrets.RENDER_PARALLEL_BROWSERS }}
-          RENDER_BROWSER_TIMEOUT_MS: ${{ secrets.RENDER_BROWSER_TIMEOUT_MS }}
-          RENDER_POLL_INTERVAL_MS: ${{ secrets.RENDER_POLL_INTERVAL_MS }}
+          # Optional — nur durchreichen wenn als Secret hinterlegt, sonst
+          # nutzt der Worker seine Code-Defaults. GitHub macht aus fehlenden
+          # Secrets sonst Empty-Strings, die parseInt('') zu NaN machen.
+          DYNAMIC_MOCKUPS_API_URL: ${{ secrets.DYNAMIC_MOCKUPS_API_URL || '' }}
+          DYNAMIC_MOCKUPS_TIMEOUT_MS: ${{ secrets.DYNAMIC_MOCKUPS_TIMEOUT_MS || '' }}
+          RENDER_PARALLEL_BROWSERS: ${{ secrets.RENDER_PARALLEL_BROWSERS || '' }}
+          RENDER_BROWSER_TIMEOUT_MS: ${{ secrets.RENDER_BROWSER_TIMEOUT_MS || '' }}
+          RENDER_POLL_INTERVAL_MS: ${{ secrets.RENDER_POLL_INTERVAL_MS || '' }}
         run: npm run render:worker

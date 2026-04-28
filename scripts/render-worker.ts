@@ -28,11 +28,18 @@ loadEnv({ path: '.env.local' })
 
 // ─── Config ────────────────────────────────────────────────────────────────
 
-const APP_BASE_URL = process.env.APP_BASE_URL ?? 'http://localhost:3000'
-const HEADLESS_TOKEN = process.env.RENDER_HEADLESS_TOKEN
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
-const SUPABASE_KEY = process.env.SUPABASE_SECRET_KEY
-const POLL_INTERVAL_MS = Number.parseInt(process.env.RENDER_POLL_INTERVAL_MS ?? '5000', 10)
+// GitHub Actions ersetzt fehlende Secrets durch Empty-String. `??` greift
+// nur bei undefined/null — daher Empty-String explizit als "fehlt" behandeln.
+function envOr<T>(name: string, fallback: T): string | T {
+  const v = process.env[name]
+  return v && v.length > 0 ? v : fallback
+}
+
+const APP_BASE_URL = envOr('APP_BASE_URL', 'http://localhost:3000')
+const HEADLESS_TOKEN = envOr('RENDER_HEADLESS_TOKEN', undefined)
+const SUPABASE_URL = envOr('NEXT_PUBLIC_SUPABASE_URL', undefined)
+const SUPABASE_KEY = envOr('SUPABASE_SECRET_KEY', undefined)
+const POLL_INTERVAL_MS = Number.parseInt(envOr('RENDER_POLL_INTERVAL_MS', '5000'), 10)
 // Drain-Mode (für GitHub Actions): Worker beendet sich, wenn 2 Polls in
 // Folge nichts zu tun fanden. Lokal (Default) bleibt der Worker am Leben
 // und pollt unbegrenzt.
