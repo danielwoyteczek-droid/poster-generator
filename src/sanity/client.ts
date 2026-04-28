@@ -10,6 +10,20 @@ export const sanityClient = createClient({
   perspective: 'published',
 })
 
+/**
+ * Draft-aware client for preview mode (PROJ-29). Uses the write token to read
+ * `drafts.*` documents in addition to published ones. Pages opt into this via
+ * `?preview=1` — the regular published-only client stays the default.
+ */
+export const sanityPreviewClient = createClient({
+  projectId,
+  dataset,
+  apiVersion,
+  useCdn: false,
+  perspective: 'drafts',
+  token: process.env.SANITY_API_WRITE_TOKEN,
+})
+
 const builder = imageUrlBuilder({ projectId, dataset })
 
 type SanityImageSource = Parameters<ReturnType<typeof imageUrlBuilder>['image']>[0]

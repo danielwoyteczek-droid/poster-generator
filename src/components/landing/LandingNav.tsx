@@ -17,9 +17,6 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { useAuth } from '@/hooks/useAuth'
 import { createClient } from '@/lib/supabase-browser'
-import { SaveButton } from '@/components/editor/SaveButton'
-import { SaveAsPresetButton } from '@/components/editor/SaveAsPresetButton'
-import { ResetEditorButton } from '@/components/editor/ResetEditorButton'
 import { useCartStore } from '@/hooks/useCartStore'
 import { EmailConfirmBanner } from '@/components/EmailConfirmBanner'
 import { LanguageSwitcher } from '@/components/LanguageSwitcher'
@@ -82,9 +79,8 @@ export function LandingNav() {
         </nav>
 
         <div className="hidden md:flex items-center gap-3">
-          {isEditor && user && <SaveButton />}
-          {isEditor && isAdmin && <SaveAsPresetButton />}
-          {isEditor && isAdmin && <ResetEditorButton />}
+          {/* Editor-spezifische Save/Preset/Reset-Buttons leben jetzt in
+              `EditorToolbar` direkt unter der Nav (statt in der Nav). */}
 
           <LanguageSwitcher />
 
@@ -161,6 +157,24 @@ export function LandingNav() {
                       <Link href="/private/admin/presets" className="cursor-pointer">
                         <LayoutTemplate className="w-4 h-4 mr-2" />
                         {t('adminPresets')}
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/private/admin/mockup-sets" className="cursor-pointer">
+                        <LayoutTemplate className="w-4 h-4 mr-2" />
+                        Mockup-Sets
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/private/admin/compositions" className="cursor-pointer">
+                        <LayoutTemplate className="w-4 h-4 mr-2" />
+                        Compositions
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/private/admin/render-library" className="cursor-pointer">
+                        <LayoutTemplate className="w-4 h-4 mr-2" />
+                        Render-Library
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>

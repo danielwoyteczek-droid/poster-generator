@@ -1,4 +1,5 @@
 import Image from 'next/image'
+import Link from 'next/link'
 import { GalleryPresetCard, type GalleryPreset } from './GalleryPresetCard'
 import { urlFor } from '@/sanity/client'
 import type { SanityImage } from '@/sanity/queries'
@@ -11,6 +12,13 @@ interface Props {
   presets: GalleryPreset[]
   posterTypeMapLabel: string
   posterTypeStarMapLabel: string
+  /** When set, render a "More about this occasion →" link below the heading.
+   *  The parent (gallery page) pre-fetches the locale's occasion-page slugs
+   *  in one query so individual sections don't trigger N+1 lookups. */
+  occasionPageHref?: string
+  /** Localized label for the cross-link, e.g. "Mehr zum Anlass →". Required
+   *  when `occasionPageHref` is set. */
+  occasionPageLinkLabel?: string
 }
 
 /**
@@ -26,6 +34,8 @@ export function GallerySection({
   presets,
   posterTypeMapLabel,
   posterTypeStarMapLabel,
+  occasionPageHref,
+  occasionPageLinkLabel,
 }: Props) {
   const moodUrl = categoryImage
     ? urlFor(categoryImage).width(800).format('webp').url()
@@ -42,6 +52,14 @@ export function GallerySection({
           <h2 className="text-2xl sm:text-3xl font-bold text-foreground">{label}</h2>
           {subline && (
             <p className="mt-3 text-muted-foreground text-base sm:text-lg">{subline}</p>
+          )}
+          {occasionPageHref && occasionPageLinkLabel && (
+            <Link
+              href={occasionPageHref}
+              className="inline-block mt-4 text-sm font-medium text-primary hover:underline"
+            >
+              {occasionPageLinkLabel}
+            </Link>
           )}
         </div>
 

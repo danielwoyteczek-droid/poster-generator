@@ -13,6 +13,10 @@ interface Props {
   preset: GalleryPreset
   posterTypeMapLabel: string
   posterTypeStarMapLabel: string
+  /** CSS aspect-ratio for the card image area. Default `2/3` matches the
+   *  poster proportions used by the gallery; landing-page sliders may pass
+   *  `1/1` for room-mockup images. */
+  aspectRatio?: string
 }
 
 /**
@@ -20,7 +24,12 @@ interface Props {
  * existing PresetUrlApplier mechanism. Cross-poster_type mismatches are
  * handled transparently by PresetUrlApplier (it redirects automatically).
  */
-export function GalleryPresetCard({ preset, posterTypeMapLabel, posterTypeStarMapLabel }: Props) {
+export function GalleryPresetCard({
+  preset,
+  posterTypeMapLabel,
+  posterTypeStarMapLabel,
+  aspectRatio = '2/3',
+}: Props) {
   const editorPath = preset.poster_type === 'star-map' ? '/star-map' : '/map'
   const href = `${editorPath}?preset=${preset.id}`
   const typeLabel =
@@ -34,7 +43,7 @@ export function GalleryPresetCard({ preset, posterTypeMapLabel, posterTypeStarMa
     >
       <div
         className="relative w-full bg-muted rounded-xl overflow-hidden shadow-md group-hover:shadow-xl transition-shadow"
-        style={{ aspectRatio: '2/3' }}
+        style={{ aspectRatio }}
       >
         {preset.preview_image_url ? (
           <Image

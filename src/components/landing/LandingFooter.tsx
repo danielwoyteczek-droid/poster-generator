@@ -1,13 +1,46 @@
 import Link from 'next/link'
-import { getTranslations } from 'next-intl/server'
-import { getSiteSettings } from '@/sanity/queries'
+import { getLocale, getTranslations } from 'next-intl/server'
+import { getSiteSettings, listOccasionPagesForLocale } from '@/sanity/queries'
 import { CookieSettingsLink } from '@/components/consent/CookieSettingsLink'
+import { buildOccasionPagePath } from '@/lib/occasion-routing'
+import { occasionLabels, type OccasionCode, OCCASION_CODES } from '@/lib/occasions'
+import { locales, type Locale } from '@/i18n/config'
+
+function isLocale(value: string): value is Locale {
+  return (locales as readonly string[]).includes(value)
+}
+
+function isOccasionCode(value: string): value is OccasionCode {
+  return (OCCASION_CODES as readonly string[]).includes(value)
+}
 
 export async function LandingFooter() {
   const t = await getTranslations('footer')
   const tNav = await getTranslations('nav')
-  const settings = await getSiteSettings()
+  const rawLocale = await getLocale().catch(() => 'de')
+  const locale: Locale = isLocale(rawLocale) ? rawLocale : 'de'
+
+  const [settings, occasionRefs] = await Promise.all([
+    getSiteSettings(),
+    listOccasionPagesForLocale(locale),
+  ])
   const year = new Date().getFullYear()
+
+  // Map occasion-codes to localized labels via the canonical lookup table.
+  // Filter unknown codes (defensive: a renamed/removed occasion could leave
+  // orphan Sanity docs).
+  const occasionLinks = (occasionRefs ?? [])
+    .filter((ref) => isOccasionCode(ref.occasion) && Boolean(ref.slug))
+    .map((ref) => ({
+      label: occasionLabels[ref.occasion as OccasionCode][locale],
+      href: buildOccasionPagePath(locale, ref.slug),
+    }))
+
+  const showOccasions = occasionLinks.length > 0
+  // Tailwind JIT sees both class strings — runtime picks the right one.
+  const gridClass = showOccasions
+    ? 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8 mb-8'
+    : 'grid grid-cols-2 md:grid-cols-4 gap-8 mb-8'
 
   const legalLinks = [
     { label: t('imprint'), href: '/impressum' },
@@ -26,7 +59,7 @@ export async function LandingFooter() {
   return (
     <footer className="border-t border-border bg-white py-12 mt-auto">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-8">
+        <div className={gridClass}>
           <div>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
@@ -48,6 +81,20 @@ export async function LandingFooter() {
               <li><Link href="/gallery" className="text-sm text-muted-foreground hover:text-foreground">{tNav('gallery')}</Link></li>
             </ul>
           </div>
+          {showOccasions && (
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70 mb-3">{t('occasions')}</p>
+              <ul className="space-y-2">
+                {occasionLinks.map((link) => (
+                  <li key={link.href}>
+                    <Link href={link.href} className="text-sm text-muted-foreground hover:text-foreground">
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70 mb-3">{t('info')}</p>
             <ul className="space-y-2">

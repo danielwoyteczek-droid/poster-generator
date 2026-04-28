@@ -18,6 +18,7 @@ export const structure: StructureResolver = (S) =>
       S.divider(),
       S.documentTypeListItem('homepage').title('Homepage (pro Sprache)'),
       S.documentTypeListItem('galleryPage').title('Galerie-Seite (pro Sprache)'),
+      S.documentTypeListItem('occasionPage').title('Anlass-Seiten (Locale × Anlass)'),
       S.documentTypeListItem('legalPage').title('Rechtliche Seiten'),
       S.documentTypeListItem('faqItem').title('FAQ-Einträge'),
       S.documentTypeListItem('blogPost').title('Blog-Artikel'),

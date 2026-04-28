@@ -1,5 +1,5 @@
 import { groq } from 'next-sanity'
-import { sanityClient } from './client'
+import { sanityClient, sanityPreviewClient } from './client'
 import { isConfigured } from './env'
 
 export interface SanityImage {
@@ -82,12 +82,63 @@ export interface GalleryPage {
   categories?: GalleryCategory[]
 }
 
+export interface OccasionFaqEntry {
+  question: string
+  answer: string
+}
+
+export interface OccasionBodySection {
+  heading: string
+  body: unknown[]
+}
+
+export interface OccasionPage {
+  _id: string
+  language: string
+  occasion: string
+  slug: { current: string }
+  previousSlugs?: string[]
+  pageTitle: string
+  pageSubline?: string
+  heroImage: SanityImage
+  heroImageMobile?: SanityImage
+  bodySections: OccasionBodySection[]
+  faq?: OccasionFaqEntry[]
+  metaTitle: string
+  metaDescription: string
+  ctaPosterType?: 'map' | 'star-map'
+}
+
+/**
+ * Lightweight projection used for hreflang generation, footer link blocks and
+ * gallery cross-links — we only need (language, occasion, slug).
+ */
+export interface OccasionPageRef {
+  language: string
+  occasion: string
+  slug: string
+}
+
 async function safeFetch<T>(query: string, params?: Record<string, unknown>, fallback: T | null = null): Promise<T | null> {
   if (!isConfigured) return fallback
   try {
     return await sanityClient.fetch<T>(query, params ?? {})
   } catch (err) {
     console.error('[sanity] fetch failed:', err)
+    return fallback
+  }
+}
+
+/**
+ * Draft-aware fetch for preview mode (PROJ-29). Uses the write token + drafts
+ * perspective so unpublished documents are visible in `?preview=1` views.
+ */
+async function safeFetchPreview<T>(query: string, params?: Record<string, unknown>, fallback: T | null = null): Promise<T | null> {
+  if (!isConfigured) return fallback
+  try {
+    return await sanityPreviewClient.fetch<T>(query, params ?? {})
+  } catch (err) {
+    console.error('[sanity] preview fetch failed:', err)
     return fallback
   }
 }
@@ -223,3 +274,99 @@ export const getGalleryPage = async (locale: string = 'de'): Promise<GalleryPage
         : fallback.categories,
   }
 }
+
+// ─── PROJ-29 Anlass-Landing-Pages ──────────────────────────────────────────
+
+const OCCASION_PAGE_PROJECTION = groq`{
+  _id,
+  language,
+  occasion,
+  slug,
+  previousSlugs,
+  pageTitle,
+  pageSubline,
+  heroImage,
+  heroImageMobile,
+  bodySections[]{ heading, body },
+  faq[]{ question, answer },
+  metaTitle,
+  metaDescription,
+  ctaPosterType
+}`
+
+/**
+ * Slug-Lookup für eine Anlass-Seite. Trifft sowohl den aktuellen `slug.current`
+ * als auch jeden Eintrag in `previousSlugs[]` — der Page-Handler entscheidet
+ * dann anhand des Vergleichs, ob er einen 301-Redirect auf den aktuellen Slug
+ * ausliefert oder direkt rendert.
+ *
+ * Anders als getHomepage / getGalleryPage gibt es bewusst KEINEN DE-Fallback:
+ * Wenn das Locale-Doc nicht existiert, soll die Route 404 antworten — eine
+ * SEO-Seite ohne Locale-spezifischen Content schadet mehr als sie nutzt.
+ */
+export const getOccasionPageBySlug = (
+  locale: string,
+  slug: string,
+  options: { preview?: boolean } = {},
+) => {
+  const fetcher = options.preview ? safeFetchPreview : safeFetch
+  return fetcher<OccasionPage>(
+    groq`*[_type == "occasionPage"
+      && language == $locale
+      && (slug.current == $slug || $slug in previousSlugs)
+    ][0]${OCCASION_PAGE_PROJECTION}`,
+    { locale, slug },
+  )
+}
+
+/**
+ * Listet alle Locale-Varianten EINES Anlasses auf — wird vom Page-Handler
+ * für hreflang-Tag-Generation und Sitemap-Subelemente konsumiert. Locales
+ * ohne Doc tauchen nicht auf, hreflang verweist nur auf existierende Seiten.
+ */
+export const getOccasionPageVariants = (occasion: string) =>
+  safeFetch<OccasionPageRef[]>(
+    groq`*[_type == "occasionPage" && occasion == $occasion]
+      | order(language asc){
+        language,
+        occasion,
+        "slug": slug.current
+      }`,
+    { occasion },
+    [],
+  )
+
+/**
+ * Liefert eine Locale-spezifische Liste aller Anlass-Seiten — für den Footer
+ * "Anlässe"-Link-Block und die "Mehr zum Anlass →"-Verlinkung in der
+ * Galerie-Sektion. Eine Locale ohne gepflegte Anlass-Seiten liefert ein
+ * leeres Array, der Footer-Block wird dann ausgeblendet.
+ */
+export const listOccasionPagesForLocale = (locale: string) =>
+  safeFetch<OccasionPageRef[]>(
+    groq`*[_type == "occasionPage" && language == $locale]
+      | order(occasion asc){
+        language,
+        occasion,
+        "slug": slug.current
+      }`,
+    { locale },
+    [],
+  )
+
+/**
+ * Listet alle Anlass-Seiten unabhängig von Locale — wird von der Sitemap-
+ * Generierung konsumiert. Sortierung nach Locale + Anlass für stabile
+ * Output-Reihenfolge.
+ */
+export const listAllOccasionPages = () =>
+  safeFetch<OccasionPageRef[]>(
+    groq`*[_type == "occasionPage"]
+      | order(language asc, occasion asc){
+        language,
+        occasion,
+        "slug": slug.current
+      }`,
+    {},
+    [],
+  )
