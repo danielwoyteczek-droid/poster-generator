@@ -17,6 +17,11 @@ interface Props {
    *  poster proportions used by the gallery; landing-page sliders may pass
    *  `1/1` for room-mockup images. */
   aspectRatio?: string
+  /** Tailwind class(es) for aspect-ratio. Overrides `aspectRatio` when set —
+   *  use this when the desktop and mobile aspect ratios differ
+   *  (e.g. `aspect-[2/3] md:aspect-square` for occasion landing pages,
+   *  where desktop shows 1:1 room-mockups but mobile shows 2:3 poster previews). */
+  aspectClassName?: string
 }
 
 /**
@@ -29,6 +34,7 @@ export function GalleryPresetCard({
   posterTypeMapLabel,
   posterTypeStarMapLabel,
   aspectRatio = '2/3',
+  aspectClassName,
 }: Props) {
   const editorPath = preset.poster_type === 'star-map' ? '/star-map' : '/map'
   const href = `${editorPath}?preset=${preset.id}`
@@ -42,8 +48,8 @@ export function GalleryPresetCard({
       aria-label={`${preset.name} — ${typeLabel}`}
     >
       <div
-        className="relative w-full bg-muted rounded-xl overflow-hidden shadow-md group-hover:shadow-xl transition-shadow"
-        style={{ aspectRatio }}
+        className={`relative w-full bg-muted rounded-xl overflow-hidden shadow-md group-hover:shadow-xl transition-shadow${aspectClassName ? ` ${aspectClassName}` : ''}`}
+        style={aspectClassName ? undefined : { aspectRatio }}
       >
         {preset.preview_image_url ? (
           <Image
