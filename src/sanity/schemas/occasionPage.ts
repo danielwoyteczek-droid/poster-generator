@@ -1,4 +1,5 @@
 import { defineType, defineField } from 'sanity'
+import { PresetPickerInput } from '../components/PresetPickerInput'
 
 /**
  * PROJ-29 Anlass-Landing-Pages: lokalisierte SEO-Hubs pro Anlass × Locale.
@@ -208,14 +209,12 @@ export const occasionPage = defineType({
       title: 'Featured Presets (Carousel)',
       type: 'array',
       description:
-        'Optional. UUIDs der Presets aus dem Admin-Bereich, die in der ' +
-        '„Inspiration"-Sektion angezeigt werden sollen — in der hier ' +
-        'gepflegten Reihenfolge. Wenn leer, werden automatisch alle ' +
-        'Presets gezeigt, die für diese Locale + diesen Anlass getaggt ' +
-        'sind (Reihenfolge: display_order). UUIDs findest du im Admin ' +
-        'unter /private/admin/presets in der Adresszeile beim Edit-Link.',
+        'Optional. Wähle die Presets aus, die in der „Inspiration"-Sektion ' +
+        'erscheinen sollen — in der hier gepflegten Reihenfolge. Wenn leer, ' +
+        'werden automatisch alle Presets gezeigt, die für diese Locale + ' +
+        'diesen Anlass getaggt sind.',
       of: [{ type: 'string' }],
-      options: { layout: 'tags' },
+      components: { input: PresetPickerInput },
       validation: (rule) =>
         rule.max(12).custom((value) => {
           const list = (value as string[] | undefined) ?? []
