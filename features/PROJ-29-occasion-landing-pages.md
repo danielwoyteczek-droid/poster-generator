@@ -1,8 +1,8 @@
 # PROJ-29: Anlass-Landing-Pages (SEO-Marketing-Hubs)
 
-## Status: Architected
+## Status: In Progress
 **Created:** 2026-04-26
-**Last Updated:** 2026-04-26
+**Last Updated:** 2026-04-28
 
 ## Dependencies
 - **Requires PROJ-11** (Homepage / Galerie-Erweiterung) — nutzt die `presets.occasions`-Tagging-Infrastruktur, das `OCCASION_CODES`-Enum aus [src/lib/occasions.ts](src/lib/occasions.ts) und das gleiche Anlass-Modell.

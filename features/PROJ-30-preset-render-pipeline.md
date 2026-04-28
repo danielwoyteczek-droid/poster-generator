@@ -1,8 +1,8 @@
 # PROJ-30: Preset-Render-Pipeline (Bulk-Preview-Generierung mit Mockup-Compositing)
 
-## Status: Architected
+## Status: In Progress
 **Created:** 2026-04-27
-**Last Updated:** 2026-04-27 (Compositor von Adobe Photoshop API auf Dynamic Mockups umgestellt — Adobe ist Enterprise-only, Dynamic Mockups ist self-serve und PSD-Smart-Object-fähig)
+**Last Updated:** 2026-04-28 (Compositor von Adobe Photoshop API auf Dynamic Mockups umgestellt — Adobe ist Enterprise-only, Dynamic Mockups ist self-serve und PSD-Smart-Object-fähig)
 
 ## Dependencies
 - **Requires PROJ-1** (Karten-Editor Core) — Render-Pipeline öffnet die bestehenden `/map`- und `/star-map`-Routen mit `?preset=<id>` und nutzt den existierenden Editor-Code-Pfad als Render-Engine.
