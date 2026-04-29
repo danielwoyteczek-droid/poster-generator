@@ -33,12 +33,44 @@ export function PhotoPosterCanvas({
   const [posterSize, setPosterSize] = useState({ width: 0, height: 0 })
 
   const { printFormat } = useEditorStore()
-  const { layoutMode, orientation } = usePhotoEditorStore()
+  const { layoutMode, orientation, wordX, wordY, setWordPosition, selectedSlotIndex } =
+    usePhotoEditorStore()
   const format = PRINT_FORMATS[printFormat]
   const baseRatio = format.widthMm / format.heightMm
   const ratio = orientation === 'landscape' ? 1 / baseRatio : baseRatio
 
   const fontScale = computeFontScale(posterSize.width)
+
+  // Keyboard-Drag: Pfeiltasten verschieben das Letter-Mask-Wort um 1% pro
+  // Press (5% mit Shift). Aktiv nur, wenn ein Slot ausgewählt ist UND der
+  // Fokus nicht in einem Eingabefeld liegt — sonst würde Customer beim
+  // Tippen des Wortes versehentlich das Wort verschieben.
+  useEffect(() => {
+    if (layoutMode !== 'letter-mask') return
+    if (selectedSlotIndex === null) return
+    const handler = (e: KeyboardEvent) => {
+      const active = document.activeElement
+      const tag = active?.tagName?.toLowerCase()
+      if (tag === 'input' || tag === 'textarea' || tag === 'select') return
+      if (active instanceof HTMLElement && active.isContentEditable) return
+      const step = e.shiftKey ? 0.05 : 0.01
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault()
+        setWordPosition({ x: wordX - step })
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault()
+        setWordPosition({ x: wordX + step })
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault()
+        setWordPosition({ y: wordY - step })
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault()
+        setWordPosition({ y: wordY + step })
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [layoutMode, selectedSlotIndex, wordX, wordY, setWordPosition])
 
   useEffect(() => {
     const wrapper = wrapperRef.current

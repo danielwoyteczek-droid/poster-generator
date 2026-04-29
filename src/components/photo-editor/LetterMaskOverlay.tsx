@@ -27,26 +27,31 @@ export function LetterMaskOverlay({ posterRef, interactive = true }: Props) {
     word,
     slots,
     wordWidth,
+    wordX,
+    wordY,
     maskFontKey,
     defaultSlotColor,
     selectedSlotIndex,
     setSelectedSlotIndex,
     updateSlotCrop,
+    setWordPosition,
   } = usePhotoEditorStore()
 
+  const wordRef = useRef<HTMLDivElement>(null)
   const font = MASK_FONTS[maskFontKey]
 
   if (word.length === 0) return null
 
-  const containerLeft = ((1 - wordWidth) / 2) * 100
+  const containerLeft = (wordX - wordWidth / 2) * 100
   const slotAspect = 1 / font.heightOverWidth // width/height for CSS aspect-ratio
 
   return (
     <div
+      ref={wordRef}
       className="absolute flex items-stretch justify-center select-none"
       style={{
         left: `${containerLeft}%`,
-        top: '12%',
+        top: `${wordY * 100}%`,
         width: `${wordWidth * 100}%`,
       }}
       aria-label={`Letter-Mask: ${word}`}
@@ -65,6 +70,28 @@ export function LetterMaskOverlay({ posterRef, interactive = true }: Props) {
           interactive={interactive}
           onSelect={() => setSelectedSlotIndex(i)}
           onPan={(updates) => updateSlotCrop(i, updates)}
+          onMoveWordFromStart={(totalDx, totalDy, startX, startY) => {
+            const posterRect = posterRef.current?.getBoundingClientRect()
+            const wordRect = wordRef.current?.getBoundingClientRect()
+            if (!posterRect || !wordRect) return
+            // Clamp so the word's bounding box stays inside the poster.
+            // Half-width on the X side because wordX is the CENTER; full
+            // height on the Y side because wordY is the TOP.
+            const wHalfFrac = wordRect.width / posterRect.width / 2
+            const hFrac = wordRect.height / posterRect.height
+            const xMin = wHalfFrac
+            const xMax = 1 - wHalfFrac
+            const yMin = 0
+            const yMax = 1 - hFrac
+            const targetX = startX + totalDx / posterRect.width
+            const targetY = startY + totalDy / posterRect.height
+            setWordPosition({
+              x: Math.max(xMin, Math.min(xMax, targetX)),
+              y: Math.max(yMin, Math.min(yMax, targetY)),
+            })
+          }}
+          startWordX={wordX}
+          startWordY={wordY}
           posterRef={posterRef}
         />
       ))}
@@ -84,6 +111,19 @@ interface SlotViewProps {
   interactive: boolean
   onSelect: () => void
   onPan: (updates: { cropX?: number; cropY?: number }) => void
+  /** Cumulative drag-delta callback for moving the whole word. Receives the
+   *  total dx/dy from drag-start (not incremental) plus the wordX/wordY at
+   *  drag-start, so the parent can compute an absolute position without
+   *  fighting stale closure values. Triggered when the customer pans an
+   *  empty slot (no photo). */
+  onMoveWordFromStart: (
+    totalDx: number,
+    totalDy: number,
+    startWordX: number,
+    startWordY: number,
+  ) => void
+  startWordX: number
+  startWordY: number
   posterRef: React.RefObject<HTMLDivElement | null>
 }
 
@@ -98,6 +138,9 @@ function LetterSlotView({
   interactive,
   onSelect,
   onPan,
+  onMoveWordFromStart,
+  startWordX,
+  startWordY,
 }: SlotViewProps) {
   const slotRef = useRef<HTMLDivElement>(null)
 
@@ -105,7 +148,6 @@ function LetterSlotView({
     if (!interactive) return
     e.stopPropagation()
     onSelect()
-    if (!photo) return
 
     const slotEl = slotRef.current
     if (!slotEl) return
@@ -113,15 +155,37 @@ function LetterSlotView({
     const slotRect = slotEl.getBoundingClientRect()
     const startX = e.clientX
     const startY = e.clientY
-    const startCropX = photo.cropX
-    const startCropY = photo.cropY
 
+    if (photo) {
+      // Filled slot → pan the photo crop within this letter
+      const startCropX = photo.cropX
+      const startCropY = photo.cropY
+      const handleMove = (ev: PointerEvent) => {
+        const dx = ev.clientX - startX
+        const dy = ev.clientY - startY
+        const nextCropX = clamp(startCropX + dx / slotRect.width, -0.5, 0.5)
+        const nextCropY = clamp(startCropY + dy / slotRect.height, -0.5, 0.5)
+        onPan({ cropX: nextCropX, cropY: nextCropY })
+      }
+      const handleUp = () => {
+        window.removeEventListener('pointermove', handleMove)
+        window.removeEventListener('pointerup', handleUp)
+      }
+      window.addEventListener('pointermove', handleMove)
+      window.addEventListener('pointerup', handleUp)
+      return
+    }
+
+    // Empty slot → drag the entire word across the poster.
+    // Capture the start word position so the move handler computes an
+    // absolute target instead of accumulating against (potentially stale)
+    // store values.
+    const wordXAtStart = startWordX
+    const wordYAtStart = startWordY
     const handleMove = (ev: PointerEvent) => {
-      const dx = ev.clientX - startX
-      const dy = ev.clientY - startY
-      const nextCropX = clamp(startCropX + dx / slotRect.width, -0.5, 0.5)
-      const nextCropY = clamp(startCropY + dy / slotRect.height, -0.5, 0.5)
-      onPan({ cropX: nextCropX, cropY: nextCropY })
+      const totalDx = ev.clientX - startX
+      const totalDy = ev.clientY - startY
+      onMoveWordFromStart(totalDx, totalDy, wordXAtStart, wordYAtStart)
     }
     const handleUp = () => {
       window.removeEventListener('pointermove', handleMove)

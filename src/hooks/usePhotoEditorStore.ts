@@ -39,6 +39,11 @@ interface PhotoEditorStore {
   /** Horizontal share of the poster width the word occupies, 0..1. Customer
    *  controls this via a slider — larger value = bigger letters. */
   wordWidth: number
+  /** Horizontal center of the word as fraction of poster width (0..1).
+   *  0.5 = centered. */
+  wordX: number
+  /** Top edge of the word as fraction of poster height (0..1). */
+  wordY: number
   /** 'portrait' = paper standing tall (default for A4/A3 prints).
    *  'landscape' = paper lying on its side. The canvas flips its aspect
    *  ratio accordingly. */
@@ -50,6 +55,7 @@ interface PhotoEditorStore {
 
   setWord: (word: string) => void
   setWordWidth: (width: number) => void
+  setWordPosition: (updates: Partial<{ x: number; y: number }>) => void
   setOrientation: (orientation: PosterOrientation) => void
   setSlotPhoto: (index: number, photo: SlotPhoto | null) => void
   updateSlotCrop: (
@@ -72,10 +78,19 @@ function buildSlotsFromWord(word: string, prev: LetterSlot[]): LetterSlot[] {
 
 const INITIAL_SLOTS = buildSlotsFromWord(LETTER_MASK_DEFAULT_WORD, [])
 
+const DEFAULT_WORD_X = 0.5
+const DEFAULT_WORD_Y = 0.12
+
+function clamp01(value: number): number {
+  return Math.max(0, Math.min(1, value))
+}
+
 export const usePhotoEditorStore = create<PhotoEditorStore>((set) => ({
   layoutMode: 'letter-mask',
   word: LETTER_MASK_DEFAULT_WORD,
   wordWidth: LETTER_MASK_DEFAULT_WORD_WIDTH,
+  wordX: DEFAULT_WORD_X,
+  wordY: DEFAULT_WORD_Y,
   orientation: 'portrait',
   maskFontKey: 'anton',
   slots: INITIAL_SLOTS,
@@ -93,6 +108,12 @@ export const usePhotoEditorStore = create<PhotoEditorStore>((set) => ({
     })),
 
   setWordWidth: (width) => set({ wordWidth: width }),
+
+  setWordPosition: (updates) =>
+    set((s) => ({
+      wordX: updates.x !== undefined ? clamp01(updates.x) : s.wordX,
+      wordY: updates.y !== undefined ? clamp01(updates.y) : s.wordY,
+    })),
 
   setOrientation: (orientation) => set({ orientation }),
 
@@ -123,6 +144,8 @@ export const usePhotoEditorStore = create<PhotoEditorStore>((set) => ({
       layoutMode: 'letter-mask',
       word: LETTER_MASK_DEFAULT_WORD,
       wordWidth: LETTER_MASK_DEFAULT_WORD_WIDTH,
+      wordX: DEFAULT_WORD_X,
+      wordY: DEFAULT_WORD_Y,
       orientation: 'portrait',
       maskFontKey: 'anton',
       slots: buildSlotsFromWord(LETTER_MASK_DEFAULT_WORD, []),
