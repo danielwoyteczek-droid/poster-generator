@@ -78,7 +78,12 @@ function getApiKey(explicit?: string): string {
 }
 
 function getApiUrl(explicit?: string): string {
-  return explicit ?? process.env.DYNAMIC_MOCKUPS_API_URL ?? DEFAULT_API_URL
+  if (explicit) return explicit
+  // GitHub Actions reicht fehlende Secrets als leeren String durch — `??` fängt
+  // nur `undefined`. Deshalb explizit auf truthy prüfen, sonst landet
+  // `${""}/renders` als `/renders` im fetch und URL-Parser failed.
+  const fromEnv = process.env.DYNAMIC_MOCKUPS_API_URL
+  return fromEnv && fromEnv.length > 0 ? fromEnv : DEFAULT_API_URL
 }
 
 function getTimeout(explicit?: number): number {
