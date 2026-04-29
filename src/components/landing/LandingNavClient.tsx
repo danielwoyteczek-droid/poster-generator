@@ -56,9 +56,7 @@ export function LandingNavClient({ occasionLinks = [] }: LandingNavClientProps) 
     { label: t('cityPoster'), href: '/map' },
     { label: t('starPoster'), href: '/star-map' },
     { label: t('photoPoster'), href: '/photo' },
-    { label: t('features'), href: '/#features' },
-    { label: t('examples'), href: '/#examples' },
-    { label: t('gallery'), href: '/gallery' },
+    { label: t('inspiration'), href: '/gallery' },
     { label: t('pricing'), href: '/#pricing' },
   ]
 
