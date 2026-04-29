@@ -2,20 +2,22 @@
 
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { Type, ImageIcon, Layers } from 'lucide-react'
+import { Type, ImageIcon, Layers, Download } from 'lucide-react'
 import { LetterMaskTab } from '../sidebar/LetterMaskTab'
 import { PhotoSlotsTab } from '../sidebar/PhotoSlotsTab'
+import { PhotoExportTab } from '../sidebar/PhotoExportTab'
 import { MobileTextTab } from '@/components/sidebar/mobile/MobileTextTab'
 import { PhotoPosterCanvas } from '../PhotoPosterCanvas'
 import type { MobileEditorTool } from '@/components/editor/PosterCanvas'
 import { cn } from '@/lib/utils'
 
-type MobilePhotoTab = 'word' | 'slots' | 'text'
+type MobilePhotoTab = 'word' | 'slots' | 'text' | 'export'
 
 const TAB_TO_TOOL: Record<MobilePhotoTab, MobileEditorTool> = {
   word: 'photo',
   slots: 'photo',
   text: 'text',
+  export: 'photo',
 }
 
 /**
@@ -29,12 +31,14 @@ const TAB_TO_TOOL: Record<MobilePhotoTab, MobileEditorTool> = {
  */
 export function MobilePhotoEditorLayout() {
   const t = useTranslations('photoEditor')
+  const tEditor = useTranslations('editor')
   const [activeTab, setActiveTab] = useState<MobilePhotoTab>('word')
 
   const TABS: { id: MobilePhotoTab; label: string; Icon: typeof Type }[] = [
     { id: 'word', label: t('tabWord'), Icon: Layers },
     { id: 'slots', label: t('tabSlots'), Icon: ImageIcon },
     { id: 'text', label: t('tabText'), Icon: Type },
+    { id: 'export', label: tEditor('downloadHeading'), Icon: Download },
   ]
 
   return (
@@ -47,7 +51,7 @@ export function MobilePhotoEditorLayout() {
       </div>
 
       <nav
-        className="h-14 shrink-0 grid grid-cols-3 bg-white border-b border-border"
+        className="h-14 shrink-0 grid grid-cols-4 bg-white border-b border-border"
         role="tablist"
       >
         {TABS.map(({ id, label, Icon }) => {
@@ -76,6 +80,7 @@ export function MobilePhotoEditorLayout() {
         {activeTab === 'word' && <LetterMaskTab />}
         {activeTab === 'slots' && <PhotoSlotsTab />}
         {activeTab === 'text' && <MobileTextTab hideCoordinates />}
+        {activeTab === 'export' && <PhotoExportTab />}
       </div>
     </div>
   )

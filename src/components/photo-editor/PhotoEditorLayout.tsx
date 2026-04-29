@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { TextTab } from '@/components/sidebar/TextTab'
 import { LetterMaskTab } from './sidebar/LetterMaskTab'
 import { PhotoSlotsTab } from './sidebar/PhotoSlotsTab'
+import { PhotoExportTab } from './sidebar/PhotoExportTab'
 import { PhotoPosterCanvas } from './PhotoPosterCanvas'
 
 const TAB_TRIGGER_CN =
@@ -13,6 +14,7 @@ const TAB_TRIGGER_CN =
 
 export function PhotoEditorLayout() {
   const t = useTranslations('photoEditor')
+  const tEditor = useTranslations('editor')
 
   return (
     <div className="flex h-full overflow-hidden">
@@ -32,6 +34,9 @@ export function PhotoEditorLayout() {
             <TabsTrigger value="text" className={TAB_TRIGGER_CN}>
               {t('tabText')}
             </TabsTrigger>
+            <TabsTrigger value="export" className={TAB_TRIGGER_CN}>
+              {tEditor('downloadHeading')}
+            </TabsTrigger>
           </TabsList>
 
           <ScrollArea className="flex-1">
@@ -43,6 +48,9 @@ export function PhotoEditorLayout() {
             </TabsContent>
             <TabsContent value="text" className="mt-0">
               <TextTab hideCoordinates />
+            </TabsContent>
+            <TabsContent value="export" className="mt-0">
+              <PhotoExportTab />
             </TabsContent>
           </ScrollArea>
         </Tabs>

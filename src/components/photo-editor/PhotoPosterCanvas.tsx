@@ -3,10 +3,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { useEditorStore } from '@/hooks/useEditorStore'
 import { usePhotoEditorStore } from '@/hooks/usePhotoEditorStore'
+import { usePhotoExport } from '@/hooks/usePhotoExport'
 import { PRINT_FORMATS } from '@/lib/print-formats'
 import { computeFontScale } from '@/lib/font-scale'
 import { TextBlockOverlay } from '@/components/editor/TextBlockOverlay'
 import { LetterMaskOverlay } from './LetterMaskOverlay'
+import { PreviewTriggerButton } from '@/components/editor/PreviewTriggerButton'
 import type { MobileEditorTool } from '@/components/editor/PosterCanvas'
 
 interface PhotoPosterCanvasProps {
@@ -35,6 +37,7 @@ export function PhotoPosterCanvas({
   const { printFormat } = useEditorStore()
   const { layoutMode, orientation, wordX, wordY, setWordPosition, selectedSlotIndex } =
     usePhotoEditorStore()
+  const { renderPreview } = usePhotoExport()
   const format = PRINT_FORMATS[printFormat]
   const baseRatio = format.widthMm / format.heightMm
   const ratio = orientation === 'landscape' ? 1 / baseRatio : baseRatio
@@ -103,8 +106,10 @@ export function PhotoPosterCanvas({
   return (
     <div
       ref={wrapperRef}
-      className="flex-1 min-h-0 flex items-center justify-center bg-muted/30"
+      className="flex-1 min-h-0 relative flex items-center justify-center bg-muted/30"
     >
+      <PreviewTriggerButton renderPreview={renderPreview} />
+
       <div
         ref={posterRef}
         className="relative bg-white shadow-md overflow-hidden"
