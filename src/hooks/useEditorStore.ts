@@ -1,11 +1,11 @@
 import { create } from 'zustand'
 import type { MapMaskKey } from '@/lib/map-masks'
-import type { PrintFormat } from '@/lib/print-formats'
+import type { PrintFormat, PosterOrientation } from '@/lib/print-formats'
 import { DEFAULT_SHAPE_CONFIG, type ShapeConfigState } from '@/lib/mask-composer'
 import type { PhotoMaskKey } from '@/lib/photo-masks'
 import type { MapPaletteColors } from '@/lib/map-palettes'
 
-export type { MapMaskKey, PrintFormat, ShapeConfigState }
+export type { MapMaskKey, PrintFormat, PosterOrientation, ShapeConfigState }
 
 export type PhotoFilter = 'none' | 'grayscale' | 'sepia'
 
@@ -132,6 +132,7 @@ export interface EditorStore {
   posterDarkMode: boolean
   maskKey: MapMaskKey
   printFormat: PrintFormat
+  orientation: PosterOrientation
   marker: MarkerState
   secondMap: SecondMapState
   secondMarker: MarkerState
@@ -173,6 +174,7 @@ export interface EditorStore {
   setPosterDarkMode: (value: boolean) => void
   setMaskKey: (key: MapMaskKey) => void
   setPrintFormat: (format: PrintFormat) => void
+  setOrientation: (orientation: PosterOrientation) => void
   setMarker: (updates: Partial<MarkerState>) => void
   setSecondMarker: (updates: Partial<MarkerState>) => void
   setShapeConfig: (updates: Partial<ShapeConfigState>) => void
@@ -222,6 +224,7 @@ export interface EditorConfig {
   posterDarkMode: boolean
   maskKey: MapMaskKey
   printFormat: PrintFormat
+  orientation: PosterOrientation
   marker: MarkerState
   secondMarker: MarkerState
   secondMap: Pick<SecondMapState, 'enabled' | 'styleId' | 'paletteId' | 'customPaletteBase' | 'customPalette' | 'viewState'>
@@ -262,6 +265,7 @@ export const EDITOR_INITIAL_STATE = {
   posterDarkMode: false,
   maskKey: 'none',
   printFormat: 'a4' as const,
+  orientation: 'portrait' as const,
   marker: { enabled: false, type: 'classic' as const, color: '#e63946' },
   secondMarker: { enabled: false, type: 'classic' as const, color: '#e63946' },
   shapeConfig: DEFAULT_SHAPE_CONFIG,
@@ -339,6 +343,7 @@ export const useEditorStore = create<EditorStore>((set) => ({
   setPosterDarkMode: (posterDarkMode) => set({ posterDarkMode }),
   setMaskKey: (maskKey) => set({ maskKey }),
   setPrintFormat: (printFormat) => set({ printFormat }),
+  setOrientation: (orientation) => set({ orientation }),
   setMarker: (updates) => set((s) => ({ marker: { ...s.marker, ...updates } })),
   setSecondMarker: (updates) => set((s) => ({ secondMarker: { ...s.secondMarker, ...updates } })),
   setShapeConfig: (updates) => set((s) => ({ shapeConfig: { ...s.shapeConfig, ...updates } })),
@@ -454,6 +459,7 @@ export const useEditorStore = create<EditorStore>((set) => ({
     posterDarkMode: config.posterDarkMode ?? s.posterDarkMode,
     maskKey: config.maskKey ?? s.maskKey,
     printFormat: config.printFormat ?? s.printFormat,
+    orientation: config.orientation ?? s.orientation,
     marker: config.marker ?? s.marker,
     secondMarker: config.secondMarker ?? s.secondMarker,
     shapeConfig: config.shapeConfig ?? s.shapeConfig,

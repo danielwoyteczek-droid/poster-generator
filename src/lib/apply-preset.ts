@@ -124,6 +124,7 @@ export function applyPreset(preset: PresetLike): UndoFn {
     splitPhoto: editor.splitPhoto,
     layoutId: editor.layoutId,
     innerMarginMm: editor.innerMarginMm,
+    orientation: editor.orientation,
     pendingCenter: editor.pendingCenter,
   }
 
@@ -159,6 +160,7 @@ export function applyPreset(preset: PresetLike): UndoFn {
       shapeConfig: c.shapeConfig ?? state.shapeConfig,
       layoutId: c.layoutId ?? state.layoutId,
       innerMarginMm: c.innerMarginMm ?? state.innerMarginMm,
+      orientation: c.orientation ?? state.orientation,
       textBlocks: c.textBlocks ?? state.textBlocks,
       splitMode: c.splitMode ?? state.splitMode,
       splitPhotoZone: c.splitPhotoZone ?? state.splitPhotoZone,

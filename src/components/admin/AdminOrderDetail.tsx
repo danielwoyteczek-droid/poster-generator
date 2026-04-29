@@ -131,7 +131,11 @@ export function AdminOrderDetail({ orderId }: { orderId: string }) {
       try {
         const canvas = await renderPosterFromSnapshot(item.posterType, item.format as PrintFormat, item.snapshot)
         const pngBlob = await canvasToPngBlob(canvas)
-        const pdfBlob = await pngBlobToPdfBlob(pngBlob, item.format as PrintFormat)
+        const pdfBlob = await pngBlobToPdfBlob(
+          pngBlob,
+          item.format as PrintFormat,
+          (item.snapshot as { orientation?: 'portrait' | 'landscape' })?.orientation ?? 'portrait',
+        )
         await uploadExport(itemIndex, 'png', pngBlob)
         await uploadExport(itemIndex, 'pdf', pdfBlob)
         await fetchOrder()

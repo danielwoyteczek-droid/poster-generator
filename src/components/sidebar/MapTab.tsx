@@ -3,7 +3,7 @@
 import { useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { useTranslatedLabel } from '@/lib/i18n-catalog'
-import { ChevronDown, ChevronUp, Loader2, Upload, Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronDown, ChevronUp, Loader2, Upload, Trash2, ChevronLeft, ChevronRight, RectangleVertical, RectangleHorizontal } from 'lucide-react'
 import { toast } from 'sonner'
 import { Label } from '@/components/ui/label'
 import { LocationSearch } from '@/components/editor/LocationSearch'
@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/dialog'
 import { PresetPicker } from '@/components/editor/PresetPicker'
 import { useEditorStore } from '@/hooks/useEditorStore'
+import { PRINT_FORMAT_OPTIONS, type PosterOrientation } from '@/lib/print-formats'
 import { useAuth } from '@/hooks/useAuth'
 import { useCustomMasks } from '@/hooks/useCustomMasks'
 import { MAP_MASK_OPTIONS, MAP_MASKS } from '@/lib/map-masks'
@@ -71,9 +72,11 @@ export function MapTab() {
     styleId, maskKey, marker, secondMarker, shapeConfig,
     paletteId, customPaletteBase, customPalette, streetLabelsVisible, posterDarkMode,
     layoutId,
+    printFormat, orientation,
     setStyleId, setMaskKey, setMarker, setSecondMarker,
     setShapeOuter, setInnerFrame, setOuterFrame,
     setLayoutId,
+    setPrintFormat, setOrientation,
     setPaletteId, setCustomPaletteBase, setCustomPalette, updateCustomPaletteColor, setStreetLabelsVisible, setPosterDarkMode,
     flyToLocation, setLocationName,
     secondMap, setSecondMapStyleId, setSecondMapPaletteId, setSecondMapCustomPaletteBase, setSecondMapCustomPalette, updateSecondMapCustomPaletteColor, flyToSecondLocation,
@@ -226,8 +229,74 @@ export function MapTab() {
     ? SPLIT_MASK_OPTIONS
     : [...SINGLE_MASK_OPTIONS, ...adminMasks]
 
+  const orientationOptions: {
+    value: PosterOrientation
+    label: string
+    Icon: typeof RectangleVertical
+  }[] = [
+    { value: 'portrait', label: t('orientationPortrait'), Icon: RectangleVertical },
+    { value: 'landscape', label: t('orientationLandscape'), Icon: RectangleHorizontal },
+  ]
+
   return (
     <div className="space-y-5 p-4">
+      {/* Page setup — paper format + orientation. Lives at the top so the
+          customer locks in the canvas shape before designing. */}
+      <div className="space-y-3">
+        <div className="space-y-1.5">
+          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
+            {t('paperFormat')}
+          </Label>
+          <div className="grid grid-cols-3 gap-1.5">
+            {PRINT_FORMAT_OPTIONS.map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                onClick={() => setPrintFormat(f.id)}
+                className={cn(
+                  'h-9 rounded-md border-2 text-sm font-medium transition-colors',
+                  printFormat === f.id
+                    ? 'border-primary bg-primary text-primary-foreground'
+                    : 'border-border text-foreground/70 hover:border-muted-foreground',
+                )}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
+            {t('orientationLabel')}
+          </Label>
+          <div className="grid grid-cols-2 gap-1.5">
+            {orientationOptions.map(({ value, label, Icon }) => {
+              const active = orientation === value
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setOrientation(value)}
+                  aria-pressed={active}
+                  className={cn(
+                    'flex items-center justify-center gap-1.5 h-9 rounded-md border-2 text-sm font-medium transition-colors',
+                    active
+                      ? 'border-primary bg-primary text-primary-foreground'
+                      : 'border-border text-foreground/70 hover:border-muted-foreground',
+                  )}
+                >
+                  <Icon className="w-4 h-4" />
+                  {label}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      </div>
+
+      <Separator />
+
       {/* Location Search — primary map */}
       <div className="space-y-1.5">
         <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">{t('mapLocationSearch')}</Label>

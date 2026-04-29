@@ -6,12 +6,11 @@ import { useTranslatedLabel } from '@/lib/i18n-catalog'
 import { Loader2, FileImage, FileText, Download, Image, Frame, ShoppingCart } from 'lucide-react'
 import { toast } from 'sonner'
 import { Label } from '@/components/ui/label'
-import { Separator } from '@/components/ui/separator'
 import { useEditorStore } from '@/hooks/useEditorStore'
 import { useMapExport } from '@/hooks/useMapExport'
 import { useAuth } from '@/hooks/useAuth'
 import { useCartStore } from '@/hooks/useCartStore'
-import { PRINT_FORMAT_OPTIONS, type PrintFormat } from '@/lib/print-formats'
+import { type PrintFormat } from '@/lib/print-formats'
 import { PRODUCTS, formatPrice, type ProductId } from '@/lib/products'
 import { cn } from '@/lib/utils'
 import { trackAddToCart } from '@/lib/analytics'
@@ -26,50 +25,9 @@ const PRODUCT_ICONS: Record<string, React.ReactNode> = {
   frame: <Frame className="w-5 h-5" />,
 }
 
-// ─── Format selector (shared) ─────────────────────────────────────────────────
-
-function FormatSelector({ printFormat, setPrintFormat, fmt }: {
-  printFormat: string
-  setPrintFormat: (id: PrintFormat) => void
-  fmt: typeof PRINT_FORMAT_OPTIONS[number]
-}) {
-  const t = useTranslations('editor')
-  return (
-    <>
-      <div className="space-y-1.5">
-        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
-          {t('paperFormat')}
-        </Label>
-        <div className="grid grid-cols-3 gap-1.5">
-          {PRINT_FORMAT_OPTIONS.map((f) => (
-            <button
-              key={f.id}
-              type="button"
-              onClick={() => setPrintFormat(f.id)}
-              className={cn(
-                'h-9 rounded-md border-2 text-sm font-medium transition-colors',
-                printFormat === f.id
-                  ? 'border-primary bg-primary text-primary-foreground'
-                  : 'border-border text-foreground/70 hover:border-muted-foreground',
-              )}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="rounded-md bg-muted border border-border px-3 py-2.5 space-y-0.5">
-        <p className="text-xs font-medium text-foreground/70">
-          {t('paperFormatPixels', { w: fmt.widthPx.toLocaleString(), h: fmt.heightPx.toLocaleString() })}
-        </p>
-        <p className="text-xs text-muted-foreground/70">
-          {t('paperFormatPrintHint', { w: fmt.widthMm, h: fmt.heightMm })}
-        </p>
-      </div>
-    </>
-  )
-}
+// Page-Setup (Format + Ausrichtung) lebt jetzt im Karte-Tab — Customer
+// trifft diese Entscheidung am Anfang, nicht beim Export. Hier nur noch
+// Produkt-Auswahl + Buy-Flow.
 
 // ─── Admin view ───────────────────────────────────────────────────────────────
 
@@ -173,6 +131,7 @@ function CustomerProductView({ printFormat }: { printFormat: string }) {
           splitMode: editor.splitMode,
           splitPhoto: editor.splitPhoto,
           splitPhotoZone: editor.splitPhotoZone,
+          orientation: editor.orientation,
         },
       })
       trackAddToCart({
@@ -271,17 +230,11 @@ function CustomerProductView({ printFormat }: { printFormat: string }) {
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function ExportTab() {
-  const { printFormat, setPrintFormat } = useEditorStore()
+  const { printFormat } = useEditorStore()
   const { isAdmin, loading } = useAuth()
-
-  const fmt = PRINT_FORMAT_OPTIONS.find((f) => f.id === printFormat)!
 
   return (
     <div className="space-y-5 p-4">
-      <FormatSelector printFormat={printFormat} setPrintFormat={setPrintFormat} fmt={fmt} />
-
-      <Separator />
-
       {loading ? (
         <div className="space-y-2">
           <div className="h-4 bg-muted rounded animate-pulse w-24" />

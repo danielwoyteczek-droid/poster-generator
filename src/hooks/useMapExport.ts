@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useEditorStore, type TextBlock, type ViewState, type MarkerState, type SecondMapState, type ShapeConfigState } from './useEditorStore'
 import { composeMaskSvg, composeFrameSvg, composeFullbleedMaskSvg, composeSplitSeamSvg, parseShapeSvg, svgToDataUrl, hasAnyFrame } from '@/lib/mask-composer'
-import { PRINT_FORMATS, type PrintFormat } from '@/lib/print-formats'
+import { PRINT_FORMATS, effectiveDimensions, type PrintFormat } from '@/lib/print-formats'
 import { MAP_MASKS, type MapMaskKey } from '@/lib/map-masks'
 import { resolveMask } from '@/hooks/useCustomMasks'
 import { getCoordinatesText } from '@/components/editor/TextBlockOverlay'
@@ -37,6 +37,9 @@ export interface ExportSnapshot {
   splitPhotoZone?: number
   layoutId?: import('./useEditorStore').PosterLayoutId
   innerMarginMm?: number
+  /** Optional. Defaults to 'portrait' for backwards compatibility with
+   *  snapshots produced before the orientation toggle existed. */
+  orientation?: import('@/lib/print-formats').PosterOrientation
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
@@ -431,7 +434,8 @@ export async function buildPosterCanvas(
   format: PrintFormat,
   store: ExportSnapshot,
 ): Promise<HTMLCanvasElement> {
-  const fmt = PRINT_FORMATS[format]
+  const baseFmt = PRINT_FORMATS[format]
+  const fmt = effectiveDimensions(baseFmt, store.orientation ?? 'portrait')
   const W = fmt.widthPx
   const H = fmt.heightPx
 
@@ -484,7 +488,7 @@ export async function buildPosterCanvas(
   // no fullbleed mask is needed (mode 'none' or all margins 0).
   async function applyFullbleedMask(srcCanvas: HTMLCanvasElement): Promise<HTMLCanvasElement> {
     if (!shapeConfig) return srcCanvas
-    const maskSvg = composeFullbleedMaskSvg(shapeConfig)
+    const maskSvg = composeFullbleedMaskSvg(shapeConfig, store.orientation ?? 'portrait')
     if (!maskSvg) return srcCanvas
     const out = document.createElement('canvas')
     out.width = srcCanvas.width
@@ -652,15 +656,20 @@ export async function buildPosterCanvas(
     ctx.drawImage(frameImg, mapTargetX, mapTargetY, mapTargetW, mapTargetH)
   } else if (shapeConfig && (isDualMap || isSplitPhoto || !mask.shape)) {
     if (shapeConfig.outerFrame.enabled) {
+      const isLandscape = (store.orientation ?? 'portrait') === 'landscape'
+      const synthW = isLandscape ? 841.9 : 595.3
+      const synthH = isLandscape ? 595.3 : 841.9
+      const synthRefMm = isLandscape ? 297 : 210
       const syntheticShape = {
-        viewBox: '0 0 595.3 841.9',
-        width: 595.3, height: 841.9,
-        markup: '<rect x="0" y="0" width="595.3" height="841.9"/>',
+        viewBox: `0 0 ${synthW} ${synthH}`,
+        width: synthW, height: synthH,
+        markup: `<rect x="0" y="0" width="${synthW}" height="${synthH}"/>`,
       }
       const frameSvg = composeFrameSvg(
         syntheticShape,
         { ...shapeConfig, innerFrame: { ...shapeConfig.innerFrame, enabled: false } },
         1,
+        synthRefMm,
       )
       const frameImg = await loadImage(svgToDataUrl(frameSvg))
       ctx.drawImage(frameImg, mapTargetX, mapTargetY, mapTargetW, mapTargetH)
@@ -768,7 +777,7 @@ function slugify(name: string): string {
 export function useMapExport() {
   const [isExporting, setIsExporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const { viewState, styleId, paletteId, customPaletteBase, customPalette, streetLabelsVisible, posterDarkMode, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos, splitMode, splitPhoto, splitPhotoZone, layoutId, innerMarginMm } =
+  const { viewState, styleId, paletteId, customPaletteBase, customPalette, streetLabelsVisible, posterDarkMode, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos, splitMode, splitPhoto, splitPhotoZone, layoutId, innerMarginMm, orientation } =
     useEditorStore()
 
   const run = async (format: PrintFormat, type: 'png' | 'pdf') => {
@@ -776,7 +785,7 @@ export function useMapExport() {
     setError(null)
     try {
       const snapshot: ExportSnapshot = {
-        viewState, styleId, paletteId, customPaletteBase, customPalette, streetLabelsVisible, posterDarkMode, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos, splitMode, splitPhoto, splitPhotoZone, layoutId, innerMarginMm,
+        viewState, styleId, paletteId, customPaletteBase, customPalette, streetLabelsVisible, posterDarkMode, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos, splitMode, splitPhoto, splitPhotoZone, layoutId, innerMarginMm, orientation,
       }
       const canvas = await buildPosterCanvas(format, snapshot)
       const pngBlob = await canvasToBlob(canvas)
@@ -791,7 +800,7 @@ export function useMapExport() {
         URL.revokeObjectURL(url)
       } else {
         const { PDFDocument } = await import('pdf-lib')
-        const fmt = PRINT_FORMATS[format]
+        const fmt = effectiveDimensions(PRINT_FORMATS[format], orientation)
         const MM_TO_PT = 72 / 25.4
         const pdfDoc = await PDFDocument.create()
         const page = pdfDoc.addPage([fmt.widthMm * MM_TO_PT, fmt.heightMm * MM_TO_PT])
@@ -815,7 +824,7 @@ export function useMapExport() {
 
   const renderPreview = async (format: PrintFormat): Promise<string> => {
     const snapshot: ExportSnapshot = {
-      viewState, styleId, paletteId, customPaletteBase, customPalette, streetLabelsVisible, posterDarkMode, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos, splitMode, splitPhoto, splitPhotoZone, layoutId, innerMarginMm,
+      viewState, styleId, paletteId, customPaletteBase, customPalette, streetLabelsVisible, posterDarkMode, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos, splitMode, splitPhoto, splitPhotoZone, layoutId, innerMarginMm, orientation,
     }
     const canvas = await buildPosterCanvas(format, snapshot)
     return canvas.toDataURL('image/png')

@@ -9,7 +9,7 @@ import { MAP_MASKS } from '@/lib/map-masks'
 import { getPalette } from '@/lib/map-palettes'
 import { composeMaskSvg, composeFrameSvg, composeFullbleedMaskSvg, composeSplitSeamSvg, svgToDataUrl, hasAnyFrame } from '@/lib/mask-composer'
 import { useRasterizedMaskUrl } from '@/hooks/useRasterizedMaskUrl'
-import { PRINT_FORMATS } from '@/lib/print-formats'
+import { PRINT_FORMATS, effectiveDimensions } from '@/lib/print-formats'
 import { MapPreview } from './MapPreview'
 import { TextBlockOverlay } from './TextBlockOverlay'
 import { DraggablePin } from './DraggablePin'
@@ -82,7 +82,7 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
   const photoInteractive = activeMobileTool === undefined || activeMobileTool === 'photo'
   const markerInteractive = activeMobileTool === undefined || activeMobileTool === 'marker'
 
-  const { maskKey, printFormat, zoomIn, zoomOut, flyToLocation, zoomInSecond, zoomOutSecond, secondMap, marker, secondMarker, shapeConfig, viewState, setMarker, setSecondMarker, setSelectedBlockId, splitMode, splitPhoto, splitPhotoZone, layoutId, innerMarginMm, paletteId, customPalette, posterDarkMode } = useEditorStore()
+  const { maskKey, printFormat, orientation, zoomIn, zoomOut, flyToLocation, zoomInSecond, zoomOutSecond, secondMap, marker, secondMarker, shapeConfig, viewState, setMarker, setSecondMarker, setSelectedBlockId, splitMode, splitPhoto, splitPhotoZone, layoutId, innerMarginMm, paletteId, customPalette, posterDarkMode } = useEditorStore()
   const mapAreaRef = useRef<HTMLDivElement>(null)
   const { masks: customMasks } = useCustomMasks()
   const mask =
@@ -90,7 +90,8 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
     customMasks.find((m) => m.key === maskKey) ??
     MAP_MASKS.none
   const format = PRINT_FORMATS[printFormat]
-  const ratio = format.widthMm / format.heightMm
+  const dims = effectiveDimensions(format, orientation)
+  const ratio = dims.widthMm / dims.heightMm
 
   const isDualMap = mask.isSplit && splitMode === 'second-map'
   const isSplitPhoto = mask.isSplit && splitMode === 'photo' && splitPhoto != null
@@ -124,7 +125,7 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
   // build an inset-rectangle mask so the map gets a passe-partout border.
   const fullbleedMaskDataUrl = !mask.shape && !isDualMap && !isSplitPhoto
     ? (() => {
-        const svg = composeFullbleedMaskSvg(shapeConfig)
+        const svg = composeFullbleedMaskSvg(shapeConfig, orientation)
         return svg ? svgToDataUrl(svg) : null
       })()
     : null
@@ -132,17 +133,24 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
   // For dual-map / split-photo modes — and for fullbleed (no shape, no split) —
   // the shape-bound frame composer doesn't fire because there's no single shape
   // to hug. Render the OUTER frame here too, synthesised against a full-poster
-  // rectangle.
+  // rectangle. Dimensions follow `orientation` so the frame matches the
+  // canvas aspect; passing `referenceMm = 297` keeps the mm offsets honest
+  // when the long edge sits on the X axis.
   const needsSyntheticFrame = (isDualMap || isSplitPhoto || !mask.shape) && shapeConfig.outerFrame.enabled
+  const isLandscape = orientation === 'landscape'
+  const synthW = isLandscape ? 841.9 : 595.3
+  const synthH = isLandscape ? 595.3 : 841.9
+  const synthRefMm = isLandscape ? 297 : 210
   const outerFrameForSplit = needsSyntheticFrame
     ? svgToDataUrl(composeFrameSvg(
         {
-          viewBox: '0 0 595.3 841.9',
-          width: 595.3, height: 841.9,
-          markup: '<rect x="0" y="0" width="595.3" height="841.9"/>',
+          viewBox: `0 0 ${synthW} ${synthH}`,
+          width: synthW, height: synthH,
+          markup: `<rect x="0" y="0" width="${synthW}" height="${synthH}"/>`,
         },
         { ...shapeConfig, innerFrame: { ...shapeConfig.innerFrame, enabled: false } },
         1,
+        synthRefMm,
       ))
     : null
 
@@ -202,7 +210,7 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
     <div ref={wrapperRef} className="flex-1 relative bg-muted min-h-0 overflow-hidden flex items-center justify-center">
       <PreviewTriggerButton />
       {posterSize.width > 0 && (() => {
-        const mmToPx = posterSize.width / format.widthMm
+        const mmToPx = posterSize.width / dims.widthMm
         const marginPx = innerMarginMm * mmToPx
         // Layout only shrinks the map when the user has no shape (plain
         // rectangle). Circles, hearts and splits already position themselves

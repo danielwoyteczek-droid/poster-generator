@@ -20,6 +20,7 @@ function getConfig(): EditorConfig {
     posterDarkMode: s.posterDarkMode,
     maskKey: s.maskKey,
     printFormat: s.printFormat,
+    orientation: s.orientation,
     marker: s.marker,
     secondMarker: s.secondMarker,
     secondMap: {

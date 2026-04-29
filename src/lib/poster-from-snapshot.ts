@@ -1,4 +1,4 @@
-import { PRINT_FORMATS, type PrintFormat } from './print-formats'
+import { PRINT_FORMATS, effectiveDimensions, type PrintFormat, type PosterOrientation } from './print-formats'
 import { renderStarMap, type StarEntry, type GeoFeature } from './star-map-renderer'
 import { buildPosterCanvas, type ExportSnapshot } from '@/hooks/useMapExport'
 import { getCoordinatesText } from '@/components/editor/TextBlockOverlay'
@@ -69,7 +69,9 @@ function drawTextBlocks(
 }
 
 async function renderStarMapCanvas(format: PrintFormat, snapshot: Record<string, unknown>): Promise<HTMLCanvasElement> {
-  const fmt = PRINT_FORMATS[format]
+  const orientation =
+    ((snapshot as { orientation?: PosterOrientation }).orientation) ?? 'portrait'
+  const fmt = effectiveDimensions(PRINT_FORMATS[format], orientation)
   const W = fmt.widthPx
   const H = fmt.heightPx
 
@@ -149,9 +151,13 @@ export function canvasToPngBlob(canvas: HTMLCanvasElement): Promise<Blob> {
   )
 }
 
-export async function pngBlobToPdfBlob(pngBlob: Blob, format: PrintFormat): Promise<Blob> {
+export async function pngBlobToPdfBlob(
+  pngBlob: Blob,
+  format: PrintFormat,
+  orientation: PosterOrientation = 'portrait',
+): Promise<Blob> {
   const { PDFDocument } = await import('pdf-lib')
-  const fmt = PRINT_FORMATS[format]
+  const fmt = effectiveDimensions(PRINT_FORMATS[format], orientation)
   const MM_TO_PT = 72 / 25.4
   const pdfDoc = await PDFDocument.create()
   const page = pdfDoc.addPage([fmt.widthMm * MM_TO_PT, fmt.heightMm * MM_TO_PT])

@@ -210,6 +210,10 @@ export function composeFrameSvg(
   shape: ShapeDefinition,
   config: ShapeConfigState,
   layoutMapHeight: number = 1,
+  /** mm equivalent of `shape.width`. Defaults to 210 (A4 portrait short
+   *  edge), matching the convention of all uploaded mask SVGs. Synthetic
+   *  landscape frames pass 297 so mm offsets stay honest. */
+  referenceMm: number = 210,
 ): string {
   const bottom = shape.bottomFraction ?? 1
   const shapeScale = bottom > layoutMapHeight ? layoutMapHeight / bottom : 1
@@ -220,19 +224,21 @@ export function composeFrameSvg(
     : ''
   const parts: string[] = []
   const { innerFrame, outerFrame } = config
+  const mmCorrection = 210 / referenceMm
+  const toUnits = (mm: number) => mmToUnits(mm, shape.width) * mmCorrection
 
   if (outerFrame.enabled) {
     // Eigener Offset (alle Seiten gleich), nicht an outer.margin gekoppelt.
     const offsetMm = outerFrame.offset ?? 10
-    const off0 = mmToUnits(offsetMm, shape.width)
-    const thickness = mmToUnits(outerFrame.thickness, shape.width)
+    const off0 = toUnits(offsetMm)
+    const thickness = toUnits(outerFrame.thickness)
     const w = shape.width - 2 * off0
     const h = shape.height - 2 * off0
     parts.push(
       `<rect x="${off0}" y="${off0}" width="${w}" height="${h}" fill="none" stroke="${outerFrame.color}" stroke-width="${thickness}"/>`,
     )
     if (outerFrame.style === 'double') {
-      const gap = mmToUnits(outerFrame.gap, shape.width)
+      const gap = toUnits(outerFrame.gap)
       const off = thickness + gap
       const innerX = off0 + off
       const innerY = off0 + off
@@ -247,7 +253,7 @@ export function composeFrameSvg(
   }
 
   if (innerFrame.enabled) {
-    const thickness = mmToUnits(innerFrame.thickness, shape.width)
+    const thickness = toUnits(innerFrame.thickness)
     // Compensate stroke thickness so the outline doesn't thicken when the
     // shape is scaled down by the layout transform.
     const scaledThickness = thickness / (shapeScale || 1)
@@ -304,23 +310,32 @@ export function hasAnyFrame(config: ShapeConfigState): boolean {
  * Returns an empty string when no mask is needed (mode 'none' or all margins
  * zero) — caller should then skip mask application.
  *
- * Uses A4 proportions for the viewBox; the mask gets rasterised + stretched
- * to fit the actual canvas, so the small aspect-ratio difference for non-A4
- * formats (e.g. 50×70cm) is visually negligible.
+ * The viewBox aspect follows `orientation` so the mask matches the actual
+ * canvas shape (otherwise the rasterised SVG gets stretched and the inset
+ * is no longer uniform). mm-arithmetic still uses the standard 595.3/210
+ * unit-per-mm convention, so values stay consistent across portrait and
+ * landscape.
  */
-export function composeFullbleedMaskSvg(config: ShapeConfigState): string {
+export function composeFullbleedMaskSvg(
+  config: ShapeConfigState,
+  orientation: 'portrait' | 'landscape' = 'portrait',
+): string {
   const { outer } = config
   if (outer.mode === 'none') return ''
   const sides = resolveSideMarginsMm(config)
   if (sides.top === 0 && sides.right === 0 && sides.bottom === 0 && sides.left === 0) {
     return ''
   }
-  const W = 595.3
-  const H = 841.9
-  const mT = mmToUnits(sides.top, W)
-  const mR = mmToUnits(sides.right, W)
-  const mB = mmToUnits(sides.bottom, W)
-  const mL = mmToUnits(sides.left, W)
+  const W = orientation === 'landscape' ? 841.9 : 595.3
+  const H = orientation === 'landscape' ? 595.3 : 841.9
+  // mmToUnits assumes a 210mm reference width; in landscape the SVG width
+  // represents 297mm, so multiply by 210/refMm to keep mm values honest.
+  const refMm = orientation === 'landscape' ? 297 : 210
+  const mmCorrection = 210 / refMm
+  const mT = mmToUnits(sides.top, W) * mmCorrection
+  const mR = mmToUnits(sides.right, W) * mmCorrection
+  const mB = mmToUnits(sides.bottom, W) * mmCorrection
+  const mL = mmToUnits(sides.left, W) * mmCorrection
   const w = W - mL - mR
   const h = H - mT - mB
   if (w <= 0 || h <= 0) return ''

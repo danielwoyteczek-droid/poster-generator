@@ -152,7 +152,11 @@ export function OrderView({ orderId, token, showSuccessBanner }: Props) {
         console.log('[order] step 2: canvas rendered', canvas.width, 'x', canvas.height)
         const pngBlob = await canvasToPngBlob(canvas)
         console.log('[order] step 3: PNG blob created', pngBlob.size, 'bytes')
-        const pdfBlob = await pngBlobToPdfBlob(pngBlob, item.format)
+        const pdfBlob = await pngBlobToPdfBlob(
+          pngBlob,
+          item.format,
+          (item.snapshot as { orientation?: 'portrait' | 'landscape' })?.orientation ?? 'portrait',
+        )
         console.log('[order] step 4: PDF blob created', pdfBlob.size, 'bytes')
         await uploadExport(itemIndex, 'png', pngBlob)
         console.log('[order] step 5: PNG uploaded')
