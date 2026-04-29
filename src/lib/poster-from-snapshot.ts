@@ -3,9 +3,12 @@ import { renderStarMap, type StarEntry, type GeoFeature } from './star-map-rende
 import { buildPosterCanvas, type ExportSnapshot } from '@/hooks/useMapExport'
 import { getCoordinatesText } from '@/components/editor/TextBlockOverlay'
 import { computeFontScale } from './font-scale'
+import { drawLetterMask, resolveFontFamily, ensureMaskFontLoaded } from './photo-mask-render'
+import { MASK_FONTS, type MaskFontKey } from './letter-mask'
+import type { LetterSlot } from '@/hooks/usePhotoEditorStore'
 import type { TextBlock } from '@/hooks/useEditorStore'
 
-export type PosterType = 'map' | 'star-map'
+export type PosterType = 'map' | 'star-map' | 'photo'
 
 async function fetchJSON<T>(url: string): Promise<T> {
   const r = await fetch(url)
@@ -134,6 +137,64 @@ async function renderStarMapCanvas(format: PrintFormat, snapshot: Record<string,
   return canvas
 }
 
+async function renderPhotoCanvas(
+  format: PrintFormat,
+  snapshot: Record<string, unknown>,
+): Promise<HTMLCanvasElement> {
+  const orientation =
+    ((snapshot as { orientation?: PosterOrientation }).orientation) ?? 'portrait'
+  const fmt = effectiveDimensions(PRINT_FORMATS[format], orientation)
+  const W = fmt.widthPx
+  const H = fmt.heightPx
+
+  const s = snapshot as {
+    word: string
+    slots: LetterSlot[]
+    wordWidth: number
+    wordX: number
+    wordY: number
+    maskFontKey: MaskFontKey
+    defaultSlotColor: string
+    textBlocks: TextBlock[]
+  }
+
+  const font = MASK_FONTS[s.maskFontKey]
+  const maskFontFamily = resolveFontFamily(font.cssFamily)
+  await ensureMaskFontLoaded(maskFontFamily)
+  await ensureFontsLoaded(s.textBlocks)
+
+  const canvas = document.createElement('canvas')
+  canvas.width = W
+  canvas.height = H
+  const ctx = canvas.getContext('2d')!
+
+  // White poster background — matches usePhotoExport's V1 default.
+  ctx.fillStyle = '#ffffff'
+  ctx.fillRect(0, 0, W, H)
+
+  await drawLetterMask(ctx, W, H, {
+    word: s.word,
+    slots: s.slots,
+    wordWidth: s.wordWidth,
+    wordX: s.wordX,
+    wordY: s.wordY,
+    defaultSlotColor: s.defaultSlotColor,
+    maskFontKey: s.maskFontKey,
+    maskFontFamily,
+  })
+
+  // Photo posters never carry coordinate text-blocks; render the rest as
+  // their plain text values.
+  const displayTexts: Record<string, string> = {}
+  for (const block of s.textBlocks) {
+    if (block.isCoordinates) continue
+    displayTexts[block.id] = block.text
+  }
+  drawTextBlocks(ctx, s.textBlocks.filter((b) => !b.isCoordinates), displayTexts, W, H, W)
+
+  return canvas
+}
+
 export async function renderPosterFromSnapshot(
   posterType: PosterType,
   format: PrintFormat,
@@ -141,6 +202,9 @@ export async function renderPosterFromSnapshot(
 ): Promise<HTMLCanvasElement> {
   if (posterType === 'star-map') {
     return renderStarMapCanvas(format, snapshot)
+  }
+  if (posterType === 'photo') {
+    return renderPhotoCanvas(format, snapshot)
   }
   return buildPosterCanvas(format, snapshot as unknown as ExportSnapshot)
 }

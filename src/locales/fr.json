@@ -235,6 +235,7 @@
     "exportSecureNote": "Paiement sécurisé via Stripe. Les produits physiques sont expédiés sous 3 à 5 jours ouvrés.",
     "exportDefaultPosterTitle": "Affiche cartographique",
     "exportDefaultStarTitle": "Carte du ciel",
+    "exportDefaultPhotoTitle": "Affiche photo",
     "locationSearchPlaceholder": "Ville, rue, lieu…",
     "saveStatusSaving": "Enregistrement…",
     "saveStatusSaved": "Enregistré",

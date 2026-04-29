@@ -235,6 +235,7 @@
     "exportSecureNote": "Sichere Zahlung via Stripe. Physische Produkte werden innerhalb von 3–5 Werktagen geliefert.",
     "exportDefaultPosterTitle": "Karten-Poster",
     "exportDefaultStarTitle": "Sternkarte",
+    "exportDefaultPhotoTitle": "Foto-Poster",
     "locationSearchPlaceholder": "Stadt, Straße, Ort…",
     "saveStatusSaving": "Speichern…",
     "saveStatusSaved": "Gespeichert",

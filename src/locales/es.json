@@ -235,6 +235,7 @@
     "exportSecureNote": "Pago seguro vía Stripe. Los productos físicos se envían en 3–5 días laborables.",
     "exportDefaultPosterTitle": "Póster cartográfico",
     "exportDefaultStarTitle": "Carta estelar",
+    "exportDefaultPhotoTitle": "Póster de fotos",
     "locationSearchPlaceholder": "Ciudad, calle, lugar…",
     "saveStatusSaving": "Guardando…",
     "saveStatusSaved": "Guardado",

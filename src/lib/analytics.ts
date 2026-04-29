@@ -73,12 +73,17 @@ export function trackAddToCart(item: {
   productId: string
   format: string
   priceCents: number
-  posterType: 'map' | 'star-map'
+  posterType: 'map' | 'star-map' | 'photo'
 }) {
   const gtmItem: EcommerceItem = {
     item_id: item.id,
     item_name: item.title,
-    item_category: item.posterType === 'star-map' ? 'Sternenposter' : 'Stadtposter',
+    item_category:
+      item.posterType === 'star-map'
+        ? 'Sternenposter'
+        : item.posterType === 'photo'
+        ? 'Foto-Poster'
+        : 'Stadtposter',
     item_variant: `${item.productId}-${item.format}`,
     price: item.priceCents / 100,
     quantity: 1,
@@ -100,12 +105,17 @@ export function trackBeginCheckout(items: Array<{
   productId: string
   format: string
   priceCents: number
-  posterType: 'map' | 'star-map'
+  posterType: 'map' | 'star-map' | 'photo'
 }>) {
   const gtmItems: EcommerceItem[] = items.map((i) => ({
     item_id: i.id,
     item_name: i.title,
-    item_category: i.posterType === 'star-map' ? 'Sternenposter' : 'Stadtposter',
+    item_category:
+      i.posterType === 'star-map'
+        ? 'Sternenposter'
+        : i.posterType === 'photo'
+        ? 'Foto-Poster'
+        : 'Stadtposter',
     item_variant: `${i.productId}-${i.format}`,
     price: i.priceCents / 100,
     quantity: 1,
@@ -131,13 +141,18 @@ export function trackPurchase(input: {
     productId: string
     format: string
     priceCents: number
-    posterType: 'map' | 'star-map'
+    posterType: 'map' | 'star-map' | 'photo'
   }>
 }) {
   const gtmItems: EcommerceItem[] = input.items.map((i) => ({
     item_id: i.id,
     item_name: i.title,
-    item_category: i.posterType === 'star-map' ? 'Sternenposter' : 'Stadtposter',
+    item_category:
+      i.posterType === 'star-map'
+        ? 'Sternenposter'
+        : i.posterType === 'photo'
+        ? 'Foto-Poster'
+        : 'Stadtposter',
     item_variant: `${i.productId}-${i.format}`,
     price: i.priceCents / 100,
     quantity: 1,

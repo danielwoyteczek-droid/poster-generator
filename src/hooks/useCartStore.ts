@@ -3,7 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware'
 import type { ProductId } from '@/lib/products'
 import type { PrintFormat } from '@/lib/print-formats'
 
-export type PosterType = 'map' | 'star-map'
+export type PosterType = 'map' | 'star-map' | 'photo'
 
 export interface CartItem {
   id: string

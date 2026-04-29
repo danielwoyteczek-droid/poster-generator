@@ -235,6 +235,7 @@
     "exportSecureNote": "Secure payment via Stripe. Physical products ship within 3–5 business days.",
     "exportDefaultPosterTitle": "Map poster",
     "exportDefaultStarTitle": "Star map",
+    "exportDefaultPhotoTitle": "Photo poster",
     "locationSearchPlaceholder": "City, street, place…",
     "saveStatusSaving": "Saving…",
     "saveStatusSaved": "Saved",

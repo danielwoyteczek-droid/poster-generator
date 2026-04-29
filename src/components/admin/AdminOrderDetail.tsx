@@ -276,7 +276,11 @@ export function AdminOrderDetail({ orderId }: { orderId: string }) {
               <li key={idx} className="p-6 flex flex-col sm:flex-row sm:items-center gap-4">
                 <div className="flex-1 min-w-0">
                   <div className="text-xs uppercase tracking-wider text-muted-foreground/70">
-                    {item.posterType === 'star-map' ? 'Sternenposter' : 'Stadtposter'}
+                    {item.posterType === 'star-map'
+                      ? 'Sternenposter'
+                      : item.posterType === 'photo'
+                      ? 'Foto-Poster'
+                      : 'Stadtposter'}
                   </div>
                   <div className="text-sm font-semibold text-foreground mt-0.5 truncate">{item.title}</div>
                   <div className="text-xs text-muted-foreground mt-1">

@@ -268,7 +268,11 @@ export function OrderView({ orderId, token, showSuccessBanner }: Props) {
                 <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                   <div className="flex-1 min-w-0">
                     <p className="text-xs uppercase tracking-wider text-muted-foreground/70">
-                      {item.posterType === 'star-map' ? t('starPoster') : t('cityPoster')}
+                      {item.posterType === 'star-map'
+                        ? t('starPoster')
+                        : item.posterType === 'photo'
+                        ? t('photoPoster')
+                        : t('cityPoster')}
                     </p>
                     <h3 className="text-sm font-semibold text-foreground truncate mt-0.5">{item.title}</h3>
                     <p className="text-xs text-muted-foreground mt-1">

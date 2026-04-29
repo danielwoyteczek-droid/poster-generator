@@ -2,15 +2,16 @@
 
 import { useState } from 'react'
 import { useEditorStore, type TextBlock } from '@/hooks/useEditorStore'
-import { usePhotoEditorStore, type LetterSlot } from '@/hooks/usePhotoEditorStore'
+import { usePhotoEditorStore } from '@/hooks/usePhotoEditorStore'
 import {
   PRINT_FORMATS,
   effectiveDimensions,
   type PrintFormat,
   type PosterOrientation,
 } from '@/lib/print-formats'
-import { MASK_FONTS, type MaskFontKey } from '@/lib/letter-mask'
+import { MASK_FONTS } from '@/lib/letter-mask'
 import { computeFontScale } from '@/lib/font-scale'
+import { drawLetterMask, resolveFontFamily, ensureMaskFontLoaded } from '@/lib/photo-mask-render'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
@@ -18,16 +19,6 @@ function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
   return new Promise<Blob>((resolve, reject) =>
     canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Canvas toBlob failed'))), 'image/png'),
   )
-}
-
-function loadImage(src: string): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const img = new Image()
-    img.crossOrigin = 'anonymous'
-    img.onload = () => resolve(img)
-    img.onerror = () => reject(new Error(`Failed to load image: ${src}`))
-    img.src = src
-  })
 }
 
 function slugify(name: string): string {
@@ -40,31 +31,7 @@ function slugify(name: string): string {
   )
 }
 
-/**
- * The mask font is loaded by next/font with a CSS variable. The variable
- * only resolves inside CSS, not in canvas' `ctx.font` string. We need the
- * actual resolved family name (e.g. `__Anton_4e93a8`) — measure it once
- * via a hidden probe element.
- */
-function resolveFontFamily(cssFamily: string): string {
-  const probe = document.createElement('span')
-  probe.style.fontFamily = cssFamily
-  probe.style.position = 'absolute'
-  probe.style.visibility = 'hidden'
-  probe.style.left = '-9999px'
-  probe.style.top = '0'
-  document.body.appendChild(probe)
-  const resolved = window.getComputedStyle(probe).fontFamily
-  document.body.removeChild(probe)
-  return resolved
-}
-
-async function ensureFontsLoaded(maskFontFamily: string, textBlocks: TextBlock[]) {
-  await document.fonts.ready
-  // Mask font must be loaded for the letter-shape masking to work.
-  await document.fonts.load(`400 100px ${maskFontFamily}`)
-  // Text-block fonts (regular + bold) — same approach as the map/star-map
-  // exporters so all editors share font-handling behavior.
+async function ensureTextFontsLoaded(textBlocks: TextBlock[]) {
   const families = [...new Set(textBlocks.map((b) => b.fontFamily))]
   await Promise.all(
     families.flatMap((f) => [
@@ -72,97 +39,6 @@ async function ensureFontsLoaded(maskFontFamily: string, textBlocks: TextBlock[]
       document.fonts.load(`bold 16px "${f}"`),
     ]),
   )
-}
-
-// ─── Letter-Mask drawing ──────────────────────────────────────────────────
-
-interface LetterMaskRenderArgs {
-  word: string
-  slots: LetterSlot[]
-  wordWidth: number
-  wordX: number
-  wordY: number
-  defaultSlotColor: string
-  maskFontKey: MaskFontKey
-  /** Resolved canvas-compatible font family (already passed through
-   *  resolveFontFamily()). */
-  maskFontFamily: string
-}
-
-async function drawLetterMask(
-  ctx: CanvasRenderingContext2D,
-  W: number,
-  H: number,
-  args: LetterMaskRenderArgs,
-) {
-  const { word, slots, wordWidth, wordX, wordY, defaultSlotColor, maskFontKey, maskFontFamily } = args
-  if (word.length === 0) return
-
-  const font = MASK_FONTS[maskFontKey]
-  const containerW = wordWidth * W
-  const slotW = containerW / word.length
-  const slotH = slotW * font.heightOverWidth
-  const fontSize = slotW * font.fontSizeOverSlotWidth
-  const containerLeft = (wordX - wordWidth / 2) * W
-  const containerTop = wordY * H
-
-  for (let i = 0; i < slots.length; i++) {
-    const slot = slots[i]
-    const slotX = containerLeft + i * slotW
-    const slotY = containerTop
-    const cx = slotX + slotW / 2
-    const cy = slotY + slotH / 2
-
-    if (slot.photo) {
-      // Mask the photo with the letter shape via a temporary canvas:
-      // 1. Draw the photo (cover-sized + cropX/cropY pan applied)
-      // 2. globalCompositeOperation = 'destination-in' + fillText keeps
-      //    only the pixels under the glyph
-      // 3. Blit the temp canvas onto the main canvas at the slot rect
-      const photo = slot.photo
-      const tmp = document.createElement('canvas')
-      tmp.width = Math.ceil(slotW)
-      tmp.height = Math.ceil(slotH)
-      const tctx = tmp.getContext('2d')
-      if (!tctx) continue
-
-      try {
-        const img = await loadImage(photo.publicUrl)
-        const sx = tmp.width / photo.width
-        const sy = tmp.height / photo.height
-        const coverScale = Math.max(sx, sy) * photo.scale
-        const drawW = photo.width * coverScale
-        const drawH = photo.height * coverScale
-        // Center, then shift by cropX/cropY (pan offsets, -0.5..0.5 of
-        // slot dimension — same convention as LetterMaskOverlay)
-        const drawX = (tmp.width - drawW) / 2 - photo.cropX * tmp.width
-        const drawY = (tmp.height - drawH) / 2 - photo.cropY * tmp.height
-        tctx.drawImage(img, drawX, drawY, drawW, drawH)
-      } catch (err) {
-        // If the photo fails to load, fall back to the slot color so the
-        // export still produces a usable poster instead of throwing.
-        console.warn('[usePhotoExport] photo load failed, falling back to color:', err)
-        tctx.fillStyle = slot.color ?? defaultSlotColor
-        tctx.fillRect(0, 0, tmp.width, tmp.height)
-      }
-
-      tctx.globalCompositeOperation = 'destination-in'
-      tctx.fillStyle = '#000'
-      tctx.font = `400 ${fontSize}px ${maskFontFamily}`
-      tctx.textAlign = 'center'
-      tctx.textBaseline = 'middle'
-      tctx.fillText(slot.char, tmp.width / 2, tmp.height / 2)
-
-      ctx.drawImage(tmp, slotX, slotY)
-    } else {
-      // No photo — fill the glyph directly in the slot color
-      ctx.fillStyle = slot.color ?? defaultSlotColor
-      ctx.font = `400 ${fontSize}px ${maskFontFamily}`
-      ctx.textAlign = 'center'
-      ctx.textBaseline = 'middle'
-      ctx.fillText(slot.char, cx, cy)
-    }
-  }
 }
 
 // ─── Text-block drawing (mirror of useStarMapExport / useMapExport) ───────
@@ -237,7 +113,8 @@ export function usePhotoExport() {
 
     const font = MASK_FONTS[maskFontKey]
     const maskFontFamily = resolveFontFamily(font.cssFamily)
-    await ensureFontsLoaded(maskFontFamily, textBlocks)
+    await ensureMaskFontLoaded(maskFontFamily)
+    await ensureTextFontsLoaded(textBlocks)
 
     const canvas = document.createElement('canvas')
     canvas.width = W
