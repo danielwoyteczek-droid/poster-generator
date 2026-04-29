@@ -1,5 +1,6 @@
 'use client'
 
+import { useTranslations } from 'next-intl'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Slider } from '@/components/ui/slider'
@@ -9,13 +10,17 @@ import { PresetPicker } from '@/components/editor/PresetPicker'
 import { useStarMapStore } from '@/hooks/useStarMapStore'
 import { useAuth } from '@/hooks/useAuth'
 import { cn } from '@/lib/utils'
+import { STAR_TEXTURES } from '@/lib/star-textures'
 
 export function StarMapTab() {
+  const t = useTranslations('starMapEditor')
   const {
     locationName, datetime,
     posterBgColor, skyBgColor, starColor, frameConfig,
+    textureKey, textureOpacity,
     setLocation, setDatetime, setPosterBgColor, setSkyBgColor, setStarColor,
     setOuter, setInnerFrame, setOuterFrame,
+    setTextureKey, setTextureOpacity,
   } = useStarMapStore()
   const { isAdmin } = useAuth()
 
@@ -23,7 +28,7 @@ export function StarMapTab() {
     <div className="space-y-5 p-4">
       {/* Location */}
       <div className="space-y-1.5">
-        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">Ort</Label>
+        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">{t('locationLabel')}</Label>
         <LocationSearch onSelect={(lng, lat, name) => setLocation(lat, lng, name)} />
         {locationName && <p className="text-xs text-muted-foreground truncate">{locationName}</p>}
       </div>
@@ -33,7 +38,7 @@ export function StarMapTab() {
       {/* Date & Time */}
       <div className="space-y-1.5">
         <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
-          Datum & Uhrzeit
+          {t('datetimeLabel')}
         </Label>
         <input
           type="datetime-local"
@@ -52,10 +57,10 @@ export function StarMapTab() {
 
       {/* Colors */}
       <div className="space-y-3">
-        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">Farben</Label>
+        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">{t('colorsLabel')}</Label>
 
         <div className="flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">Poster-Hintergrund</span>
+          <span className="text-xs text-muted-foreground">{t('posterBgColorLabel')}</span>
           <input
             type="color"
             value={posterBgColor}
@@ -64,7 +69,7 @@ export function StarMapTab() {
           />
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">Himmel</span>
+          <span className="text-xs text-muted-foreground">{t('skyBgColorLabel')}</span>
           <input
             type="color"
             value={skyBgColor}
@@ -73,7 +78,7 @@ export function StarMapTab() {
           />
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">Sterne</span>
+          <span className="text-xs text-muted-foreground">{t('starColorLabel')}</span>
           <input
             type="color"
             value={starColor}
@@ -85,10 +90,74 @@ export function StarMapTab() {
 
       <Separator />
 
+      {/* Sky texture — painted/watercolor background inside the sky circle.
+          "Keine" keeps the solid sky color; selecting a texture overlays it
+          above the radial-gradient sky background. */}
+      <div className="space-y-3">
+        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">{t('textureLabel')}</Label>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setTextureKey(null)}
+            className={cn(
+              'w-9 h-9 rounded-full border flex items-center justify-center text-[9px] uppercase tracking-wide transition',
+              textureKey === null
+                ? 'border-foreground ring-2 ring-foreground ring-offset-1 ring-offset-background text-foreground'
+                : 'border-border text-muted-foreground hover:border-foreground/50',
+            )}
+            style={{ backgroundColor: skyBgColor }}
+            aria-label={t('textureNoneAria')}
+            title={t('textureNoneLabel')}
+          >
+            <span className="sr-only">{t('textureNoneLabel')}</span>
+          </button>
+          {STAR_TEXTURES.map((tex) => {
+            const label = t(`textures.${tex.labelKey}` as 'textures.inkBlue')
+            return (
+              <button
+                key={tex.key}
+                type="button"
+                onClick={() => setTextureKey(tex.key)}
+                className={cn(
+                  'w-9 h-9 rounded-full overflow-hidden border transition bg-cover bg-center',
+                  textureKey === tex.key
+                    ? 'border-foreground ring-2 ring-foreground ring-offset-1 ring-offset-background'
+                    : 'border-border hover:border-foreground/50',
+                )}
+                style={{ backgroundImage: `url(${tex.path})` }}
+                aria-label={label}
+                title={label}
+              >
+                <span className="sr-only">{label}</span>
+              </button>
+            )
+          })}
+        </div>
+        {textureKey !== null && (
+          <div className="space-y-1 pt-1">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] text-muted-foreground">{t('textureOpacityLabel')}</span>
+              <span className="text-[11px] text-muted-foreground/70 tabular-nums">
+                {Math.round(textureOpacity * 100)}%
+              </span>
+            </div>
+            <Slider
+              min={0.3}
+              max={1}
+              step={0.05}
+              value={[textureOpacity]}
+              onValueChange={([v]) => setTextureOpacity(v)}
+            />
+          </div>
+        )}
+      </div>
+
+      <Separator />
+
       {/* Formkontur (Stroke um den Sky-Kreis) — customer-facing. */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">Formkontur</Label>
+          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">{t('frameLabel')}</Label>
           <Switch
             checked={frameConfig.innerFrame.enabled}
             onCheckedChange={(enabled) => setInnerFrame({ enabled })}
@@ -97,7 +166,7 @@ export function StarMapTab() {
         {frameConfig.innerFrame.enabled && (
           <div className="space-y-2 pl-1">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] text-muted-foreground">Farbe</span>
+              <span className="text-[11px] text-muted-foreground">{t('colorLabel')}</span>
               <input
                 type="color"
                 value={frameConfig.innerFrame.color}
@@ -107,7 +176,7 @@ export function StarMapTab() {
             </div>
             <div className="space-y-1">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] text-muted-foreground">Dicke</span>
+                <span className="text-[11px] text-muted-foreground">{t('thicknessLabel')}</span>
                 <span className="text-[11px] text-muted-foreground/70 tabular-nums">{frameConfig.innerFrame.thickness} mm</span>
               </div>
               <Slider
@@ -126,17 +195,17 @@ export function StarMapTab() {
           <Separator />
           <div className="space-y-4">
             <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
-              Design <span className="text-[9px] normal-case text-amber-600 ml-1">Admin</span>
+              {t('adminDesignLabel')} <span className="text-[9px] normal-case text-amber-600 ml-1">{t('adminBadge')}</span>
             </Label>
 
             {/* Außenbereich */}
             <div className="space-y-2">
-              <span className="text-xs font-medium text-foreground/70">Außenbereich</span>
+              <span className="text-xs font-medium text-foreground/70">{t('adminOuterLabel')}</span>
               <div className="grid grid-cols-3 gap-1">
                 {([
-                  { key: 'none', label: 'Leer' },
-                  { key: 'opacity', label: 'Faded' },
-                  { key: 'full', label: 'Voll' },
+                  { key: 'none', label: t('adminOuterModeNone') },
+                  { key: 'opacity', label: t('adminOuterModeOpacity') },
+                  { key: 'full', label: t('adminOuterModeFull') },
                 ] as const).map((opt) => (
                   <button
                     key={opt.key}
@@ -156,7 +225,7 @@ export function StarMapTab() {
               {frameConfig.outer.mode === 'opacity' && (
                 <div className="space-y-1 pt-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] text-muted-foreground">Transparenz</span>
+                    <span className="text-[11px] text-muted-foreground">{t('adminOpacityLabel')}</span>
                     <span className="text-[11px] text-muted-foreground/70 tabular-nums">{Math.round(frameConfig.outer.opacity * 100)}%</span>
                   </div>
                   <Slider
@@ -169,7 +238,7 @@ export function StarMapTab() {
               {(frameConfig.outer.mode !== 'none' || frameConfig.outerFrame.enabled) && (
                 <div className="space-y-1 pt-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] text-muted-foreground">Abstand zum Poster-Rand</span>
+                    <span className="text-[11px] text-muted-foreground">{t('adminMarginLabel')}</span>
                     <span className="text-[11px] text-muted-foreground/70 tabular-nums">{frameConfig.outer.margin} mm</span>
                   </div>
                   <Slider
@@ -184,7 +253,7 @@ export function StarMapTab() {
             {/* Äußerer Rahmen (um das Rechteck) */}
             <div className="space-y-2 pt-2 border-t border-border">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-foreground/70">Äußerer Rahmen</span>
+                <span className="text-xs font-medium text-foreground/70">{t('adminOuterFrameLabel')}</span>
                 <Switch
                   checked={frameConfig.outerFrame.enabled}
                   onCheckedChange={(enabled) => setOuterFrame({ enabled })}
@@ -205,12 +274,12 @@ export function StarMapTab() {
                             : 'bg-white text-muted-foreground border-border hover:border-muted-foreground',
                         )}
                       >
-                        {s === 'single' ? 'Einfach' : 'Doppelt'}
+                        {s === 'single' ? t('adminOuterFrameStyleSingle') : t('adminOuterFrameStyleDouble')}
                       </button>
                     ))}
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] text-muted-foreground">Farbe</span>
+                    <span className="text-[11px] text-muted-foreground">{t('colorLabel')}</span>
                     <input
                       type="color"
                       value={frameConfig.outerFrame.color}
@@ -220,7 +289,7 @@ export function StarMapTab() {
                   </div>
                   <div className="space-y-1">
                     <div className="flex items-center justify-between">
-                      <span className="text-[11px] text-muted-foreground">Dicke</span>
+                      <span className="text-[11px] text-muted-foreground">{t('thicknessLabel')}</span>
                       <span className="text-[11px] text-muted-foreground/70 tabular-nums">{frameConfig.outerFrame.thickness} mm</span>
                     </div>
                     <Slider
@@ -232,7 +301,7 @@ export function StarMapTab() {
                   {frameConfig.outerFrame.style === 'double' && (
                     <div className="space-y-1">
                       <div className="flex items-center justify-between">
-                        <span className="text-[11px] text-muted-foreground">Abstand der Linien</span>
+                        <span className="text-[11px] text-muted-foreground">{t('adminOuterFrameGapLabel')}</span>
                         <span className="text-[11px] text-muted-foreground/70 tabular-nums">{frameConfig.outerFrame.gap} mm</span>
                       </div>
                       <Slider

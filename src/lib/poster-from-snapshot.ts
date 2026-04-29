@@ -1,5 +1,6 @@
 import { PRINT_FORMATS, effectiveDimensions, type PrintFormat, type PosterOrientation } from './print-formats'
 import { renderStarMap, type StarEntry, type GeoFeature } from './star-map-renderer'
+import { loadStarTexture } from './star-textures'
 import { buildPosterCanvas, type ExportSnapshot } from '@/hooks/useMapExport'
 import { getCoordinatesText } from '@/components/editor/TextBlockOverlay'
 import { computeFontScale } from './font-scale'
@@ -91,11 +92,17 @@ async function renderStarMapCanvas(format: PrintFormat, snapshot: Record<string,
     gridOpacity?: number
     /** Optional. Renderer treats undefined as `0.7`. */
     starDensity?: number
+    /** Optional. Painted/watercolor sky-background texture (key from
+     *  `STAR_TEXTURES` manifest). Pre-texture snapshots have it undefined →
+     *  renderer falls back to flat sky background. */
+    textureKey?: string | null
+    /** Optional. Renderer treats undefined as `0.9`. */
+    textureOpacity?: number
     frameConfig?: import('@/hooks/useStarMapStore').StarMapFrameConfig
     textBlocks: TextBlock[]
   }
 
-  const [starData, constellationData, milkyWayData] = await Promise.all([
+  const [starData, constellationData, milkyWayData, skyTextureImage] = await Promise.all([
     fetchJSON<StarEntry[]>('/bright-stars.json'),
     s.showConstellations
       ? fetchJSON<{ features: GeoFeature[] }>('/constellations.json').then((d) => d.features)
@@ -103,6 +110,7 @@ async function renderStarMapCanvas(format: PrintFormat, snapshot: Record<string,
     s.showMilkyWay
       ? fetchJSON<{ features: GeoFeature[] }>('/milky-way.json').then((d) => d.features)
       : Promise.resolve([] as GeoFeature[]),
+    loadStarTexture(s.textureKey),
   ])
 
   await ensureFontsLoaded(s.textBlocks)
@@ -123,6 +131,8 @@ async function renderStarMapCanvas(format: PrintFormat, snapshot: Record<string,
     gridOpacity: s.gridOpacity,
     starDensity: s.starDensity,
     frameConfig: s.frameConfig,
+    skyTextureImage,
+    skyTextureOpacity: s.textureOpacity,
   })
 
   // Approximate preview width — same heuristic as useStarMapExport default

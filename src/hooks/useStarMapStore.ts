@@ -57,6 +57,12 @@ interface StarMapStore {
    *  brightest ~50 (mag ≤ 3.7). 0.7 ≈ naked-eye limit. Lower values let the
    *  constellations / coordinate grid breathe. */
   starDensity: number
+  /** Painted/watercolor sky texture (key from `STAR_TEXTURES` manifest, or
+   *  `null` for solid sky-color). Customer-facing under "Farben" in the
+   *  Star-Map editor. */
+  textureKey: string | null
+  /** Opacity of the sky texture, 0.3..1.0. Only matters when textureKey !== null. */
+  textureOpacity: number
   frameConfig: StarMapFrameConfig
   previewWidth: number
   previewHeight: number
@@ -75,6 +81,8 @@ interface StarMapStore {
   setShowGrid: (show: boolean) => void
   setGridOpacity: (opacity: number) => void
   setStarDensity: (density: number) => void
+  setTextureKey: (key: string | null) => void
+  setTextureOpacity: (opacity: number) => void
   setOuter: (updates: Partial<StarMapFrameConfig['outer']>) => void
   setInnerFrame: (updates: Partial<StarMapFrameConfig['innerFrame']>) => void
   setOuterFrame: (updates: Partial<StarMapFrameConfig['outerFrame']>) => void
@@ -104,6 +112,8 @@ export function getStarMapInitialState() {
     showGrid: false,
     gridOpacity: 0.32,
     starDensity: 0.7,
+    textureKey: null,
+    textureOpacity: 0.9,
     frameConfig: DEFAULT_STAR_FRAME_CONFIG,
     previewWidth: 500,
     previewHeight: 707,
@@ -127,6 +137,8 @@ export const useStarMapStore = create<StarMapStore>((set) => ({
   setShowGrid: (showGrid) => set({ showGrid }),
   setGridOpacity: (gridOpacity) => set({ gridOpacity: Math.max(0.05, Math.min(1, gridOpacity)) }),
   setStarDensity: (starDensity) => set({ starDensity: Math.max(0.05, Math.min(1, starDensity)) }),
+  setTextureKey: (textureKey) => set({ textureKey }),
+  setTextureOpacity: (textureOpacity) => set({ textureOpacity: Math.max(0.3, Math.min(1, textureOpacity)) }),
   setOuter: (updates) => set((s) => ({ frameConfig: { ...s.frameConfig, outer: { ...s.frameConfig.outer, ...updates } } })),
   setInnerFrame: (updates) => set((s) => ({ frameConfig: { ...s.frameConfig, innerFrame: { ...s.frameConfig.innerFrame, ...updates } } })),
   setOuterFrame: (updates) => set((s) => ({ frameConfig: { ...s.frameConfig, outerFrame: { ...s.frameConfig.outerFrame, ...updates } } })),

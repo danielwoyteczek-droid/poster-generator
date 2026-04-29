@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 200" width="600" height="200">
+  <rect width="600" height="200" fill="#f5f1ea"/>
+
+  <!-- ECG-Linie links -->
+  <path d="M 20 100
+           L 130 100
+           L 145 100
+           L 155 80
+           L 165 120
+           L 175 60
+           L 185 140
+           L 195 100
+           L 220 100"
+        fill="none" stroke="#d8d2c5" stroke-width="3"
+        stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- ECG-Linie rechts -->
+  <path d="M 380 100
+           L 405 100
+           L 415 80
+           L 425 120
+           L 435 60
+           L 445 140
+           L 455 100
+           L 470 100
+           L 580 100"
+        fill="none" stroke="#d8d2c5" stroke-width="3"
+        stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Herz -->
+  <path d="M 300 160
+           C 230 120, 215 75, 240 55
+           C 260 40, 285 50, 300 75
+           C 315 50, 340 40, 360 55
+           C 385 75, 370 120, 300 160 Z"
+        fill="#b8ad9c"/>
+</svg>

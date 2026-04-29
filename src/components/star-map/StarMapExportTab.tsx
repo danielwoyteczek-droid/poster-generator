@@ -177,6 +177,8 @@ function CustomerProductView({ printFormat }: { printFormat: string }) {
           showGrid: starMap.showGrid,
           gridOpacity: starMap.gridOpacity,
           starDensity: starMap.starDensity,
+          textureKey: starMap.textureKey,
+          textureOpacity: starMap.textureOpacity,
           frameConfig: starMap.frameConfig,
           textBlocks: editor.textBlocks,
         },

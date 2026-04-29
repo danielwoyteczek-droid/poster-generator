@@ -27,6 +27,8 @@ export function applyPreset(preset: PresetLike): UndoFn {
       showGrid?: boolean
       gridOpacity?: number
       starDensity?: number
+      textureKey?: string | null
+      textureOpacity?: number
       frameConfig?: {
         outer?: Partial<{ mode: 'none' | 'opacity' | 'full'; opacity: number; margin: number }>
         innerFrame?: Partial<{ enabled: boolean; color: string; thickness: number }>
@@ -55,6 +57,8 @@ export function applyPreset(preset: PresetLike): UndoFn {
       showGrid: starMap.showGrid,
       gridOpacity: starMap.gridOpacity,
       starDensity: starMap.starDensity,
+      textureKey: starMap.textureKey,
+      textureOpacity: starMap.textureOpacity,
       frameConfig: starMap.frameConfig,
       textBlocks: editor.textBlocks,
     }
@@ -75,6 +79,8 @@ export function applyPreset(preset: PresetLike): UndoFn {
     if (s.showGrid !== undefined) starMap.setShowGrid(s.showGrid)
     if (s.gridOpacity !== undefined) starMap.setGridOpacity(s.gridOpacity)
     if (s.starDensity !== undefined) starMap.setStarDensity(s.starDensity)
+    if (s.textureKey !== undefined) starMap.setTextureKey(s.textureKey)
+    if (s.textureOpacity !== undefined) starMap.setTextureOpacity(s.textureOpacity)
     if (s.frameConfig?.outer) starMap.setOuter(s.frameConfig.outer)
     if (s.frameConfig?.innerFrame) starMap.setInnerFrame(s.frameConfig.innerFrame)
     if (s.frameConfig?.outerFrame) starMap.setOuterFrame(s.frameConfig.outerFrame)
@@ -98,6 +104,8 @@ export function applyPreset(preset: PresetLike): UndoFn {
         showGrid: snapshot.showGrid,
         gridOpacity: snapshot.gridOpacity,
         starDensity: snapshot.starDensity,
+        textureKey: snapshot.textureKey,
+        textureOpacity: snapshot.textureOpacity,
         frameConfig: snapshot.frameConfig,
       })
       useEditorStore.setState({ textBlocks: snapshot.textBlocks })

@@ -5,6 +5,7 @@ import { useStarMapStore } from '@/hooks/useStarMapStore'
 import { useEditorStore } from '@/hooks/useEditorStore'
 import { PRINT_FORMATS } from '@/lib/print-formats'
 import { renderStarMap, type StarEntry, type GeoFeature } from '@/lib/star-map-renderer'
+import { getStarTexture } from '@/lib/star-textures'
 import { TextBlockOverlay } from '@/components/editor/TextBlockOverlay'
 import { PreviewTriggerButton } from '@/components/editor/PreviewTriggerButton'
 import { useStarMapExport } from '@/hooks/useStarMapExport'
@@ -28,12 +29,14 @@ export function StarMapCanvas({ padding = 64, textInteractive }: StarMapCanvasPr
   const [starData, setStarData] = useState<StarEntry[]>([])
   const [constellationData, setConstellationData] = useState<GeoFeature[]>([])
   const [milkyWayData, setMilkyWayData] = useState<GeoFeature[]>([])
+  const [skyTextureImage, setSkyTextureImage] = useState<HTMLImageElement | null>(null)
   const [loadError, setLoadError] = useState(false)
 
   const {
     lat, lng, datetime, locationName, posterBgColor, skyBgColor, starColor,
     showConstellations, showMilkyWay, showSun, showMoon, showPlanets,
     showCompass, showGrid, gridOpacity, starDensity,
+    textureKey, textureOpacity,
     frameConfig,
     setPreviewSize,
   } = useStarMapStore()
@@ -66,6 +69,19 @@ export function StarMapCanvas({ padding = 64, textInteractive }: StarMapCanvasPr
         .catch(() => {})
     }
   }, [showMilkyWay, milkyWayData.length])
+
+  useEffect(() => {
+    const texture = getStarTexture(textureKey)
+    if (!texture) {
+      setSkyTextureImage(null)
+      return
+    }
+    const img = new Image()
+    let cancelled = false
+    img.onload = () => { if (!cancelled) setSkyTextureImage(img) }
+    img.src = texture.path
+    return () => { cancelled = true }
+  }, [textureKey])
 
   useEffect(() => {
     if (!wrapperRef.current) return
@@ -108,13 +124,15 @@ export function StarMapCanvas({ padding = 64, textInteractive }: StarMapCanvasPr
       showConstellations, showMilkyWay, showSun, showMoon, showPlanets,
       showCompass, showGrid, gridOpacity, starDensity,
       frameConfig,
+      skyTextureImage,
+      skyTextureOpacity: textureOpacity,
     })
   }, [
     starData, constellationData, milkyWayData,
     lat, lng, datetime, posterBgColor, skyBgColor, starColor,
     showConstellations, showMilkyWay, showSun, showMoon, showPlanets,
     showCompass, showGrid, gridOpacity, starDensity,
-    frameConfig, posterSize,
+    frameConfig, posterSize, skyTextureImage, textureOpacity,
   ])
 
   useEffect(() => { draw() }, [draw])

@@ -76,6 +76,8 @@ export function SaveAsPresetButton() {
         showGrid: starMap.showGrid,
         gridOpacity: starMap.gridOpacity,
         starDensity: starMap.starDensity,
+        textureKey: starMap.textureKey,
+        textureOpacity: starMap.textureOpacity,
         frameConfig: starMap.frameConfig,
         textBlocks: editor.textBlocks,
       }

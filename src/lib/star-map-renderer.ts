@@ -36,6 +36,11 @@ export interface StarMapRenderOptions {
    *  Default 0.7 ≈ naked-eye limit. */
   starDensity?: number
   frameConfig?: StarMapFrameConfig
+  /** Optional painted/watercolor texture rendered behind the stars, inside
+   *  the sky-circle clip. Centre-cropped to a square if non-square. */
+  skyTextureImage?: HTMLImageElement | null
+  /** Opacity of the sky texture, 0..1. Default 0.9. */
+  skyTextureOpacity?: number
 }
 
 const DEG = Math.PI / 180
@@ -61,6 +66,8 @@ export function renderStarMap(ctx: CanvasRenderingContext2D, opts: StarMapRender
     gridOpacity = 0.32,
     starDensity = 0.7,
     frameConfig,
+    skyTextureImage,
+    skyTextureOpacity = 0.9,
   } = opts
 
   // Magnitude cutoff derived from starDensity. Linear mapping:
@@ -99,6 +106,20 @@ export function renderStarMap(ctx: CanvasRenderingContext2D, opts: StarMapRender
   bg.addColorStop(1, skyBgColor)
   ctx.fillStyle = bg
   ctx.fillRect(cx - skyR, cy - skyR, skyR * 2, skyR * 2)
+
+  // Optional painted texture inside the sky circle. Centre-cropped to a
+  // square if the source is non-square (covers the circle's bounding box).
+  if (skyTextureImage && skyTextureImage.complete && skyTextureImage.naturalWidth > 0) {
+    const iw = skyTextureImage.naturalWidth
+    const ih = skyTextureImage.naturalHeight
+    const side = Math.min(iw, ih)
+    const sx = (iw - side) / 2
+    const sy = (ih - side) / 2
+    ctx.save()
+    ctx.globalAlpha = skyTextureOpacity
+    ctx.drawImage(skyTextureImage, sx, sy, side, side, cx - skyR, cy - skyR, skyR * 2, skyR * 2)
+    ctx.restore()
+  }
 
   // Celestial coordinate grid — RA meridians (every 30° = 2h) + Dec parallels
   // (every 30°). Drawn behind milky way / constellations / stars so it acts
