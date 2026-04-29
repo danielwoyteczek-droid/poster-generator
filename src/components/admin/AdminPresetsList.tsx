@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from '@/i18n/navigation'
 import { useLocale } from 'next-intl'
 import Image from 'next/image'
-import { Loader2, LayoutTemplate, Pencil, Eye, EyeOff, Trash2, Plus, Link as LinkIcon, Copy, Globe, Tag, X as XIcon, LayoutGrid, List, RefreshCw, AlertCircle, Clock, CheckCircle2, Image as ImageIcon } from 'lucide-react'
+import { Loader2, LayoutTemplate, Pencil, Eye, EyeOff, Trash2, Plus, Link as LinkIcon, Copy, Globe, Tag, X as XIcon, LayoutGrid, List, RefreshCw, AlertCircle, Clock, CheckCircle2, Image as ImageIcon, Rocket } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
@@ -153,6 +153,7 @@ export function AdminPresetsList() {
   const [availableMockupSets, setAvailableMockupSets] = useState<{ id: string; name: string; slug: string; is_active: boolean }[]>([])
   const [selectedMockupSetIds, setSelectedMockupSetIds] = useState<string[]>([])
   const [renderTriggering, setRenderTriggering] = useState(false)
+  const [workerStarting, setWorkerStarting] = useState(false)
 
   const fetchPresets = useCallback(async (opts?: { silent?: boolean }) => {
     if (!opts?.silent) setLoading(true)
@@ -410,6 +411,28 @@ export function AdminPresetsList() {
       setRenders(data.renders ?? [])
     } finally {
       setRendersLoading(false)
+    }
+  }
+
+  const triggerWorker = async () => {
+    setWorkerStarting(true)
+    try {
+      const res = await fetch('/api/admin/render-worker/trigger', { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) {
+        toast.error(data.error ?? 'Worker-Start fehlgeschlagen', {
+          description: data.detail,
+        })
+        return
+      }
+      toast.success('Worker gestartet — läuft ~5–25 Min', {
+        description: data.runUrl ? 'Klick für Live-Logs auf GitHub' : undefined,
+        action: data.runUrl
+          ? { label: 'Run öffnen', onClick: () => window.open(data.runUrl, '_blank', 'noopener') }
+          : undefined,
+      })
+    } finally {
+      setWorkerStarting(false)
     }
   }
 
@@ -709,6 +732,36 @@ export function AdminPresetsList() {
               Neues Sternenposter-Preset
             </Link>
           </Button>
+          {(() => {
+            const pendingCount = presets.filter((p) => p.render_status === 'pending').length
+            const renderingCount = presets.filter((p) => p.render_status === 'rendering').length
+            const queueCount = pendingCount + renderingCount
+            return (
+              <Button
+                size="sm"
+                variant="default"
+                onClick={triggerWorker}
+                disabled={workerStarting || queueCount === 0}
+                title={
+                  queueCount === 0
+                    ? 'Keine Presets in der Queue. Erst „Rendern" klicken, dann hier den Worker starten.'
+                    : `${queueCount} Preset${queueCount === 1 ? '' : 's'} in der Queue — Worker auf GitHub-Actions starten`
+                }
+              >
+                {workerStarting ? (
+                  <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+                ) : (
+                  <Rocket className="w-4 h-4 mr-1.5" />
+                )}
+                Worker starten
+                {queueCount > 0 && (
+                  <span className="ml-1.5 px-1.5 py-0.5 rounded bg-white/20 text-[10px] font-semibold">
+                    {queueCount}
+                  </span>
+                )}
+              </Button>
+            )
+          })()}
         </div>
       </div>
 
