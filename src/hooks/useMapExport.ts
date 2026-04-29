@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useEditorStore, type TextBlock, type ViewState, type MarkerState, type SecondMapState, type ShapeConfigState } from './useEditorStore'
+import { useEditorStore, type TextBlock, type ViewState, type MarkerState, type SecondMapState, type ShapeConfigState } from '@/hooks/useEditorStore'
 import { composeMaskSvg, composeFrameSvg, composeFullbleedMaskSvg, composeSplitSeamSvg, parseShapeSvg, svgToDataUrl, hasAnyFrame } from '@/lib/mask-composer'
 import { PRINT_FORMATS, effectiveDimensions, type PrintFormat } from '@/lib/print-formats'
 import { MAP_MASKS, type MapMaskKey } from '@/lib/map-masks'
@@ -12,7 +12,7 @@ import { filterCss } from '@/lib/photo-filters'
 import { buildPetiteStyle } from '@/lib/petite-style-loader'
 import { computeFontScale } from '@/lib/font-scale'
 import { getPalette, type MapPaletteColors } from '@/lib/map-palettes'
-import type { PhotoItem, SplitPhoto } from './useEditorStore'
+import type { PhotoItem, SplitPhoto } from '@/hooks/useEditorStore'
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 

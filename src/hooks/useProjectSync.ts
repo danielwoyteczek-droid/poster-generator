@@ -1,8 +1,8 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { useEditorStore, type EditorConfig } from './useEditorStore'
-import { useAuth } from './useAuth'
+import { useEditorStore, type EditorConfig } from '@/hooks/useEditorStore'
+import { useAuth } from '@/hooks/useAuth'
 
 const LS_KEY = 'poster-generator-draft'
 

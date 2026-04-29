@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { useStarMapStore } from './useStarMapStore'
-import { useEditorStore, type TextBlock } from './useEditorStore'
+import { useStarMapStore } from '@/hooks/useStarMapStore'
+import { useEditorStore, type TextBlock } from '@/hooks/useEditorStore'
 import { PRINT_FORMATS, type PrintFormat } from '@/lib/print-formats'
 import { renderStarMap, type StarEntry, type GeoFeature } from '@/lib/star-map-renderer'
 import { getCoordinatesText } from '@/components/editor/TextBlockOverlay'
@@ -109,23 +109,11 @@ export function useStarMapExport() {
     const W = fmt.widthPx
     const H = fmt.heightPx
 
-    console.log('[StarMapExport] buildCanvas state:', {
-      lat, lng, locationName, showConstellations, showMilkyWay,
-      textBlocksCount: textBlocks.length,
-      coordinateBlocks: textBlocks.filter((b) => b.isCoordinates).length,
-    })
-
     const [starDataRaw, constellationRaw, milkyWayRaw] = await Promise.all([
       fetchJSON<StarEntry[]>('/bright-stars.json'),
       showConstellations ? fetchJSON<{ features: GeoFeature[] }>('/constellations.json').then(d => d.features) : Promise.resolve([] as GeoFeature[]),
       showMilkyWay ? fetchJSON<{ features: GeoFeature[] }>('/milky-way.json').then(d => d.features) : Promise.resolve([] as GeoFeature[]),
     ])
-
-    console.log('[StarMapExport] data loaded:', {
-      starsCount: starDataRaw.length,
-      constellationsCount: constellationRaw.length,
-      milkyWayCount: milkyWayRaw.length,
-    })
 
     await ensureFontsLoaded(textBlocks)
 
