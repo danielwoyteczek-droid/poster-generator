@@ -32,10 +32,28 @@ async function buildCatalog(): Promise<ProductCatalog> {
     }
   }
 
-  const entries = await Promise.all(
-    Array.from(ids).map(async (id) => [id, await fetchPrice(id)] as const),
+  // allSettled instead of all: a single stale/deleted Stripe price ID must
+  // not take down the entire catalog (which would gray out every product
+  // across all editors). Failures get logged once with the offending ID so
+  // it's obvious which entries in products.ts need to be refreshed.
+  const settled = await Promise.all(
+    Array.from(ids).map(async (id) => {
+      try {
+        return { id, price: await fetchPrice(id), error: null as unknown }
+      } catch (err) {
+        return { id, price: null, error: err }
+      }
+    }),
   )
-  const byId = Object.fromEntries(entries)
+  const byId: Record<string, CatalogPrice> = {}
+  for (const entry of settled) {
+    if (entry.price) {
+      byId[entry.id] = entry.price
+    } else {
+      const msg = entry.error instanceof Error ? entry.error.message : String(entry.error)
+      console.warn(`[stripe-catalog] skipping price ${entry.id}: ${msg}`)
+    }
+  }
 
   const catalog: ProductCatalog = { download: {}, poster: {}, frame: {} }
   for (const product of PRODUCTS) {
