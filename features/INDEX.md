@@ -46,10 +46,11 @@
 | PROJ-30 | Preset-Render-Pipeline | In Progress | [PROJ-30-preset-render-pipeline.md](PROJ-30-preset-render-pipeline.md) | 2026-04-27 |
 | PROJ-31 | Amazon-Bestellungs-Importer (SP-API) | Planned | [PROJ-31-amazon-order-importer.md](PROJ-31-amazon-order-importer.md) | 2026-04-28 |
 | PROJ-32 | Foto-Poster-Editor | In Progress | [PROJ-32-photo-poster-editor.md](PROJ-32-photo-poster-editor.md) | 2026-04-29 |
+| PROJ-33 | Saisonaler Marketing-Kalender | Architected | [PROJ-33-seasonal-marketing-calendar.md](PROJ-33-seasonal-marketing-calendar.md) | 2026-04-29 |
 
 <!-- Add features above this line -->
 
-## Next Available ID: PROJ-33
+## Next Available ID: PROJ-34
 
 ## Recommended Build Order
 1. **PROJ-1** — Karten-Editor Core (Fundament der App)
