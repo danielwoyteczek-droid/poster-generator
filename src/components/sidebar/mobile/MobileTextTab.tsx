@@ -47,9 +47,12 @@ interface MobileTextTabProps {
   /** Optional override for the isCoordinates-block preview text. Star-map
    *  passes its own store coords here. See TextTab for details. */
   coordinatesSource?: { lat: number; lng: number; locationName: string }
+  /** Photo-Poster-Editor passes true to hide coordinate blocks (a photo
+   *  product has no map location). See TextTab for details. */
+  hideCoordinates?: boolean
 }
 
-export function MobileTextTab({ coordinatesSource }: MobileTextTabProps = {}) {
+export function MobileTextTab({ coordinatesSource, hideCoordinates = false }: MobileTextTabProps = {}) {
   const t = useTranslations('editor')
   const {
     textBlocks,
@@ -64,7 +67,10 @@ export function MobileTextTab({ coordinatesSource }: MobileTextTabProps = {}) {
   const [editingId, setEditingId] = useState<string | null>(null)
   const coords = coordinatesSource ?? { lat: viewState.lat, lng: viewState.lng, locationName }
   const coordsText = getCoordinatesText(coords.lat, coords.lng, coords.locationName)
-  const editingBlock = textBlocks.find((b) => b.id === editingId) ?? null
+  const visibleBlocks = hideCoordinates
+    ? textBlocks.filter((b) => !b.isCoordinates)
+    : textBlocks
+  const editingBlock = visibleBlocks.find((b) => b.id === editingId) ?? null
 
   const titleIdeas = [
     t('textIdea1'),
@@ -103,7 +109,7 @@ export function MobileTextTab({ coordinatesSource }: MobileTextTabProps = {}) {
       </button>
 
       <div className="space-y-1">
-        {textBlocks.map((block) => (
+        {visibleBlocks.map((block) => (
           <div
             key={block.id}
             onClick={() => openEditor(block.id)}

@@ -4,7 +4,7 @@ import { useState, useEffect, Fragment } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { Menu, X, LogOut, Settings, Package, FolderOpen, Star, Map, ShoppingCart, LayoutTemplate, Palette, LineChart, ChevronDown } from 'lucide-react'
+import { Menu, X, LogOut, Settings, Package, FolderOpen, Star, Map, ShoppingCart, LayoutTemplate, Palette, LineChart, ChevronDown, ImageIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -39,7 +39,10 @@ export function LandingNavClient({ occasionLinks = [] }: LandingNavClientProps) 
   const [open, setOpen] = useState(false)
   const [hydrated, setHydrated] = useState(false)
   const pathname = usePathname()
-  const isEditor = pathname.endsWith('/map') || pathname.endsWith('/star-map')
+  const isEditor =
+    pathname.endsWith('/map') ||
+    pathname.endsWith('/star-map') ||
+    pathname.endsWith('/photo')
   const cartCount = useCartStore((s) => s.items.length)
   useEffect(() => { setHydrated(true) }, [])
 
@@ -52,6 +55,7 @@ export function LandingNavClient({ occasionLinks = [] }: LandingNavClientProps) 
   const NAV_LINKS = [
     { label: t('cityPoster'), href: '/map' },
     { label: t('starPoster'), href: '/star-map' },
+    { label: t('photoPoster'), href: '/photo' },
     { label: t('features'), href: '/#features' },
     { label: t('examples'), href: '/#examples' },
     { label: t('gallery'), href: '/gallery' },
@@ -89,7 +93,7 @@ export function LandingNavClient({ occasionLinks = [] }: LandingNavClientProps) 
               >
                 {link.label}
               </Link>
-              {i === 1 && showOccasions && (
+              {i === 2 && showOccasions && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button
@@ -173,6 +177,14 @@ export function LandingNavClient({ occasionLinks = [] }: LandingNavClientProps) 
                     <Link href="/star-map" className="cursor-pointer">
                       <Star className="w-4 h-4 mr-2" />
                       {t('starPoster')}
+                    </Link>
+                  </DropdownMenuItem>
+                )}
+                {!pathname.endsWith('/photo') && (
+                  <DropdownMenuItem asChild>
+                    <Link href="/photo" className="cursor-pointer">
+                      <ImageIcon className="w-4 h-4 mr-2" />
+                      {t('photoPoster')}
                     </Link>
                   </DropdownMenuItem>
                 )}
@@ -288,12 +300,12 @@ export function LandingNavClient({ occasionLinks = [] }: LandingNavClientProps) 
                   >
                     {link.label}
                   </Link>
-                  {i === 1 && showOccasions && (
+                  {i === 2 && showOccasions && (
                     <div className="px-3 pt-2 pb-1 text-[10px] uppercase tracking-wider text-muted-foreground/60">
                       {t('occasions')}
                     </div>
                   )}
-                  {i === 1 && showOccasions && occasionLinks.map((occ) => (
+                  {i === 2 && showOccasions && occasionLinks.map((occ) => (
                     <Link
                       key={occ.href}
                       href={occ.href}

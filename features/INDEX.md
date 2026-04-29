@@ -45,10 +45,11 @@
 | PROJ-29 | Anlass-Landing-Pages (SEO) | In Progress | [PROJ-29-occasion-landing-pages.md](PROJ-29-occasion-landing-pages.md) | 2026-04-26 |
 | PROJ-30 | Preset-Render-Pipeline | In Progress | [PROJ-30-preset-render-pipeline.md](PROJ-30-preset-render-pipeline.md) | 2026-04-27 |
 | PROJ-31 | Amazon-Bestellungs-Importer (SP-API) | Planned | [PROJ-31-amazon-order-importer.md](PROJ-31-amazon-order-importer.md) | 2026-04-28 |
+| PROJ-32 | Foto-Poster-Editor | In Progress | [PROJ-32-photo-poster-editor.md](PROJ-32-photo-poster-editor.md) | 2026-04-29 |
 
 <!-- Add features above this line -->
 
-## Next Available ID: PROJ-32
+## Next Available ID: PROJ-33
 
 ## Recommended Build Order
 1. **PROJ-1** — Karten-Editor Core (Fundament der App)

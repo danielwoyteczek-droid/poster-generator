@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Script from "next/script";
-import { Cormorant_Garamond, Inter } from "next/font/google";
+import { Cormorant_Garamond, Inter, Anton } from "next/font/google";
 import "./globals.css";
 import { NextIntlClientProvider } from 'next-intl'
 import { getLocale, getMessages } from 'next-intl/server'
@@ -19,6 +19,13 @@ const inter = Inter({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
   variable: "--font-sans",
+  display: "swap",
+});
+
+const anton = Anton({
+  subsets: ["latin", "latin-ext"],
+  weight: "400",
+  variable: "--font-mask-anton",
   display: "swap",
 });
 
@@ -61,7 +68,7 @@ export default async function RootLayout({
   const locale = await getLocale().catch(() => 'de')
   const messages = await getMessages().catch(() => ({}))
   return (
-    <html lang={locale} className={`${cormorant.variable} ${inter.variable}`}>
+    <html lang={locale} className={`${cormorant.variable} ${inter.variable} ${anton.variable}`}>
       <body className="antialiased font-sans bg-background text-foreground">
         {GTM_ID && (
           <>

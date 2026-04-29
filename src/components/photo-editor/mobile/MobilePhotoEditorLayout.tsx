@@ -1,0 +1,82 @@
+'use client'
+
+import { useState } from 'react'
+import { useTranslations } from 'next-intl'
+import { Type, ImageIcon, Layers } from 'lucide-react'
+import { LetterMaskTab } from '../sidebar/LetterMaskTab'
+import { PhotoSlotsTab } from '../sidebar/PhotoSlotsTab'
+import { MobileTextTab } from '@/components/sidebar/mobile/MobileTextTab'
+import { PhotoPosterCanvas } from '../PhotoPosterCanvas'
+import type { MobileEditorTool } from '@/components/editor/PosterCanvas'
+import { cn } from '@/lib/utils'
+
+type MobilePhotoTab = 'word' | 'slots' | 'text'
+
+const TAB_TO_TOOL: Record<MobilePhotoTab, MobileEditorTool> = {
+  word: 'photo',
+  slots: 'photo',
+  text: 'text',
+}
+
+/**
+ * Mobile-Pendant zu `PhotoEditorLayout` — fixe Vorschau oben, fixe Tab-Bar,
+ * scrollbarer Tool-Container darunter. Spiegelt das Pattern aus PROJ-18 /
+ * PROJ-27 (Karten-Editor + Mobile Star-Map).
+ *
+ * Touch-Isolation: Im Word-/Slots-Tab sind die Letter-Mask-Slots
+ * interaktiv (Pan-Crop), im Text-Tab sind Textblöcke interaktiv. Das
+ * verhindert versehentliches Zugreifen aus angrenzenden Tabs.
+ */
+export function MobilePhotoEditorLayout() {
+  const t = useTranslations('photoEditor')
+  const [activeTab, setActiveTab] = useState<MobilePhotoTab>('word')
+
+  const TABS: { id: MobilePhotoTab; label: string; Icon: typeof Type }[] = [
+    { id: 'word', label: t('tabWord'), Icon: Layers },
+    { id: 'slots', label: t('tabSlots'), Icon: ImageIcon },
+    { id: 'text', label: t('tabText'), Icon: Type },
+  ]
+
+  return (
+    <div className="flex flex-col h-full overflow-hidden">
+      <div className="h-[58vh] shrink-0 flex min-h-0 border-b border-border relative">
+        <PhotoPosterCanvas
+          padding={16}
+          activeMobileTool={TAB_TO_TOOL[activeTab]}
+        />
+      </div>
+
+      <nav
+        className="h-14 shrink-0 grid grid-cols-3 bg-white border-b border-border"
+        role="tablist"
+      >
+        {TABS.map(({ id, label, Icon }) => {
+          const active = activeTab === id
+          return (
+            <button
+              key={id}
+              role="tab"
+              aria-selected={active}
+              onClick={() => setActiveTab(id)}
+              className={cn(
+                'flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-colors min-h-[44px] touch-manipulation',
+                active
+                  ? 'text-foreground border-t-2 border-primary -mt-px'
+                  : 'text-muted-foreground hover:text-foreground/70',
+              )}
+            >
+              <Icon className={cn('w-5 h-5', active && 'stroke-[2.25]')} />
+              <span>{label}</span>
+            </button>
+          )
+        })}
+      </nav>
+
+      <div className="flex-1 min-h-0 overflow-y-auto bg-white">
+        {activeTab === 'word' && <LetterMaskTab />}
+        {activeTab === 'slots' && <PhotoSlotsTab />}
+        {activeTab === 'text' && <MobileTextTab hideCoordinates />}
+      </div>
+    </div>
+  )
+}

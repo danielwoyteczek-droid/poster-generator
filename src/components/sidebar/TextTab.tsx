@@ -42,9 +42,13 @@ interface TextTabProps {
    *  search updates the panel preview text. Map editor leaves this
    *  undefined and the map store values are used. */
   coordinatesSource?: { lat: number; lng: number; locationName: string }
+  /** Photo-Poster-Editor passes true: a coordinates block doesn't fit a
+   *  photo product, so we hide it from the sidebar list (the shared store
+   *  may still contain one from a previous map session). */
+  hideCoordinates?: boolean
 }
 
-export function TextTab({ coordinatesSource }: TextTabProps = {}) {
+export function TextTab({ coordinatesSource, hideCoordinates = false }: TextTabProps = {}) {
   const t = useTranslations('editor')
   const {
     textBlocks,
@@ -76,7 +80,10 @@ export function TextTab({ coordinatesSource }: TextTabProps = {}) {
     return block.text.length > 20 ? `${block.text.slice(0, 20)}…` : block.text
   }
 
-  const selectedBlock = textBlocks.find((b) => b.id === selectedBlockId) ?? null
+  const visibleBlocks = hideCoordinates
+    ? textBlocks.filter((b) => !b.isCoordinates)
+    : textBlocks
+  const selectedBlock = visibleBlocks.find((b) => b.id === selectedBlockId) ?? null
 
   return (
     <div className="space-y-4 p-4">
@@ -92,7 +99,7 @@ export function TextTab({ coordinatesSource }: TextTabProps = {}) {
 
       {/* Block list */}
       <div className="space-y-1">
-        {textBlocks.map((block) => {
+        {visibleBlocks.map((block) => {
           const isSelected = block.id === selectedBlockId
           return (
             <div

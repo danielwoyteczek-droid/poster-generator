@@ -177,9 +177,13 @@ interface TextBlockOverlayProps {
    *  blocks, and `false` otherwise to keep other-tab taps from grabbing
    *  a block by accident. */
   interactive?: boolean
+  /** Photo-Poster-Editor passes true: a coordinates block doesn't fit a
+   *  photo product, so we drop it from rendering even though it lives in
+   *  the shared editor store. */
+  hideCoordinates?: boolean
 }
 
-export function TextBlockOverlay({ coordinatesSource, fontScale = 1, interactive: interactiveProp }: TextBlockOverlayProps = {}) {
+export function TextBlockOverlay({ coordinatesSource, fontScale = 1, interactive: interactiveProp, hideCoordinates = false }: TextBlockOverlayProps = {}) {
   const overlayRef = useRef<HTMLDivElement>(null)
   const isMobile = useIsMobileEditor()
   const interactive = interactiveProp ?? !isMobile
@@ -260,6 +264,7 @@ export function TextBlockOverlay({ coordinatesSource, fontScale = 1, interactive
       className="absolute inset-0 pointer-events-none"
     >
       {textBlocks.map((block) => {
+        if (hideCoordinates && block.isCoordinates) return null
         const displayText = block.isCoordinates
           ? getCoordinatesText(coords.lat, coords.lng, coords.locationName)
           : block.text
