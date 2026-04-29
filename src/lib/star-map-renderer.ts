@@ -107,7 +107,7 @@ export function renderStarMap(ctx: CanvasRenderingContext2D, opts: StarMapRender
   if (showGrid) {
     ctx.save()
     ctx.strokeStyle = hexToRgba(starColor, gridOpacity)
-    ctx.lineWidth = Math.max(0.8, w * 0.0006)
+    ctx.lineWidth = Math.max(0.8, w * 0.0024)
 
     // RA meridians: fix RA, sweep declination. 15° spacing (24 lines) matches
     // the dec-parallel density for a balanced grid.
@@ -170,7 +170,7 @@ export function renderStarMap(ctx: CanvasRenderingContext2D, opts: StarMapRender
   if (showConstellations && constellationData.length > 0) {
     ctx.save()
     ctx.strokeStyle = hexToRgba(starColor, 0.4)
-    ctx.lineWidth = Math.max(1, w * 0.0004)
+    ctx.lineWidth = Math.max(1, w * 0.0024)
     for (const feature of constellationData) {
       const lines: number[][][] =
         feature.geometry.type === 'MultiLineString'
