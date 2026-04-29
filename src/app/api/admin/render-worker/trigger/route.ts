@@ -16,8 +16,10 @@ export async function POST() {
   const auth = await requireAdmin()
   if (!auth.ok) return NextResponse.json({ error: 'Forbidden' }, { status: auth.status })
 
-  const token = process.env.GITHUB_WORKFLOW_TRIGGER_TOKEN
-  const repo = process.env.GITHUB_REPO
+  // .trim() because Vercel preserves trailing newlines that slip in when the
+  // value is pasted from a multi-line clipboard buffer (e.g. from .env.local).
+  const token = process.env.GITHUB_WORKFLOW_TRIGGER_TOKEN?.trim()
+  const repo = process.env.GITHUB_REPO?.trim()
 
   if (!token || !repo) {
     return NextResponse.json(
