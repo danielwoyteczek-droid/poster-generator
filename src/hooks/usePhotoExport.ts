@@ -10,7 +10,7 @@ import {
   type PosterOrientation,
 } from '@/lib/print-formats'
 import { MASK_FONTS } from '@/lib/letter-mask'
-import { computeFontScale } from '@/lib/font-scale'
+import { computeFontScale, FONT_SCALE_REFERENCE_WIDTH } from '@/lib/font-scale'
 import { drawLetterMask, resolveFontFamily, ensureMaskFontLoaded } from '@/lib/photo-mask-render'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
@@ -138,10 +138,11 @@ export function usePhotoExport() {
       maskFontFamily,
     })
 
-    // Use the poster's actual width as the previewW reference for the text
-    // scale — same convention as the other editors. computeFontScale picks
-    // a sensible scale relative to a 660 px reference inside.
-    drawTextBlocks(ctx, textBlocks, W, H, W)
+    // Pass the canonical 660 px reference as previewW so the export font size
+    // matches what the user sees on a desktop editor canvas (which renders at
+    // ~660 px wide). Using `W` here would make scaleX = 1 on a 3508 px print
+    // canvas, leaving raw `block.fontSize` in pixels — text ~5× too small.
+    drawTextBlocks(ctx, textBlocks, W, H, FONT_SCALE_REFERENCE_WIDTH)
 
     return canvas
   }
