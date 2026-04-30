@@ -8,7 +8,7 @@ import { OccasionSchema, OccasionsSchema } from '@/lib/occasions'
 const CreatePresetSchema = z.object({
   name: z.string().trim().min(1).max(200),
   description: z.string().max(1000).optional(),
-  poster_type: z.enum(['map', 'star-map']),
+  poster_type: z.enum(['map', 'star-map', 'photo']),
   config_json: z.record(z.string(), z.unknown()),
   preview_image_url: z.string().url().optional(),
   display_order: z.number().int().optional(),

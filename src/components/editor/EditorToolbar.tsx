@@ -7,7 +7,7 @@ import { SaveAsPresetButton } from './SaveAsPresetButton'
 import { ResetEditorButton } from './ResetEditorButton'
 
 interface Props {
-  posterType: 'map' | 'star-map'
+  posterType: 'map' | 'star-map' | 'photo'
 }
 
 /**

@@ -1,8 +1,11 @@
 import { useEditorStore, type EditorStore } from '@/hooks/useEditorStore'
 import { useStarMapStore } from '@/hooks/useStarMapStore'
+import { usePhotoEditorStore, type LetterSlot } from '@/hooks/usePhotoEditorStore'
+import type { MaskFontKey } from '@/lib/letter-mask'
+import type { PosterOrientation } from '@/lib/print-formats'
 
 interface PresetLike {
-  poster_type: 'map' | 'star-map'
+  poster_type: 'map' | 'star-map' | 'photo'
   config_json: Record<string, unknown>
 }
 
@@ -108,6 +111,66 @@ export function applyPreset(preset: PresetLike): UndoFn {
         textureOpacity: snapshot.textureOpacity,
         frameConfig: snapshot.frameConfig,
       })
+      useEditorStore.setState({ textBlocks: snapshot.textBlocks })
+    }
+  }
+
+  if (preset.poster_type === 'photo') {
+    const p = config as {
+      word?: string
+      slots?: LetterSlot[]
+      wordWidth?: number
+      wordX?: number
+      wordY?: number
+      orientation?: PosterOrientation
+      maskFontKey?: MaskFontKey
+      defaultSlotColor?: string
+      layoutMode?: 'letter-mask' | 'single-photo' | 'photo-grid'
+      textBlocks?: unknown
+    }
+    const photo = usePhotoEditorStore.getState()
+    const editorBefore = useEditorStore.getState()
+
+    const snapshot = {
+      word: photo.word,
+      slots: photo.slots,
+      wordWidth: photo.wordWidth,
+      wordX: photo.wordX,
+      wordY: photo.wordY,
+      orientation: photo.orientation,
+      maskFontKey: photo.maskFontKey,
+      defaultSlotColor: photo.defaultSlotColor,
+      layoutMode: photo.layoutMode,
+      textBlocks: editorBefore.textBlocks,
+    }
+
+    usePhotoEditorStore.setState((state) => ({
+      ...state,
+      word: typeof p.word === 'string' ? p.word : state.word,
+      slots: Array.isArray(p.slots) ? p.slots : state.slots,
+      wordWidth: typeof p.wordWidth === 'number' ? p.wordWidth : state.wordWidth,
+      wordX: typeof p.wordX === 'number' ? p.wordX : state.wordX,
+      wordY: typeof p.wordY === 'number' ? p.wordY : state.wordY,
+      orientation: p.orientation ?? state.orientation,
+      maskFontKey: p.maskFontKey ?? state.maskFontKey,
+      defaultSlotColor: p.defaultSlotColor ?? state.defaultSlotColor,
+      layoutMode: p.layoutMode ?? state.layoutMode,
+    }))
+    if (p.textBlocks) useEditorStore.setState({ textBlocks: p.textBlocks as never })
+
+    return () => {
+      usePhotoEditorStore.setState((state) => ({
+        ...state,
+        word: snapshot.word,
+        slots: snapshot.slots,
+        wordWidth: snapshot.wordWidth,
+        wordX: snapshot.wordX,
+        wordY: snapshot.wordY,
+        orientation: snapshot.orientation,
+        maskFontKey: snapshot.maskFontKey,
+        defaultSlotColor: snapshot.defaultSlotColor,
+        layoutMode: snapshot.layoutMode,
+      }))
       useEditorStore.setState({ textBlocks: snapshot.textBlocks })
     }
   }

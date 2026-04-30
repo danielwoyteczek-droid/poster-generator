@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
 import { usePhotoEditorStore, type PosterOrientation } from '@/hooks/usePhotoEditorStore'
+import { PresetPicker } from '@/components/editor/PresetPicker'
 import { cn } from '@/lib/utils'
 import {
   LETTER_MASK_MIN,
@@ -62,6 +63,8 @@ export function LetterMaskTab() {
 
   return (
     <div className="space-y-5 p-4">
+      <PresetPicker posterType="photo" />
+
       <div className="space-y-2">
         <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
           {t('orientationLabel')}

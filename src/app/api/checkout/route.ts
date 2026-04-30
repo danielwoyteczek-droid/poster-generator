@@ -9,7 +9,7 @@ import { getProductCatalog } from '@/lib/stripe-catalog'
 const CartItemSchema = z.object({
   productId: z.enum(['download', 'poster', 'frame']),
   format: z.enum(['a4', 'a3']),
-  posterType: z.enum(['map', 'star-map']),
+  posterType: z.enum(['map', 'star-map', 'photo']),
   title: z.string().min(1).max(200),
   projectId: z.string().uuid().nullable().optional(),
   snapshot: z.record(z.string(), z.unknown()),

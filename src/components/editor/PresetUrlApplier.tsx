@@ -8,7 +8,7 @@ import { invalidateCustomMasksCache } from '@/hooks/useCustomMasks'
 import { applyPreset } from '@/lib/apply-preset'
 
 interface Props {
-  posterType: 'map' | 'star-map'
+  posterType: 'map' | 'star-map' | 'photo'
 }
 
 /**
@@ -38,7 +38,10 @@ export function PresetUrlApplier({ posterType }: Props) {
         }
         if (data.preset.poster_type !== posterType) {
           // Preset is for the other editor — redirect there, preserving locale prefix
-          const target = data.preset.poster_type === 'star-map' ? '/star-map' : '/map'
+          const target =
+            data.preset.poster_type === 'star-map' ? '/star-map'
+            : data.preset.poster_type === 'photo' ? '/photo'
+            : '/map'
           router.replace(`/${locale}${target}?preset=${id}`)
           return
         }

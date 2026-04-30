@@ -19,8 +19,10 @@ import {
 import { useAuth } from '@/hooks/useAuth'
 import { useEditorStore } from '@/hooks/useEditorStore'
 import { useStarMapStore } from '@/hooks/useStarMapStore'
+import { usePhotoEditorStore } from '@/hooks/usePhotoEditorStore'
 import { useMapExport } from '@/hooks/useMapExport'
 import { useStarMapExport } from '@/hooks/useStarMapExport'
+import { usePhotoExport } from '@/hooks/usePhotoExport'
 import { downsizeDataURL } from '@/lib/image-utils'
 
 function dataURLtoBlob(dataUrl: string): Blob {
@@ -36,7 +38,10 @@ function dataURLtoBlob(dataUrl: string): Blob {
 export function SaveAsPresetButton() {
   const { isAdmin } = useAuth()
   const pathname = usePathname()
-  const posterType: 'map' | 'star-map' = pathname === '/star-map' ? 'star-map' : 'map'
+  const posterType: 'map' | 'star-map' | 'photo' =
+    pathname === '/star-map' ? 'star-map'
+    : pathname === '/photo' ? 'photo'
+    : 'map'
 
   const [open, setOpen] = useState(false)
   const [name, setName] = useState('')
@@ -45,8 +50,10 @@ export function SaveAsPresetButton() {
 
   const mapExport = useMapExport()
   const starMapExport = useStarMapExport()
+  const photoExport = usePhotoExport()
   const editor = useEditorStore()
   const starMap = useStarMapStore()
+  const photo = usePhotoEditorStore()
   const editingPreset = useEditorStore((s) => s.editingPreset)
   const setEditingPreset = useEditorStore((s) => s.setEditingPreset)
 
@@ -55,6 +62,23 @@ export function SaveAsPresetButton() {
   const canUpdate = editingPreset !== null && editingPreset.posterType === posterType
 
   const buildConfigJson = (): Record<string, unknown> => {
+    if (posterType === 'photo') {
+      return {
+        // PROJ-32: Letter-Mask state. Slots include any uploaded photos —
+        // those reference Supabase Storage URLs that survive across loads,
+        // so re-applying the preset restores the visual exactly.
+        word: photo.word,
+        slots: photo.slots,
+        wordWidth: photo.wordWidth,
+        wordX: photo.wordX,
+        wordY: photo.wordY,
+        orientation: photo.orientation,
+        maskFontKey: photo.maskFontKey,
+        defaultSlotColor: photo.defaultSlotColor,
+        layoutMode: photo.layoutMode,
+        textBlocks: editor.textBlocks,
+      }
+    }
     if (posterType === 'star-map') {
       return {
         // Location + Datetime sind essentiell — bestimmen welche Sterne wo stehen.
@@ -117,7 +141,10 @@ export function SaveAsPresetButton() {
    */
   const tryRenderAndUploadPreview = async (): Promise<string | null> => {
     try {
-      const renderer = posterType === 'star-map' ? starMapExport.renderPreview : mapExport.renderPreview
+      const renderer =
+        posterType === 'star-map' ? starMapExport.renderPreview
+        : posterType === 'photo' ? photoExport.renderPreview
+        : mapExport.renderPreview
       const renderPromise = renderer(editor.printFormat)
       const timeoutPromise = new Promise<never>((_, reject) =>
         setTimeout(

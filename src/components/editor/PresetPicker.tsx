@@ -17,14 +17,14 @@ interface PresetRow {
   id: string
   name: string
   description: string | null
-  poster_type: 'map' | 'star-map'
+  poster_type: 'map' | 'star-map' | 'photo'
   preview_image_url: string | null
   config_json: Record<string, unknown>
   display_order: number
 }
 
 interface Props {
-  posterType: 'map' | 'star-map'
+  posterType: 'map' | 'star-map' | 'photo'
 }
 
 export function PresetPicker({ posterType }: Props) {

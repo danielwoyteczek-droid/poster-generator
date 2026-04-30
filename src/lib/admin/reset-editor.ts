@@ -1,5 +1,6 @@
 import { EDITOR_INITIAL_STATE, useEditorStore } from '@/hooks/useEditorStore'
 import { getStarMapInitialState, useStarMapStore } from '@/hooks/useStarMapStore'
+import { usePhotoEditorStore } from '@/hooks/usePhotoEditorStore'
 
 /**
  * localStorage key written by useProjectSync for guest-session editor drafts.
@@ -32,6 +33,7 @@ export function resetEditor(): void {
   }
   useEditorStore.setState(EDITOR_INITIAL_STATE, /* replace */ false)
   useStarMapStore.setState(getStarMapInitialState(), /* replace */ false)
+  usePhotoEditorStore.getState().resetPhotoEditor()
   if (typeof window !== 'undefined') {
     window.location.reload()
   }

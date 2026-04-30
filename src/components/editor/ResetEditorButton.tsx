@@ -32,7 +32,7 @@ export function ResetEditorButton() {
   // Editor routes: /map, /star-map, plus their localized variants
   // /de/map, /en/star-map etc. We strip the locale prefix and check.
   const stripped = pathname.replace(/^\/[a-z]{2}(?=\/|$)/, '')
-  const isEditorRoute = stripped === '/map' || stripped === '/star-map'
+  const isEditorRoute = stripped === '/map' || stripped === '/star-map' || stripped === '/photo'
   if (!isEditorRoute) return null
 
   return (

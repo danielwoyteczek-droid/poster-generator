@@ -152,7 +152,7 @@ export interface EditorStore {
     id: string
     name: string
     description: string | null
-    posterType: 'map' | 'star-map'
+    posterType: 'map' | 'star-map' | 'photo'
   } | null
   photos: PhotoItem[]
   splitMode: 'none' | 'second-map' | 'photo'

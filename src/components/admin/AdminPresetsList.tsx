@@ -37,7 +37,7 @@ import { locales as ALL_LOCALES, localeNames, type Locale } from '@/i18n/config'
 import { occasionLabels, type OccasionCode } from '@/lib/occasions'
 import { cn } from '@/lib/utils'
 
-type PosterType = 'map' | 'star-map'
+type PosterType = 'map' | 'star-map' | 'photo'
 type Status = 'draft' | 'published'
 
 type RenderStatus = 'pending' | 'rendering' | 'done' | 'failed' | 'stale'
@@ -98,6 +98,7 @@ const TYPE_LABELS: Record<string, string> = {
   all: 'Alle Typen',
   map: 'Stadtposter',
   'star-map': 'Sternenposter',
+  photo: 'Fotoposter',
 }
 
 const RENDER_STATUS_CONFIG: Record<RenderStatus, { label: string; className: string; icon: typeof Loader2 }> = {
@@ -480,8 +481,13 @@ export function AdminPresetsList() {
     return targetLocales[0]
   }
 
+  const editorPathFor = (posterType: PosterType): string =>
+    posterType === 'star-map' ? '/star-map'
+    : posterType === 'photo' ? '/photo'
+    : '/map'
+
   const copyPresetUrl = async (preset: Preset) => {
-    const path = preset.poster_type === 'star-map' ? '/star-map' : '/map'
+    const path = editorPathFor(preset.poster_type)
     const linkLocale = deepLinkLocale(preset.target_locales)
     const url = `${window.location.origin}/${linkLocale}${path}?preset=${preset.id}`
     try {
@@ -519,7 +525,7 @@ export function AdminPresetsList() {
       description: preset.description,
       posterType: preset.poster_type,
     })
-    router.push(preset.poster_type === 'star-map' ? '/star-map' : '/map')
+    router.push(editorPathFor(preset.poster_type))
     toast.success(`Preset "${preset.name}" geladen — Editor wird geöffnet`)
   }
 
@@ -732,6 +738,12 @@ export function AdminPresetsList() {
               Neues Sternenposter-Preset
             </Link>
           </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link href="/photo">
+              <Plus className="w-4 h-4 mr-1.5" />
+              Neues Fotoposter-Preset
+            </Link>
+          </Button>
           {(() => {
             const pendingCount = presets.filter((p) => p.render_status === 'pending').length
             const renderingCount = presets.filter((p) => p.render_status === 'rendering').length
@@ -814,7 +826,7 @@ export function AdminPresetsList() {
                   {preset.status === 'published' ? 'Live' : 'Draft'}
                 </span>
                 <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full text-[10px] font-medium bg-white/90 text-foreground/70 backdrop-blur">
-                  {preset.poster_type === 'star-map' ? 'Sternenposter' : 'Stadtposter'}
+                  {TYPE_LABELS[preset.poster_type] ?? preset.poster_type}
                 </span>
                 <div className="absolute bottom-2 left-2">
                   <RenderStatusBadge status={preset.render_status} />
@@ -1112,7 +1124,7 @@ export function AdminPresetsList() {
                   {preset.status === 'published' ? 'Live' : 'Draft'}
                 </span>
                 <span className="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-medium bg-muted text-foreground/70 hidden md:inline">
-                  {preset.poster_type === 'star-map' ? 'Sternenposter' : 'Stadtposter'}
+                  {TYPE_LABELS[preset.poster_type] ?? preset.poster_type}
                 </span>
                 {!preset.show_in_editor && (
                   <span
