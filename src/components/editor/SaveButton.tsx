@@ -13,9 +13,15 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { useProjectSync, type SaveStatus } from '@/hooks/useProjectSync'
+import { useProjectSync, type SaveStatus, type PosterType } from '@/hooks/useProjectSync'
 import { useAuth } from '@/hooks/useAuth'
 import { useEditorStore } from '@/hooks/useEditorStore'
+
+interface Props {
+  /** Editor this button lives in. The hook needs to know which store to read
+   *  from + which `poster_type` to write to `projects.config_json`. */
+  posterType?: PosterType
+}
 
 function StatusIcon({ status }: { status: SaveStatus }) {
   if (status === 'saving') return <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -24,12 +30,12 @@ function StatusIcon({ status }: { status: SaveStatus }) {
   return <Save className="w-3.5 h-3.5" />
 }
 
-export function SaveButton() {
+export function SaveButton({ posterType = 'map' }: Props) {
   const t = useTranslations('editor')
   const tCommon = useTranslations('common')
   const { user } = useAuth()
   const locationName = useEditorStore((s) => s.locationName)
-  const { saveStatus, saveToCloud, hasProject } = useProjectSync()
+  const { saveStatus, saveToCloud, hasProject } = useProjectSync(posterType)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [title, setTitle] = useState('')
 

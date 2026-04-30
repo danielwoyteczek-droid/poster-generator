@@ -9,10 +9,12 @@ import { HimmelTab } from './HimmelTab'
 import { StarMapExportTab } from './StarMapExportTab'
 import { StarMapCanvas } from './StarMapCanvas'
 import { useStarMapStore } from '@/hooks/useStarMapStore'
+import { useProjectSync } from '@/hooks/useProjectSync'
 
 export function StarMapLayout() {
   const t = useTranslations('editorTabs')
   const { lat, lng, locationName } = useStarMapStore()
+  useProjectSync('star-map')
   return (
     <div className="flex h-full overflow-hidden">
       <div className="w-72 shrink-0 border-r border-border bg-white flex flex-col">

@@ -12,6 +12,7 @@ import { MobileTextTab } from '@/components/sidebar/mobile/MobileTextTab'
 import { useEditorStore } from '@/hooks/useEditorStore'
 import { useStarMapStore } from '@/hooks/useStarMapStore'
 import { useStarMapExport } from '@/hooks/useStarMapExport'
+import { useProjectSync } from '@/hooks/useProjectSync'
 import type { PrintFormat } from '@/lib/print-formats'
 import { cn } from '@/lib/utils'
 
@@ -38,6 +39,7 @@ export function MobileStarMapLayout() {
   const { printFormat } = useEditorStore()
   const { lat, lng, locationName } = useStarMapStore()
   const { renderPreview } = useStarMapExport()
+  useProjectSync('star-map')
   const [zimmerOpen, setZimmerOpen] = useState(false)
   const [zimmerImage, setZimmerImage] = useState<string | null>(null)
   const [zimmerLoading, setZimmerLoading] = useState(false)

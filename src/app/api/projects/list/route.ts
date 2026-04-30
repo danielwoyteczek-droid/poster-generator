@@ -8,7 +8,7 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from('projects')
-    .select('id, title, location_name, created_at, updated_at, is_locked')
+    .select('id, title, location_name, created_at, updated_at, is_locked, poster_type')
     .order('updated_at', { ascending: false })
     .limit(100)
 

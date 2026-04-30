@@ -6,6 +6,7 @@ const PatchSchema = z.object({
   title: z.string().min(1).max(200).optional(),
   location_name: z.string().max(200).optional(),
   config_json: z.record(z.string(), z.unknown()).optional(),
+  poster_type: z.enum(['map', 'star-map', 'photo']).optional(),
 })
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

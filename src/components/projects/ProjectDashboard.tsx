@@ -15,6 +15,7 @@ interface Project {
   created_at: string
   updated_at: string
   is_locked?: boolean
+  poster_type?: 'map' | 'star-map' | 'photo'
 }
 
 export function ProjectDashboard() {

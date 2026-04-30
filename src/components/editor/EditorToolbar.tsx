@@ -31,7 +31,7 @@ export function EditorToolbar({ posterType }: Props) {
   return (
     <div className="hidden md:flex items-center justify-end gap-3 px-4 sm:px-6 py-2 bg-muted/40 border-b border-border/60">
       {/* Projekt-Save nur wenn KEIN Preset bearbeitet wird (sonst missverständlich) */}
-      {!isEditingMatchingPreset && <SaveButton />}
+      {!isEditingMatchingPreset && <SaveButton posterType={posterType} />}
       {isAdmin && <SaveAsPresetButton />}
       {isAdmin && <ResetEditorButton />}
     </div>

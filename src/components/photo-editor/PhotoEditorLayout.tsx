@@ -8,6 +8,7 @@ import { LetterMaskTab } from './sidebar/LetterMaskTab'
 import { PhotoSlotsTab } from './sidebar/PhotoSlotsTab'
 import { PhotoExportTab } from './sidebar/PhotoExportTab'
 import { PhotoPosterCanvas } from './PhotoPosterCanvas'
+import { useProjectSync } from '@/hooks/useProjectSync'
 
 const TAB_TRIGGER_CN =
   'flex-1 h-full rounded-none text-xs font-medium data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-white'
@@ -15,6 +16,7 @@ const TAB_TRIGGER_CN =
 export function PhotoEditorLayout() {
   const t = useTranslations('photoEditor')
   const tEditor = useTranslations('editor')
+  useProjectSync('photo')
 
   return (
     <div className="flex h-full overflow-hidden">

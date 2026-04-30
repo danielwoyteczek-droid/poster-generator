@@ -19,6 +19,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { useEditorStore } from '@/hooks/useEditorStore'
+import { applyProjectConfig, type PosterType } from '@/hooks/useProjectSync'
 
 interface Project {
   id: string
@@ -27,6 +28,7 @@ interface Project {
   created_at: string
   updated_at: string
   is_locked?: boolean
+  poster_type?: PosterType
 }
 
 interface ProjectCardProps {
@@ -48,16 +50,24 @@ export function ProjectCard({ project, onDelete, onDuplicate }: ProjectCardProps
   const tCommon = useTranslations('common')
   const locale = useLocale()
   const router = useRouter()
-  const { setProjectId, loadFromConfig } = useEditorStore()
+  const { setProjectId } = useEditorStore()
   const [deleting, setDeleting] = useState(false)
   const [duplicating, setDuplicating] = useState(false)
+
+  const editorPathFor = (posterType: PosterType): string =>
+    posterType === 'star-map' ? '/star-map'
+    : posterType === 'photo' ? '/photo'
+    : '/map'
 
   const handleEdit = async () => {
     const res = await fetch(`/api/projects/${project.id}`)
     if (res.ok) {
       const data = await res.json()
+      const posterType = (data.poster_type ?? 'map') as PosterType
       setProjectId(data.id)
-      loadFromConfig(data.config_json)
+      applyProjectConfig(posterType, data.config_json)
+      router.push(editorPathFor(posterType))
+      return
     }
     router.push('/map')
   }
@@ -73,9 +83,12 @@ export function ProjectCard({ project, onDelete, onDuplicate }: ProjectCardProps
       // Open the duplicate in the editor
       const loadRes = await fetch(`/api/projects/${data.id}`)
       if (loadRes.ok) {
-        const project = await loadRes.json()
-        setProjectId(project.id)
-        loadFromConfig(project.config_json)
+        const loaded = await loadRes.json()
+        const posterType = (loaded.poster_type ?? 'map') as PosterType
+        setProjectId(loaded.id)
+        applyProjectConfig(posterType, loaded.config_json)
+        router.push(editorPathFor(posterType))
+        return
       }
       router.push('/map')
     } catch (err) {

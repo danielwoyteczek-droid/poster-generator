@@ -8,6 +8,7 @@ import { PhotoSlotsTab } from '../sidebar/PhotoSlotsTab'
 import { PhotoExportTab } from '../sidebar/PhotoExportTab'
 import { MobileTextTab } from '@/components/sidebar/mobile/MobileTextTab'
 import { PhotoPosterCanvas } from '../PhotoPosterCanvas'
+import { useProjectSync } from '@/hooks/useProjectSync'
 import type { MobileEditorTool } from '@/components/editor/PosterCanvas'
 import { cn } from '@/lib/utils'
 
@@ -33,6 +34,7 @@ export function MobilePhotoEditorLayout() {
   const t = useTranslations('photoEditor')
   const tEditor = useTranslations('editor')
   const [activeTab, setActiveTab] = useState<MobilePhotoTab>('word')
+  useProjectSync('photo')
 
   const TABS: { id: MobilePhotoTab; label: string; Icon: typeof Type }[] = [
     { id: 'word', label: t('tabWord'), Icon: Layers },

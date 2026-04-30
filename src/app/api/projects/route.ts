@@ -6,6 +6,7 @@ const ProjectSchema = z.object({
   title: z.string().min(1).max(200),
   location_name: z.string().max(200).optional().default(''),
   config_json: z.record(z.string(), z.unknown()),
+  poster_type: z.enum(['map', 'star-map', 'photo']).optional().default('map'),
 })
 
 export async function POST(req: NextRequest) {

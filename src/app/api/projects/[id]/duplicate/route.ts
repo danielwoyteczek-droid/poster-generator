@@ -12,7 +12,7 @@ export async function POST(
 
   const { data: original, error: readErr } = await supabase
     .from('projects')
-    .select('title, location_name, config_json, preview_image_url')
+    .select('title, location_name, config_json, preview_image_url, poster_type')
     .eq('id', id)
     .eq('user_id', user.id)
     .single()
@@ -29,6 +29,7 @@ export async function POST(
       location_name: original.location_name,
       config_json: original.config_json,
       preview_image_url: original.preview_image_url,
+      poster_type: original.poster_type ?? 'map',
       is_locked: false,
     })
     .select('id, title')
