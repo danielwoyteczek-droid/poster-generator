@@ -360,6 +360,10 @@ Customer-Editor zeigt diese Slots dann nur zum Befüllen — nicht zum Verschieb
 - **Live-Preview-Performance bei 10 Slots auf Mobile** — wenn Drag-Crop ruckelt, evtl. Debounce + Off-Thread-Render.
 - **Snapshot-Migration für bestehende Foto-Snapshots aus PROJ-19** — wenn PROJ-19 bereits gespeicherte Foto-Layer hat, müssen wir das Snapshot-Schema additiv erweitern, nicht brechen. Detailprüfung im `/backend`-Schritt.
 
+## Open Follow-ups (eigene Sessions)
+
+- **Preset-Integration für Foto-Poster** — PROJ-8 (Design-Presets) und PROJ-30 (Render-Pipeline) decken aktuell nur `map`/`star-map` ab. Foto-Poster braucht: (a) „Als Preset speichern"-Button, der `word`, `slots` (mit Photo-URLs), `wordX/wordY/wordWidth`, `orientation`, `maskFontKey`, `defaultSlotColor`, Textblöcke und `layoutMode` in `presets.config_json` schreibt; (b) `applyPreset()`-Erweiterung in [src/lib/apply-preset.ts](src/lib/apply-preset.ts), die einen Photo-Preset auf `usePhotoEditorStore` lädt; (c) Headless-Render-Pfad `/de/foto?preset=<id>&headless=1` für PROJ-30; (d) `poster_type = 'photo'` als zusätzlicher Wert in [src/components/admin/AdminPresetsList.tsx](src/components/admin/AdminPresetsList.tsx) Filter + Detail-Form. Eigene Session, weil es Snapshot-Schema, Render-Worker-URL-Routing und Admin-UI-Erweiterungen berührt.
+
 ## QA Test Results
 _To be added by /qa_
 
