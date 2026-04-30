@@ -124,6 +124,7 @@ function BlockItem({ block, isSelected, overlayRef, displayText, interactive, fo
         cursor: interactive && !block.locked ? 'move' : 'default',
         outline: isSelected ? '1px dashed #3b82f6' : 'none',
         outlineOffset: '2px',
+        touchAction: interactive && !block.locked ? 'none' : undefined,
       }}
       onPointerDown={interactive ? handlePointerDown : undefined}
     >

@@ -23,7 +23,7 @@ export default async function MapPage({
   }
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden pt-16">
+    <div className="h-dvh flex flex-col overflow-hidden pt-16">
       <LandingNav />
       <Suspense fallback={null}>
         <PresetUrlApplier posterType="map" />
