@@ -106,7 +106,7 @@ export function PhotoPosterCanvas({
   return (
     <div
       ref={wrapperRef}
-      className="flex-1 min-h-0 relative flex items-center justify-center bg-muted/30"
+      className="flex-1 min-h-0 relative flex items-center justify-center bg-muted"
     >
       <PreviewTriggerButton renderPreview={renderPreview} />
 
