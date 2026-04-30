@@ -144,6 +144,13 @@ export interface EditorStore {
   selectedBlockId: string | null
   projectId: string | null
   /**
+   * Editor type the saved project was created for. `useProjectSync.saveToCloud`
+   * only PATCHes the existing `projectId` if its `posterType` matches the
+   * current editor — otherwise the user has switched editors and we POST a
+   * new project instead of overwriting an unrelated one.
+   */
+  projectPosterType: 'map' | 'star-map' | 'photo' | null
+  /**
    * Set when an admin loads an existing preset via "Bearbeiten" in the Admin
    * list. Lets SaveAsPresetButton offer "update existing" alongside "save as
    * new". Cleared on successful save or when the admin starts a fresh design.
@@ -203,6 +210,8 @@ export interface EditorStore {
   deleteTextBlock: (id: string) => void
   setSelectedBlockId: (id: string | null) => void
   setProjectId: (id: string | null) => void
+  setSavedProject: (id: string, posterType: 'map' | 'star-map' | 'photo') => void
+  clearProjectBinding: () => void
   setEditingPreset: (preset: EditorStore['editingPreset']) => void
   addPhoto: (photo: Omit<PhotoItem, 'id' | 'uploadedAt'>) => void
   updatePhoto: (id: string, updates: Partial<PhotoItem>) => void
@@ -313,6 +322,7 @@ export const EDITOR_INITIAL_STATE = {
   locationName: 'München',
   selectedBlockId: null,
   projectId: null,
+  projectPosterType: null,
   editingPreset: null,
   photos: [],
   splitMode: 'none' as const,
@@ -421,7 +431,9 @@ export const useEditorStore = create<EditorStore>((set) => ({
   })),
   setLocationName: (name) => set({ locationName: name }),
   setSelectedBlockId: (id) => set({ selectedBlockId: id }),
-  setProjectId: (id) => set({ projectId: id }),
+  setProjectId: (id) => set({ projectId: id, ...(id === null ? { projectPosterType: null } : {}) }),
+  setSavedProject: (id, posterType) => set({ projectId: id, projectPosterType: posterType }),
+  clearProjectBinding: () => set({ projectId: null, projectPosterType: null }),
   setEditingPreset: (preset) => set({ editingPreset: preset }),
   addPhoto: (photo) =>
     set((s) => ({

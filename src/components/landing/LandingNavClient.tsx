@@ -18,6 +18,7 @@ import {
 import { useAuth } from '@/hooks/useAuth'
 import { createClient } from '@/lib/supabase-browser'
 import { useCartStore } from '@/hooks/useCartStore'
+import { useEditorStore } from '@/hooks/useEditorStore'
 import { EmailConfirmBanner } from '@/components/EmailConfirmBanner'
 import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 
@@ -44,7 +45,13 @@ export function LandingNavClient({ occasionLinks = [] }: LandingNavClientProps) 
     pathname.endsWith('/star-map') ||
     pathname.endsWith('/photo')
   const cartCount = useCartStore((s) => s.items.length)
+  const clearProjectBinding = useEditorStore((s) => s.clearProjectBinding)
   useEffect(() => { setHydrated(true) }, [])
+
+  // Klick auf einen Editor-Top-Nav-Link = "Neues Poster anlegen". Dadurch
+  // wird der zuletzt geladene Project-State gelöst, damit der nächste
+  // Save nicht den vorherigen Entwurf überschreibt.
+  const handleEditorNavClick = () => clearProjectBinding()
 
   const showOccasions = occasionLinks.length > 0
 
@@ -83,10 +90,13 @@ export function LandingNavClient({ occasionLinks = [] }: LandingNavClientProps) 
         </Link>
 
         <nav className="hidden md:flex items-center gap-6">
-          {NAV_LINKS.map((link, i) => (
+          {NAV_LINKS.map((link, i) => {
+            const isEditorLink = link.href === '/map' || link.href === '/star-map' || link.href === '/photo'
+            return (
             <Fragment key={link.href}>
               <Link
                 href={link.href}
+                onClick={isEditorLink ? handleEditorNavClick : undefined}
                 className="relative text-sm text-muted-foreground hover:text-foreground transition-colors py-1 after:content-[''] after:absolute after:left-0 after:-bottom-0.5 after:h-px after:w-full after:origin-left after:scale-x-0 after:bg-primary after:transition-transform after:duration-300 after:ease-out hover:after:scale-x-100"
               >
                 {link.label}
@@ -115,7 +125,8 @@ export function LandingNavClient({ occasionLinks = [] }: LandingNavClientProps) 
                 </DropdownMenu>
               )}
             </Fragment>
-          ))}
+            )
+          })}
         </nav>
 
         <div className="hidden md:flex items-center gap-3">
@@ -164,7 +175,7 @@ export function LandingNavClient({ occasionLinks = [] }: LandingNavClientProps) 
                 </DropdownMenuItem>
                 {!pathname.endsWith('/map') && (
                   <DropdownMenuItem asChild>
-                    <Link href="/map" className="cursor-pointer">
+                    <Link href="/map" className="cursor-pointer" onClick={handleEditorNavClick}>
                       <Map className="w-4 h-4 mr-2" />
                       {t('cityPoster')}
                     </Link>
@@ -172,7 +183,7 @@ export function LandingNavClient({ occasionLinks = [] }: LandingNavClientProps) 
                 )}
                 {!pathname.endsWith('/star-map') && (
                   <DropdownMenuItem asChild>
-                    <Link href="/star-map" className="cursor-pointer">
+                    <Link href="/star-map" className="cursor-pointer" onClick={handleEditorNavClick}>
                       <Star className="w-4 h-4 mr-2" />
                       {t('starPoster')}
                     </Link>
@@ -180,7 +191,7 @@ export function LandingNavClient({ occasionLinks = [] }: LandingNavClientProps) 
                 )}
                 {!pathname.endsWith('/photo') && (
                   <DropdownMenuItem asChild>
-                    <Link href="/photo" className="cursor-pointer">
+                    <Link href="/photo" className="cursor-pointer" onClick={handleEditorNavClick}>
                       <ImageIcon className="w-4 h-4 mr-2" />
                       {t('photoPoster')}
                     </Link>
@@ -259,7 +270,7 @@ export function LandingNavClient({ occasionLinks = [] }: LandingNavClientProps) 
               </Button>
               {!isEditor && (
                 <Button size="sm" asChild>
-                  <Link href="/map">{t('createPoster')}</Link>
+                  <Link href="/map" onClick={handleEditorNavClick}>{t('createPoster')}</Link>
                 </Button>
               )}
             </>
@@ -289,11 +300,13 @@ export function LandingNavClient({ occasionLinks = [] }: LandingNavClientProps) 
             </SheetTrigger>
           <SheetContent side="right" className="w-64 pt-12">
             <nav className="flex flex-col gap-1">
-              {NAV_LINKS.map((link, i) => (
+              {NAV_LINKS.map((link, i) => {
+                const isEditorLink = link.href === '/map' || link.href === '/star-map' || link.href === '/photo'
+                return (
                 <Fragment key={link.href}>
                   <Link
                     href={link.href}
-                    onClick={() => setOpen(false)}
+                    onClick={() => { setOpen(false); if (isEditorLink) handleEditorNavClick() }}
                     className="px-3 py-2.5 text-sm rounded-md hover:bg-muted transition-colors"
                   >
                     {link.label}
@@ -314,7 +327,8 @@ export function LandingNavClient({ occasionLinks = [] }: LandingNavClientProps) 
                     </Link>
                   ))}
                 </Fragment>
-              ))}
+                )
+              })}
               <div className="mt-4 pt-4 border-t border-border flex flex-col gap-2">
                 {user ? (
                   <>
@@ -331,7 +345,7 @@ export function LandingNavClient({ occasionLinks = [] }: LandingNavClientProps) 
                       <Link href={`/login?next=${encodeURIComponent(pathname)}`} onClick={() => setOpen(false)}>{t('login')}</Link>
                     </Button>
                     <Button size="sm" asChild>
-                      <Link href="/map" onClick={() => setOpen(false)}>{t('createPoster')}</Link>
+                      <Link href="/map" onClick={() => { setOpen(false); handleEditorNavClick() }}>{t('createPoster')}</Link>
                     </Button>
                   </>
                 )}

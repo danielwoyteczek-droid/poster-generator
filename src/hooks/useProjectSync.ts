@@ -6,11 +6,18 @@ import { useStarMapStore } from '@/hooks/useStarMapStore'
 import { usePhotoEditorStore } from '@/hooks/usePhotoEditorStore'
 import { useAuth } from '@/hooks/useAuth'
 
-const LS_KEY = 'poster-generator-draft'
-
 export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 
 export type PosterType = 'map' | 'star-map' | 'photo'
+
+/** Per-poster-type localStorage keys for guest drafts. The map key is kept as
+ *  the original `poster-generator-draft` so existing browsers don't lose any
+ *  in-progress design after this migration. */
+const LS_KEYS: Record<PosterType, string> = {
+  'map': 'poster-generator-draft',
+  'star-map': 'poster-generator-draft-starmap',
+  'photo': 'poster-generator-draft-photo',
+}
 
 /**
  * Returns the per-poster-type config blob that should be persisted into
@@ -166,9 +173,24 @@ function applyConfig(posterType: PosterType, config: Record<string, unknown>): v
   useEditorStore.getState().loadFromConfig(config as Partial<EditorConfig>)
 }
 
+/** Picks a per-type fallback title when the customer hasn't named the
+ *  project. Map → city name (`useEditorStore.locationName`), Star-Map →
+ *  city name from its own store, Photo → the user-typed mask word. */
+function getDefaultTitle(posterType: PosterType): string {
+  if (posterType === 'star-map') {
+    return useStarMapStore.getState().locationName || 'Mein Sternenposter'
+  }
+  if (posterType === 'photo') {
+    const word = usePhotoEditorStore.getState().word
+    return word ? `Foto-Poster „${word}"` : 'Mein Foto-Poster'
+  }
+  return useEditorStore.getState().locationName || 'Mein Poster'
+}
+
 export function useProjectSync(posterType: PosterType = 'map') {
   const { user } = useAuth()
-  const { projectId, locationName, setProjectId } = useEditorStore()
+  const projectId = useEditorStore((s) => s.projectId)
+  const projectPosterType = useEditorStore((s) => s.projectPosterType)
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
   const dirtyRef = useRef(false)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -185,34 +207,40 @@ export function useProjectSync(posterType: PosterType = 'map') {
     return () => { subs.forEach((u) => u()) }
   }, [posterType])
 
-  // Guest: restore from localStorage on mount (Map editor only — guest drafts
-  // for star-map/photo are out of scope for V1; they're rare paths and the
-  // localStorage layout would need to differentiate by poster_type).
+  // Guest: restore from per-type localStorage on mount.
   useEffect(() => {
     if (user) return
-    if (posterType !== 'map') return
     try {
-      const raw = localStorage.getItem(LS_KEY)
+      const raw = localStorage.getItem(LS_KEYS[posterType])
       if (raw) {
-        const config = JSON.parse(raw) as Partial<EditorConfig>
-        useEditorStore.getState().loadFromConfig(config)
+        const config = JSON.parse(raw) as Record<string, unknown>
+        applyConfig(posterType, config)
       }
     } catch { /* ignore */ }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [posterType]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Guest: auto-save to localStorage (debounce 1s) — Map only, see above.
+  // Guest: auto-save to per-type localStorage (debounce 1s).
   useEffect(() => {
     if (user) return
-    if (posterType !== 'map') return
-    const unsub = useEditorStore.subscribe(() => {
+    const writeDraft = () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
       saveTimerRef.current = setTimeout(() => {
         try {
-          localStorage.setItem(LS_KEY, JSON.stringify(getConfig('map')))
+          localStorage.setItem(LS_KEYS[posterType], JSON.stringify(getConfig(posterType)))
         } catch { /* storage full — ignore */ }
       }, 1000)
-    })
-    return () => { unsub(); if (saveTimerRef.current) clearTimeout(saveTimerRef.current) }
+    }
+    const subs: Array<() => void> = []
+    subs.push(useEditorStore.subscribe(writeDraft))
+    if (posterType === 'star-map') {
+      subs.push(useStarMapStore.subscribe(writeDraft))
+    } else if (posterType === 'photo') {
+      subs.push(usePhotoEditorStore.subscribe(writeDraft))
+    }
+    return () => {
+      subs.forEach((u) => u())
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    }
   }, [user, posterType])
 
   // Logged-in: auto-save every 30s when dirty.
@@ -225,38 +253,46 @@ export function useProjectSync(posterType: PosterType = 'map') {
     return () => clearInterval(interval)
   }, [user, projectId, posterType]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Logged-in: migrate localStorage draft on first login (Map only — see above).
+  // Logged-in: migrate per-type localStorage draft on first login.
   useEffect(() => {
     if (!user) return
-    if (posterType !== 'map') return
-    const draft = localStorage.getItem(LS_KEY)
+    const draft = localStorage.getItem(LS_KEYS[posterType])
     if (!draft) return
     try {
-      const config = JSON.parse(draft) as Partial<EditorConfig>
+      const config = JSON.parse(draft) as Record<string, unknown>
       fetch('/api/projects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          title: config.locationName || 'Mein Poster',
-          location_name: config.locationName || '',
+          title: getDefaultTitle(posterType),
+          location_name: useEditorStore.getState().locationName || '',
           config_json: config,
-          poster_type: 'map',
+          poster_type: posterType,
         }),
       })
         .then((r) => r.json())
-        .then((data) => { if (data.id) setProjectId(data.id) })
+        .then((data) => {
+          if (data.id) useEditorStore.getState().setSavedProject(data.id, posterType)
+        })
         .catch(() => { /* ignore */ })
-      localStorage.removeItem(LS_KEY)
+      localStorage.removeItem(LS_KEYS[posterType])
     } catch { /* ignore */ }
-  }, [user]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [user, posterType]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function saveToCloud(title?: string): Promise<boolean> {
     setSaveStatus('saving')
     dirtyRef.current = false
     const config = getConfig(posterType)
-    const resolvedTitle = title || locationName || 'Mein Poster'
+    const resolvedTitle = title || getDefaultTitle(posterType)
+    const locationName = useEditorStore.getState().locationName
+
+    // Cross-editor protection: only PATCH the existing project if its saved
+    // poster_type matches the current editor — otherwise the user has
+    // switched editors and we'd overwrite an unrelated project.
+    const canUpdateExisting = projectId !== null && projectPosterType === posterType
+
     try {
-      if (projectId) {
+      if (canUpdateExisting) {
         const res = await fetch(`/api/projects/${projectId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
@@ -271,7 +307,7 @@ export function useProjectSync(posterType: PosterType = 'map') {
         })
         if (!res.ok) throw new Error()
         const data = await res.json()
-        setProjectId(data.id)
+        useEditorStore.getState().setSavedProject(data.id, posterType)
       }
       setSaveStatus('saved')
       setTimeout(() => setSaveStatus('idle'), 2000)
@@ -283,7 +319,8 @@ export function useProjectSync(posterType: PosterType = 'map') {
     }
   }
 
-  return { saveStatus, saveToCloud, hasProject: !!projectId, applyConfig }
+  const hasProject = projectId !== null && projectPosterType === posterType
+  return { saveStatus, saveToCloud, hasProject, applyConfig }
 }
 
 /** Standalone exporter for one-shot loaders (ProjectCard) that don't sit in

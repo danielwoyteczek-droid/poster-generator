@@ -50,7 +50,7 @@ export function ProjectCard({ project, onDelete, onDuplicate }: ProjectCardProps
   const tCommon = useTranslations('common')
   const locale = useLocale()
   const router = useRouter()
-  const { setProjectId } = useEditorStore()
+  const setSavedProject = useEditorStore((s) => s.setSavedProject)
   const [deleting, setDeleting] = useState(false)
   const [duplicating, setDuplicating] = useState(false)
 
@@ -64,7 +64,7 @@ export function ProjectCard({ project, onDelete, onDuplicate }: ProjectCardProps
     if (res.ok) {
       const data = await res.json()
       const posterType = (data.poster_type ?? 'map') as PosterType
-      setProjectId(data.id)
+      setSavedProject(data.id, posterType)
       applyProjectConfig(posterType, data.config_json)
       router.push(editorPathFor(posterType))
       return
@@ -85,7 +85,7 @@ export function ProjectCard({ project, onDelete, onDuplicate }: ProjectCardProps
       if (loadRes.ok) {
         const loaded = await loadRes.json()
         const posterType = (loaded.poster_type ?? 'map') as PosterType
-        setProjectId(loaded.id)
+        setSavedProject(loaded.id, posterType)
         applyProjectConfig(posterType, loaded.config_json)
         router.push(editorPathFor(posterType))
         return
