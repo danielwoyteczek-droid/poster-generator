@@ -18,7 +18,9 @@ import {
 import { useAuth } from '@/hooks/useAuth'
 import { createClient } from '@/lib/supabase-browser'
 import { useCartStore } from '@/hooks/useCartStore'
-import { useEditorStore } from '@/hooks/useEditorStore'
+import { useEditorStore, EDITOR_INITIAL_STATE } from '@/hooks/useEditorStore'
+import { useStarMapStore, getStarMapInitialState } from '@/hooks/useStarMapStore'
+import { usePhotoEditorStore } from '@/hooks/usePhotoEditorStore'
 import { EmailConfirmBanner } from '@/components/EmailConfirmBanner'
 import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 
@@ -48,10 +50,20 @@ export function LandingNavClient({ occasionLinks = [] }: LandingNavClientProps) 
   const clearProjectBinding = useEditorStore((s) => s.clearProjectBinding)
   useEffect(() => { setHydrated(true) }, [])
 
-  // Klick auf einen Editor-Top-Nav-Link = "Neues Poster anlegen". Dadurch
-  // wird der zuletzt geladene Project-State gelöst, damit der nächste
-  // Save nicht den vorherigen Entwurf überschreibt.
-  const handleEditorNavClick = () => clearProjectBinding()
+  // Klick auf einen Editor-Top-Nav-Link = "Neues Poster anlegen": Project-
+  // Binding lösen UND den Editor-Store in den Default-Zustand zurücksetzen,
+  // damit der Editor wirklich frisch wirkt und nicht den State vom zuletzt
+  // geladenen Projekt zeigt.
+  const handleEditorNavClick = (target: '/map' | '/star-map' | '/photo') => {
+    clearProjectBinding()
+    if (target === '/map') {
+      useEditorStore.setState(EDITOR_INITIAL_STATE, false)
+    } else if (target === '/star-map') {
+      useStarMapStore.setState(getStarMapInitialState(), false)
+    } else if (target === '/photo') {
+      usePhotoEditorStore.getState().resetPhotoEditor()
+    }
+  }
 
   const showOccasions = occasionLinks.length > 0
 
@@ -96,7 +108,7 @@ export function LandingNavClient({ occasionLinks = [] }: LandingNavClientProps) 
             <Fragment key={link.href}>
               <Link
                 href={link.href}
-                onClick={isEditorLink ? handleEditorNavClick : undefined}
+                onClick={isEditorLink ? () => handleEditorNavClick(link.href as '/map' | '/star-map' | '/photo') : undefined}
                 className="relative text-sm text-muted-foreground hover:text-foreground transition-colors py-1 after:content-[''] after:absolute after:left-0 after:-bottom-0.5 after:h-px after:w-full after:origin-left after:scale-x-0 after:bg-primary after:transition-transform after:duration-300 after:ease-out hover:after:scale-x-100"
               >
                 {link.label}
@@ -175,7 +187,7 @@ export function LandingNavClient({ occasionLinks = [] }: LandingNavClientProps) 
                 </DropdownMenuItem>
                 {!pathname.endsWith('/map') && (
                   <DropdownMenuItem asChild>
-                    <Link href="/map" className="cursor-pointer" onClick={handleEditorNavClick}>
+                    <Link href="/map" className="cursor-pointer" onClick={() => handleEditorNavClick('/map')}>
                       <Map className="w-4 h-4 mr-2" />
                       {t('cityPoster')}
                     </Link>
@@ -183,7 +195,7 @@ export function LandingNavClient({ occasionLinks = [] }: LandingNavClientProps) 
                 )}
                 {!pathname.endsWith('/star-map') && (
                   <DropdownMenuItem asChild>
-                    <Link href="/star-map" className="cursor-pointer" onClick={handleEditorNavClick}>
+                    <Link href="/star-map" className="cursor-pointer" onClick={() => handleEditorNavClick('/star-map')}>
                       <Star className="w-4 h-4 mr-2" />
                       {t('starPoster')}
                     </Link>
@@ -191,7 +203,7 @@ export function LandingNavClient({ occasionLinks = [] }: LandingNavClientProps) 
                 )}
                 {!pathname.endsWith('/photo') && (
                   <DropdownMenuItem asChild>
-                    <Link href="/photo" className="cursor-pointer" onClick={handleEditorNavClick}>
+                    <Link href="/photo" className="cursor-pointer" onClick={() => handleEditorNavClick('/photo')}>
                       <ImageIcon className="w-4 h-4 mr-2" />
                       {t('photoPoster')}
                     </Link>
@@ -270,7 +282,7 @@ export function LandingNavClient({ occasionLinks = [] }: LandingNavClientProps) 
               </Button>
               {!isEditor && (
                 <Button size="sm" asChild>
-                  <Link href="/map" onClick={handleEditorNavClick}>{t('createPoster')}</Link>
+                  <Link href="/map" onClick={() => handleEditorNavClick('/map')}>{t('createPoster')}</Link>
                 </Button>
               )}
             </>
@@ -306,7 +318,7 @@ export function LandingNavClient({ occasionLinks = [] }: LandingNavClientProps) 
                 <Fragment key={link.href}>
                   <Link
                     href={link.href}
-                    onClick={() => { setOpen(false); if (isEditorLink) handleEditorNavClick() }}
+                    onClick={() => { setOpen(false); if (isEditorLink) handleEditorNavClick(link.href as '/map' | '/star-map' | '/photo') }}
                     className="px-3 py-2.5 text-sm rounded-md hover:bg-muted transition-colors"
                   >
                     {link.label}
@@ -345,7 +357,7 @@ export function LandingNavClient({ occasionLinks = [] }: LandingNavClientProps) 
                       <Link href={`/login?next=${encodeURIComponent(pathname)}`} onClick={() => setOpen(false)}>{t('login')}</Link>
                     </Button>
                     <Button size="sm" asChild>
-                      <Link href="/map" onClick={() => { setOpen(false); handleEditorNavClick() }}>{t('createPoster')}</Link>
+                      <Link href="/map" onClick={() => { setOpen(false); handleEditorNavClick('/map') }}>{t('createPoster')}</Link>
                     </Button>
                   </>
                 )}

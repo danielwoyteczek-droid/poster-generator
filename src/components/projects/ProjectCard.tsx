@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLocale, useTranslations } from 'next-intl'
-import { MapPin, Pencil, Trash2, Lock, Copy } from 'lucide-react'
+import { MapPin, Pencil, Trash2, Lock, Copy, Map as MapIcon, Star, Image as ImageIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -18,8 +18,10 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
+import { Checkbox } from '@/components/ui/checkbox'
 import { useEditorStore } from '@/hooks/useEditorStore'
 import { applyProjectConfig, type PosterType } from '@/hooks/useProjectSync'
+import { cn } from '@/lib/utils'
 
 interface Project {
   id: string
@@ -35,6 +37,12 @@ interface ProjectCardProps {
   project: Project
   onDelete: (id: string) => void
   onDuplicate: (id: string) => void
+  /** When provided, the card renders a checkbox in the corner for bulk
+   *  selection. Locked projects can't be selected (checkbox disabled). */
+  selection?: {
+    selected: boolean
+    onToggle: (id: string) => void
+  }
 }
 
 const DATE_LOCALES: Record<string, string> = {
@@ -45,7 +53,7 @@ const DATE_LOCALES: Record<string, string> = {
   es: 'es-ES',
 }
 
-export function ProjectCard({ project, onDelete, onDuplicate }: ProjectCardProps) {
+export function ProjectCard({ project, onDelete, onDuplicate, selection }: ProjectCardProps) {
   const t = useTranslations('projects')
   const tCommon = useTranslations('common')
   const locale = useLocale()
@@ -111,11 +119,41 @@ export function ProjectCard({ project, onDelete, onDuplicate }: ProjectCardProps
   })
 
   return (
-    <Card className="h-40 flex flex-col justify-between hover:shadow-md transition-shadow">
+    <Card
+      className={cn(
+        'relative h-40 flex flex-col justify-between hover:shadow-md transition-shadow',
+        selection?.selected && 'ring-2 ring-primary ring-offset-1',
+      )}
+    >
+      {selection && !project.is_locked && (
+        <label className="absolute top-2 left-2 z-10 w-6 h-6 rounded-md bg-white/95 backdrop-blur flex items-center justify-center cursor-pointer hover:bg-white shadow-sm border border-border">
+          <Checkbox
+            checked={selection.selected}
+            onCheckedChange={() => selection.onToggle(project.id)}
+            aria-label={`${project.title} ${t('selectForBulk')}`}
+          />
+        </label>
+      )}
       <CardContent className="p-4 flex flex-col h-full">
         <div className="flex-1">
           <div className="flex items-start justify-between gap-2">
-            <h3 className="font-semibold text-foreground text-sm truncate">{project.title}</h3>
+            <div className="flex items-center gap-1.5 min-w-0">
+              {(() => {
+                const pt = project.poster_type ?? 'map'
+                const Icon = pt === 'star-map' ? Star : pt === 'photo' ? ImageIcon : MapIcon
+                const label = pt === 'star-map' ? t('typeStarMap') : pt === 'photo' ? t('typePhoto') : t('typeMap')
+                return (
+                  <span
+                    className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground bg-muted px-1.5 py-0.5 rounded shrink-0"
+                    title={label}
+                  >
+                    <Icon className="w-3 h-3" />
+                    {label}
+                  </span>
+                )
+              })()}
+              <h3 className="font-semibold text-foreground text-sm truncate">{project.title}</h3>
+            </div>
             {project.is_locked && (
               <span
                 className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded shrink-0"
