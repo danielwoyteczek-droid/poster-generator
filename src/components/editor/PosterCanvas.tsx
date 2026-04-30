@@ -82,7 +82,7 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
   const photoInteractive = activeMobileTool === undefined || activeMobileTool === 'photo'
   const markerInteractive = activeMobileTool === undefined || activeMobileTool === 'marker'
 
-  const { maskKey, printFormat, orientation, zoomIn, zoomOut, flyToLocation, zoomInSecond, zoomOutSecond, secondMap, marker, secondMarker, shapeConfig, viewState, setMarker, setSecondMarker, setSelectedBlockId, splitMode, splitPhoto, splitPhotoZone, layoutId, innerMarginMm, paletteId, customPalette, posterDarkMode } = useEditorStore()
+  const { maskKey, printFormat, orientation, zoomIn, zoomOut, flyToLocation, zoomInSecond, zoomOutSecond, secondMap, marker, secondMarker, shapeConfig, viewState, setMarker, setSecondMarker, setSelectedBlockId, splitMode, splitPhoto, splitPhotoZone, layoutId, innerMarginMm, paletteId, customPalette, posterDarkMode, decorationSvgUrl } = useEditorStore()
   const mapAreaRef = useRef<HTMLDivElement>(null)
   const { masks: customMasks } = useCustomMasks()
   const mask =
@@ -431,6 +431,19 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
             )}
             </div>
             {/* End of map area — photos and text use full poster coords */}
+
+            {/* Decoration overlay — solid-colour SVG drawn over the full poster
+                (string + cursive text etc.). Set per preset via config_json,
+                no editor UI yet. Sits below photos/text so user content wins. */}
+            {decorationSvgUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={decorationSvgUrl}
+                alt=""
+                className="absolute inset-0 w-full h-full pointer-events-none"
+                style={{ objectFit: 'fill' }}
+              />
+            )}
 
             {/* Photo overlay */}
             <PhotoOverlay posterRef={posterRef} interactive={photoInteractive} />

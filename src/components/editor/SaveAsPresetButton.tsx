@@ -124,6 +124,7 @@ export function SaveAsPresetButton() {
       splitPhoto: editor.splitPhoto,
       layoutId: editor.layoutId,
       innerMarginMm: editor.innerMarginMm,
+      decorationSvgUrl: editor.decorationSvgUrl,
       orientation: editor.orientation,
       zoom: editor.viewState.zoom,
       secondMapZoom: editor.secondMap.viewState.zoom,

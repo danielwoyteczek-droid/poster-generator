@@ -139,6 +139,13 @@ export interface EditorStore {
   shapeConfig: ShapeConfigState
   layoutId: PosterLayoutId
   innerMarginMm: number
+  /**
+   * Optional decoration overlay drawn on top of the map (solid colour, not
+   * filled with map tiles). Currently set per preset via config_json — the
+   * editor has no UI for picking decorations. See PROJ-32 / love-balloon
+   * preset for the first usage.
+   */
+  decorationSvgUrl: string | null
   locationName: string
   textBlocks: TextBlock[]
   selectedBlockId: string | null
@@ -180,6 +187,7 @@ export interface EditorStore {
   setStreetLabelsVisible: (visible: boolean) => void
   setPosterDarkMode: (value: boolean) => void
   setMaskKey: (key: MapMaskKey) => void
+  setDecorationSvgUrl: (url: string | null) => void
   setPrintFormat: (format: PrintFormat) => void
   setOrientation: (orientation: PosterOrientation) => void
   setMarker: (updates: Partial<MarkerState>) => void
@@ -240,6 +248,7 @@ export interface EditorConfig {
   shapeConfig: ShapeConfigState
   layoutId: PosterLayoutId
   innerMarginMm: number
+  decorationSvgUrl: string | null
   textBlocks: TextBlock[]
   locationName: string
   photos: PhotoItem[]
@@ -280,6 +289,7 @@ export const EDITOR_INITIAL_STATE = {
   shapeConfig: DEFAULT_SHAPE_CONFIG,
   layoutId: 'full' as const,
   innerMarginMm: 0,
+  decorationSvgUrl: null,
   secondMap: {
     enabled: false,
     styleId: 'klassisch',
@@ -352,6 +362,7 @@ export const useEditorStore = create<EditorStore>((set) => ({
   setStreetLabelsVisible: (streetLabelsVisible) => set({ streetLabelsVisible }),
   setPosterDarkMode: (posterDarkMode) => set({ posterDarkMode }),
   setMaskKey: (maskKey) => set({ maskKey }),
+  setDecorationSvgUrl: (decorationSvgUrl) => set({ decorationSvgUrl }),
   setPrintFormat: (printFormat) => set({ printFormat }),
   setOrientation: (orientation) => set({ orientation }),
   setMarker: (updates) => set((s) => ({ marker: { ...s.marker, ...updates } })),
@@ -477,6 +488,7 @@ export const useEditorStore = create<EditorStore>((set) => ({
     shapeConfig: config.shapeConfig ?? s.shapeConfig,
     layoutId: config.layoutId ?? s.layoutId,
     innerMarginMm: config.innerMarginMm ?? s.innerMarginMm,
+    decorationSvgUrl: config.decorationSvgUrl ?? s.decorationSvgUrl,
     secondMap: config.secondMap
       ? { ...s.secondMap, ...config.secondMap, pendingCenter: null, pendingZoomDelta: null }
       : s.secondMap,
@@ -491,3 +503,7 @@ export const useEditorStore = create<EditorStore>((set) => ({
       : s.pendingCenter,
   })),
 }))
+
+if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
+  ;(window as unknown as { useEditorStore: typeof useEditorStore }).useEditorStore = useEditorStore
+}

@@ -37,6 +37,7 @@ export interface ExportSnapshot {
   splitPhotoZone?: number
   layoutId?: import('./useEditorStore').PosterLayoutId
   innerMarginMm?: number
+  decorationSvgUrl?: string | null
   /** Optional. Defaults to 'portrait' for backwards compatibility with
    *  snapshots produced before the orientation toggle existed. */
   orientation?: import('@/lib/print-formats').PosterOrientation
@@ -629,6 +630,18 @@ export async function buildPosterCanvas(
     ctx.drawImage(mapCanvas, 0, 0, W, H, mapTargetX, mapTargetY, mapTargetW, mapTargetH)
   }
 
+  // Decoration overlay — drawn over the full poster in solid colour.
+  // Set per preset via config_json. Fails silently if the URL is unreachable
+  // so a broken decoration doesn't break the export entirely.
+  if (store.decorationSvgUrl) {
+    try {
+      const decoImg = await loadImage(store.decorationSvgUrl)
+      ctx.drawImage(decoImg, 0, 0, W, H)
+    } catch {
+      // ignore — decoration is optional
+    }
+  }
+
   // Build display texts for coordinate blocks — pin position takes precedence over map center
   const coordLat = marker.lat ?? viewState.lat
   const coordLng = marker.lng ?? viewState.lng
@@ -777,7 +790,7 @@ function slugify(name: string): string {
 export function useMapExport() {
   const [isExporting, setIsExporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const { viewState, styleId, paletteId, customPaletteBase, customPalette, streetLabelsVisible, posterDarkMode, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos, splitMode, splitPhoto, splitPhotoZone, layoutId, innerMarginMm, orientation } =
+  const { viewState, styleId, paletteId, customPaletteBase, customPalette, streetLabelsVisible, posterDarkMode, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos, splitMode, splitPhoto, splitPhotoZone, layoutId, innerMarginMm, decorationSvgUrl, orientation } =
     useEditorStore()
 
   const run = async (format: PrintFormat, type: 'png' | 'pdf') => {
@@ -785,7 +798,7 @@ export function useMapExport() {
     setError(null)
     try {
       const snapshot: ExportSnapshot = {
-        viewState, styleId, paletteId, customPaletteBase, customPalette, streetLabelsVisible, posterDarkMode, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos, splitMode, splitPhoto, splitPhotoZone, layoutId, innerMarginMm, orientation,
+        viewState, styleId, paletteId, customPaletteBase, customPalette, streetLabelsVisible, posterDarkMode, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos, splitMode, splitPhoto, splitPhotoZone, layoutId, innerMarginMm, decorationSvgUrl, orientation,
       }
       const canvas = await buildPosterCanvas(format, snapshot)
       const pngBlob = await canvasToBlob(canvas)
@@ -824,7 +837,7 @@ export function useMapExport() {
 
   const renderPreview = async (format: PrintFormat): Promise<string> => {
     const snapshot: ExportSnapshot = {
-      viewState, styleId, paletteId, customPaletteBase, customPalette, streetLabelsVisible, posterDarkMode, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos, splitMode, splitPhoto, splitPhotoZone, layoutId, innerMarginMm, orientation,
+      viewState, styleId, paletteId, customPaletteBase, customPalette, streetLabelsVisible, posterDarkMode, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos, splitMode, splitPhoto, splitPhotoZone, layoutId, innerMarginMm, decorationSvgUrl, orientation,
     }
     const canvas = await buildPosterCanvas(format, snapshot)
     return canvas.toDataURL('image/png')

@@ -31,6 +31,7 @@ const FONT_OPTIONS: { value: string; label: string }[] = [
   { value: 'Cormorant Garamond', label: 'Cormorant Garamond' },
   { value: 'Amsterdam', label: 'Amsterdam' },
   { value: 'Cathalia', label: 'Cathalia' },
+  { value: 'Lindsey Signature', label: 'Lindsey Signature' },
   { value: 'CaviarDreams', label: 'Caviar Dreams' },
   { value: 'Arial', label: 'Arial' },
 ]
