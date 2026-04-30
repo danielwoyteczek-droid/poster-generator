@@ -84,12 +84,21 @@ export async function drawLetterMask(
   const containerLeft = (wordX - wordWidth / 2) * W
   const containerTop = wordY * H
 
+  // Position the glyph's em-box top so the em-box is vertically centered in
+  // the slot — the same geometry CSS produces for `line-height: 1` inside a
+  // `flex items-center` parent. We avoid `textBaseline: 'middle'` because
+  // Chrome/Firefox interpret "middle of the em-square" inconsistently for
+  // tall display fonts like Anton (the visible glyph drifts ~5 cm up on A4).
+  // `textBaseline: 'top'` aligns directly with the em-square top, matching
+  // the editor preview 1:1.
+  const emTopOffset = (slotH - fontSize) / 2
+
   for (let i = 0; i < slots.length; i++) {
     const slot = slots[i]
     const slotX = containerLeft + i * slotW
     const slotY = containerTop
     const cx = slotX + slotW / 2
-    const cy = slotY + slotH / 2
+    const glyphY = slotY + emTopOffset
 
     if (slot.photo) {
       // Mask the photo with the letter shape via a temporary canvas:
@@ -128,8 +137,8 @@ export async function drawLetterMask(
       tctx.fillStyle = '#000'
       tctx.font = `400 ${fontSize}px ${maskFontFamily}`
       tctx.textAlign = 'center'
-      tctx.textBaseline = 'middle'
-      tctx.fillText(slot.char, tmp.width / 2, tmp.height / 2)
+      tctx.textBaseline = 'top'
+      tctx.fillText(slot.char, tmp.width / 2, emTopOffset)
 
       ctx.drawImage(tmp, slotX, slotY)
     } else {
@@ -137,8 +146,8 @@ export async function drawLetterMask(
       ctx.fillStyle = slot.color ?? defaultSlotColor
       ctx.font = `400 ${fontSize}px ${maskFontFamily}`
       ctx.textAlign = 'center'
-      ctx.textBaseline = 'middle'
-      ctx.fillText(slot.char, cx, cy)
+      ctx.textBaseline = 'top'
+      ctx.fillText(slot.char, cx, glyphY)
     }
   }
 }
