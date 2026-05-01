@@ -73,7 +73,8 @@ export function MapTab() {
     paletteId, customPaletteBase, customPalette, streetLabelsVisible, posterDarkMode,
     layoutId,
     printFormat, orientation,
-    setStyleId, setMaskKey, setMarker, setSecondMarker,
+    decorationSvgUrl, decorationVisible,
+    setStyleId, setMaskKey, setDecorationSvgUrl, setDecorationVisible, setMarker, setSecondMarker,
     setShapeOuter, setInnerFrame, setOuterFrame,
     setLayoutId,
     setPrintFormat, setOrientation,
@@ -163,10 +164,16 @@ export function MapTab() {
 
   const handleSplitModeChange = (mode: SplitMode) => {
     setSplitMode(mode)
+    // PROJ-35: when forcing the mask between single/split-circles, also clear
+    // any decoration that was tied to the previous mask — the new mask is a
+    // built-in (no decoration of its own) and stale decoration would render
+    // visually unrelated to the new shape.
     if (mode === 'none' && currentMask.isSplit) {
       setMaskKey('circle')
+      setDecorationSvgUrl(null)
     } else if (mode !== 'none' && !currentMask.isSplit) {
       setMaskKey('split-circles')
+      setDecorationSvgUrl(null)
     }
   }
 
@@ -215,8 +222,11 @@ export function MapTab() {
     }
   }
 
-  // Admin sees built-in + uploaded; customer only sees built-in
-  const adminMasks = isAdmin ? customMasks : []
+  // PROJ-35: customers now see public custom masks (gate is on the API).
+  // The /api/masks endpoint already filters by is_public for non-admins, so
+  // anything in customMasks is safe to show. Admins additionally see their
+  // own non-public masks for testing. We render an "Admin only" badge on
+  // those rows so it's obvious which masks customers won't see.
   const currentMask =
     (MAP_MASKS as Record<string, typeof MAP_MASKS['none']>)[maskKey] ??
     customMasks.find((m) => m.key === maskKey) ??
@@ -227,7 +237,7 @@ export function MapTab() {
   const isSplitActive = splitMode === 'second-map' || splitMode === 'photo'
   const visibleMasks = isSplitActive
     ? SPLIT_MASK_OPTIONS
-    : [...SINGLE_MASK_OPTIONS, ...adminMasks]
+    : [...SINGLE_MASK_OPTIONS, ...customMasks]
 
   const orientationOptions: {
     value: PosterOrientation
@@ -725,9 +735,14 @@ export function MapTab() {
           {(masksExpanded ? visibleMasks : visibleMasks.slice(0, MASK_INITIAL_VISIBLE)).map((mask) => (
             <button
               key={mask.key}
-              onClick={() => setMaskKey(mask.key)}
+              onClick={() => {
+                setMaskKey(mask.key)
+                // PROJ-35: auto-apply the mask's decoration when present.
+                // Built-in masks have no decoration → falls back to null.
+                setDecorationSvgUrl(mask.decorationSvgUrl ?? null)
+              }}
               className={cn(
-                'rounded-md border-2 py-2 px-1 transition-all flex flex-col items-center gap-1',
+                'rounded-md border-2 py-2 px-1 transition-all flex flex-col items-center gap-1 relative',
                 maskKey === mask.key
                   ? 'border-primary bg-muted'
                   : 'border-border hover:border-muted-foreground'
@@ -742,6 +757,14 @@ export function MapTab() {
                 )}
               </div>
               <span className="text-[9px] leading-tight text-center text-muted-foreground">{maskLabel(mask.key, mask.label)}</span>
+              {mask.isPublic === false && isAdmin && (
+                <span
+                  className="absolute top-0.5 right-0.5 text-[7px] px-1 py-px rounded-sm bg-amber-500/90 text-white font-semibold uppercase tracking-wider"
+                  title="Nicht für Kunden sichtbar"
+                >
+                  A
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -754,6 +777,17 @@ export function MapTab() {
             {masksExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
             {masksExpanded ? t('mapShowLess') : t('mapShowMore', { n: visibleMasks.length - MASK_INITIAL_VISIBLE })}
           </button>
+        )}
+        {/* PROJ-35: Decoration toggle — only shown when the active mask has
+            an associated decoration overlay (string + cursive text etc.). */}
+        {decorationSvgUrl && (
+          <div className="flex items-center justify-between pt-2">
+            <Label className="text-xs text-foreground/70">Decoration anzeigen</Label>
+            <Switch
+              checked={decorationVisible}
+              onCheckedChange={setDecorationVisible}
+            />
+          </div>
         )}
       </div>
 

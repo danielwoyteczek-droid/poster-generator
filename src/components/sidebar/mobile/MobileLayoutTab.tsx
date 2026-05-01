@@ -29,17 +29,18 @@ export function MobileLayoutTab() {
 
   const {
     maskKey, shapeConfig,
-    setMaskKey,
+    setMaskKey, setDecorationSvgUrl, setDecorationVisible,
     setShapeOuter, setInnerFrame, setOuterFrame,
     layoutId,
     setLayoutId,
     splitMode,
     posterDarkMode, setPosterDarkMode,
+    decorationSvgUrl, decorationVisible,
   } = useEditorStore()
   const { isAdmin } = useAuth()
   const { masks: customMasks } = useCustomMasks()
 
-  const adminMasks = isAdmin ? customMasks : []
+  // PROJ-35: customers see public custom masks too (gate moved to API).
   const currentMask =
     (MAP_MASKS as Record<string, typeof MAP_MASKS['none']>)[maskKey] ??
     customMasks.find((m) => m.key === maskKey) ??
@@ -49,7 +50,7 @@ export function MobileLayoutTab() {
   const isSplitActive = splitMode === 'second-map' || splitMode === 'photo'
   const visibleMasks = isSplitActive
     ? SPLIT_MASK_OPTIONS
-    : [...SINGLE_MASK_OPTIONS, ...adminMasks]
+    : [...SINGLE_MASK_OPTIONS, ...customMasks]
 
   return (
     <div className="space-y-5 p-4">
@@ -62,9 +63,12 @@ export function MobileLayoutTab() {
           {visibleMasks.map((mask) => (
             <button
               key={mask.key}
-              onClick={() => setMaskKey(mask.key)}
+              onClick={() => {
+                setMaskKey(mask.key)
+                setDecorationSvgUrl(mask.decorationSvgUrl ?? null)
+              }}
               className={cn(
-                'shrink-0 w-20 snap-start rounded-md border-2 py-3 px-1 transition-all flex flex-col items-center gap-1',
+                'shrink-0 w-20 snap-start rounded-md border-2 py-3 px-1 transition-all flex flex-col items-center gap-1 relative',
                 maskKey === mask.key
                   ? 'border-primary bg-muted'
                   : 'border-border'
@@ -79,9 +83,26 @@ export function MobileLayoutTab() {
                 )}
               </div>
               <span className="text-[11px] leading-tight text-center text-muted-foreground">{maskLabel(mask.key, mask.label)}</span>
+              {mask.isPublic === false && isAdmin && (
+                <span
+                  className="absolute top-0.5 right-0.5 text-[8px] px-1 py-px rounded-sm bg-amber-500/90 text-white font-semibold uppercase tracking-wider"
+                  title="Nicht für Kunden sichtbar"
+                >
+                  A
+                </span>
+              )}
             </button>
           ))}
         </div>
+        {decorationSvgUrl && (
+          <div className="flex items-center justify-between pt-2">
+            <Label className="text-xs text-foreground/70">Decoration anzeigen</Label>
+            <Switch
+              checked={decorationVisible}
+              onCheckedChange={setDecorationVisible}
+            />
+          </div>
+        )}
       </div>
 
       <Separator />

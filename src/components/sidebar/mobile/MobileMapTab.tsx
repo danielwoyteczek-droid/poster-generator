@@ -41,7 +41,7 @@ export function MobileMapTab() {
   const {
     maskKey, paletteId, customPaletteBase, customPalette, streetLabelsVisible,
     printFormat, orientation,
-    setMaskKey,
+    setMaskKey, setDecorationSvgUrl,
     setPaletteId, setCustomPaletteBase, setCustomPalette, updateCustomPaletteColor, setStreetLabelsVisible,
     setStyleId, styleId,
     setPrintFormat, setOrientation,
@@ -68,10 +68,14 @@ export function MobileMapTab() {
 
   const handleSplitModeChange = (mode: SplitMode) => {
     setSplitMode(mode)
+    // PROJ-35: forced mask switch shouldn't carry decoration over (built-ins
+    // have none of their own and stale decoration looks unrelated).
     if (mode === 'none' && currentMask.isSplit) {
       setMaskKey('circle')
+      setDecorationSvgUrl(null)
     } else if (mode !== 'none' && !currentMask.isSplit) {
       setMaskKey('split-circles')
+      setDecorationSvgUrl(null)
     }
   }
 

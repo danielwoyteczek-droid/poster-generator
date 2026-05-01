@@ -141,11 +141,17 @@ export interface EditorStore {
   innerMarginMm: number
   /**
    * Optional decoration overlay drawn on top of the map (solid colour, not
-   * filled with map tiles). Currently set per preset via config_json — the
-   * editor has no UI for picking decorations. See PROJ-32 / love-balloon
-   * preset for the first usage.
+   * filled with map tiles). Auto-applied when the user selects a mask that
+   * carries a `decoration_svg_url` (PROJ-35); presets may also override it
+   * via config_json (PROJ-8). Render is gated by `decorationVisible`.
    */
   decorationSvgUrl: string | null
+  /**
+   * PROJ-35: per-session toggle for hiding the decoration overlay even
+   * when one is set. Default true. Customer-facing UI shows a switch only
+   * while a decoration is active. Not persisted across sessions/presets.
+   */
+  decorationVisible: boolean
   locationName: string
   textBlocks: TextBlock[]
   selectedBlockId: string | null
@@ -188,6 +194,7 @@ export interface EditorStore {
   setPosterDarkMode: (value: boolean) => void
   setMaskKey: (key: MapMaskKey) => void
   setDecorationSvgUrl: (url: string | null) => void
+  setDecorationVisible: (visible: boolean) => void
   setPrintFormat: (format: PrintFormat) => void
   setOrientation: (orientation: PosterOrientation) => void
   setMarker: (updates: Partial<MarkerState>) => void
@@ -249,6 +256,7 @@ export interface EditorConfig {
   layoutId: PosterLayoutId
   innerMarginMm: number
   decorationSvgUrl: string | null
+  decorationVisible: boolean
   textBlocks: TextBlock[]
   locationName: string
   photos: PhotoItem[]
@@ -290,6 +298,7 @@ export const EDITOR_INITIAL_STATE = {
   layoutId: 'full' as const,
   innerMarginMm: 0,
   decorationSvgUrl: null,
+  decorationVisible: true,
   secondMap: {
     enabled: false,
     styleId: 'klassisch',
@@ -363,6 +372,7 @@ export const useEditorStore = create<EditorStore>((set) => ({
   setPosterDarkMode: (posterDarkMode) => set({ posterDarkMode }),
   setMaskKey: (maskKey) => set({ maskKey }),
   setDecorationSvgUrl: (decorationSvgUrl) => set({ decorationSvgUrl }),
+  setDecorationVisible: (decorationVisible) => set({ decorationVisible }),
   setPrintFormat: (printFormat) => set({ printFormat }),
   setOrientation: (orientation) => set({ orientation }),
   setMarker: (updates) => set((s) => ({ marker: { ...s.marker, ...updates } })),
@@ -489,6 +499,7 @@ export const useEditorStore = create<EditorStore>((set) => ({
     layoutId: config.layoutId ?? s.layoutId,
     innerMarginMm: config.innerMarginMm ?? s.innerMarginMm,
     decorationSvgUrl: config.decorationSvgUrl ?? s.decorationSvgUrl,
+    decorationVisible: config.decorationVisible ?? true,
     secondMap: config.secondMap
       ? { ...s.secondMap, ...config.secondMap, pendingCenter: null, pendingZoomDelta: null }
       : s.secondMap,

@@ -82,7 +82,7 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
   const photoInteractive = activeMobileTool === undefined || activeMobileTool === 'photo'
   const markerInteractive = activeMobileTool === undefined || activeMobileTool === 'marker'
 
-  const { maskKey, printFormat, orientation, zoomIn, zoomOut, flyToLocation, zoomInSecond, zoomOutSecond, secondMap, marker, secondMarker, shapeConfig, viewState, setMarker, setSecondMarker, setSelectedBlockId, splitMode, splitPhoto, splitPhotoZone, layoutId, innerMarginMm, paletteId, customPalette, posterDarkMode, decorationSvgUrl } = useEditorStore()
+  const { maskKey, printFormat, orientation, zoomIn, zoomOut, flyToLocation, zoomInSecond, zoomOutSecond, secondMap, marker, secondMarker, shapeConfig, viewState, setMarker, setSecondMarker, setSelectedBlockId, splitMode, splitPhoto, splitPhotoZone, layoutId, innerMarginMm, paletteId, customPalette, posterDarkMode, decorationSvgUrl, decorationVisible } = useEditorStore()
   const mapAreaRef = useRef<HTMLDivElement>(null)
   const { masks: customMasks } = useCustomMasks()
   const mask =
@@ -433,9 +433,11 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
             {/* End of map area — photos and text use full poster coords */}
 
             {/* Decoration overlay — solid-colour SVG drawn over the full poster
-                (string + cursive text etc.). Set per preset via config_json,
-                no editor UI yet. Sits below photos/text so user content wins. */}
-            {decorationSvgUrl && (
+                (string + cursive text etc.). Set per preset (config_json) or
+                auto-applied from a custom mask's decoration_svg_url (PROJ-35).
+                Customer can hide via the Karten-Tab toggle (decorationVisible).
+                Sits below photos/text so user content wins. */}
+            {decorationSvgUrl && decorationVisible && (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={decorationSvgUrl}

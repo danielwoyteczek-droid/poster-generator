@@ -34,6 +34,19 @@ export interface MapMaskDefinition {
    * entry have no shape.
    */
   shape?: ShapeDefinition
+  /**
+   * PROJ-35: per-mask customer visibility flag. Built-in masks are always
+   * public (treated as `true` when undefined). Custom masks copy this from
+   * `custom_masks.is_public`. Used by the editor to render an Admin-only
+   * badge on non-public rows in the mask picker.
+   */
+  isPublic?: boolean
+  /**
+   * PROJ-35: optional decoration SVG that should auto-apply when this mask
+   * is selected. Customer toggles visibility via `decorationVisible` in the
+   * editor store; preset's `decorationSvgUrl` overrides this when present.
+   */
+  decorationSvgUrl?: string | null
 }
 
 export const MAP_MASKS: Record<MapMaskKey, MapMaskDefinition> = {

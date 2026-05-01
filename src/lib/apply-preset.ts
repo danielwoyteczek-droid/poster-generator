@@ -1,6 +1,7 @@
 import { useEditorStore, type EditorStore } from '@/hooks/useEditorStore'
 import { useStarMapStore } from '@/hooks/useStarMapStore'
 import { usePhotoEditorStore, type LetterSlot } from '@/hooks/usePhotoEditorStore'
+import { resolveMask } from '@/hooks/useCustomMasks'
 import type { MaskFontKey } from '@/lib/letter-mask'
 import type { PosterOrientation } from '@/lib/print-formats'
 
@@ -232,7 +233,10 @@ export function applyPreset(preset: PresetLike): UndoFn {
       shapeConfig: c.shapeConfig ?? state.shapeConfig,
       layoutId: c.layoutId ?? state.layoutId,
       innerMarginMm: c.innerMarginMm ?? state.innerMarginMm,
-      decorationSvgUrl: c.decorationSvgUrl ?? null,
+      // PROJ-35: explicit value wins (string OR null). Auto-inheritance from
+      // mask.decoration_svg_url runs as an async post-step below for legacy
+      // presets where the key is missing entirely from config_json.
+      decorationSvgUrl: 'decorationSvgUrl' in c ? (c.decorationSvgUrl ?? null) : null,
       orientation: c.orientation ?? state.orientation,
       textBlocks: c.textBlocks ?? state.textBlocks,
       splitMode: c.splitMode ?? state.splitMode,
@@ -243,6 +247,26 @@ export function applyPreset(preset: PresetLike): UndoFn {
         : state.pendingCenter,
     }
   })
+
+  // PROJ-35: Auto-Inheritance — if the preset config didn't contain a
+  // `decorationSvgUrl` key at all (legacy preset created before the field
+  // existed), look up the active mask asynchronously and apply its decoration.
+  // Explicit string OR null in config_json shortcuts this (preset wins).
+  const rawConfigForDeco = config as { decorationSvgUrl?: string | null; maskKey?: string }
+  const hadDecorationField = 'decorationSvgUrl' in rawConfigForDeco
+  if (!hadDecorationField && rawConfigForDeco.maskKey) {
+    resolveMask(rawConfigForDeco.maskKey)
+      .then((mask) => {
+        if (mask?.decorationSvgUrl) {
+          // Only apply if the user hasn't manually changed it in between (race-safety).
+          const current = useEditorStore.getState()
+          if (current.maskKey === rawConfigForDeco.maskKey && !current.decorationSvgUrl) {
+            useEditorStore.setState({ decorationSvgUrl: mask.decorationSvgUrl })
+          }
+        }
+      })
+      .catch(() => { /* ignore — null fallback is acceptable */ })
+  }
 
   return () => {
     useEditorStore.setState((state) => ({
