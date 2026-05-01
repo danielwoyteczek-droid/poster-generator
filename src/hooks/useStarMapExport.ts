@@ -8,6 +8,7 @@ import { renderStarMap, type StarEntry, type GeoFeature } from '@/lib/star-map-r
 import { loadStarTexture } from '@/lib/star-textures'
 import { getCoordinatesText } from '@/components/editor/TextBlockOverlay'
 import { computeFontScale } from '@/lib/font-scale'
+import { wrapTextToWidth } from '@/lib/text-wrap'
 
 // ─── Text helpers (mirror of useMapExport) ─────────────────────────────────
 
@@ -60,7 +61,8 @@ function drawTextBlocks(
       : block.align === 'right' ? blockLeft + blockW
       : blockLeft
 
-    for (const [i, line] of text.split('\n').entries()) {
+    // Match the editor's `pre-wrap + break-word`: \n splits AND auto-wrap.
+    for (const [i, line] of wrapTextToWidth(ctx, text, blockW).entries()) {
       ctx.fillText(line, anchorX, firstBaselineY + i * lineH)
     }
   }

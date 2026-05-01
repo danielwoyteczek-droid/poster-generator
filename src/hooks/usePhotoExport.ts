@@ -12,6 +12,7 @@ import {
 import { MASK_FONTS } from '@/lib/letter-mask'
 import { computeFontScale, FONT_SCALE_REFERENCE_WIDTH } from '@/lib/font-scale'
 import { drawLetterMask, resolveFontFamily, ensureMaskFontLoaded } from '@/lib/photo-mask-render'
+import { wrapTextToWidth } from '@/lib/text-wrap'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
@@ -80,7 +81,8 @@ function drawTextBlocks(
       : block.align === 'right' ? blockLeft + blockW
       : blockLeft
 
-    for (const [i, line] of text.split('\n').entries()) {
+    // Match the editor's `pre-wrap + break-word`: \n splits AND auto-wrap.
+    for (const [i, line] of wrapTextToWidth(ctx, text, blockW).entries()) {
       ctx.fillText(line, anchorX, firstBaselineY + i * lineH)
     }
   }

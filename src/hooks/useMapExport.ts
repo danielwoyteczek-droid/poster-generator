@@ -13,6 +13,7 @@ import { buildPetiteStyle } from '@/lib/petite-style-loader'
 import { computeFontScale } from '@/lib/font-scale'
 import { getPalette, type MapPaletteColors } from '@/lib/map-palettes'
 import { fetchDecorationSvgText, recolorSvg, svgTextToDataUrl } from '@/lib/decoration-color'
+import { wrapTextToWidth } from '@/lib/text-wrap'
 import type { PhotoItem, SplitPhoto } from '@/hooks/useEditorStore'
 
 // ─── Types ─────────────────────────────────────────────────────────────────
@@ -426,7 +427,9 @@ function drawTextBlocks(
       : block.align === 'right' ? blockLeft + blockW
       : blockLeft
 
-    for (const [i, line] of text.split('\n').entries()) {
+    // Mirror the editor's `pre-wrap + break-word` CSS: explicit \n already
+    // splits, but long single lines must auto-wrap to the block width too.
+    for (const [i, line] of wrapTextToWidth(ctx, text, blockW).entries()) {
       ctx.fillText(line, anchorX, firstBaselineY + i * lineH)
     }
   }
