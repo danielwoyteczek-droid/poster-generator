@@ -120,10 +120,13 @@ export async function drawLetterMask(
         const coverScale = Math.max(sx, sy) * photo.scale
         const drawW = photo.width * coverScale
         const drawH = photo.height * coverScale
-        // Center, then shift by cropX/cropY (pan offsets, -0.5..0.5 of
-        // slot dimension — same convention as LetterMaskOverlay)
-        const drawX = (tmp.width - drawW) / 2 - photo.cropX * tmp.width
-        const drawY = (tmp.height - drawH) / 2 - photo.cropY * tmp.height
+        // Mirror the editor's CSS `background-position: X% Y%` semantics:
+        // Browser places image-X% point at element-X% point, which is
+        // mathematically `offset = (slot - image) * (0.5 - cropX)`. The old
+        // formula `(slot-image)/2 - cropX*slot` only matched when image was
+        // exactly 2× the slot — for other aspects it drifted (PROJ-32 bug).
+        const drawX = (tmp.width - drawW) * (0.5 - photo.cropX)
+        const drawY = (tmp.height - drawH) * (0.5 - photo.cropY)
         tctx.drawImage(img, drawX, drawY, drawW, drawH)
       } catch (err) {
         // If the photo fails to load, fall back to the slot color so the
