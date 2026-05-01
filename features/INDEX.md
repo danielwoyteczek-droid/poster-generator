@@ -48,7 +48,7 @@
 | PROJ-32 | Foto-Poster-Editor | In Progress | [PROJ-32-photo-poster-editor.md](PROJ-32-photo-poster-editor.md) | 2026-04-29 |
 | PROJ-33 | Saisonaler Marketing-Kalender | Architected | [PROJ-33-seasonal-marketing-calendar.md](PROJ-33-seasonal-marketing-calendar.md) | 2026-04-29 |
 | PROJ-34 | Star-Map Aquarell-Texturen | Deployed | [PROJ-34-starmap-textures.md](PROJ-34-starmap-textures.md) | 2026-04-30 |
-| PROJ-35 | Customer-sichtbare Custom-Masks mit Decoration | Approved | [PROJ-35-customer-visible-masks-with-decoration.md](PROJ-35-customer-visible-masks-with-decoration.md) | 2026-04-30 |
+| PROJ-35 | Customer-sichtbare Custom-Masks mit Decoration | Deployed | [PROJ-35-customer-visible-masks-with-decoration.md](PROJ-35-customer-visible-masks-with-decoration.md) | 2026-04-30 |
 
 <!-- Add features above this line -->
 

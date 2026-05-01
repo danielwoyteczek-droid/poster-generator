@@ -1,6 +1,6 @@
 # PROJ-35: Customer-sichtbare Custom-Masks mit Decoration-Layer
 
-## Status: Approved
+## Status: Deployed
 **Created:** 2026-04-30
 **Last Updated:** 2026-05-01
 
@@ -410,4 +410,20 @@ Alle 4 Bugs adressiert vor Deploy:
 Keine Critical/High Bugs mehr offen. Alle 18 ACs passen, 7/7 Edge Cases handled (B2-Fix schließt EC-4). Manual-Test-Checklist (15 Items) bleibt für Smoke-Test nach Deploy.
 
 ## Deployment
-_To be added by /deploy_
+
+**Deployed:** 2026-05-01 via Auto-Deploy (Push zu `origin/main`).
+
+**Production URL:** https://petite-moment.com
+
+**Commit:** `7ff633f` — `feat(PROJ-35): customer-visible custom masks with decoration layer`
+
+**Verifikation pre-deploy:**
+- ✅ `npm run build` clean (alle 5 Mask-Endpoints im Build: `/api/masks`, `/api/masks/[key]`, `/api/admin/masks`, `/api/admin/masks/[id]`, `/api/admin/masks/[id]/decoration`)
+- ✅ TypeScript clean
+- ✅ Migration `20260430000002_proj35_custom_masks_visibility_decoration.sql` bereits in Production-Supabase angewendet (gleiche Datenbank wie Dev)
+- ✅ Storage-Bucket `decorations` existiert (5 MB Limit, public)
+- ✅ Heart-Love-Mask `custom-116eaac2` ist `is_public=true` mit `decoration_svg_url` befüllt
+
+**Manual-Test-Checklist** (15 Items, dokumentiert oben in QA Test Results) → Smoke-Test post-deploy.
+
+**Rollback-Plan** falls nötig: Vercel-Dashboard → Deployments → vorherigen working Build promoten. DB-Migration ist additive (keine destruktiven Changes), zurück-rollen geht ohne DB-Restore.
