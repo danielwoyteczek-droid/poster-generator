@@ -1,6 +1,6 @@
 # PROJ-34: Star-Map Aquarell-Texturen
 
-## Status: In Progress
+## Status: Deployed
 **Created:** 2026-04-30
 **Last Updated:** 2026-04-30
 
@@ -64,11 +64,11 @@ PROJ-34 ergänzt **gemalte Hintergrund-Texturen** als optionalen Layer im Star-M
 - [x] Komponenten und Texture-Manifest verwenden Translation-Keys, keine hardcoded UI-Strings
 
 ### Mobile
-- [ ] Browser-Test auf `/de/star-map` Mobile (iOS Safari, Android Chrome) — Performance-Check: ruckelt das zusätzliche `drawImage` pro Frame? Soll Textur-Bild ggf. einmal in einen Off-Screen-Canvas gestempelt und dann gepuffert werden?
-- [ ] Touch-Targets: 36 px Thumbnail-Picker passt PROJ-18-Pattern; ggf. größer auf Mobile
+- [x] Browser-Test auf `/de/star-map` Mobile bestanden — Performance der zusätzlichen `drawImage` pro Frame ist unauffällig, Picker bedienbar (User-Verifikation 2026-04-30)
+- [x] Touch-Targets: 36 px Thumbnail-Picker passt PROJ-18-Pattern, kein Vergrößerungsbedarf
 
 ### Native-Speaker-Review (offen)
-- [ ] EN/ES/IT/FR `starMapEditor.*` von Native-Speaker auf Stil prüfen lassen — die initial-Übersetzungen sind technisch korrekt, aber von einem deutschsprachigen Entwickler verfasst
+- [ ] EN/ES/IT/FR `starMapEditor.*` von Native-Speaker auf Stil prüfen lassen — die initial-Übersetzungen sind technisch korrekt, aber von einem deutschsprachigen Entwickler verfasst (nicht release-blockierend)
 
 ## Edge Cases
 
@@ -111,12 +111,12 @@ PROJ-34 ergänzt **gemalte Hintergrund-Texturen** als optionalen Layer im Star-M
 ### Verifikation
 - `npx tsc --noEmit` → grün nach jedem Pass
 - Alle 5 Locale-JSONs parsen
-- Browser-Test auf Desktop ausstehend (User testet nach Push)
-- Browser-Test auf Mobile ausstehend
+- Browser-Test auf Desktop bestanden (User-Verifikation, „deutlich besser" 2026-04-30)
+- Browser-Test auf Mobile bestanden (User-Verifikation 2026-04-30)
+- Auto-Deploy via Vercel auf petite-moment.com
 
-### Offene Punkte
-- **Mobile-Performance**: `drawImage` pro Frame, ggf. Off-Screen-Canvas-Buffering
-- **Native-Speaker-Translation-Review**: EN/ES/IT/FR
+### Offene Punkte (nicht release-blockierend)
+- **Native-Speaker-Translation-Review**: EN/ES/IT/FR — initial von DE-Entwickler verfasst
 - **Canvas-Compass-Labels** (N/O/S/W) sind weiterhin hardcoded Deutsch — separater Folge-Fix (echter Bug für ES, weil dort "O" = Westen)
 
 ## Dependencies
