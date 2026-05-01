@@ -12,6 +12,7 @@ import { filterCss } from '@/lib/photo-filters'
 import { buildPetiteStyle } from '@/lib/petite-style-loader'
 import { computeFontScale } from '@/lib/font-scale'
 import { getPalette, type MapPaletteColors } from '@/lib/map-palettes'
+import { fetchDecorationSvgText, recolorSvg, svgTextToDataUrl } from '@/lib/decoration-color'
 import type { PhotoItem, SplitPhoto } from '@/hooks/useEditorStore'
 
 // ─── Types ─────────────────────────────────────────────────────────────────
@@ -635,11 +636,15 @@ export async function buildPosterCanvas(
   // Decoration overlay — drawn over the full poster in solid colour.
   // Set per preset (config_json) or auto-applied from a custom mask's
   // decoration_svg_url (PROJ-35). Hidden when `decorationVisible` is false.
+  // Colour is rewritten at export time to match shapeConfig.innerFrame.color
+  // so the printed/exported version matches the editor preview.
   // Fails silently if the URL is unreachable so a broken decoration doesn't
   // break the export entirely.
   if (store.decorationSvgUrl && store.decorationVisible !== false) {
     try {
-      const decoImg = await loadImage(store.decorationSvgUrl)
+      const text = await fetchDecorationSvgText(store.decorationSvgUrl)
+      const recolored = recolorSvg(text, shapeConfig?.innerFrame.color ?? '#1a1a1a')
+      const decoImg = await loadImage(svgTextToDataUrl(recolored))
       ctx.drawImage(decoImg, 0, 0, W, H)
     } catch {
       // ignore — decoration is optional

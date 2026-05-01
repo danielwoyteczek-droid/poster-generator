@@ -9,6 +9,7 @@ import { MAP_MASKS } from '@/lib/map-masks'
 import { getPalette } from '@/lib/map-palettes'
 import { composeMaskSvg, composeFrameSvg, composeFullbleedMaskSvg, composeSplitSeamSvg, svgToDataUrl, hasAnyFrame } from '@/lib/mask-composer'
 import { useRasterizedMaskUrl } from '@/hooks/useRasterizedMaskUrl'
+import { useColoredDecoration } from '@/hooks/useColoredDecoration'
 import { PRINT_FORMATS, effectiveDimensions } from '@/lib/print-formats'
 import { MapPreview } from './MapPreview'
 import { TextBlockOverlay } from './TextBlockOverlay'
@@ -117,6 +118,10 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
     mask.shape?.width ?? 0,
     mask.shape?.height ?? 0,
   )
+  // PROJ-35: Decoration follows the inner-frame colour so heart silhouette +
+  // string/love overlay share one unified design colour, even when the user
+  // has the inner frame stroke disabled (the colour value is the source).
+  const coloredDecorationUrl = useColoredDecoration(decorationSvgUrl, shapeConfig.innerFrame.color)
   const composedFrameDataUrl = useComposedMask && mask.shape && hasAnyFrame(shapeConfig)
     ? svgToDataUrl(composeFrameSvg(mask.shape, shapeConfig, layoutMapHeight))
     : null
@@ -435,12 +440,13 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
             {/* Decoration overlay — solid-colour SVG drawn over the full poster
                 (string + cursive text etc.). Set per preset (config_json) or
                 auto-applied from a custom mask's decoration_svg_url (PROJ-35).
-                Customer can hide via the Karten-Tab toggle (decorationVisible).
-                Sits below photos/text so user content wins. */}
-            {decorationSvgUrl && decorationVisible && (
+                Colour follows shapeConfig.innerFrame.color so it stays in sync
+                with the heart silhouette outline. Customer can hide via the
+                Karten-Tab toggle (decorationVisible). Sits below photos/text. */}
+            {decorationSvgUrl && decorationVisible && coloredDecorationUrl && (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={decorationSvgUrl}
+                src={coloredDecorationUrl}
                 alt=""
                 className="absolute inset-0 w-full h-full pointer-events-none"
                 style={{ objectFit: 'fill' }}
