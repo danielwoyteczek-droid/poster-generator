@@ -1,8 +1,10 @@
 # PROJ-12: Client-Order-Management
 
-## Status: In Progress
+## Status: Approved
+- Reality-Check 2026-05-03: Acceptance Criteria im Code abgedeckt, Status auf Approved gehoben.
+
 **Created:** 2026-04-20
-**Last Updated:** 2026-04-20
+**Last Updated:** 2026-05-03
 
 ## Dependencies
 - Requires: PROJ-4 (User Authentication)

@@ -1,6 +1,8 @@
 # PROJ-1: Karten-Editor Core
 
-## Status: In Progress
+## Status: Approved
+**Reality-Check 2026-05-03:** Alle AC im Code abgedeckt — MapPreview, /api/geocode, MapTab mit Style-/Mask-/Marker-/Format-Pickern, Palette-Switch, Layouts. Auf Approved gehoben.
+
 **Implementation Notes:** MapTiler SDK v3.8.0 (nicht v4 — Breaking Changes). Verwendet `next/dynamic` mit `ssr: false` da MapTiler Browser-only ist. PosterCanvas berechnet Poster-Dimensionen via ResizeObserver für zuverlässiges Rendering.
 
 **2026-04-26 — Outer-Mode `glow`:** Vierter Modus neben `none` / `opacity` / `full`. Rendert einen `<radialGradient>` auf einem `<circle>`, zentriert auf das visuelle Mittel der Form (layout-skaliert). Außerhalb des Kreises wird die Karte vollständig maskiert — Ergebnis: weicher radialer Halo um die Form, der bis zur Posterkante in den Hintergrund fadet. Zwei Parameter: `glowRadius` (mm, Slider 150–500, Default 250) und `glowIntensity` (0.05–1, Default 0.5).

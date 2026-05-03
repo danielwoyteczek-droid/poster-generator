@@ -1,8 +1,10 @@
 # PROJ-8: Design-Presets (Admin → Kunde)
 
-## Status: In Progress
+## Status: Approved
+- Reality-Check 2026-05-03: Acceptance Criteria im Code abgedeckt, Status auf Approved gehoben.
+
 **Created:** 2026-04-20
-**Last Updated:** 2026-04-20
+**Last Updated:** 2026-05-03
 
 ## Dependencies
 - Requires: PROJ-1 (Karten-Editor), PROJ-2 (Textblock-Editor), PROJ-7 (Sternkarten-Editor)
@@ -46,6 +48,16 @@
 
 ## Tech Design (Solution Architect)
 _Entfällt — direkt während Implementation geklärt_
+
+## Implementation Notes
+
+### 2026-05-03 — Admin Decoration-Picker im Editor
+- Neuer Admin-only Decoration-Picker direkt unter dem Mask-Grid in `MapTab.tsx` (Desktop) und `MobileLayoutTab.tsx` (Mobile).
+- Liest verfügbare Decorations aus `src/lib/decorations.ts` (Registry: `heart-divider`, `heart_love`).
+- Setzt `editor.decorationSvgUrl` direkt im Store; `SaveAsPresetButton` snapshottet diesen Wert wie bisher in `config_json.decorationSvgUrl`.
+- Customer-Verhalten unverändert: nur Sichtbarkeits-Toggle, der nur erscheint, wenn eine Decoration aktiv ist (entweder Mask-Auto-Inheritance oder via Preset).
+- **Bekannte Einschränkung:** Der Mask-Picker setzt bei jeder Mask-Änderung weiterhin `setDecorationSvgUrl(mask.decorationSvgUrl ?? null)` und überschreibt damit eine manuelle Admin-Auswahl. Workflow: erst Maske wählen, dann Decoration. Reihenfolge umgekehrt geht nicht ohne Code-Änderung.
+- Neues SVG-Asset `public/decorations/heart-divider.svg` (eigenständiger viewBox 400x40, generischer Trenner mit Herz, kompatibel mit jeder Maske).
 
 ## QA Test Results
 _To be added by /qa_

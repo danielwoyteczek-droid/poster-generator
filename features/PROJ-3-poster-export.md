@@ -1,8 +1,10 @@
 # PROJ-3: Poster-Export (PNG & PDF)
 
-## Status: In Review
+## Status: Approved
+**Reality-Check 2026-05-03:** useMapExport, ExportTab, /api/static-map, /api/products, Cart + Checkout-Flow vorhanden — Admin-Free-Export und Customer-Produktauswahl beide implementiert. Auf Approved gehoben.
+
 **Created:** 2026-04-19
-**Last Updated:** 2026-04-19
+**Last Updated:** 2026-05-03
 
 ## Dependencies
 - Requires: PROJ-1 (Karten-Editor Core) — Karten-State wird für Export verwendet

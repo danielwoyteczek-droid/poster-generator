@@ -14,36 +14,36 @@
 
 | ID | Feature | Status | Spec | Created |
 |----|---------|--------|------|---------|
-| PROJ-1 | Karten-Editor Core | In Progress | [PROJ-1-map-editor-core.md](PROJ-1-map-editor-core.md) | 2026-04-19 |
+| PROJ-1 | Karten-Editor Core | Approved | [PROJ-1-map-editor-core.md](PROJ-1-map-editor-core.md) | 2026-04-19 |
 | PROJ-2 | Textblock-Editor | Architected | [PROJ-2-text-block-editor.md](PROJ-2-text-block-editor.md) | 2026-04-19 |
-| PROJ-3 | Poster-Export (PNG & PDF) | In Progress | [PROJ-3-poster-export.md](PROJ-3-poster-export.md) | 2026-04-19 |
+| PROJ-3 | Poster-Export (PNG & PDF) | Approved | [PROJ-3-poster-export.md](PROJ-3-poster-export.md) | 2026-04-19 |
 | PROJ-4 | User Authentication | In Review | [PROJ-4-user-authentication.md](PROJ-4-user-authentication.md) | 2026-04-19 |
-| PROJ-5 | Projekt-Verwaltung | In Progress | [PROJ-5-project-management.md](PROJ-5-project-management.md) | 2026-04-19 |
+| PROJ-5 | Projekt-Verwaltung | Approved | [PROJ-5-project-management.md](PROJ-5-project-management.md) | 2026-04-19 |
 | PROJ-6 | Stripe-Bezahlsystem | In Review | [PROJ-6-stripe-payments.md](PROJ-6-stripe-payments.md) | 2026-04-19 |
 | PROJ-7 | Stern-Karten-Generator | In Review | [PROJ-7-star-map-generator.md](PROJ-7-star-map-generator.md) | 2026-04-19 |
-| PROJ-8 | Design-Presets | In Progress | [PROJ-8-design-presets.md](PROJ-8-design-presets.md) | 2026-04-19 |
-| PROJ-9 | Admin-Editor-Werkzeuge | In Progress | [PROJ-9-admin-editor-tools.md](PROJ-9-admin-editor-tools.md) | 2026-04-19 |
+| PROJ-8 | Design-Presets | Approved | [PROJ-8-design-presets.md](PROJ-8-design-presets.md) | 2026-04-19 |
+| PROJ-9 | Admin-Editor-Werkzeuge | Approved | [PROJ-9-admin-editor-tools.md](PROJ-9-admin-editor-tools.md) | 2026-04-19 |
 | PROJ-10 | Admin-Bestellverwaltung | In Review | [PROJ-10-admin-order-management.md](PROJ-10-admin-order-management.md) | 2026-04-19 |
-| PROJ-11 | Homepage (Landing Page) | In Progress | [PROJ-11-homepage.md](PROJ-11-homepage.md) | 2026-04-19 |
-| PROJ-12 | Client-Order-Management | In Progress | [PROJ-12-client-order-management.md](PROJ-12-client-order-management.md) | 2026-04-20 |
-| PROJ-13 | Content CMS (Sanity) | In Progress | [PROJ-13-content-cms.md](PROJ-13-content-cms.md) | 2026-04-20 |
-| PROJ-14 | Blog-Publishing-Automatisierung | In Progress | [PROJ-14-blog-automation.md](PROJ-14-blog-automation.md) | 2026-04-21 |
-| PROJ-15 | Dynamische Map-Farbschemen | In Progress | [PROJ-15-dynamic-map-color-schemes.md](PROJ-15-dynamic-map-color-schemes.md) | 2026-04-21 |
+| PROJ-11 | Homepage (Landing Page) | Approved | [PROJ-11-homepage.md](PROJ-11-homepage.md) | 2026-04-19 |
+| PROJ-12 | Client-Order-Management | Approved | [PROJ-12-client-order-management.md](PROJ-12-client-order-management.md) | 2026-04-20 |
+| PROJ-13 | Content CMS (Sanity) | Approved | [PROJ-13-content-cms.md](PROJ-13-content-cms.md) | 2026-04-20 |
+| PROJ-14 | Blog-Publishing-Automatisierung | Approved | [PROJ-14-blog-automation.md](PROJ-14-blog-automation.md) | 2026-04-21 |
+| PROJ-15 | Dynamische Map-Farbschemen | Approved | [PROJ-15-dynamic-map-color-schemes.md](PROJ-15-dynamic-map-color-schemes.md) | 2026-04-21 |
 | PROJ-16 | Marketing-Infrastruktur | Planned | [PROJ-16-marketing-infrastructure.md](PROJ-16-marketing-infrastructure.md) | 2026-04-21 |
 | PROJ-17 | Marketing-Playbook & Kampagnen | Planned | [PROJ-17-marketing-playbook.md](PROJ-17-marketing-playbook.md) | 2026-04-21 |
 | PROJ-18 | Mobile-Editor (Feature-Parität) | Deployed | [PROJ-18-mobile-editor-optimization.md](PROJ-18-mobile-editor-optimization.md) | 2026-04-21 |
-| PROJ-19 | Foto-Integration im Poster | In Progress | [PROJ-19-photo-integration.md](PROJ-19-photo-integration.md) | 2026-04-21 |
-| PROJ-20 | Internationalisierung (i18n) | In Progress | [PROJ-20-internationalization.md](PROJ-20-internationalization.md) | 2026-04-21 |
-| PROJ-21 | Layout-Presets | In Progress | [PROJ-21-layout-presets.md](PROJ-21-layout-presets.md) | 2026-04-24 |
+| PROJ-19 | Foto-Integration im Poster | Approved | [PROJ-19-photo-integration.md](PROJ-19-photo-integration.md) | 2026-04-21 |
+| PROJ-20 | Internationalisierung (i18n) | Approved | [PROJ-20-internationalization.md](PROJ-20-internationalization.md) | 2026-04-21 |
+| PROJ-21 | Layout-Presets | Approved | [PROJ-21-layout-presets.md](PROJ-21-layout-presets.md) | 2026-04-24 |
 | PROJ-22 | Admin-Paletten-Verwaltung | Deployed | [PROJ-22-admin-palette-management.md](PROJ-22-admin-palette-management.md) | 2026-04-24 |
-| PROJ-23 | Design-System & Brand-Styling | In Progress | [PROJ-23-design-system-brand-styling.md](PROJ-23-design-system-brand-styling.md) | 2026-04-24 |
-| PROJ-24 | Localized Storefront Content | In Progress | [PROJ-24-localized-storefront-content.md](PROJ-24-localized-storefront-content.md) | 2026-04-25 |
+| PROJ-23 | Design-System & Brand-Styling | Approved | [PROJ-23-design-system-brand-styling.md](PROJ-23-design-system-brand-styling.md) | 2026-04-24 |
+| PROJ-24 | Localized Storefront Content | Approved | [PROJ-24-localized-storefront-content.md](PROJ-24-localized-storefront-content.md) | 2026-04-25 |
 | PROJ-25 | Editor UX Consistency Pass | Planned | [PROJ-25-editor-ux-consistency.md](PROJ-25-editor-ux-consistency.md) | 2026-04-25 |
 | PROJ-26 | Versandkosten-Management | Architected | [PROJ-26-shipping-rate-management.md](PROJ-26-shipping-rate-management.md) | 2026-04-26 |
 | PROJ-27 | Mobile Star-Map Editor | Deployed | [PROJ-27-mobile-star-map-editor.md](PROJ-27-mobile-star-map-editor.md) | 2026-04-26 |
-| PROJ-28 | Business Center | In Progress | [PROJ-28-business-center.md](PROJ-28-business-center.md) | 2026-04-26 |
-| PROJ-29 | Anlass-Landing-Pages (SEO) | In Progress | [PROJ-29-occasion-landing-pages.md](PROJ-29-occasion-landing-pages.md) | 2026-04-26 |
-| PROJ-30 | Preset-Render-Pipeline | In Progress | [PROJ-30-preset-render-pipeline.md](PROJ-30-preset-render-pipeline.md) | 2026-04-27 |
+| PROJ-28 | Business Center | Approved | [PROJ-28-business-center.md](PROJ-28-business-center.md) | 2026-04-26 |
+| PROJ-29 | Anlass-Landing-Pages (SEO) | Approved | [PROJ-29-occasion-landing-pages.md](PROJ-29-occasion-landing-pages.md) | 2026-04-26 |
+| PROJ-30 | Preset-Render-Pipeline | Approved | [PROJ-30-preset-render-pipeline.md](PROJ-30-preset-render-pipeline.md) | 2026-04-27 |
 | PROJ-31 | Amazon-Bestellungs-Importer (SP-API) | Planned | [PROJ-31-amazon-order-importer.md](PROJ-31-amazon-order-importer.md) | 2026-04-28 |
 | PROJ-32 | Foto-Poster-Editor | In Progress | [PROJ-32-photo-poster-editor.md](PROJ-32-photo-poster-editor.md) | 2026-04-29 |
 | PROJ-33 | Saisonaler Marketing-Kalender | Architected | [PROJ-33-seasonal-marketing-calendar.md](PROJ-33-seasonal-marketing-calendar.md) | 2026-04-29 |

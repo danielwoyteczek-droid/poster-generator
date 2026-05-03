@@ -1,8 +1,10 @@
 # PROJ-19: Foto-Integration im Poster
 
-## Status: Planned
+## Status: Approved
+- Reality-Check 2026-05-03: Acceptance Criteria im Code abgedeckt, Status auf Approved gehoben.
+
 **Created:** 2026-04-21
-**Last Updated:** 2026-04-21
+**Last Updated:** 2026-05-03
 
 ## Dependencies
 - Requires: PROJ-1 (Karten-Editor Core) — Masken- und Split-Layout-System existiert bereits

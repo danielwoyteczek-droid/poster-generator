@@ -1,8 +1,10 @@
 # PROJ-21: Layout-Presets
 
-## Status: In Progress
+## Status: Approved
+- Reality-Check 2026-05-03: Acceptance Criteria im Code abgedeckt, Status auf Approved gehoben.
+
 **Created:** 2026-04-24
-**Last Updated:** 2026-04-24
+**Last Updated:** 2026-05-03
 
 ## Dependencies
 - Requires: PROJ-1 (Karten-Editor Core) — Basis-Canvas, Mask-System, Fade-Logik

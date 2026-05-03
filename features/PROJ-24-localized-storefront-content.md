@@ -1,8 +1,10 @@
 # PROJ-24: Localized Storefront Content
 
-## Status: In Progress
+## Status: Approved
+- Reality-Check 2026-05-03: Acceptance Criteria im Code abgedeckt, Status auf Approved gehoben.
+
 **Created:** 2026-04-25
-**Last Updated:** 2026-04-25
+**Last Updated:** 2026-05-03
 
 ## Implementation Notes
 

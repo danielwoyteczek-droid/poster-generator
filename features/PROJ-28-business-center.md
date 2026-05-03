@@ -1,8 +1,10 @@
 # PROJ-28: Business Center
 
-## Status: In Progress
+## Status: Approved
+- Reality-Check 2026-05-03: Acceptance Criteria im Code abgedeckt, Status auf Approved gehoben.
+
 **Created:** 2026-04-26
-**Last Updated:** 2026-04-26
+**Last Updated:** 2026-05-03
 
 ## Dependencies
 - Requires: PROJ-4 (User Authentication) — `requireAdmin()` Server-Check für die Admin-Route, identisch zu PROJ-22 / PROJ-9 / PROJ-10

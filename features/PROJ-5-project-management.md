@@ -1,8 +1,10 @@
 # PROJ-5: Projekt-Verwaltung (Speichern & Laden)
 
-## Status: In Progress
+## Status: Approved
+**Reality-Check 2026-05-03:** /api/projects (POST/GET/PATCH/DELETE), list, duplicate, bulk-delete, useProjectSync-Hook, /private-Dashboard alle vorhanden. Auf Approved gehoben.
+
 **Created:** 2026-04-19
-**Last Updated:** 2026-04-19
+**Last Updated:** 2026-05-03
 
 ## Dependencies
 - Requires: PROJ-1 (Karten-Editor Core)

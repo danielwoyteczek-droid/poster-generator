@@ -1,8 +1,10 @@
 # PROJ-20: Internationalisierung (i18n)
 
-## Status: In Progress
+## Status: Approved
+- Reality-Check 2026-05-03: Acceptance Criteria im Code abgedeckt, Status auf Approved gehoben.
+
 **Created:** 2026-04-21
-**Last Updated:** 2026-04-21
+**Last Updated:** 2026-05-03
 
 ## Dependencies
 - Requires: PROJ-13 (Content CMS / Sanity) — Blog-, About- und FAQ-Content muss pro Sprache gepflegt werden

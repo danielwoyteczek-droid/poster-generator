@@ -1,8 +1,10 @@
 # PROJ-11: Homepage (Landing Page)
 
-## Status: In Progress
+## Status: Approved
+- Reality-Check 2026-05-03: Acceptance Criteria im Code abgedeckt, Status auf Approved gehoben.
+
 **Created:** 2026-04-19
-**Last Updated:** 2026-04-26
+**Last Updated:** 2026-05-03
 
 ## Dependencies
 - Requires: PROJ-3 (Poster-Export) — Beispiel-Poster stammen aus dem Editor

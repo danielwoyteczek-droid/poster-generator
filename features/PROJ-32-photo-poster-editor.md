@@ -1,8 +1,10 @@
 # PROJ-32: Foto-Poster-Editor
 
 ## Status: In Progress
+- Reality-Check 2026-05-03: Letter-Mask V1 deployed; Single-Photo + Multi-Grid + Admin-GridLayoutDesigner noch ausstehend → bleibt In Progress.
+
 **Created:** 2026-04-29
-**Last Updated:** 2026-04-29
+**Last Updated:** 2026-05-03
 
 ## Implementation Notes (Frontend Pass 1 — Vertical Slice Letter-Mask)
 
