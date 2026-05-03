@@ -102,31 +102,60 @@ export async function drawLetterMask(
 
     if (slot.photo) {
       // Mask the photo with the letter shape via a temporary canvas:
-      // 1. Draw the photo (cover-sized + cropX/cropY pan applied)
-      // 2. globalCompositeOperation = 'destination-in' + fillText keeps
-      //    only the pixels under the glyph
-      // 3. Blit the temp canvas onto the main canvas at the slot rect
+      // 1. Allocate a temp canvas large enough to contain the rendered glyph
+      //    (some characters in display fonts like Anton are wider than their
+      //    slot — see PROJ-32 bug: editor's <span> overflows the slot
+      //    horizontally, but the export's `tmp = slotW × slotH` would clip
+      //    those overflow pixels). We size tmp = max(slotW, glyphW) so the
+      //    glyph silhouette renders unclipped, then blit with an offset.
+      // 2. Photo position is computed relative to the glyph's bounding box,
+      //    matching the editor's CSS `background-clip: text` semantics where
+      //    background-position percentages reference the glyph-sized span,
+      //    not the slot rect.
+      // 3. globalCompositeOperation='destination-in' + fillText keeps only
+      //    pixels under the glyph silhouette (alpha-mask).
+      // 4. Blit tmp to main canvas with negative offset to absorb any
+      //    horizontal overflow — adjacent letters' overflow regions overlap
+      //    naturally because tmp is transparent outside the glyph silhouette.
       const photo = slot.photo
+
+      // Measure the glyph in a throwaway context using the same font as the
+      // composite fillText below — these dimensions drive both the tmp size
+      // and the photo positioning math.
+      const measureCtx = document.createElement('canvas').getContext('2d')!
+      measureCtx.font = `400 ${fontSize}px ${maskFontFamily}`
+      const glyphW = measureCtx.measureText(slot.char).width
+      const glyphH = fontSize // matches editor's `line-height: 1` span height
+
+      const tmpW = Math.ceil(Math.max(slotW, glyphW))
+      const tmpH = Math.ceil(Math.max(slotH, glyphH))
+      const tmpOffsetX = (tmpW - slotW) / 2
+      const tmpOffsetY = (tmpH - slotH) / 2
+
       const tmp = document.createElement('canvas')
-      tmp.width = Math.ceil(slotW)
-      tmp.height = Math.ceil(slotH)
+      tmp.width = tmpW
+      tmp.height = tmpH
       const tctx = tmp.getContext('2d')
       if (!tctx) continue
 
+      // Glyph position inside tmp — centred horizontally, vertically aligned
+      // with editor's `flex items-center` (span centred in slot).
+      const glyphLeftInTmp = (tmpW - glyphW) / 2
+      const glyphTopInTmp = tmpOffsetY + emTopOffset
+
       try {
         const img = await loadImage(photo.publicUrl)
-        const sx = tmp.width / photo.width
-        const sy = tmp.height / photo.height
+        // Cover-scale relative to slot dimensions (matches editor's bgSize
+        // computation, which uses `parent.getBoundingClientRect()` = slot).
+        const sx = slotW / photo.width
+        const sy = slotH / photo.height
         const coverScale = Math.max(sx, sy) * photo.scale
         const drawW = photo.width * coverScale
         const drawH = photo.height * coverScale
-        // Mirror the editor's CSS `background-position: X% Y%` semantics:
-        // Browser places image-X% point at element-X% point, which is
-        // mathematically `offset = (slot - image) * (0.5 - cropX)`. The old
-        // formula `(slot-image)/2 - cropX*slot` only matched when image was
-        // exactly 2× the slot — for other aspects it drifted (PROJ-32 bug).
-        const drawX = (tmp.width - drawW) * (0.5 - photo.cropX)
-        const drawY = (tmp.height - drawH) * (0.5 - photo.cropY)
+        // Position image relative to GLYPH bounds (= editor's span coords),
+        // then add tmpOffset so it lives in tmp's coordinate system.
+        const drawX = glyphLeftInTmp + (glyphW - drawW) * (0.5 - photo.cropX)
+        const drawY = glyphTopInTmp + (glyphH - drawH) * (0.5 - photo.cropY)
         tctx.drawImage(img, drawX, drawY, drawW, drawH)
       } catch (err) {
         // If the photo fails to load, fall back to the slot color so the
@@ -141,9 +170,14 @@ export async function drawLetterMask(
       tctx.font = `400 ${fontSize}px ${maskFontFamily}`
       tctx.textAlign = 'center'
       tctx.textBaseline = 'top'
-      tctx.fillText(slot.char, tmp.width / 2, emTopOffset)
+      tctx.fillText(slot.char, tmpW / 2, glyphTopInTmp)
 
-      ctx.drawImage(tmp, slotX, slotY)
+      // Blit with negative offset so the slot region of tmp lands at the
+      // slot's position on the main canvas. Glyph overflow areas extend
+      // into neighbouring slots' regions; that's intentional and matches
+      // the editor (transparent tmp pixels outside the glyph keep the
+      // neighbour's content visible).
+      ctx.drawImage(tmp, slotX - tmpOffsetX, slotY - tmpOffsetY)
     } else {
       // No photo — fill the glyph directly in the slot color
       ctx.fillStyle = slot.color ?? defaultSlotColor
