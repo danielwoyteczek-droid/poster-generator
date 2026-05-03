@@ -86,6 +86,11 @@ export function measureCssBaselineOffset(fontFamily: string, fontSize: number): 
   if (cached !== undefined) return cached
 
   const span = document.createElement('span')
+  // fontFamily is the comma-separated list returned by
+  // getComputedStyle().fontFamily — it must be embedded UNQUOTED. Wrapping
+  // it in single quotes turns the whole list into one (non-existent) family
+  // name, causing the probe to fall back to sans-serif and measure the
+  // wrong baseline ratio (~5 % off for display fonts like Anton).
   span.style.cssText = [
     'position: absolute',
     'top: 0',
@@ -95,7 +100,7 @@ export function measureCssBaselineOffset(fontFamily: string, fontSize: number): 
     'line-height: 1',
     'white-space: pre',
     'font-weight: 400',
-    `font-family: '${fontFamily}', sans-serif`,
+    `font-family: ${fontFamily}`,
     `font-size: ${fontSize}px`,
     'margin: 0',
     'padding: 0',
