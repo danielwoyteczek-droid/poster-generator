@@ -76,6 +76,10 @@ export function SaveAsPresetButton() {
         maskFontKey: photo.maskFontKey,
         defaultSlotColor: photo.defaultSlotColor,
         layoutMode: photo.layoutMode,
+        // Single-photo state: photo reference + chosen mask + crop. Same
+        // Supabase URL persistence story as `slots`.
+        singlePhoto: photo.singlePhoto,
+        singlePhotoMaskKey: photo.singlePhotoMaskKey,
         textBlocks: editor.textBlocks,
       }
     }

@@ -27,6 +27,7 @@
   "photoEditor": {
     "tabWord": "Word",
     "tabSlots": "Photos",
+    "tabSinglePhoto": "Photo",
     "tabText": "Text",
     "orientationLabel": "Orientation",
     "orientationPortrait": "Portrait",
@@ -56,7 +57,20 @@
     "slotCropHint": "Drag the slot on the poster to pan the image.",
     "uploadProgress": "Uploading … {progress}%",
     "uploadFailed": "Upload failed",
-    "removePhoto": "Remove photo"
+    "removePhoto": "Remove photo",
+    "singlePhotoSectionLabel": "Your photo",
+    "singlePhotoSectionHint": "Upload one photo and pick a shape.",
+    "singlePhotoEmptyTitle": "No photo yet",
+    "singlePhotoEmptyHint": "Upload a photo on the left to get started.",
+    "singlePhotoAria": "Photo area",
+    "singlePhotoUploaded": "Photo applied",
+    "singlePhotoUploadButton": "Upload photo",
+    "singlePhotoFormatHint": "JPG, PNG or HEIC. Max 10 MB. Compressed automatically.",
+    "singlePhotoMaskLabel": "Shape",
+    "singlePhotoZoomLabel": "Zoom",
+    "singlePhotoCropHint": "Drag the photo to adjust the crop.",
+    "singlePhotoFilterLabel": "Filter",
+    "photoGridComingSoon": "Mode \"{mode}\" — coming in a follow-up pass"
   },
   "starMapEditor": {
     "locationLabel": "Location",

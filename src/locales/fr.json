@@ -27,6 +27,7 @@
   "photoEditor": {
     "tabWord": "Mot",
     "tabSlots": "Photos",
+    "tabSinglePhoto": "Photo",
     "tabText": "Texte",
     "orientationLabel": "Orientation",
     "orientationPortrait": "Portrait",
@@ -56,7 +57,20 @@
     "slotCropHint": "Faites glisser l'emplacement sur le poster pour déplacer l'image.",
     "uploadProgress": "Téléversement … {progress}%",
     "uploadFailed": "Échec du téléversement",
-    "removePhoto": "Retirer la photo"
+    "removePhoto": "Retirer la photo",
+    "singlePhotoSectionLabel": "Votre photo",
+    "singlePhotoSectionHint": "Téléversez une photo et choisissez une forme.",
+    "singlePhotoEmptyTitle": "Pas encore de photo",
+    "singlePhotoEmptyHint": "Téléversez une photo à gauche pour commencer.",
+    "singlePhotoAria": "Zone photo",
+    "singlePhotoUploaded": "Photo appliquée",
+    "singlePhotoUploadButton": "Téléverser une photo",
+    "singlePhotoFormatHint": "JPG, PNG ou HEIC. 10 Mo maximum. Compressée automatiquement.",
+    "singlePhotoMaskLabel": "Forme",
+    "singlePhotoZoomLabel": "Zoom",
+    "singlePhotoCropHint": "Glissez la photo pour ajuster le cadrage.",
+    "singlePhotoFilterLabel": "Filtre",
+    "photoGridComingSoon": "Mode « {mode} » — bientôt disponible"
   },
   "starMapEditor": {
     "locationLabel": "Lieu",

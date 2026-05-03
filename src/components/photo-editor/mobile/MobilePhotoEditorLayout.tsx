@@ -5,10 +5,12 @@ import { useTranslations } from 'next-intl'
 import { Type, ImageIcon, Layers, Download } from 'lucide-react'
 import { LetterMaskTab } from '../sidebar/LetterMaskTab'
 import { PhotoSlotsTab } from '../sidebar/PhotoSlotsTab'
+import { SinglePhotoTab } from '../sidebar/SinglePhotoTab'
 import { PhotoExportTab } from '../sidebar/PhotoExportTab'
 import { MobileTextTab } from '@/components/sidebar/mobile/MobileTextTab'
 import { PhotoPosterCanvas } from '../PhotoPosterCanvas'
 import { useProjectSync } from '@/hooks/useProjectSync'
+import { usePhotoEditorStore } from '@/hooks/usePhotoEditorStore'
 import type { MobileEditorTool } from '@/components/editor/PosterCanvas'
 import { cn } from '@/lib/utils'
 
@@ -33,15 +35,28 @@ const TAB_TO_TOOL: Record<MobilePhotoTab, MobileEditorTool> = {
 export function MobilePhotoEditorLayout() {
   const t = useTranslations('photoEditor')
   const tEditor = useTranslations('editor')
-  const [activeTab, setActiveTab] = useState<MobilePhotoTab>('word')
+  const layoutMode = usePhotoEditorStore((s) => s.layoutMode)
+  const isLetterMask = layoutMode === 'letter-mask'
+  // Default to the slots tab in single-photo mode (no word to type) so the
+  // customer lands directly on the upload UI.
+  const [activeTab, setActiveTab] = useState<MobilePhotoTab>(
+    isLetterMask ? 'word' : 'slots',
+  )
   useProjectSync('photo')
 
-  const TABS: { id: MobilePhotoTab; label: string; Icon: typeof Type }[] = [
+  const allTabs: { id: MobilePhotoTab; label: string; Icon: typeof Type }[] = [
     { id: 'word', label: t('tabWord'), Icon: Layers },
-    { id: 'slots', label: t('tabSlots'), Icon: ImageIcon },
+    {
+      id: 'slots',
+      label: isLetterMask ? t('tabSlots') : t('tabSinglePhoto'),
+      Icon: ImageIcon,
+    },
     { id: 'text', label: t('tabText'), Icon: Type },
     { id: 'export', label: tEditor('downloadHeading'), Icon: Download },
   ]
+  // Word tab is meaningless without a letter-mask wort — hide it in
+  // single-photo mode so the tab bar collapses to 3 columns.
+  const TABS = isLetterMask ? allTabs : allTabs.filter((t) => t.id !== 'word')
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -53,7 +68,10 @@ export function MobilePhotoEditorLayout() {
       </div>
 
       <nav
-        className="h-14 shrink-0 grid grid-cols-4 bg-white border-b border-border"
+        className={cn(
+          'h-14 shrink-0 grid bg-white border-b border-border',
+          TABS.length === 4 ? 'grid-cols-4' : 'grid-cols-3',
+        )}
         role="tablist"
       >
         {TABS.map(({ id, label, Icon }) => {
@@ -79,8 +97,8 @@ export function MobilePhotoEditorLayout() {
       </nav>
 
       <div className="flex-1 min-h-0 overflow-y-auto bg-white">
-        {activeTab === 'word' && <LetterMaskTab />}
-        {activeTab === 'slots' && <PhotoSlotsTab />}
+        {activeTab === 'word' && isLetterMask && <LetterMaskTab />}
+        {activeTab === 'slots' && (isLetterMask ? <PhotoSlotsTab /> : <SinglePhotoTab />)}
         {activeTab === 'text' && <MobileTextTab hideCoordinates />}
         {activeTab === 'export' && <PhotoExportTab />}
       </div>

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { useEditorStore } from '@/hooks/useEditorStore'
 import { usePhotoEditorStore } from '@/hooks/usePhotoEditorStore'
 import { usePhotoExport } from '@/hooks/usePhotoExport'
@@ -8,6 +9,7 @@ import { PRINT_FORMATS } from '@/lib/print-formats'
 import { computeFontScale } from '@/lib/font-scale'
 import { TextBlockOverlay } from '@/components/editor/TextBlockOverlay'
 import { LetterMaskOverlay } from './LetterMaskOverlay'
+import { SinglePhotoOverlay } from './SinglePhotoOverlay'
 import { PreviewTriggerButton } from '@/components/editor/PreviewTriggerButton'
 import type { MobileEditorTool } from '@/components/editor/PosterCanvas'
 
@@ -30,6 +32,7 @@ export function PhotoPosterCanvas({
   padding = 64,
   activeMobileTool,
 }: PhotoPosterCanvasProps = {}) {
+  const t = useTranslations('photoEditor')
   const wrapperRef = useRef<HTMLDivElement>(null)
   const posterRef = useRef<HTMLDivElement>(null)
   const [posterSize, setPosterSize] = useState({ width: 0, height: 0 })
@@ -100,6 +103,8 @@ export function PhotoPosterCanvas({
 
   const letterMaskInteractive =
     activeMobileTool === undefined || activeMobileTool === 'photo'
+  const singlePhotoInteractive =
+    activeMobileTool === undefined || activeMobileTool === 'photo'
   const textInteractive =
     activeMobileTool === undefined || activeMobileTool === 'text'
 
@@ -126,9 +131,16 @@ export function PhotoPosterCanvas({
           />
         )}
 
-        {layoutMode !== 'letter-mask' && (
+        {layoutMode === 'single-photo' && (
+          <SinglePhotoOverlay
+            posterRef={posterRef}
+            interactive={singlePhotoInteractive}
+          />
+        )}
+
+        {layoutMode === 'photo-grid' && (
           <div className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground">
-            Modus „{layoutMode}" — kommt in Folge-Pass
+            {t('photoGridComingSoon', { mode: layoutMode })}
           </div>
         )}
 

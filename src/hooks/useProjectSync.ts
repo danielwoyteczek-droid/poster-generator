@@ -65,6 +65,11 @@ function getConfig(posterType: PosterType): Record<string, unknown> {
       maskFontKey: ph.maskFontKey,
       defaultSlotColor: ph.defaultSlotColor,
       layoutMode: ph.layoutMode,
+      // Single-photo mode (PROJ-32): one uploaded photo + mask + crop.
+      // Persisting this means a customer can refresh the editor and not
+      // lose their single-photo poster mid-design.
+      singlePhoto: ph.singlePhoto,
+      singlePhotoMaskKey: ph.singlePhotoMaskKey,
       printFormat: editor.printFormat,
       textBlocks: editor.textBlocks,
     }
@@ -151,6 +156,8 @@ function applyConfig(posterType: PosterType, config: Record<string, unknown>): v
       maskFontKey: ReturnType<typeof usePhotoEditorStore.getState>['maskFontKey']
       defaultSlotColor: string
       layoutMode: ReturnType<typeof usePhotoEditorStore.getState>['layoutMode']
+      singlePhoto: ReturnType<typeof usePhotoEditorStore.getState>['singlePhoto']
+      singlePhotoMaskKey: ReturnType<typeof usePhotoEditorStore.getState>['singlePhotoMaskKey']
       printFormat: EditorConfig['printFormat']
       textBlocks: EditorConfig['textBlocks']
     }>
@@ -165,6 +172,10 @@ function applyConfig(posterType: PosterType, config: Record<string, unknown>): v
       maskFontKey: c.maskFontKey ?? state.maskFontKey,
       defaultSlotColor: c.defaultSlotColor ?? state.defaultSlotColor,
       layoutMode: c.layoutMode ?? state.layoutMode,
+      // Distinguish "key absent in saved config" (legacy, keep current
+      // state) from "key explicitly null" (customer removed the photo).
+      singlePhoto: 'singlePhoto' in c ? (c.singlePhoto ?? null) : state.singlePhoto,
+      singlePhotoMaskKey: c.singlePhotoMaskKey ?? state.singlePhotoMaskKey,
     }))
     if (c.printFormat) useEditorStore.setState({ printFormat: c.printFormat })
     if (c.textBlocks) useEditorStore.setState({ textBlocks: c.textBlocks })

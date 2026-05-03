@@ -12,6 +12,7 @@ import {
 import { MASK_FONTS } from '@/lib/letter-mask'
 import { computeFontScale, FONT_SCALE_REFERENCE_WIDTH } from '@/lib/font-scale'
 import { drawLetterMask, resolveFontFamily, ensureMaskFontLoaded } from '@/lib/photo-mask-render'
+import { drawSinglePhoto } from '@/lib/photo-single-render'
 import { wrapTextToWidth } from '@/lib/text-wrap'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
@@ -95,6 +96,7 @@ export function usePhotoExport() {
   const [error, setError] = useState<string | null>(null)
 
   const {
+    layoutMode,
     word,
     slots,
     wordWidth,
@@ -103,6 +105,8 @@ export function usePhotoExport() {
     orientation,
     maskFontKey,
     defaultSlotColor,
+    singlePhoto,
+    singlePhotoMaskKey,
   } = usePhotoEditorStore()
 
   const { textBlocks } = useEditorStore()
@@ -113,9 +117,6 @@ export function usePhotoExport() {
     const W = fmt.widthPx
     const H = fmt.heightPx
 
-    const font = MASK_FONTS[maskFontKey]
-    const maskFontFamily = resolveFontFamily(font.cssFamily)
-    await ensureMaskFontLoaded(maskFontFamily)
     await ensureTextFontsLoaded(textBlocks)
 
     const canvas = document.createElement('canvas')
@@ -129,16 +130,28 @@ export function usePhotoExport() {
     ctx.fillStyle = '#ffffff'
     ctx.fillRect(0, 0, W, H)
 
-    await drawLetterMask(ctx, W, H, {
-      word,
-      slots,
-      wordWidth,
-      wordX,
-      wordY,
-      defaultSlotColor,
-      maskFontKey,
-      maskFontFamily,
-    })
+    if (layoutMode === 'letter-mask') {
+      const font = MASK_FONTS[maskFontKey]
+      const maskFontFamily = resolveFontFamily(font.cssFamily)
+      await ensureMaskFontLoaded(maskFontFamily)
+
+      await drawLetterMask(ctx, W, H, {
+        word,
+        slots,
+        wordWidth,
+        wordX,
+        wordY,
+        defaultSlotColor,
+        maskFontKey,
+        maskFontFamily,
+      })
+    } else if (layoutMode === 'single-photo' && singlePhoto) {
+      await drawSinglePhoto(ctx, W, H, {
+        photo: singlePhoto,
+        maskKey: singlePhotoMaskKey,
+      })
+    }
+    // photo-grid → not yet implemented; fall through to text-blocks only
 
     // Pass the canonical 660 px reference as previewW so the export font size
     // matches what the user sees on a desktop editor canvas (which renders at

@@ -1,9 +1,14 @@
 import { useEditorStore, type EditorStore } from '@/hooks/useEditorStore'
 import { useStarMapStore } from '@/hooks/useStarMapStore'
-import { usePhotoEditorStore, type LetterSlot } from '@/hooks/usePhotoEditorStore'
+import {
+  usePhotoEditorStore,
+  type LetterSlot,
+  type SinglePhotoState,
+} from '@/hooks/usePhotoEditorStore'
 import { resolveMask } from '@/hooks/useCustomMasks'
 import type { MaskFontKey } from '@/lib/letter-mask'
 import type { PosterOrientation } from '@/lib/print-formats'
+import type { PhotoMaskKey } from '@/lib/photo-masks'
 
 interface PresetLike {
   poster_type: 'map' | 'star-map' | 'photo'
@@ -127,6 +132,8 @@ export function applyPreset(preset: PresetLike): UndoFn {
       maskFontKey?: MaskFontKey
       defaultSlotColor?: string
       layoutMode?: 'letter-mask' | 'single-photo' | 'photo-grid'
+      singlePhoto?: SinglePhotoState | null
+      singlePhotoMaskKey?: PhotoMaskKey
       textBlocks?: unknown
     }
     const photo = usePhotoEditorStore.getState()
@@ -142,6 +149,8 @@ export function applyPreset(preset: PresetLike): UndoFn {
       maskFontKey: photo.maskFontKey,
       defaultSlotColor: photo.defaultSlotColor,
       layoutMode: photo.layoutMode,
+      singlePhoto: photo.singlePhoto,
+      singlePhotoMaskKey: photo.singlePhotoMaskKey,
       textBlocks: editorBefore.textBlocks,
     }
 
@@ -156,6 +165,10 @@ export function applyPreset(preset: PresetLike): UndoFn {
       maskFontKey: p.maskFontKey ?? state.maskFontKey,
       defaultSlotColor: p.defaultSlotColor ?? state.defaultSlotColor,
       layoutMode: p.layoutMode ?? state.layoutMode,
+      // singlePhoto can legitimately be null in a preset (Customer never
+      // uploaded one yet) — distinguish "not in config" from "null".
+      singlePhoto: 'singlePhoto' in p ? (p.singlePhoto ?? null) : state.singlePhoto,
+      singlePhotoMaskKey: p.singlePhotoMaskKey ?? state.singlePhotoMaskKey,
     }))
     if (p.textBlocks) useEditorStore.setState({ textBlocks: p.textBlocks as never })
 
@@ -171,6 +184,8 @@ export function applyPreset(preset: PresetLike): UndoFn {
         maskFontKey: snapshot.maskFontKey,
         defaultSlotColor: snapshot.defaultSlotColor,
         layoutMode: snapshot.layoutMode,
+        singlePhoto: snapshot.singlePhoto,
+        singlePhotoMaskKey: snapshot.singlePhotoMaskKey,
       }))
       useEditorStore.setState({ textBlocks: snapshot.textBlocks })
     }

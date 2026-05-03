@@ -6,6 +6,8 @@ import {
   type MaskFontKey,
 } from '@/lib/letter-mask'
 import type { PosterOrientation } from '@/lib/print-formats'
+import type { PhotoFilter } from '@/hooks/useEditorStore'
+import type { PhotoMaskKey } from '@/lib/photo-masks'
 
 export type PhotoLayoutMode = 'letter-mask' | 'single-photo' | 'photo-grid'
 
@@ -33,6 +35,28 @@ export interface LetterSlot {
   color: string | null
 }
 
+/**
+ * Single-photo mode state. The customer uploads one photo, picks a mask
+ * (full / circle / heart / square / portrait / landscape) and pans/zooms
+ * the image inside that mask. Mirrors `SlotPhoto` shape so downstream
+ * (export, preset save, persistence) treats both modes the same way.
+ */
+export interface SinglePhotoState {
+  storagePath: string
+  publicUrl: string
+  width: number
+  height: number
+  /** -0.5 .. 0.5: horizontal pan inside the mask (0 = centered) */
+  cropX: number
+  /** -0.5 .. 0.5: vertical pan inside the mask (0 = centered) */
+  cropY: number
+  /** 1.0 .. 4.0: zoom factor inside the mask, 1.0 = cover */
+  scale: number
+  /** Optional CSS-filter preset id (none / grayscale / sepia). */
+  filter: PhotoFilter
+  uploadedAt: string
+}
+
 interface PhotoEditorStore {
   layoutMode: PhotoLayoutMode
   word: string
@@ -53,6 +77,12 @@ interface PhotoEditorStore {
   defaultSlotColor: string
   selectedSlotIndex: number | null
 
+  /** Single-photo mode: the uploaded photo (or null if not yet provided). */
+  singlePhoto: SinglePhotoState | null
+  /** Single-photo mode: which mask to clip the photo with. */
+  singlePhotoMaskKey: PhotoMaskKey
+
+  setLayoutMode: (mode: PhotoLayoutMode) => void
   setWord: (word: string) => void
   setWordWidth: (width: number) => void
   setWordPosition: (updates: Partial<{ x: number; y: number }>) => void
@@ -65,6 +95,13 @@ interface PhotoEditorStore {
   setSlotColor: (index: number, color: string | null) => void
   setDefaultSlotColor: (color: string) => void
   setSelectedSlotIndex: (index: number | null) => void
+
+  setSinglePhoto: (photo: SinglePhotoState | null) => void
+  updateSinglePhotoCrop: (
+    updates: Partial<Pick<SinglePhotoState, 'cropX' | 'cropY' | 'scale' | 'filter'>>,
+  ) => void
+  setSinglePhotoMaskKey: (mask: PhotoMaskKey) => void
+
   resetPhotoEditor: () => void
 }
 
@@ -85,6 +122,8 @@ function clamp01(value: number): number {
   return Math.max(0, Math.min(1, value))
 }
 
+const DEFAULT_SINGLE_PHOTO_MASK: PhotoMaskKey = 'full'
+
 export const usePhotoEditorStore = create<PhotoEditorStore>((set) => ({
   layoutMode: 'letter-mask',
   word: LETTER_MASK_DEFAULT_WORD,
@@ -96,6 +135,10 @@ export const usePhotoEditorStore = create<PhotoEditorStore>((set) => ({
   slots: INITIAL_SLOTS,
   defaultSlotColor: LETTER_MASK_DEFAULT_SLOT_COLOR,
   selectedSlotIndex: null,
+  singlePhoto: null,
+  singlePhotoMaskKey: DEFAULT_SINGLE_PHOTO_MASK,
+
+  setLayoutMode: (mode) => set({ layoutMode: mode }),
 
   setWord: (word) =>
     set((s) => ({
@@ -139,6 +182,19 @@ export const usePhotoEditorStore = create<PhotoEditorStore>((set) => ({
 
   setSelectedSlotIndex: (index) => set({ selectedSlotIndex: index }),
 
+  setSinglePhoto: (photo) =>
+    set({
+      singlePhoto: photo,
+    }),
+
+  updateSinglePhotoCrop: (updates) =>
+    set((s) => {
+      if (!s.singlePhoto) return {}
+      return { singlePhoto: { ...s.singlePhoto, ...updates } }
+    }),
+
+  setSinglePhotoMaskKey: (mask) => set({ singlePhotoMaskKey: mask }),
+
   resetPhotoEditor: () =>
     set({
       layoutMode: 'letter-mask',
@@ -151,5 +207,7 @@ export const usePhotoEditorStore = create<PhotoEditorStore>((set) => ({
       slots: buildSlotsFromWord(LETTER_MASK_DEFAULT_WORD, []),
       defaultSlotColor: LETTER_MASK_DEFAULT_SLOT_COLOR,
       selectedSlotIndex: null,
+      singlePhoto: null,
+      singlePhotoMaskKey: DEFAULT_SINGLE_PHOTO_MASK,
     }),
 }))

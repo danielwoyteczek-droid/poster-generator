@@ -27,6 +27,7 @@
   "photoEditor": {
     "tabWord": "Palabra",
     "tabSlots": "Fotos",
+    "tabSinglePhoto": "Foto",
     "tabText": "Texto",
     "orientationLabel": "Orientación",
     "orientationPortrait": "Vertical",
@@ -56,7 +57,20 @@
     "slotCropHint": "Arrastra el hueco en el póster para mover la imagen.",
     "uploadProgress": "Subiendo … {progress}%",
     "uploadFailed": "Error al subir",
-    "removePhoto": "Quitar foto"
+    "removePhoto": "Quitar foto",
+    "singlePhotoSectionLabel": "Tu foto",
+    "singlePhotoSectionHint": "Sube una foto y elige una forma.",
+    "singlePhotoEmptyTitle": "Aún sin foto",
+    "singlePhotoEmptyHint": "Sube una foto a la izquierda para empezar.",
+    "singlePhotoAria": "Área de la foto",
+    "singlePhotoUploaded": "Foto aplicada",
+    "singlePhotoUploadButton": "Subir foto",
+    "singlePhotoFormatHint": "JPG, PNG o HEIC. Máximo 10 MB. Se comprime automáticamente.",
+    "singlePhotoMaskLabel": "Forma",
+    "singlePhotoZoomLabel": "Zoom",
+    "singlePhotoCropHint": "Arrastra la foto para ajustar el encuadre.",
+    "singlePhotoFilterLabel": "Filtro",
+    "photoGridComingSoon": "Modo \"{mode}\" — próximamente"
   },
   "starMapEditor": {
     "locationLabel": "Ubicación",

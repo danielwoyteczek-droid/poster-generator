@@ -27,6 +27,7 @@
   "photoEditor": {
     "tabWord": "Wort",
     "tabSlots": "Fotos",
+    "tabSinglePhoto": "Foto",
     "tabText": "Text",
     "orientationLabel": "Ausrichtung",
     "orientationPortrait": "Hochkant",
@@ -56,7 +57,20 @@
     "slotCropHint": "Slot auf dem Poster ziehen, um Ausschnitt zu verschieben.",
     "uploadProgress": "Wird hochgeladen … {progress}%",
     "uploadFailed": "Upload fehlgeschlagen",
-    "removePhoto": "Foto entfernen"
+    "removePhoto": "Foto entfernen",
+    "singlePhotoSectionLabel": "Dein Foto",
+    "singlePhotoSectionHint": "Lade ein Foto hoch und wähle eine Form.",
+    "singlePhotoEmptyTitle": "Noch kein Foto",
+    "singlePhotoEmptyHint": "Lade links ein Foto hoch, um zu starten.",
+    "singlePhotoAria": "Foto-Bereich",
+    "singlePhotoUploaded": "Foto übernommen",
+    "singlePhotoUploadButton": "Foto hochladen",
+    "singlePhotoFormatHint": "JPG, PNG oder HEIC. Maximal 10 MB. Wird automatisch komprimiert.",
+    "singlePhotoMaskLabel": "Form",
+    "singlePhotoZoomLabel": "Zoom",
+    "singlePhotoCropHint": "Ziehe das Foto, um den Ausschnitt zu verschieben.",
+    "singlePhotoFilterLabel": "Filter",
+    "photoGridComingSoon": "Modus „{mode}\" — kommt in Folge-Pass"
   },
   "starMapEditor": {
     "locationLabel": "Ort",
