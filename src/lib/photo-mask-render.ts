@@ -63,6 +63,60 @@ export async function ensureMaskFontLoaded(maskFontFamily: string): Promise<void
 }
 
 /**
+ * Asks the browser for the actual baseline offset (distance from a span's
+ * top edge to the alphabetic baseline) under the same CSS the editor uses
+ * for letter-mask glyphs: `display: block; line-height: 1; white-space: pre`.
+ *
+ * Why DOM measurement? Canvas's `fontBoundingBox*` metrics don't match the
+ * browser's CSS line-box rules for display fonts like Anton — the canvas
+ * glyph rendered higher than the CSS-rendered glyph by ~5 % of fontSize.
+ * Using the browser's own layout result is pixel-perfect by construction.
+ *
+ * The trick is to attach a zero-sized inline-block child with
+ * `vertical-align: baseline` — its top coincides with the baseline of the
+ * surrounding line. Same technique used in popular text-metric libs.
+ *
+ * Result is cached per (font, fontSize) so repeated calls within a single
+ * export are essentially free.
+ */
+const baselineCache = new Map<string, number>()
+export function measureCssBaselineOffset(fontFamily: string, fontSize: number): number {
+  const key = `${fontFamily}|${fontSize}`
+  const cached = baselineCache.get(key)
+  if (cached !== undefined) return cached
+
+  const span = document.createElement('span')
+  span.style.cssText = [
+    'position: absolute',
+    'top: 0',
+    'left: 0',
+    'visibility: hidden',
+    'display: block',
+    'line-height: 1',
+    'white-space: pre',
+    'font-weight: 400',
+    `font-family: '${fontFamily}', sans-serif`,
+    `font-size: ${fontSize}px`,
+    'margin: 0',
+    'padding: 0',
+  ].join(';')
+  span.textContent = 'M' // any cap glyph; baseline doesn't depend on glyph shape
+
+  const baselineMarker = document.createElement('span')
+  baselineMarker.style.cssText = 'display: inline-block; width: 0; height: 0; vertical-align: baseline'
+  span.appendChild(baselineMarker)
+
+  document.body.appendChild(span)
+  const spanTop = span.getBoundingClientRect().top
+  const baselineTop = baselineMarker.getBoundingClientRect().top
+  document.body.removeChild(span)
+
+  const offset = baselineTop - spanTop
+  baselineCache.set(key, offset)
+  return offset
+}
+
+/**
  * Draws the letter-mask onto a canvas context. Each slot either renders
  * the glyph filled with the slot color (no photo) or composites the
  * customer's photo through the glyph shape (with photo).
@@ -84,23 +138,18 @@ export async function drawLetterMask(
   const containerLeft = (wordX - wordWidth / 2) * W
   const containerTop = wordY * H
 
-  // Reproduce CSS `line-height: 1` glyph rendering 1:1. Naive
-  // `textBaseline: 'top'` lines up the em-square top with `glyphY`, but for
-  // display fonts like Anton the visible glyph extends ABOVE the em-square
-  // (ascent + descent > fontSize). CSS handles this via half-leading
-  // (negative for tall fonts). We mirror that here using fontBounding
-  // metrics + an alphabetic-baseline anchor — matches `drawTextBlocks` in
-  // useMapExport. PROJ-32: word visually slid up in portrait export
-  // because of this mismatch.
+  // Reproduce CSS `line-height: 1` glyph rendering 1:1.
+  //
+  // Why not derive from canvas font metrics? Because `fontBoundingBoxAscent`
+  // doesn't match the browser's CSS line-box baseline computation for display
+  // fonts (Anton et al.) — using halfLeading + ascent gave the wrong y. We
+  // ask the browser directly: render an offscreen <span> with the same CSS
+  // the editor uses, measure where the actual baseline sits, use that offset.
+  // Result is pixel-perfect identical to TextBlockOverlay for any font.
   const emTopOffset = (slotH - fontSize) / 2
+  const baselineFromLineTop = measureCssBaselineOffset(maskFontFamily, fontSize)
   const measureCtx = document.createElement('canvas').getContext('2d')!
   measureCtx.font = `400 ${fontSize}px ${maskFontFamily}`
-  const fm = measureCtx.measureText('Hg')
-  const ascent = fm.fontBoundingBoxAscent > 0 ? fm.fontBoundingBoxAscent : fontSize * 0.8
-  const descent = fm.fontBoundingBoxDescent > 0 ? fm.fontBoundingBoxDescent : fontSize * 0.2
-  const halfLeading = (fontSize - ascent - descent) / 2
-  // Distance from line-box top (= emTopOffset in slot coords) to baseline.
-  const baselineFromLineTop = halfLeading + ascent
 
   for (let i = 0; i < slots.length; i++) {
     const slot = slots[i]
