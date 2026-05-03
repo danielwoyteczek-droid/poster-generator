@@ -84,14 +84,23 @@ export async function drawLetterMask(
   const containerLeft = (wordX - wordWidth / 2) * W
   const containerTop = wordY * H
 
-  // Position the glyph's em-box top so the em-box is vertically centered in
-  // the slot — the same geometry CSS produces for `line-height: 1` inside a
-  // `flex items-center` parent. We avoid `textBaseline: 'middle'` because
-  // Chrome/Firefox interpret "middle of the em-square" inconsistently for
-  // tall display fonts like Anton (the visible glyph drifts ~5 cm up on A4).
-  // `textBaseline: 'top'` aligns directly with the em-square top, matching
-  // the editor preview 1:1.
+  // Reproduce CSS `line-height: 1` glyph rendering 1:1. Naive
+  // `textBaseline: 'top'` lines up the em-square top with `glyphY`, but for
+  // display fonts like Anton the visible glyph extends ABOVE the em-square
+  // (ascent + descent > fontSize). CSS handles this via half-leading
+  // (negative for tall fonts). We mirror that here using fontBounding
+  // metrics + an alphabetic-baseline anchor — matches `drawTextBlocks` in
+  // useMapExport. PROJ-32: word visually slid up in portrait export
+  // because of this mismatch.
   const emTopOffset = (slotH - fontSize) / 2
+  const measureCtx = document.createElement('canvas').getContext('2d')!
+  measureCtx.font = `400 ${fontSize}px ${maskFontFamily}`
+  const fm = measureCtx.measureText('Hg')
+  const ascent = fm.fontBoundingBoxAscent > 0 ? fm.fontBoundingBoxAscent : fontSize * 0.8
+  const descent = fm.fontBoundingBoxDescent > 0 ? fm.fontBoundingBoxDescent : fontSize * 0.2
+  const halfLeading = (fontSize - ascent - descent) / 2
+  // Distance from line-box top (= emTopOffset in slot coords) to baseline.
+  const baselineFromLineTop = halfLeading + ascent
 
   for (let i = 0; i < slots.length; i++) {
     const slot = slots[i]
@@ -119,11 +128,9 @@ export async function drawLetterMask(
       //    naturally because tmp is transparent outside the glyph silhouette.
       const photo = slot.photo
 
-      // Measure the glyph in a throwaway context using the same font as the
-      // composite fillText below — these dimensions drive both the tmp size
+      // Measure the glyph using the shared measureCtx (same font already set
+      // above for ascent/descent). These dimensions drive both the tmp size
       // and the photo positioning math.
-      const measureCtx = document.createElement('canvas').getContext('2d')!
-      measureCtx.font = `400 ${fontSize}px ${maskFontFamily}`
       const glyphW = measureCtx.measureText(slot.char).width
       const glyphH = fontSize // matches editor's `line-height: 1` span height
 
@@ -169,8 +176,8 @@ export async function drawLetterMask(
       tctx.fillStyle = '#000'
       tctx.font = `400 ${fontSize}px ${maskFontFamily}`
       tctx.textAlign = 'center'
-      tctx.textBaseline = 'top'
-      tctx.fillText(slot.char, tmpW / 2, glyphTopInTmp)
+      tctx.textBaseline = 'alphabetic'
+      tctx.fillText(slot.char, tmpW / 2, glyphTopInTmp + baselineFromLineTop)
 
       // Blit with negative offset so the slot region of tmp lands at the
       // slot's position on the main canvas. Glyph overflow areas extend
@@ -183,8 +190,8 @@ export async function drawLetterMask(
       ctx.fillStyle = slot.color ?? defaultSlotColor
       ctx.font = `400 ${fontSize}px ${maskFontFamily}`
       ctx.textAlign = 'center'
-      ctx.textBaseline = 'top'
-      ctx.fillText(slot.char, cx, glyphY)
+      ctx.textBaseline = 'alphabetic'
+      ctx.fillText(slot.char, cx, glyphY + baselineFromLineTop)
     }
   }
 }
