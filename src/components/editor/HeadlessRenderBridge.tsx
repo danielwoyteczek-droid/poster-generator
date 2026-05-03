@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react'
 import { useMapExport } from '@/hooks/useMapExport'
 import { useStarMapExport } from '@/hooks/useStarMapExport'
+import { usePhotoExport } from '@/hooks/usePhotoExport'
 import { useEditorStore } from '@/hooks/useEditorStore'
 import type { PrintFormat } from '@/lib/print-formats'
 
@@ -38,10 +39,27 @@ export function HeadlessStarMapRenderBridge() {
   return <BridgeImpl renderPreview={renderPreview} />
 }
 
+/**
+ * Bridge für Foto-Poster-Editor-Headless-Render. Wie die Map-/Star-Map-
+ * Bridges, aber ohne Lat/Lng-URL-Override (Foto-Posters haben keine
+ * Geo-Komponente). Slot-Fotos werden via Storage-URLs geladen — der
+ * READY_DELAY_MS-Puffer reicht für `loadImage()` in `drawLetterMask()`.
+ */
+export function HeadlessPhotoRenderBridge() {
+  const { renderPreview } = usePhotoExport()
+  return <BridgeImpl renderPreview={renderPreview} skipLocationOverride />
+}
+
 function BridgeImpl({
   renderPreview,
+  skipLocationOverride = false,
 }: {
   renderPreview: (format: PrintFormat) => Promise<string>
+  /** When true, skip the lat/lng/zoom URL override step. Photo posters
+   *  have no geo state to write to, so the override block is a no-op
+   *  there — and writing to `useEditorStore.viewState` would touch a
+   *  store the photo editor never reads from. */
+  skipLocationOverride?: boolean
 }) {
   const renderPreviewRef = useRef(renderPreview)
   renderPreviewRef.current = renderPreview
@@ -74,6 +92,10 @@ function BridgeImpl({
       //    PROJ-30 Phase 4: Worker übergibt die preset-spezifische Location dort.
       //    Zoom kommt primär aus dem Preset (pendingCenter.zoom, vom applyPreset
       //    gesetzt). URL-`zoom` ist nur expliziter Override für Test-Szenarien.
+      //    Für Foto-Posters (skipLocationOverride) wird das übersprungen.
+      if (skipLocationOverride) {
+        // Fall-through to Fonts + Delay
+      } else {
       const lat = parseFloat(url.searchParams.get('lat') ?? '')
       const lng = parseFloat(url.searchParams.get('lng') ?? '')
       const urlZoom = parseFloat(url.searchParams.get('zoom') ?? '')
@@ -119,6 +141,7 @@ function BridgeImpl({
           }
         })
       }
+      } // end of skipLocationOverride else-block
 
       // 3. Fonts laden
       try {

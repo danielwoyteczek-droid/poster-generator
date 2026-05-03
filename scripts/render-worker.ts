@@ -72,7 +72,7 @@ interface PresetConfigJson {
 interface PresetRow {
   id: string
   name: string
-  poster_type: 'map' | 'star-map'
+  poster_type: 'map' | 'star-map' | 'photo'
   config_json: PresetConfigJson | null
   mockup_set_ids: string[] | null
   preview_image_url: string | null
@@ -247,17 +247,26 @@ async function renderPosterPng(
   context: BrowserContext,
   preset: PresetRow,
 ): Promise<Buffer> {
-  const editorPath = preset.poster_type === 'star-map' ? 'star-map' : 'map'
-  const loc = resolveLocation(preset)
+  const editorPath =
+    preset.poster_type === 'star-map' ? 'star-map'
+    : preset.poster_type === 'photo' ? 'photo'
+    : 'map'
 
   const params = new URLSearchParams({
     preset: preset.id,
     headless: '1',
-    lat: String(loc.lat),
-    lng: String(loc.lng),
   })
-  if (loc.name) params.set('location_name', loc.name)
-  if (loc.zoom) params.set('zoom', String(loc.zoom))
+
+  // Photo presets carry no geo state — skip location params entirely so the
+  // headless bridge takes the no-location code path. Map and star-map
+  // presets continue to send lat/lng/zoom for the location override.
+  if (preset.poster_type !== 'photo') {
+    const loc = resolveLocation(preset)
+    params.set('lat', String(loc.lat))
+    params.set('lng', String(loc.lng))
+    if (loc.name) params.set('location_name', loc.name)
+    if (loc.zoom) params.set('zoom', String(loc.zoom))
+  }
 
   const url = `${APP_BASE_URL}/${DEFAULT_LOCALE}/${editorPath}?${params.toString()}`
   log(`  → headless render: ${url}`)

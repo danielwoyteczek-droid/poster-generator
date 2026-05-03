@@ -5,10 +5,11 @@ import { PresetUrlApplier } from './PresetUrlApplier'
 import {
   HeadlessMapRenderBridge,
   HeadlessStarMapRenderBridge,
+  HeadlessPhotoRenderBridge,
 } from './HeadlessRenderBridge'
 
 interface HeadlessEditorViewProps {
-  posterType: 'map' | 'star-map'
+  posterType: 'map' | 'star-map' | 'photo'
 }
 
 /**
@@ -35,7 +36,13 @@ export function HeadlessEditorView({ posterType }: HeadlessEditorViewProps) {
       <Suspense fallback={null}>
         <PresetUrlApplier posterType={posterType} />
       </Suspense>
-      {posterType === 'map' ? <HeadlessMapRenderBridge /> : <HeadlessStarMapRenderBridge />}
+      {posterType === 'map' ? (
+        <HeadlessMapRenderBridge />
+      ) : posterType === 'star-map' ? (
+        <HeadlessStarMapRenderBridge />
+      ) : (
+        <HeadlessPhotoRenderBridge />
+      )}
     </div>
   )
 }
