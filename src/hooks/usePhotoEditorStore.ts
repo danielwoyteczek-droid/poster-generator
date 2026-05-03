@@ -8,6 +8,10 @@ import {
 import type { PosterOrientation } from '@/lib/print-formats'
 import type { PhotoFilter } from '@/hooks/useEditorStore'
 import type { PhotoMaskKey } from '@/lib/photo-masks'
+import {
+  DEFAULT_GRID_LAYOUT,
+  type GridSlotDefinition,
+} from '@/lib/grid-layout'
 
 export type PhotoLayoutMode = 'letter-mask' | 'single-photo' | 'photo-grid'
 
@@ -41,6 +45,19 @@ export interface LetterSlot {
  * the image inside that mask. Mirrors `SlotPhoto` shape so downstream
  * (export, preset save, persistence) treats both modes the same way.
  */
+/**
+ * Photo-grid mode: per-slot runtime state that pairs with the layout
+ * defined on the preset (`GridSlotDefinition`). Mirrors `LetterSlot`'s
+ * shape so that the same upload + crop UX works across both modes.
+ */
+export interface GridSlotState {
+  /** Stable slot id, mirroring the layout definition's id. */
+  id: string
+  photo: SlotPhoto | null
+  /** Hex color override; null inherits `defaultSlotColor`. */
+  color: string | null
+}
+
 export interface SinglePhotoState {
   storagePath: string
   publicUrl: string
@@ -82,6 +99,15 @@ interface PhotoEditorStore {
   /** Single-photo mode: which mask to clip the photo with. */
   singlePhotoMaskKey: PhotoMaskKey
 
+  /** Photo-grid mode: slot rectangles authored by Admin (frozen for the
+   *  customer; preset-fixed). Empty = no preset applied yet. */
+  gridLayout: GridSlotDefinition[]
+  /** Photo-grid mode: per-slot photo / color state, indexed parallel to
+   *  `gridLayout`. Length must always match `gridLayout.length`. */
+  gridSlots: GridSlotState[]
+  /** Photo-grid mode: which slot the customer last interacted with. */
+  selectedGridSlotIndex: number | null
+
   setLayoutMode: (mode: PhotoLayoutMode) => void
   setWord: (word: string) => void
   setWordWidth: (width: number) => void
@@ -101,6 +127,18 @@ interface PhotoEditorStore {
     updates: Partial<Pick<SinglePhotoState, 'cropX' | 'cropY' | 'scale' | 'filter'>>,
   ) => void
   setSinglePhotoMaskKey: (mask: PhotoMaskKey) => void
+
+  /** Replace the current grid layout (admin-side editor + preset apply).
+   *  Reconciles `gridSlots` so each layout id has a corresponding state
+   *  entry — existing entries are kept by id, new ids get an empty slot. */
+  setGridLayout: (slots: GridSlotDefinition[]) => void
+  setGridSlotPhoto: (index: number, photo: SlotPhoto | null) => void
+  updateGridSlotCrop: (
+    index: number,
+    updates: Partial<Pick<SlotPhoto, 'cropX' | 'cropY' | 'scale'>>,
+  ) => void
+  setGridSlotColor: (index: number, color: string | null) => void
+  setSelectedGridSlotIndex: (index: number | null) => void
 
   resetPhotoEditor: () => void
 }
@@ -124,6 +162,28 @@ function clamp01(value: number): number {
 
 const DEFAULT_SINGLE_PHOTO_MASK: PhotoMaskKey = 'full'
 
+/**
+ * Reconcile a list of grid slot states against a fresh layout. Slots that
+ * keep their id retain their photo / color; slots whose id disappears get
+ * dropped; new ids get an empty `{ photo: null, color: null }` entry.
+ */
+function reconcileGridSlots(
+  layout: GridSlotDefinition[],
+  prev: GridSlotState[],
+): GridSlotState[] {
+  const byId = new Map(prev.map((s) => [s.id, s]))
+  return layout.map(
+    (def) => byId.get(def.id) ?? { id: def.id, photo: null, color: null },
+  )
+}
+
+const INITIAL_GRID_LAYOUT: GridSlotDefinition[] = DEFAULT_GRID_LAYOUT.slots.map((s) => ({ ...s }))
+const INITIAL_GRID_SLOTS: GridSlotState[] = INITIAL_GRID_LAYOUT.map((s) => ({
+  id: s.id,
+  photo: null,
+  color: null,
+}))
+
 export const usePhotoEditorStore = create<PhotoEditorStore>((set) => ({
   layoutMode: 'letter-mask',
   word: LETTER_MASK_DEFAULT_WORD,
@@ -137,6 +197,9 @@ export const usePhotoEditorStore = create<PhotoEditorStore>((set) => ({
   selectedSlotIndex: null,
   singlePhoto: null,
   singlePhotoMaskKey: DEFAULT_SINGLE_PHOTO_MASK,
+  gridLayout: INITIAL_GRID_LAYOUT,
+  gridSlots: INITIAL_GRID_SLOTS,
+  selectedGridSlotIndex: null,
 
   setLayoutMode: (mode) => set({ layoutMode: mode }),
 
@@ -195,6 +258,36 @@ export const usePhotoEditorStore = create<PhotoEditorStore>((set) => ({
 
   setSinglePhotoMaskKey: (mask) => set({ singlePhotoMaskKey: mask }),
 
+  setGridLayout: (slots) =>
+    set((s) => ({
+      gridLayout: slots,
+      gridSlots: reconcileGridSlots(slots, s.gridSlots),
+      selectedGridSlotIndex:
+        s.selectedGridSlotIndex !== null && s.selectedGridSlotIndex < slots.length
+          ? s.selectedGridSlotIndex
+          : null,
+    })),
+
+  setGridSlotPhoto: (index, photo) =>
+    set((s) => ({
+      gridSlots: s.gridSlots.map((slot, i) => (i === index ? { ...slot, photo } : slot)),
+    })),
+
+  updateGridSlotCrop: (index, updates) =>
+    set((s) => ({
+      gridSlots: s.gridSlots.map((slot, i) => {
+        if (i !== index || !slot.photo) return slot
+        return { ...slot, photo: { ...slot.photo, ...updates } }
+      }),
+    })),
+
+  setGridSlotColor: (index, color) =>
+    set((s) => ({
+      gridSlots: s.gridSlots.map((slot, i) => (i === index ? { ...slot, color } : slot)),
+    })),
+
+  setSelectedGridSlotIndex: (index) => set({ selectedGridSlotIndex: index }),
+
   resetPhotoEditor: () =>
     set({
       layoutMode: 'letter-mask',
@@ -209,5 +302,12 @@ export const usePhotoEditorStore = create<PhotoEditorStore>((set) => ({
       selectedSlotIndex: null,
       singlePhoto: null,
       singlePhotoMaskKey: DEFAULT_SINGLE_PHOTO_MASK,
+      gridLayout: DEFAULT_GRID_LAYOUT.slots.map((s) => ({ ...s })),
+      gridSlots: DEFAULT_GRID_LAYOUT.slots.map((s) => ({
+        id: s.id,
+        photo: null,
+        color: null,
+      })),
+      selectedGridSlotIndex: null,
     }),
 }))

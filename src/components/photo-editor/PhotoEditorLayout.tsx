@@ -7,6 +7,9 @@ import { TextTab } from '@/components/sidebar/TextTab'
 import { LetterMaskTab } from './sidebar/LetterMaskTab'
 import { PhotoSlotsTab } from './sidebar/PhotoSlotsTab'
 import { SinglePhotoTab } from './sidebar/SinglePhotoTab'
+import { PhotoGridTab } from './sidebar/PhotoGridTab'
+import { GridLayoutDesigner } from '@/components/admin/GridLayoutDesigner'
+import { useAuth } from '@/hooks/useAuth'
 import { PhotoExportTab } from './sidebar/PhotoExportTab'
 import { PhotoPosterCanvas } from './PhotoPosterCanvas'
 import { useProjectSync } from '@/hooks/useProjectSync'
@@ -19,12 +22,16 @@ export function PhotoEditorLayout() {
   const t = useTranslations('photoEditor')
   const tEditor = useTranslations('editor')
   const layoutMode = usePhotoEditorStore((s) => s.layoutMode)
+  const { isAdmin } = useAuth()
   useProjectSync('photo')
 
   // The "photos" tab is mode-aware: letter-mask shows the per-letter slot
-  // list, single-photo shows the single-image upload + mask picker. The
-  // word tab is hidden in single-photo mode (no word to edit).
+  // list, single-photo shows the single-image upload + mask picker,
+  // photo-grid shows the per-slot upload + crop list. The word tab is
+  // hidden outside letter-mask (no word to edit).
   const isLetterMask = layoutMode === 'letter-mask'
+  const isPhotoGrid = layoutMode === 'photo-grid'
+  const showDesignerTab = isPhotoGrid && isAdmin
 
   return (
     <div className="flex h-full overflow-hidden">
@@ -44,8 +51,17 @@ export function PhotoEditorLayout() {
               data-photo-editor-slots-tab=""
               className={TAB_TRIGGER_CN}
             >
-              {isLetterMask ? t('tabSlots') : t('tabSinglePhoto')}
+              {isLetterMask
+                ? t('tabSlots')
+                : isPhotoGrid
+                  ? t('tabPhotoGrid')
+                  : t('tabSinglePhoto')}
             </TabsTrigger>
+            {showDesignerTab && (
+              <TabsTrigger value="designer" className={TAB_TRIGGER_CN}>
+                {t('tabGridDesigner')}
+              </TabsTrigger>
+            )}
             <TabsTrigger value="text" className={TAB_TRIGGER_CN}>
               {t('tabText')}
             </TabsTrigger>
@@ -61,8 +77,19 @@ export function PhotoEditorLayout() {
               </TabsContent>
             )}
             <TabsContent value="slots" className="mt-0">
-              {isLetterMask ? <PhotoSlotsTab /> : <SinglePhotoTab />}
+              {isLetterMask ? (
+                <PhotoSlotsTab />
+              ) : isPhotoGrid ? (
+                <PhotoGridTab />
+              ) : (
+                <SinglePhotoTab />
+              )}
             </TabsContent>
+            {showDesignerTab && (
+              <TabsContent value="designer" className="mt-0">
+                <GridLayoutDesigner />
+              </TabsContent>
+            )}
             <TabsContent value="text" className="mt-0">
               <TextTab hideCoordinates />
             </TabsContent>

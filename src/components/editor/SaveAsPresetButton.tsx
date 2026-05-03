@@ -80,6 +80,12 @@ export function SaveAsPresetButton() {
         // Supabase URL persistence story as `slots`.
         singlePhoto: photo.singlePhoto,
         singlePhotoMaskKey: photo.singlePhotoMaskKey,
+        // Photo-grid state: admin-authored slot rectangles (`gridLayout`)
+        // + the customer's per-slot photo / color overrides (`gridSlots`).
+        // Saving both means re-applying the preset restores the visual
+        // exactly — including any photos the admin pre-filled.
+        gridLayout: { slots: photo.gridLayout },
+        gridSlots: photo.gridSlots,
         textBlocks: editor.textBlocks,
       }
     }

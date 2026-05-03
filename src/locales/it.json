@@ -70,7 +70,39 @@
     "singlePhotoZoomLabel": "Zoom",
     "singlePhotoCropHint": "Trascina la foto per regolare il ritaglio.",
     "singlePhotoFilterLabel": "Filtro",
-    "photoGridComingSoon": "Modalità \"{mode}\" — in arrivo"
+    "photoGridComingSoon": "Modalità \"{mode}\" — in arrivo",
+    "tabPhotoGrid": "Griglia foto",
+    "tabGridDesigner": "Layout griglia",
+    "gridSectionLabel": "Griglia foto",
+    "gridSectionHint": "Carica una foto per ogni slot oppure lasciali colorati.",
+    "gridDefaultColorLabel": "Colore predefinito per slot vuoti",
+    "gridUploadButton": "Carica foto",
+    "gridColorLabel": "Colore slot",
+    "gridSlotLabel": "Slot {n}",
+    "gridSlotShape": "Forma",
+    "gridPhotoAdded": "Foto aggiunta allo slot {index}",
+    "gridEmptyTitle": "Ancora nessun layout",
+    "gridEmptyHint": "Scegli un preset a griglia per vedere gli slot."
+  },
+  "gridDesigner": {
+    "title": "Layout griglia (admin)",
+    "description": "Trascina gli slot per spostarli, trascina gli angoli per ridimensionarli. Min. {min}, max. {max} slot.",
+    "addSlot": "Aggiungi slot",
+    "deleteSlot": "Elimina slot",
+    "reset": "Ripristina",
+    "snapLabel": "Aggancia alla griglia (5%)",
+    "slotCountHint": "{count} di {min}–{max} slot",
+    "maxReachedTooltip": "Massimo {max} slot consentiti",
+    "minReachedTooltip": "Almeno {min} slot richiesti",
+    "selectFirstTooltip": "Seleziona prima uno slot"
+  },
+  "gridSlotMasks": {
+    "rectLabel": "Rettangolo",
+    "squareLabel": "Quadrato",
+    "circleLabel": "Cerchio",
+    "heartLabel": "Cuore",
+    "portraitLabel": "Verticale",
+    "landscapeLabel": "Orizzontale"
   },
   "starMapEditor": {
     "locationLabel": "Località",

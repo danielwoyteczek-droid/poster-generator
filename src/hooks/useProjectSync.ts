@@ -70,6 +70,11 @@ function getConfig(posterType: PosterType): Record<string, unknown> {
       // lose their single-photo poster mid-design.
       singlePhoto: ph.singlePhoto,
       singlePhotoMaskKey: ph.singlePhotoMaskKey,
+      // Photo-grid mode (PROJ-32): admin-authored slot rectangles plus
+      // the customer's per-slot photo / color overrides. Persisted so
+      // refresh restores the grid + uploads exactly.
+      gridLayout: { slots: ph.gridLayout },
+      gridSlots: ph.gridSlots,
       printFormat: editor.printFormat,
       textBlocks: editor.textBlocks,
     }
@@ -149,18 +154,36 @@ function applyConfig(posterType: PosterType, config: Record<string, unknown>): v
     return
   }
   if (posterType === 'photo') {
+    type PhotoState = ReturnType<typeof usePhotoEditorStore.getState>
     const c = config as Partial<{
-      word: string; slots: ReturnType<typeof usePhotoEditorStore.getState>['slots']
+      word: string; slots: PhotoState['slots']
       wordWidth: number; wordX: number; wordY: number
-      orientation: ReturnType<typeof usePhotoEditorStore.getState>['orientation']
-      maskFontKey: ReturnType<typeof usePhotoEditorStore.getState>['maskFontKey']
+      orientation: PhotoState['orientation']
+      maskFontKey: PhotoState['maskFontKey']
       defaultSlotColor: string
-      layoutMode: ReturnType<typeof usePhotoEditorStore.getState>['layoutMode']
-      singlePhoto: ReturnType<typeof usePhotoEditorStore.getState>['singlePhoto']
-      singlePhotoMaskKey: ReturnType<typeof usePhotoEditorStore.getState>['singlePhotoMaskKey']
+      layoutMode: PhotoState['layoutMode']
+      singlePhoto: PhotoState['singlePhoto']
+      singlePhotoMaskKey: PhotoState['singlePhotoMaskKey']
+      gridLayout: { slots: PhotoState['gridLayout'] } | PhotoState['gridLayout']
+      gridSlots: PhotoState['gridSlots']
       printFormat: EditorConfig['printFormat']
       textBlocks: EditorConfig['textBlocks']
     }>
+    // Photo-grid: same envelope handling as `applyPreset` — accept
+    // `{ slots: [...] }` (canonical) or a bare array (legacy).
+    const incomingLayout: PhotoState['gridLayout'] | null = Array.isArray(c.gridLayout)
+      ? c.gridLayout
+      : c.gridLayout && Array.isArray((c.gridLayout as { slots?: unknown }).slots)
+        ? (c.gridLayout as { slots: PhotoState['gridLayout'] }).slots
+        : null
+    const reconciledGridSlots: PhotoState['gridSlots'] | null = incomingLayout
+      ? incomingLayout.map((def) => {
+          const incoming = Array.isArray(c.gridSlots)
+            ? c.gridSlots.find((s) => s.id === def.id)
+            : undefined
+          return incoming ?? { id: def.id, photo: null, color: null }
+        })
+      : null
     usePhotoEditorStore.setState((state) => ({
       ...state,
       word: typeof c.word === 'string' ? c.word : state.word,
@@ -176,6 +199,14 @@ function applyConfig(posterType: PosterType, config: Record<string, unknown>): v
       // state) from "key explicitly null" (customer removed the photo).
       singlePhoto: 'singlePhoto' in c ? (c.singlePhoto ?? null) : state.singlePhoto,
       singlePhotoMaskKey: c.singlePhotoMaskKey ?? state.singlePhotoMaskKey,
+      gridLayout: incomingLayout ?? state.gridLayout,
+      gridSlots: reconciledGridSlots ?? state.gridSlots,
+      selectedGridSlotIndex:
+        incomingLayout && state.selectedGridSlotIndex !== null
+          ? state.selectedGridSlotIndex < incomingLayout.length
+            ? state.selectedGridSlotIndex
+            : null
+          : state.selectedGridSlotIndex,
     }))
     if (c.printFormat) useEditorStore.setState({ printFormat: c.printFormat })
     if (c.textBlocks) useEditorStore.setState({ textBlocks: c.textBlocks })

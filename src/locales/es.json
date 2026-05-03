@@ -70,7 +70,39 @@
     "singlePhotoZoomLabel": "Zoom",
     "singlePhotoCropHint": "Arrastra la foto para ajustar el encuadre.",
     "singlePhotoFilterLabel": "Filtro",
-    "photoGridComingSoon": "Modo \"{mode}\" — próximamente"
+    "photoGridComingSoon": "Modo \"{mode}\" — próximamente",
+    "tabPhotoGrid": "Cuadrícula de fotos",
+    "tabGridDesigner": "Diseño de cuadrícula",
+    "gridSectionLabel": "Cuadrícula de fotos",
+    "gridSectionHint": "Sube una foto en cada espacio o déjalo como un bloque de color.",
+    "gridDefaultColorLabel": "Color predeterminado para espacios vacíos",
+    "gridUploadButton": "Subir foto",
+    "gridColorLabel": "Color del espacio",
+    "gridSlotLabel": "Espacio {n}",
+    "gridSlotShape": "Forma",
+    "gridPhotoAdded": "Foto añadida al espacio {index}",
+    "gridEmptyTitle": "Aún no hay diseño de cuadrícula",
+    "gridEmptyHint": "Elige un preset de cuadrícula para ver los espacios."
+  },
+  "gridDesigner": {
+    "title": "Diseño de cuadrícula (admin)",
+    "description": "Arrastra los espacios para moverlos, las esquinas para redimensionar. Mín. {min}, máx. {max} espacios.",
+    "addSlot": "Añadir espacio",
+    "deleteSlot": "Eliminar espacio",
+    "reset": "Restablecer",
+    "snapLabel": "Ajustar a la cuadrícula (5%)",
+    "slotCountHint": "{count} de {min}–{max} espacios",
+    "maxReachedTooltip": "Máximo {max} espacios permitidos",
+    "minReachedTooltip": "Mínimo {min} espacios requeridos",
+    "selectFirstTooltip": "Selecciona primero un espacio"
+  },
+  "gridSlotMasks": {
+    "rectLabel": "Rectángulo",
+    "squareLabel": "Cuadrado",
+    "circleLabel": "Círculo",
+    "heartLabel": "Corazón",
+    "portraitLabel": "Vertical",
+    "landscapeLabel": "Horizontal"
   },
   "starMapEditor": {
     "locationLabel": "Ubicación",

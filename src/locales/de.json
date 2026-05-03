@@ -70,7 +70,39 @@
     "singlePhotoZoomLabel": "Zoom",
     "singlePhotoCropHint": "Ziehe das Foto, um den Ausschnitt zu verschieben.",
     "singlePhotoFilterLabel": "Filter",
-    "photoGridComingSoon": "Modus „{mode}\" — kommt in Folge-Pass"
+    "photoGridComingSoon": "Modus „{mode}\" — kommt in Folge-Pass",
+    "tabPhotoGrid": "Foto-Grid",
+    "tabGridDesigner": "Grid-Layout",
+    "gridSectionLabel": "Foto-Grid",
+    "gridSectionHint": "Lade pro Slot ein Foto hoch oder lass den Slot in seiner Farbe stehen.",
+    "gridDefaultColorLabel": "Standard-Farbe für leere Slots",
+    "gridUploadButton": "Foto hochladen",
+    "gridColorLabel": "Slot-Farbe",
+    "gridSlotLabel": "Slot {n}",
+    "gridSlotShape": "Form",
+    "gridPhotoAdded": "Foto für Slot {index} übernommen",
+    "gridEmptyTitle": "Noch kein Grid-Layout",
+    "gridEmptyHint": "Wähle ein Foto-Grid-Preset, um Slots zu sehen."
+  },
+  "gridDesigner": {
+    "title": "Grid-Layout (Admin)",
+    "description": "Ziehe Slots, um sie zu bewegen, und nutze die Eckpunkte zum Skalieren. Min. {min}, max. {max} Slots.",
+    "addSlot": "Slot hinzufügen",
+    "deleteSlot": "Slot löschen",
+    "reset": "Zurücksetzen",
+    "snapLabel": "An Raster ausrichten (5%)",
+    "slotCountHint": "{count} von {min}–{max} Slots",
+    "maxReachedTooltip": "Maximal {max} Slots erlaubt",
+    "minReachedTooltip": "Mindestens {min} Slots erforderlich",
+    "selectFirstTooltip": "Wähle erst einen Slot aus"
+  },
+  "gridSlotMasks": {
+    "rectLabel": "Rechteck",
+    "squareLabel": "Quadrat",
+    "circleLabel": "Kreis",
+    "heartLabel": "Herz",
+    "portraitLabel": "Hochformat",
+    "landscapeLabel": "Querformat"
   },
   "starMapEditor": {
     "locationLabel": "Ort",

@@ -6,6 +6,7 @@ import { Type, ImageIcon, Layers, Download } from 'lucide-react'
 import { LetterMaskTab } from '../sidebar/LetterMaskTab'
 import { PhotoSlotsTab } from '../sidebar/PhotoSlotsTab'
 import { SinglePhotoTab } from '../sidebar/SinglePhotoTab'
+import { PhotoGridTab } from '../sidebar/PhotoGridTab'
 import { PhotoExportTab } from '../sidebar/PhotoExportTab'
 import { MobileTextTab } from '@/components/sidebar/mobile/MobileTextTab'
 import { PhotoPosterCanvas } from '../PhotoPosterCanvas'
@@ -37,6 +38,7 @@ export function MobilePhotoEditorLayout() {
   const tEditor = useTranslations('editor')
   const layoutMode = usePhotoEditorStore((s) => s.layoutMode)
   const isLetterMask = layoutMode === 'letter-mask'
+  const isPhotoGrid = layoutMode === 'photo-grid'
   // Default to the slots tab in single-photo mode (no word to type) so the
   // customer lands directly on the upload UI.
   const [activeTab, setActiveTab] = useState<MobilePhotoTab>(
@@ -48,7 +50,11 @@ export function MobilePhotoEditorLayout() {
     { id: 'word', label: t('tabWord'), Icon: Layers },
     {
       id: 'slots',
-      label: isLetterMask ? t('tabSlots') : t('tabSinglePhoto'),
+      label: isLetterMask
+        ? t('tabSlots')
+        : isPhotoGrid
+          ? t('tabPhotoGrid')
+          : t('tabSinglePhoto'),
       Icon: ImageIcon,
     },
     { id: 'text', label: t('tabText'), Icon: Type },
@@ -98,7 +104,14 @@ export function MobilePhotoEditorLayout() {
 
       <div className="flex-1 min-h-0 overflow-y-auto bg-white">
         {activeTab === 'word' && isLetterMask && <LetterMaskTab />}
-        {activeTab === 'slots' && (isLetterMask ? <PhotoSlotsTab /> : <SinglePhotoTab />)}
+        {activeTab === 'slots' &&
+          (isLetterMask ? (
+            <PhotoSlotsTab />
+          ) : isPhotoGrid ? (
+            <PhotoGridTab />
+          ) : (
+            <SinglePhotoTab />
+          ))}
         {activeTab === 'text' && <MobileTextTab hideCoordinates />}
         {activeTab === 'export' && <PhotoExportTab />}
       </div>

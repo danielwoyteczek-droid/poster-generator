@@ -2,9 +2,11 @@ import { useEditorStore, type EditorStore } from '@/hooks/useEditorStore'
 import { useStarMapStore } from '@/hooks/useStarMapStore'
 import {
   usePhotoEditorStore,
+  type GridSlotState,
   type LetterSlot,
   type SinglePhotoState,
 } from '@/hooks/usePhotoEditorStore'
+import type { GridLayout, GridSlotDefinition } from '@/lib/grid-layout'
 import { resolveMask } from '@/hooks/useCustomMasks'
 import type { MaskFontKey } from '@/lib/letter-mask'
 import type { PosterOrientation } from '@/lib/print-formats'
@@ -134,6 +136,8 @@ export function applyPreset(preset: PresetLike): UndoFn {
       layoutMode?: 'letter-mask' | 'single-photo' | 'photo-grid'
       singlePhoto?: SinglePhotoState | null
       singlePhotoMaskKey?: PhotoMaskKey
+      gridLayout?: GridLayout | GridSlotDefinition[]
+      gridSlots?: GridSlotState[]
       textBlocks?: unknown
     }
     const photo = usePhotoEditorStore.getState()
@@ -151,8 +155,32 @@ export function applyPreset(preset: PresetLike): UndoFn {
       layoutMode: photo.layoutMode,
       singlePhoto: photo.singlePhoto,
       singlePhotoMaskKey: photo.singlePhotoMaskKey,
+      gridLayout: photo.gridLayout,
+      gridSlots: photo.gridSlots,
+      selectedGridSlotIndex: photo.selectedGridSlotIndex,
       textBlocks: editorBefore.textBlocks,
     }
+
+    // Photo-grid: accept either the canonical `{ slots: [...] }` envelope
+    // or a bare array (legacy / editor convenience). Reconcile gridSlots
+    // so length always matches the new layout.
+    const incomingLayout: GridSlotDefinition[] | null = Array.isArray(p.gridLayout)
+      ? p.gridLayout
+      : p.gridLayout && Array.isArray(p.gridLayout.slots)
+        ? p.gridLayout.slots
+        : null
+
+    // Reconcile incoming gridSlots state against the new layout so length
+    // always matches the new slot count. Slots that share an id keep their
+    // photo / color; new ids get an empty entry.
+    const reconciledGridSlots = incomingLayout
+      ? incomingLayout.map((def) => {
+          const incoming = Array.isArray(p.gridSlots)
+            ? p.gridSlots.find((s) => s.id === def.id)
+            : undefined
+          return incoming ?? { id: def.id, photo: null, color: null }
+        })
+      : null
 
     usePhotoEditorStore.setState((state) => ({
       ...state,
@@ -169,6 +197,18 @@ export function applyPreset(preset: PresetLike): UndoFn {
       // uploaded one yet) — distinguish "not in config" from "null".
       singlePhoto: 'singlePhoto' in p ? (p.singlePhoto ?? null) : state.singlePhoto,
       singlePhotoMaskKey: p.singlePhotoMaskKey ?? state.singlePhotoMaskKey,
+      // Photo-grid: only swap layout + slots if the preset actually carries
+      // them. A map / star-map / letter-mask preset shouldn't overwrite the
+      // current grid state.
+      gridLayout: incomingLayout ?? state.gridLayout,
+      gridSlots: reconciledGridSlots ?? state.gridSlots,
+      // Drop any selection that no longer points at a valid slot.
+      selectedGridSlotIndex:
+        incomingLayout && state.selectedGridSlotIndex !== null
+          ? state.selectedGridSlotIndex < incomingLayout.length
+            ? state.selectedGridSlotIndex
+            : null
+          : state.selectedGridSlotIndex,
     }))
     if (p.textBlocks) useEditorStore.setState({ textBlocks: p.textBlocks as never })
 
@@ -186,6 +226,9 @@ export function applyPreset(preset: PresetLike): UndoFn {
         layoutMode: snapshot.layoutMode,
         singlePhoto: snapshot.singlePhoto,
         singlePhotoMaskKey: snapshot.singlePhotoMaskKey,
+        gridLayout: snapshot.gridLayout,
+        gridSlots: snapshot.gridSlots,
+        selectedGridSlotIndex: snapshot.selectedGridSlotIndex,
       }))
       useEditorStore.setState({ textBlocks: snapshot.textBlocks })
     }

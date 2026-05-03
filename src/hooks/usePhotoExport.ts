@@ -13,6 +13,7 @@ import { MASK_FONTS } from '@/lib/letter-mask'
 import { computeFontScale, FONT_SCALE_REFERENCE_WIDTH } from '@/lib/font-scale'
 import { drawLetterMask, resolveFontFamily, ensureMaskFontLoaded } from '@/lib/photo-mask-render'
 import { drawSinglePhoto } from '@/lib/photo-single-render'
+import { drawPhotoGrid } from '@/lib/photo-grid-render'
 import { wrapTextToWidth } from '@/lib/text-wrap'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
@@ -107,6 +108,8 @@ export function usePhotoExport() {
     defaultSlotColor,
     singlePhoto,
     singlePhotoMaskKey,
+    gridLayout,
+    gridSlots,
   } = usePhotoEditorStore()
 
   const { textBlocks } = useEditorStore()
@@ -150,8 +153,13 @@ export function usePhotoExport() {
         photo: singlePhoto,
         maskKey: singlePhotoMaskKey,
       })
+    } else if (layoutMode === 'photo-grid') {
+      await drawPhotoGrid(ctx, W, H, {
+        layout: gridLayout,
+        slots: gridSlots,
+        defaultSlotColor,
+      })
     }
-    // photo-grid → not yet implemented; fall through to text-blocks only
 
     // Pass the canonical 660 px reference as previewW so the export font size
     // matches what the user sees on a desktop editor canvas (which renders at

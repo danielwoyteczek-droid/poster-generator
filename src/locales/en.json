@@ -70,7 +70,39 @@
     "singlePhotoZoomLabel": "Zoom",
     "singlePhotoCropHint": "Drag the photo to adjust the crop.",
     "singlePhotoFilterLabel": "Filter",
-    "photoGridComingSoon": "Mode \"{mode}\" — coming in a follow-up pass"
+    "photoGridComingSoon": "Mode \"{mode}\" — coming in a follow-up pass",
+    "tabPhotoGrid": "Photo grid",
+    "tabGridDesigner": "Grid layout",
+    "gridSectionLabel": "Photo grid",
+    "gridSectionHint": "Upload a photo for each slot or leave it as a colored block.",
+    "gridDefaultColorLabel": "Default color for empty slots",
+    "gridUploadButton": "Upload photo",
+    "gridColorLabel": "Slot color",
+    "gridSlotLabel": "Slot {n}",
+    "gridSlotShape": "Shape",
+    "gridPhotoAdded": "Photo added to slot {index}",
+    "gridEmptyTitle": "No grid layout yet",
+    "gridEmptyHint": "Pick a photo-grid preset to see slots."
+  },
+  "gridDesigner": {
+    "title": "Grid layout (admin)",
+    "description": "Drag slots to move them, drag corners to resize. Min {min}, max {max} slots.",
+    "addSlot": "Add slot",
+    "deleteSlot": "Delete slot",
+    "reset": "Reset",
+    "snapLabel": "Snap to grid (5%)",
+    "slotCountHint": "{count} of {min}–{max} slots",
+    "maxReachedTooltip": "Maximum {max} slots allowed",
+    "minReachedTooltip": "At least {min} slots required",
+    "selectFirstTooltip": "Select a slot first"
+  },
+  "gridSlotMasks": {
+    "rectLabel": "Rectangle",
+    "squareLabel": "Square",
+    "circleLabel": "Circle",
+    "heartLabel": "Heart",
+    "portraitLabel": "Portrait",
+    "landscapeLabel": "Landscape"
   },
   "starMapEditor": {
     "locationLabel": "Location",

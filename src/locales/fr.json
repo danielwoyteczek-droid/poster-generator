@@ -70,7 +70,39 @@
     "singlePhotoZoomLabel": "Zoom",
     "singlePhotoCropHint": "Glissez la photo pour ajuster le cadrage.",
     "singlePhotoFilterLabel": "Filtre",
-    "photoGridComingSoon": "Mode « {mode} » — bientôt disponible"
+    "photoGridComingSoon": "Mode « {mode} » — bientôt disponible",
+    "tabPhotoGrid": "Grille photo",
+    "tabGridDesigner": "Disposition",
+    "gridSectionLabel": "Grille photo",
+    "gridSectionHint": "Téléversez une photo par emplacement ou laissez-le en couleur unie.",
+    "gridDefaultColorLabel": "Couleur par défaut des emplacements vides",
+    "gridUploadButton": "Téléverser une photo",
+    "gridColorLabel": "Couleur de l'emplacement",
+    "gridSlotLabel": "Emplacement {n}",
+    "gridSlotShape": "Forme",
+    "gridPhotoAdded": "Photo ajoutée à l'emplacement {index}",
+    "gridEmptyTitle": "Aucune disposition",
+    "gridEmptyHint": "Choisissez un préréglage de grille pour voir les emplacements."
+  },
+  "gridDesigner": {
+    "title": "Disposition de la grille (admin)",
+    "description": "Glissez les emplacements pour les déplacer, glissez les coins pour les redimensionner. Min. {min}, max. {max} emplacements.",
+    "addSlot": "Ajouter un emplacement",
+    "deleteSlot": "Supprimer l'emplacement",
+    "reset": "Réinitialiser",
+    "snapLabel": "Aligner sur la grille (5 %)",
+    "slotCountHint": "{count} sur {min}–{max} emplacements",
+    "maxReachedTooltip": "Maximum {max} emplacements autorisés",
+    "minReachedTooltip": "Au moins {min} emplacements requis",
+    "selectFirstTooltip": "Sélectionnez d'abord un emplacement"
+  },
+  "gridSlotMasks": {
+    "rectLabel": "Rectangle",
+    "squareLabel": "Carré",
+    "circleLabel": "Cercle",
+    "heartLabel": "Cœur",
+    "portraitLabel": "Portrait",
+    "landscapeLabel": "Paysage"
   },
   "starMapEditor": {
     "locationLabel": "Lieu",
