@@ -72,24 +72,9 @@ async function fetchPresetsForCategory(
 
   if (error || !data || data.length === 0) return []
 
-  // Bevorzuge Mockup-Composite-Renders über das nackte Poster
-  const presetIds = data.map((p) => p.id)
-  const { data: renders } = await admin
-    .from('preset_renders')
-    .select('preset_id, image_url, rendered_at')
-    .in('preset_id', presetIds)
-    .eq('variant', 'desktop')
-    .order('rendered_at', { ascending: false })
-
-  const firstRenderByPreset: Record<string, string> = {}
-  for (const r of renders ?? []) {
-    if (!firstRenderByPreset[r.preset_id]) firstRenderByPreset[r.preset_id] = r.image_url
-  }
-
-  return data.map((p) => ({
-    ...p,
-    preview_image_url: firstRenderByPreset[p.id] ?? p.preview_image_url,
-  })) as GalleryPreset[]
+  // Inspiration/Gallery zeigt das nackte Poster (Preset-Render), nicht das
+  // Mockup-Composite — Mockups sind den SEO-Anlass-Seiten (PROJ-29) vorbehalten.
+  return data as GalleryPreset[]
 }
 
 export default async function GalleryPageRoute(
