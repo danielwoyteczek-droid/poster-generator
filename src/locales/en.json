@@ -622,6 +622,8 @@
     "emptyTitle": "No templates available yet",
     "emptyDescription": "We're working on designs for your language. Check back soon or build your own poster from scratch.",
     "emptyCta": "Build your own poster",
-    "moreOnOccasion": "More about this occasion →"
+    "moreOnOccasion": "More about this occasion →",
+    "filterAll": "All",
+    "filterAriaLabel": "Filter by occasion"
   }
 }

@@ -148,7 +148,7 @@ Eigenständige Galerie-Seite (`/gallery`), die Beispiel-Designs nach Anlass grup
 
 ### Non-Goals (Erweiterung)
 - **Keine Per-Anlass-Landingpages** (`/gallery/muttertag` etc.) in V1 — nur eine zusammenhängende Galerie mit Anker-Sektionen.
-- **Keine Sortier-/Filter-UI** für Besucher (z. B. "Nur Stadtposter zeigen") — Galerie ist statisch kuratiert via Sanity-Reihenfolge.
+- ~~**Keine Sortier-/Filter-UI** für Besucher (z. B. "Nur Stadtposter zeigen") — Galerie ist statisch kuratiert via Sanity-Reihenfolge.~~ → 2026-05-03: Anlass-Filter-Chips nachgezogen (siehe Implementation Notes), weil die Galerie mit wachsender Anlass-Zahl schnell unübersichtlich wird. Andere Filter-Achsen (Stadt-/Sternenkarte, Stil) bleiben weiterhin out-of-scope.
 - **Keine personalisierten Empfehlungen** ("Andere kauften auch...").
 - **Keine Sanity-Editor-Action zum Vorschauen einzelner Presets aus der Galerie heraus** — Marketing kuratiert über Tags, nicht über direkte Preset-Auswahl.
 - **Keine Mehrfach-Presets-pro-Card** (Karussell innerhalb einer Card) — eine Card = ein Preset.
@@ -469,6 +469,16 @@ Schritt 5: Verifikation + i18n-Strings
 1. Admin loggt sich ein → `/private/admin/presets` → Bulk-Bar auf "Anlässe" umschalten → Bestands-Presets selektieren → Anlass-Tags zuweisen.
 2. Marketing legt im Sanity-Studio mindestens das **DE-`galleryPage`-Dokument** an: `pageHeadline`, optional `heroImage`, mindestens 1 Kategorie mit `tag` (z. B. "muttertag") + `label` (z. B. "Geschenke zum Muttertag").
 3. Sobald beides erfüllt ist: `/de/gallery` zeigt automatisch die Sections mit den getaggten Presets.
+
+### Schritt 5 — Anlass-Filter-Chips auf `/gallery` (✅ 2026-05-03)
+
+Mit wachsender Anlass-Zahl wurde die Galerie zu einer endlosen Scroll-Strecke. Das ursprüngliche Non-Goal "keine Filter-UI" wurde aufgehoben und durch URL-getriebene Filter-Chips ersetzt:
+
+- Neue Server-Komponente [src/components/landing/GalleryFilterChips.tsx](src/components/landing/GalleryFilterChips.tsx): horizontaler, sticky Chip-Strip direkt unter dem Hero. Chips sind echte `<Link>`s auf `?anlass=<code>` — keine Client-State-Maschinerie nötig, funktioniert ohne JS, indexierbar nur als `/gallery`.
+- [src/app/[locale]/gallery/page.tsx](src/app/[locale]/gallery/page.tsx) liest `searchParams.anlass`, validiert gegen `OCCASION_CODES`, filtert die Sektionen auf den aktiven Anlass (oder zeigt alle).
+- Chips werden nur für Anlässe gerendert, die auch tatsächlich Presets haben (kein "klick = leere Seite"-Bruch des Versprechens).
+- **SEO-Disziplin:** Bei aktivem Filter setzt die Page `robots: noindex, follow` und `canonical: /[locale]/gallery`. So bleibt der Master-Hub die einzige indexierte Variante; die SEO-Targets pro Anlass sind weiterhin die PROJ-29-Landing-Pages.
+- 5× neue i18n-Keys (`gallery.filterAll`, `gallery.filterAriaLabel`) in `de/en/fr/it/es.json`.
 
 ## QA Test Results
 _To be added by /qa_

@@ -622,6 +622,8 @@
     "emptyTitle": "Aún no hay plantillas disponibles",
     "emptyDescription": "Estamos trabajando en diseños para tu idioma. Vuelve pronto o crea tu propio póster desde cero.",
     "emptyCta": "Crea tu propio póster",
-    "moreOnOccasion": "Más sobre esta ocasión →"
+    "moreOnOccasion": "Más sobre esta ocasión →",
+    "filterAll": "Todas",
+    "filterAriaLabel": "Filtrar por ocasión"
   }
 }

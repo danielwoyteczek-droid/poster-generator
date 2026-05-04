@@ -622,6 +622,8 @@
     "emptyTitle": "Aucun modèle disponible pour l'instant",
     "emptyDescription": "Nous travaillons sur des designs pour votre langue. Revenez bientôt ou créez votre propre affiche depuis le début.",
     "emptyCta": "Créer votre propre affiche",
-    "moreOnOccasion": "En savoir plus →"
+    "moreOnOccasion": "En savoir plus →",
+    "filterAll": "Toutes",
+    "filterAriaLabel": "Filtrer par occasion"
   }
 }

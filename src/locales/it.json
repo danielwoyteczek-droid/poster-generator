@@ -622,6 +622,8 @@
     "emptyTitle": "Nessun modello disponibile",
     "emptyDescription": "Stiamo lavorando a design per la tua lingua. Torna presto o crea il tuo poster da zero.",
     "emptyCta": "Crea il tuo poster",
-    "moreOnOccasion": "Scopri di più →"
+    "moreOnOccasion": "Scopri di più →",
+    "filterAll": "Tutte",
+    "filterAriaLabel": "Filtra per occasione"
   }
 }

@@ -622,6 +622,8 @@
     "emptyTitle": "Noch keine Vorlagen verfügbar",
     "emptyDescription": "Wir arbeiten an Designs für deine Sprache. Schau bald wieder vorbei oder gestalte dein eigenes Poster von Grund auf.",
     "emptyCta": "Eigenes Poster gestalten",
-    "moreOnOccasion": "Mehr zum Anlass →"
+    "moreOnOccasion": "Mehr zum Anlass →",
+    "filterAll": "Alle",
+    "filterAriaLabel": "Nach Anlass filtern"
   }
 }

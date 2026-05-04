@@ -5,27 +5,44 @@ import { LandingFooter } from '@/components/landing/LandingFooter'
 import { GalleryHero } from '@/components/landing/GalleryHero'
 import { GallerySection } from '@/components/landing/GallerySection'
 import { GalleryEmpty } from '@/components/landing/GalleryEmpty'
+import { GalleryFilterChips, type GalleryFilterChip } from '@/components/landing/GalleryFilterChips'
 import type { GalleryPreset } from '@/components/landing/GalleryPresetCard'
 import { getGalleryPage, listOccasionPagesForLocale, type GalleryCategory } from '@/sanity/queries'
 import { createAdminClient } from '@/lib/supabase-admin'
 import { buildOccasionPagePath } from '@/lib/occasion-routing'
+import { OCCASION_CODES, type OccasionCode } from '@/lib/occasions'
 import { locales, type Locale } from '@/i18n/config'
 
 function isLocale(value: string): value is Locale {
   return (locales as readonly string[]).includes(value)
 }
 
+function isOccasionCode(value: string): value is OccasionCode {
+  return (OCCASION_CODES as readonly string[]).includes(value)
+}
+
 export const revalidate = 3600
 
-export async function generateMetadata(): Promise<Metadata> {
+export async function generateMetadata(
+  { searchParams }: { searchParams: Promise<{ anlass?: string }> },
+): Promise<Metadata> {
   const locale = await getLocale().catch(() => 'de')
-  const [page, t] = await Promise.all([getGalleryPage(locale), getTranslations('gallery')])
+  const [page, t, params] = await Promise.all([
+    getGalleryPage(locale),
+    getTranslations('gallery'),
+    searchParams,
+  ])
   const title = page?.pageHeadline ?? t('headlineFallback')
   const description = page?.pageSubline ?? t('metaDescription')
+  // Filter-Views ranken nicht eigenständig — der Master-Hub `/gallery` bündelt
+  // den Link-Saft, PROJ-29-Anlass-Seiten sind die echten SEO-Targets.
+  const isFiltered = Boolean(params?.anlass)
   return {
     title: `${t('pageTitle')} — ${title}`,
     description,
     openGraph: { title, description, type: 'website' },
+    alternates: { canonical: `/${locale}/gallery` },
+    robots: isFiltered ? { index: false, follow: true } : undefined,
   }
 }
 
@@ -75,16 +92,23 @@ async function fetchPresetsForCategory(
   })) as GalleryPreset[]
 }
 
-export default async function GalleryPageRoute() {
+export default async function GalleryPageRoute(
+  { searchParams }: { searchParams: Promise<{ anlass?: string }> },
+) {
   const rawLocale = await getLocale().catch(() => 'de')
   const locale = rawLocale
   const t = await getTranslations('gallery')
 
-  const [page, occasionRefs] = await Promise.all([
+  const [page, occasionRefs, params] = await Promise.all([
     getGalleryPage(locale),
     listOccasionPagesForLocale(locale),
+    searchParams,
   ])
   const categories = page?.categories ?? []
+
+  // Aktiver Filter aus URL — alles andere als ein gültiger Code ignorieren.
+  const activeFilter: OccasionCode | null =
+    params?.anlass && isOccasionCode(params.anlass) ? params.anlass : null
 
   // Build a tag → occasion-page-href lookup so each GallerySection can render
   // a "More about this occasion →" link without triggering N+1 Sanity queries.
@@ -106,7 +130,31 @@ export default async function GalleryPageRoute() {
       presets: await fetchPresetsForCategory(locale, category.tag),
     })),
   )
-  const visibleSections = sectionData.filter((s) => s.presets.length > 0)
+  const allVisibleSections = sectionData.filter((s) => s.presets.length > 0)
+
+  // Filter-Chips zeigen nur Anlässe, die auch tatsächlich Presets haben —
+  // tote Chips würden das Versprechen "klick = Inhalt" brechen.
+  const filterChips: GalleryFilterChip[] = [
+    {
+      tag: null,
+      label: t('filterAll'),
+      href: `/${locale}/gallery`,
+      isActive: activeFilter === null,
+    },
+    ...allVisibleSections.map(({ category }) => ({
+      tag: category.tag,
+      label: category.label,
+      href: `/${locale}/gallery?anlass=${encodeURIComponent(category.tag)}`,
+      isActive: activeFilter === category.tag,
+    })),
+  ]
+
+  // Aktiver Filter rendert genau die eine Sektion (oder leer, wenn der Code
+  // zwar gültig, aber keine Presets dafür existieren — dann zeigt die Page den
+  // bestehenden Empty-State).
+  const visibleSections = activeFilter
+    ? allVisibleSections.filter((s) => s.category.tag === activeFilter)
+    : allVisibleSections
 
   const headline = page?.pageHeadline ?? t('headlineFallback')
   const subline = page?.pageSubline ?? t('sublineFallback')
@@ -120,6 +168,8 @@ export default async function GalleryPageRoute() {
           subline={subline}
           heroImage={page?.heroImage}
         />
+
+        <GalleryFilterChips chips={filterChips} ariaLabel={t('filterAriaLabel')} />
 
         {visibleSections.length === 0 ? (
           <GalleryEmpty
