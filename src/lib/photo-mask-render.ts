@@ -137,9 +137,14 @@ export async function drawLetterMask(
 
   const font = MASK_FONTS[maskFontKey]
   const containerW = wordWidth * W
-  const slotW = containerW / word.length
-  const slotH = slotW * font.heightOverWidth
-  const fontSize = slotW * font.fontSizeOverSlotWidth
+  // avgSlotW drives the uniform glyph font-size + container height. The
+  // PER-SLOT width is proportional to each glyph's natural advance — so a
+  // narrow letter like I gets a narrow slot, a wide M gets a wide slot.
+  // Mirrors `LetterMaskOverlay` so the export matches the editor pixel-for-
+  // pixel.
+  const avgSlotW = containerW / word.length
+  const slotH = avgSlotW * font.heightOverWidth
+  const fontSize = avgSlotW * font.fontSizeOverSlotWidth
   const containerLeft = (wordX - wordWidth / 2) * W
   const containerTop = wordY * H
 
@@ -156,9 +161,25 @@ export async function drawLetterMask(
   const measureCtx = document.createElement('canvas').getContext('2d')!
   measureCtx.font = `400 ${fontSize}px ${maskFontFamily}`
 
+  // Pre-compute per-slot widths from glyph advance widths and pre-compute
+  // running x-offsets so each slot starts where the previous one ended.
+  const charAdvances = slots.map((s) => {
+    const a = measureCtx.measureText(s.char).width
+    return a > 0 ? a : 1
+  })
+  const totalAdvance = charAdvances.reduce((a, b) => a + b, 0) || 1
+  const slotWidths = charAdvances.map((a) => (a / totalAdvance) * containerW)
+  const slotXOffsets: number[] = []
+  let cursor = 0
+  for (const w of slotWidths) {
+    slotXOffsets.push(cursor)
+    cursor += w
+  }
+
   for (let i = 0; i < slots.length; i++) {
     const slot = slots[i]
-    const slotX = containerLeft + i * slotW
+    const slotW = slotWidths[i]
+    const slotX = containerLeft + slotXOffsets[i]
     const slotY = containerTop
     const cx = slotX + slotW / 2
     const glyphY = slotY + emTopOffset

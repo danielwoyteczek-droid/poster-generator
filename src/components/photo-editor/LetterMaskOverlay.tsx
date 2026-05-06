@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { usePhotoEditorStore, type SlotPhoto } from '@/hooks/usePhotoEditorStore'
 import { MASK_FONTS } from '@/lib/letter-mask'
 import { cn } from '@/lib/utils'
@@ -40,10 +40,34 @@ export function LetterMaskOverlay({ posterRef, interactive = true }: Props) {
   const wordRef = useRef<HTMLDivElement>(null)
   const font = MASK_FONTS[maskFontKey]
 
+  // Measure each glyph's natural advance width in the mask font so each
+  // slot can take a proportional share of the word-container width. Without
+  // this every slot would be `flex-1` (equal) which makes wide letters like
+  // M overflow into neighbours while narrow letters like I leave huge gaps.
+  // Result reads as a normal word instead of a fixed-width grid.
+  const charWidths = useMemo(() => {
+    if (typeof document === 'undefined' || slots.length === 0) {
+      return slots.map(() => 1)
+    }
+    const probeCanvas = document.createElement('canvas')
+    const ctx = probeCanvas.getContext('2d')
+    if (!ctx) return slots.map(() => 1)
+    // 200 px is arbitrary — only the ratios between widths matter.
+    ctx.font = `400 200px ${font.cssFamily}`
+    return slots.map((s) => {
+      const w = ctx.measureText(s.char).width
+      return w > 0 ? w : 1
+    })
+  }, [slots, font.cssFamily])
+  const totalWeight = charWidths.reduce((a, b) => a + b, 0) || 1
+
   if (word.length === 0) return null
 
   const containerLeft = (wordX - wordWidth / 2) * 100
-  const slotAspect = 1 / font.heightOverWidth // width/height for CSS aspect-ratio
+  // Container's height is derived from its width so slots get a uniform
+  // height regardless of their (proportional) widths. The aspect makes the
+  // average slot square-ish (heightOverWidth × avgSlotWidth).
+  const containerAspect = slots.length / font.heightOverWidth
 
   return (
     <div
@@ -53,6 +77,7 @@ export function LetterMaskOverlay({ posterRef, interactive = true }: Props) {
         left: `${containerLeft}%`,
         top: `${wordY * 100}%`,
         width: `${wordWidth * 100}%`,
+        aspectRatio: `${containerAspect}`,
       }}
       aria-label={`Letter-Mask: ${word}`}
     >
@@ -65,7 +90,12 @@ export function LetterMaskOverlay({ posterRef, interactive = true }: Props) {
           color={slot.color ?? defaultSlotColor}
           fontFamily={font.cssFamily}
           fontSizeFactor={font.fontSizeOverSlotWidth}
-          slotAspect={slotAspect}
+          // Width as a fraction of the word container, proportional to
+          // the glyph's natural advance.
+          widthFraction={charWidths[i] / totalWeight}
+          // All glyphs share the same font size — derived from the
+          // average slot width so they appear at consistent height.
+          avgSlotWidthFactor={1 / slots.length}
           isSelected={selectedSlotIndex === i}
           interactive={interactive}
           onSelect={() => setSelectedSlotIndex(i)}
@@ -106,7 +136,13 @@ interface SlotViewProps {
   color: string
   fontFamily: string
   fontSizeFactor: number
-  slotAspect: number
+  /** Slot's share of the word-container width (0..1), proportional to the
+   *  glyph's natural advance. */
+  widthFraction: number
+  /** Reference factor (= 1 / wordLength) used to compute a uniform glyph
+   *  font-size from the WORD container width — independent of this slot's
+   *  individual width. */
+  avgSlotWidthFactor: number
   isSelected: boolean
   interactive: boolean
   onSelect: () => void
@@ -133,7 +169,8 @@ function LetterSlotView({
   color,
   fontFamily,
   fontSizeFactor,
-  slotAspect,
+  widthFraction,
+  avgSlotWidthFactor,
   isSelected,
   interactive,
   onSelect,
@@ -200,12 +237,15 @@ function LetterSlotView({
       ref={slotRef}
       onPointerDown={handlePointerDown}
       className={cn(
-        'flex-1 min-w-0 flex items-center justify-center relative',
+        'min-w-0 flex items-center justify-center relative overflow-hidden',
         interactive && 'cursor-pointer touch-none',
         isSelected && interactive && 'ring-2 ring-blue-500/70 ring-offset-1',
       )}
       style={{
-        aspectRatio: `${slotAspect}`,
+        // Slot width is proportional to the glyph's natural advance —
+        // height is uniform across slots (inherited from container's
+        // aspect-ratio + items-stretch).
+        width: `${widthFraction * 100}%`,
         pointerEvents: interactive ? 'auto' : 'none',
       }}
     >
@@ -215,6 +255,7 @@ function LetterSlotView({
         color={color}
         fontFamily={fontFamily}
         fontSizeFactor={fontSizeFactor}
+        avgSlotWidthFactor={avgSlotWidthFactor}
       />
     </div>
   )
@@ -226,38 +267,44 @@ interface GlyphProps {
   color: string
   fontFamily: string
   fontSizeFactor: number
+  /** Reference factor (= 1 / wordLength) — combined with the WORD container
+   *  width to derive a glyph font-size that's identical across all slots,
+   *  even though slots have proportional (non-uniform) widths. */
+  avgSlotWidthFactor: number
 }
 
-function SlotGlyph({ char, photo, color, fontFamily, fontSizeFactor }: GlyphProps) {
+function SlotGlyph({ char, photo, color, fontFamily, fontSizeFactor, avgSlotWidthFactor }: GlyphProps) {
   const ref = useRef<HTMLSpanElement>(null)
 
-  // The glyph spans 100% of the slot. We measure the slot via the glyph's
-  // own bounding box (since both share the same dimensions thanks to the
-  // wrapping flex+aspect-ratio), then:
-  //   - set font-size proportional to slot width so glyphs scale with the
-  //     `wordWidth` slider
-  //   - set background-size so the photo properly COVERS the slot
-  //     (background-clip: text masks it later, but the source background
-  //     must fill the whole element first or the glyph gets cropped image
-  //     edges in tall letters)
+  // Font-size is uniform across all letter slots, derived from the word
+  // container's width × `avgSlotWidthFactor` (= 1 / wordLength) ×
+  // `fontSizeFactor`. We can't use the slot's own width here because slots
+  // are now proportional to their glyph's natural advance — that would
+  // produce a different font-size per letter.
+  // background-size for `background-clip: text` still tracks the slot's
+  // dimensions (each slot displays its own object-cover'd portion of the
+  // photo).
   useEffect(() => {
     const el = ref.current
     if (!el) return
-    const parent = el.parentElement
-    if (!parent) return
+    const slot = el.parentElement
+    if (!slot) return
+    const wordContainer = slot.parentElement
+    if (!wordContainer) return
 
     const update = () => {
-      const rect = parent.getBoundingClientRect()
-      const elemW = rect.width
-      const elemH = rect.height
-      el.style.fontSize = `${elemW * fontSizeFactor}px`
+      const slotRect = slot.getBoundingClientRect()
+      const wordRect = wordContainer.getBoundingClientRect()
+      const refSlotW = wordRect.width * avgSlotWidthFactor
+      const fontSizePx = refSlotW * fontSizeFactor
+      el.style.fontSize = `${fontSizePx}px`
 
       if (photo && photo.width > 0 && photo.height > 0) {
-        // Compute "cover" sizing in pixels: scale image so its smaller
-        // dimension fully covers the element, then multiply by `scale` for
-        // additional zoom.
-        const sx = elemW / photo.width
-        const sy = elemH / photo.height
+        // Cover relative to THIS slot's actual rect (each slot crops the
+        // photo to its own area independently — so a wide M-slot shows
+        // more horizontal pixels than a narrow I-slot of the same photo).
+        const sx = slotRect.width / photo.width
+        const sy = slotRect.height / photo.height
         const coverScale = Math.max(sx, sy) * photo.scale
         const bgW = photo.width * coverScale
         const bgH = photo.height * coverScale
@@ -268,9 +315,10 @@ function SlotGlyph({ char, photo, color, fontFamily, fontSizeFactor }: GlyphProp
     }
     update()
     const ro = new ResizeObserver(update)
-    ro.observe(parent)
+    ro.observe(slot)
+    ro.observe(wordContainer)
     return () => ro.disconnect()
-  }, [fontSizeFactor, photo])
+  }, [fontSizeFactor, avgSlotWidthFactor, photo])
 
   if (photo) {
     // bgPositionX 50% centers the image within the element. Pan offsets
