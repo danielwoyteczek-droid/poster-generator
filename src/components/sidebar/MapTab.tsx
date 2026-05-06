@@ -36,6 +36,7 @@ import { uploadPhoto, deletePhoto } from '@/lib/photo-upload'
 import { getOrCreateGuestSessionId } from '@/lib/guest-session'
 import { PHOTO_FILTERS } from '@/lib/photo-filters'
 import { cn } from '@/lib/utils'
+import { useEditorView, shouldRenderControl } from '@/components/editor/EditorViewContext'
 
 const MASK_INITIAL_VISIBLE = 3
 
@@ -88,6 +89,9 @@ export function MapTab() {
   const { palettes: availablePalettes } = useMapPalettes()
   const defaultColors = availablePalettes[0]?.colors ?? MAP_PALETTES[0].colors
   const { user, isAdmin } = useAuth()
+  // PROJ-36: Customer-Min vs Anpassen view. Admin bypass — sees everything.
+  const view = useEditorView()
+  const showAnpassen = shouldRenderControl({ view, isAdmin, classification: 'anpassen' })
   const { masks: customMasks } = useCustomMasks()
 
   const splitPhotoInputRef = useRef<HTMLInputElement>(null)
@@ -1002,8 +1006,10 @@ export function MapTab() {
             {/* Außenbereich — Leer/Faded/Voll + Abstand zum Poster-Rand.
                 Bei Form (shapeSupported): alle 4 Modi. Bei Fullbleed (keine Form,
                 kein Split): nur Leer + Voll, weil Faded und Glow eine Silhouette
-                brauchen, um sich vom Inset-Rect abzuheben. */}
-            {!isSplitActive && (
+                brauchen, um sich vom Inset-Rect abzuheben.
+                PROJ-36: Anpassen-classified — versteckt im Customer-View, sichtbar
+                im Anpassen-Sheet. Admin sieht's immer. */}
+            {!isSplitActive && showAnpassen && (
             <div className="space-y-2 pt-2 border-t border-border">
               <span className="text-xs font-medium text-foreground/70">{t('outerAreaLabel')}</span>
               <div className="flex items-center justify-between">

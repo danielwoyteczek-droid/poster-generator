@@ -13,6 +13,9 @@ import { MobilePhotoTab } from '@/components/sidebar/mobile/MobilePhotoTab'
 import { MobileExportTab } from '@/components/sidebar/mobile/MobileExportTab'
 import { useProjectSync } from '@/hooks/useProjectSync'
 import { cn } from '@/lib/utils'
+import { EditorViewProvider } from '@/components/editor/EditorViewContext'
+import { EditorAnpassenFooter } from '@/components/editor/EditorAnpassenFooter'
+import { EditorAnpassenSheet } from '@/components/editor/EditorAnpassenSheet'
 
 type MobileTab = 'map' | 'layout' | 'text' | 'marker' | 'photo' | 'export'
 
@@ -20,6 +23,21 @@ export function MobileEditorLayout() {
   const t = useTranslations('editorTabs')
   useProjectSync()
   const [activeTab, setActiveTab] = useState<MobileTab>('map')
+  const [anpassenOpen, setAnpassenOpen] = useState(false)
+
+  // Render the same tab content node for the active tab — used by both the
+  // main customer view and the Anpassen-Sheet (the latter wraps it in
+  // EditorViewProvider value="anpassen" to flip the visibility filter).
+  const renderActiveTab = () => {
+    switch (activeTab) {
+      case 'map': return <MobileMapTab />
+      case 'layout': return <MobileLayoutTab />
+      case 'text': return <MobileTextTab />
+      case 'marker': return <MobileMarkerTab />
+      case 'photo': return <MobilePhotoTab />
+      case 'export': return <MobileExportTab />
+    }
+  }
 
   const TABS: { id: MobileTab; label: string; Icon: typeof Map }[] = [
     { id: 'map', label: t('map'), Icon: Map },
@@ -72,13 +90,18 @@ export function MobileEditorLayout() {
 
       {/* Tool content — own scroll container */}
       <div className="flex-1 min-h-0 overflow-y-auto bg-white">
-        {activeTab === 'map' && <MobileMapTab />}
-        {activeTab === 'layout' && <MobileLayoutTab />}
-        {activeTab === 'text' && <MobileTextTab />}
-        {activeTab === 'marker' && <MobileMarkerTab />}
-        {activeTab === 'photo' && <MobilePhotoTab />}
-        {activeTab === 'export' && <MobileExportTab />}
+        <EditorViewProvider value="customer">
+          {renderActiveTab()}
+        </EditorViewProvider>
       </div>
+
+      {/* Anpassen-Footer — sticky button between content and bottom edge */}
+      <EditorAnpassenFooter onClick={() => setAnpassenOpen(true)} />
+
+      {/* Anpassen-Sheet — opens from bottom on mobile */}
+      <EditorAnpassenSheet open={anpassenOpen} onOpenChange={setAnpassenOpen}>
+        {renderActiveTab()}
+      </EditorAnpassenSheet>
     </div>
   )
 }

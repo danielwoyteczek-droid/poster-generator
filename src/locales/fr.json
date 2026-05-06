@@ -273,6 +273,8 @@
     "secureNote": "Paiement sécurisé via Stripe. Aucune inscription requise."
   },
   "editor": {
+    "anpassen": "Personnaliser",
+    "anpassenSheetTitle": "Personnaliser",
     "uploadProgress": "Téléversement… {progress}%",
     "uploadFailed": "Échec du téléversement",
     "photoUploadLabel": "Téléverser une photo",

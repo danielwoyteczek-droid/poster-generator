@@ -273,6 +273,8 @@
     "secureNote": "Secure payment via Stripe. No registration required."
   },
   "editor": {
+    "anpassen": "Customize",
+    "anpassenSheetTitle": "Customize",
     "uploadProgress": "Uploading… {progress}%",
     "uploadFailed": "Upload failed",
     "photoUploadLabel": "Upload photo",

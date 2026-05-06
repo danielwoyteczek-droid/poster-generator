@@ -273,6 +273,8 @@
     "secureNote": "Sichere Zahlung über Stripe. Keine Registrierung nötig."
   },
   "editor": {
+    "anpassen": "Anpassen",
+    "anpassenSheetTitle": "Anpassen",
     "uploadProgress": "Hochladen… {progress}%",
     "uploadFailed": "Upload fehlgeschlagen",
     "photoUploadLabel": "Foto hochladen",
