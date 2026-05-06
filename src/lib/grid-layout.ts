@@ -50,7 +50,16 @@ export const GRID_SNAP_STEP = 0.05 // 5% of poster width/height
  * shapes used by the single-photo mode (`PHOTO_MASKS`) so that visually
  * the same masks are available across both photo modes.
  */
-export const GRID_SLOT_MASKS: Record<GridSlotMaskKey, { label: string; clipPath: string }> = {
+/** Slot-Mask metadata. `clipPath` is null when the silhouette can't be
+ *  expressed in container-relative CSS (e.g. heart) — those use a
+ *  scalable SVG `mask-image` data URL instead. */
+export interface GridSlotMaskMeta {
+  label: string
+  clipPath: string | null
+  maskImageUrl?: string
+}
+
+export const GRID_SLOT_MASKS: Record<GridSlotMaskKey, GridSlotMaskMeta> = {
   rect: {
     label: 'Rechteck',
     clipPath: 'inset(0)',
@@ -65,8 +74,12 @@ export const GRID_SLOT_MASKS: Record<GridSlotMaskKey, { label: string; clipPath:
   },
   heart: {
     label: 'Herz',
-    clipPath:
-      "path('M50,88 C50,88 6,60 6,30 C6,15 18,4 32,4 C40,4 46,8 50,14 C54,8 60,4 68,4 C82,4 94,15 94,30 C94,60 50,88 50,88 Z')",
+    // CSS `clip-path: path()` only accepts absolute pixels — using it
+    // here would pin a 100×100 heart to the slot's top-left corner
+    // instead of scaling. SVG `mask-image` with `mask-size: 100% 100%`
+    // stretches correctly to any slot size.
+    clipPath: null,
+    maskImageUrl: '/masks/photo/heart.svg',
   },
   portrait: {
     label: 'Hochformat',

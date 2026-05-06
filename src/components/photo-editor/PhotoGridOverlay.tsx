@@ -207,8 +207,19 @@ function GridSlotCell({
         top: `${definition.y * 100}%`,
         width: `${definition.width * 100}%`,
         height: `${definition.height * 100}%`,
-        clipPath: mask.clipPath,
-        WebkitClipPath: mask.clipPath,
+        ...(mask.clipPath
+          ? { clipPath: mask.clipPath, WebkitClipPath: mask.clipPath }
+          : {}),
+        ...(mask.maskImageUrl
+          ? {
+              maskImage: `url("${mask.maskImageUrl}")`,
+              WebkitMaskImage: `url("${mask.maskImageUrl}")`,
+              maskSize: '100% 100%',
+              WebkitMaskSize: '100% 100%',
+              maskRepeat: 'no-repeat',
+              WebkitMaskRepeat: 'no-repeat',
+            }
+          : {}),
         backgroundColor: photo ? undefined : color,
       }}
     >

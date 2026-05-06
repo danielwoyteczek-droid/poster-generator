@@ -115,7 +115,21 @@ function PhotoItemView({
     >
       <div
         className="relative w-full h-full overflow-hidden"
-        style={{ clipPath: mask.clipPath, WebkitClipPath: mask.clipPath }}
+        style={{
+          ...(mask.clipPath
+            ? { clipPath: mask.clipPath, WebkitClipPath: mask.clipPath }
+            : {}),
+          ...(mask.maskImageUrl
+            ? {
+                maskImage: `url("${mask.maskImageUrl}")`,
+                WebkitMaskImage: `url("${mask.maskImageUrl}")`,
+                maskSize: '100% 100%',
+                WebkitMaskSize: '100% 100%',
+                maskRepeat: 'no-repeat',
+                WebkitMaskRepeat: 'no-repeat',
+              }
+            : {}),
+        }}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img

@@ -3,8 +3,14 @@ export type PhotoMaskKey = 'full' | 'circle' | 'heart' | 'square' | 'portrait' |
 export interface PhotoMaskDefinition {
   key: PhotoMaskKey
   label: string
-  /** CSS clip-path expression applied to the photo container */
-  clipPath: string
+  /** CSS clip-path expression applied to the photo container. Null when
+   *  the mask uses an SVG via `maskImageUrl` instead — `clip-path: path()`
+   *  doesn't accept percentages, so non-trivial silhouettes can't scale
+   *  with the container and need an SVG mask-image. */
+  clipPath: string | null
+  /** Optional SVG data URL for `mask-image`. Used when `clipPath` can't
+   *  represent the silhouette in container-relative units (e.g. heart). */
+  maskImageUrl?: string
   /** Aspect ratio (w/h). Null = intrinsic (full uses the image's own ratio). */
   aspectRatio: number | null
 }
@@ -25,8 +31,11 @@ export const PHOTO_MASKS: Record<PhotoMaskKey, PhotoMaskDefinition> = {
   heart: {
     key: 'heart',
     label: 'Herz',
-    clipPath:
-      "path('M50,88 C50,88 6,60 6,30 C6,15 18,4 32,4 C40,4 46,8 50,14 C54,8 60,4 68,4 C82,4 94,15 94,30 C94,60 50,88 50,88 Z')",
+    // CSS `clip-path: path()` doesn't scale (only absolute pixels), so we
+    // use an SVG `mask-image` data URL instead. Container stretches the
+    // 100×100 viewBox to 100% × 100% of itself via `mask-size: 100% 100%`.
+    clipPath: null,
+    maskImageUrl: '/masks/photo/heart.svg',
     aspectRatio: 1,
   },
   square: {

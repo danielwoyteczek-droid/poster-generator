@@ -151,19 +151,36 @@ export function SinglePhotoOverlay({ posterRef, interactive = true }: Props) {
   // For non-`full` masks the mask defines an aspect ratio. We size the
   // container as a square (or the mask's native ratio) centered inside
   // the poster, taking up most of the available space.
+  // Silhouette is applied via `mask-image` (SVG, scales with container)
+  // when `maskImageUrl` is set, otherwise via CSS `clip-path` (works for
+  // simple shapes like circle / inset rect that accept percentages).
+  const silhouetteStyle: React.CSSProperties = mask.maskImageUrl
+    ? {
+        maskImage: `url("${mask.maskImageUrl}")`,
+        WebkitMaskImage: `url("${mask.maskImageUrl}")`,
+        maskSize: '100% 100%',
+        WebkitMaskSize: '100% 100%',
+        maskRepeat: 'no-repeat',
+        WebkitMaskRepeat: 'no-repeat',
+      }
+    : mask.clipPath
+      ? {
+          clipPath: mask.clipPath,
+          WebkitClipPath: mask.clipPath,
+        }
+      : {}
+
   const containerStyle: React.CSSProperties = mask.aspectRatio
     ? {
         width: '80%',
         aspectRatio: `${mask.aspectRatio}`,
-        clipPath: mask.clipPath,
-        WebkitClipPath: mask.clipPath,
+        ...silhouetteStyle,
       }
     : {
         // Full-bleed → fills the whole poster.
         position: 'absolute',
         inset: 0,
-        clipPath: mask.clipPath,
-        WebkitClipPath: mask.clipPath,
+        ...silhouetteStyle,
       }
 
   // posterRef isn't used today (drag math derives from container rect),
