@@ -126,10 +126,12 @@ async function drawSlot(
   const coverScale = Math.max(sx, sy) * photo.scale
   const drawW = photo.width * coverScale
   const drawH = photo.height * coverScale
-  // Centre, then offset by crop. Same sign convention as
-  // `photo-single-render` so editor + export stay in sync.
-  const drawX = (boxW - drawW) / 2 - photo.cropX * boxW
-  const drawY = (boxH - drawH) / 2 - photo.cropY * boxH
+  // Mirror editor's `transform: scale(N); transform-origin: bgX% bgY%`.
+  // The previous formula (`- cropX * boxW`) over-translated proportionally
+  // to box width, so the same photo at the same crop landed differently
+  // in slots of different sizes (visible bug at multi-slot grids).
+  const drawX = (boxW - drawW) * (0.5 - photo.cropX)
+  const drawY = (boxH - drawH) * (0.5 - photo.cropY)
 
   ctx.drawImage(img, drawX, drawY, drawW, drawH)
   ctx.restore()

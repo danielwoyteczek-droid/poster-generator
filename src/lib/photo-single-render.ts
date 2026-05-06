@@ -144,11 +144,17 @@ export async function drawSinglePhoto(
   const coverScale = Math.max(sx, sy) * photo.scale
   const drawW = photo.width * coverScale
   const drawH = photo.height * coverScale
-  // Centre, then offset by crop. cropX positive = show LEFT portion =
-  // photo origin shifts RIGHT (matches editor: bgX < 50 means we move
-  // background to show its left side).
-  const drawX = (boxW - drawW) / 2 - photo.cropX * boxW
-  const drawY = (boxH - drawH) / 2 - photo.cropY * boxH
+  // Mirror the editor's `transform: scale(N); transform-origin: bgX% bgY%`
+  // semantics. The visible portion of the photo within `boxW × boxH` is
+  // determined by where the photo's anchor point lies. Linear mapping:
+  //   cropX =  0   → photo centred in box
+  //   cropX = +0.5 → photo's LEFT edge aligned with box's LEFT edge
+  //                  (user sees the left portion of the photo)
+  //   cropX = -0.5 → photo's RIGHT edge aligned with box's RIGHT edge
+  // The previous formula used `- cropX * boxW`, which over-translated by
+  // the ratio (boxW / (boxW - drawW)) — wrong for any zoom > 1.
+  const drawX = (boxW - drawW) * (0.5 - photo.cropX)
+  const drawY = (boxH - drawH) * (0.5 - photo.cropY)
 
   ctx.save()
   ctx.translate(boxX, boxY)
