@@ -28,6 +28,10 @@ export interface SlotPhoto {
   cropY: number
   /** 1.0 .. 4.0: zoom factor inside the slot, 1.0 = cover */
   scale: number
+  /** Optional CSS-filter preset id (none / grayscale / sepia). Optional
+   *  for backwards compat with existing snapshots — renderers must default
+   *  to 'none' when missing. */
+  filter?: PhotoFilter
   uploadedAt: string
 }
 
@@ -135,7 +139,7 @@ interface PhotoEditorStore {
   setGridSlotPhoto: (index: number, photo: SlotPhoto | null) => void
   updateGridSlotCrop: (
     index: number,
-    updates: Partial<Pick<SlotPhoto, 'cropX' | 'cropY' | 'scale'>>,
+    updates: Partial<Pick<SlotPhoto, 'cropX' | 'cropY' | 'scale' | 'filter'>>,
   ) => void
   setGridSlotColor: (index: number, color: string | null) => void
   setSelectedGridSlotIndex: (index: number | null) => void

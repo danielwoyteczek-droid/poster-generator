@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { SaveButton } from './SaveButton'
 import { SaveAsPresetButton } from './SaveAsPresetButton'
 import { ResetEditorButton } from './ResetEditorButton'
+import { PhotoModeAdminToggle } from '@/components/photo-editor/PhotoModeAdminToggle'
 
 interface Props {
   posterType: 'map' | 'star-map' | 'photo'
@@ -30,6 +31,8 @@ export function EditorToolbar({ posterType }: Props) {
 
   return (
     <div className="hidden md:flex items-center justify-end gap-3 px-4 sm:px-6 py-2 bg-muted/40 border-b border-border/60">
+      {/* Admin-only Photo-Mode-Switcher — Customer wechselt Mode via Preset */}
+      {isAdmin && posterType === 'photo' && <PhotoModeAdminToggle />}
       {/* Projekt-Save nur wenn KEIN Preset bearbeitet wird (sonst missverständlich) */}
       {!isEditingMatchingPreset && <SaveButton posterType={posterType} />}
       {isAdmin && <SaveAsPresetButton />}
