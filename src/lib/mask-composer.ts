@@ -142,10 +142,70 @@ export function composeMaskSvg(
   shape: ShapeDefinition,
   config: ShapeConfigState,
   layoutMapHeight: number = 1,
+  orientation: 'portrait' | 'landscape' = 'portrait',
 ): string {
   const parts: string[] = []
   const { outer } = config
 
+  // Landscape branch: render into an A4-landscape viewBox (841.9 x 595.3),
+  // uniformly fit + centre the shape inside it, and recompute the faded/full
+  // rectangle + glow against canvas coords. The mask SVG is then applied
+  // with mask-size: 100% 100% on a landscape canvas (same aspect) — no
+  // stretching, shape stays a circle/heart/etc. instead of becoming an
+  // ellipse pulled across the wide axis.
+  if (orientation === 'landscape') {
+    const canvasW = 841.9
+    const canvasH = 595.3
+    const mmCorrection = 210 / 297
+
+    const bottom = shape.bottomFraction ?? 1
+    const layoutScale = bottom > layoutMapHeight ? layoutMapHeight / bottom : 1
+    const fitScale = Math.min(canvasW / shape.width, canvasH / shape.height)
+    const totalScale = layoutScale * fitScale
+    const scaledW = shape.width * totalScale
+    const scaledH = shape.height * totalScale
+    const tx = +((canvasW - scaledW) / 2).toFixed(2)
+    const ty = +((canvasH - scaledH) / 2).toFixed(2)
+    const shapeTransform = ` transform="translate(${tx} ${ty}) scale(${totalScale.toFixed(4)})"`
+
+    if (outer.mode === 'opacity' || outer.mode === 'full') {
+      const sides = resolveSideMarginsMm(config)
+      const mT = mmToUnits(sides.top, canvasW) * mmCorrection
+      const mR = mmToUnits(sides.right, canvasW) * mmCorrection
+      const mB = mmToUnits(sides.bottom, canvasW) * mmCorrection
+      const mL = mmToUnits(sides.left, canvasW) * mmCorrection
+      const w = canvasW - mL - mR
+      const h = canvasH - mT - mB
+      const op = outer.mode === 'full' ? 1 : outer.opacity
+      parts.push(
+        `<rect x="${mL}" y="${mT}" width="${w}" height="${h}" fill="#fff" fill-opacity="${op}"/>`,
+      )
+    }
+
+    let defs = ''
+    if (outer.mode === 'glow') {
+      const radiusMm = outer.glowRadius ?? 250
+      const intensity = outer.glowIntensity ?? 0.5
+      const r = (mmToUnits(radiusMm, canvasW) * mmCorrection).toFixed(2)
+      const visibleBottom = Math.min(bottom, layoutMapHeight)
+      // Centre on the shape's transformed visual midpoint (in canvas coords).
+      const cx = (tx + (shape.width / 2) * totalScale).toFixed(2)
+      const cy = (ty + ((shape.height * visibleBottom) / 2) * totalScale).toFixed(2)
+      defs =
+        `<defs><radialGradient id="m-glow">` +
+        `<stop offset="0%" stop-color="#fff" stop-opacity="${intensity}"/>` +
+        `<stop offset="100%" stop-color="#fff" stop-opacity="0"/>` +
+        `</radialGradient></defs>`
+      parts.push(`<circle cx="${cx}" cy="${cy}" r="${r}" fill="url(#m-glow)"/>`)
+    }
+
+    parts.push(`<g fill="#fff" fill-opacity="1"${shapeTransform}>${shape.markup}</g>`)
+
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${canvasW} ${canvasH}" width="${canvasW}" height="${canvasH}">${defs}${parts.join('')}</svg>`
+  }
+
+  // Portrait — original behaviour, preserved bit-for-bit so existing presets
+  // render identically.
   // Layout-aware scaling: if the shape's natural bottom sits lower than the
   // map area allows (e.g. heart-single bottoms at 84 % but the layout only
   // grants 70 %), scale it down uniformly so it fits — preserving aspect
@@ -214,7 +274,69 @@ export function composeFrameSvg(
    *  edge), matching the convention of all uploaded mask SVGs. Synthetic
    *  landscape frames pass 297 so mm offsets stay honest. */
   referenceMm: number = 210,
+  orientation: 'portrait' | 'landscape' = 'portrait',
 ): string {
+  // Landscape branch — render into A4-landscape viewBox. The OUTER frame
+  // wraps the actual landscape canvas (not the shape's portrait box), and
+  // the INNER frame contour follows the same uniform-fit + centred shape
+  // transform that composeMaskSvg uses, so the two layers stay in lockstep.
+  if (orientation === 'landscape') {
+    const canvasW = 841.9
+    const canvasH = 595.3
+    const mmCorrectionLand = 210 / 297
+    const toUnitsLand = (mm: number) => mmToUnits(mm, canvasW) * mmCorrectionLand
+
+    const bottom = shape.bottomFraction ?? 1
+    const layoutScale = bottom > layoutMapHeight ? layoutMapHeight / bottom : 1
+    const fitScale = Math.min(canvasW / shape.width, canvasH / shape.height)
+    const totalScale = layoutScale * fitScale
+    const scaledW = shape.width * totalScale
+    const scaledH = shape.height * totalScale
+    const tx = +((canvasW - scaledW) / 2).toFixed(2)
+    const ty = +((canvasH - scaledH) / 2).toFixed(2)
+
+    const parts: string[] = []
+    const { innerFrame, outerFrame } = config
+
+    if (outerFrame.enabled) {
+      const offsetMm = outerFrame.offset ?? 10
+      const off0 = toUnitsLand(offsetMm)
+      const thickness = toUnitsLand(outerFrame.thickness)
+      const w = canvasW - 2 * off0
+      const h = canvasH - 2 * off0
+      parts.push(
+        `<rect x="${off0}" y="${off0}" width="${w}" height="${h}" fill="none" stroke="${outerFrame.color}" stroke-width="${thickness}"/>`,
+      )
+      if (outerFrame.style === 'double') {
+        const gap = toUnitsLand(outerFrame.gap)
+        const off = thickness + gap
+        const innerX = off0 + off
+        const innerY = off0 + off
+        const innerW = canvasW - 2 * off0 - 2 * off
+        const innerH = canvasH - 2 * off0 - 2 * off
+        if (innerW > 0 && innerH > 0) {
+          parts.push(
+            `<rect x="${innerX}" y="${innerY}" width="${innerW}" height="${innerH}" fill="none" stroke="${outerFrame.color}" stroke-width="${thickness}"/>`,
+          )
+        }
+      }
+    }
+
+    if (innerFrame.enabled) {
+      const thickness = toUnitsLand(innerFrame.thickness)
+      // Stroke is drawn AFTER scaling, so divide by totalScale to keep the
+      // visual thickness constant.
+      const scaledThickness = thickness / (totalScale || 1)
+      const innerTransform = ` transform="translate(${tx} ${ty}) scale(${totalScale.toFixed(4)})"`
+      parts.push(
+        `<g fill="none" stroke="${innerFrame.color}" stroke-width="${scaledThickness}" stroke-linejoin="round"${innerTransform}>${shape.markup}</g>`,
+      )
+    }
+
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${canvasW} ${canvasH}">${parts.join('')}</svg>`
+  }
+
+  // Portrait — original behaviour, preserved bit-for-bit.
   const bottom = shape.bottomFraction ?? 1
   const shapeScale = bottom > layoutMapHeight ? layoutMapHeight / bottom : 1
   const frameTranslateX = +((shape.width * (1 - shapeScale)) / 2).toFixed(2)

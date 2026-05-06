@@ -477,7 +477,7 @@ export async function buildPosterCanvas(
   // Split masks fall back to their baked SVG files (no composition).
   async function applyComposedMask(srcCanvas: HTMLCanvasElement): Promise<HTMLCanvasElement> {
     if (!mask.shape || !shapeConfig) return srcCanvas
-    const maskSvg = composeMaskSvg(mask.shape, shapeConfig, layoutMapHeightForShape)
+    const maskSvg = composeMaskSvg(mask.shape, shapeConfig, layoutMapHeightForShape, store.orientation ?? 'portrait')
     const out = document.createElement('canvas')
     out.width = srcCanvas.width
     out.height = srcCanvas.height
@@ -676,7 +676,7 @@ export async function buildPosterCanvas(
   // a full-poster rectangle, while the inner frame ("Formkontur") strokes
   // the split mask's combined silhouette when one is defined.
   if (!isDualMap && !isSplitPhoto && mask.shape && shapeConfig && hasAnyFrame(shapeConfig)) {
-    const frameSvg = composeFrameSvg(mask.shape, shapeConfig, layoutMapHeightForShape)
+    const frameSvg = composeFrameSvg(mask.shape, shapeConfig, layoutMapHeightForShape, 210, store.orientation ?? 'portrait')
     const frameImg = await loadImage(svgToDataUrl(frameSvg))
     ctx.drawImage(frameImg, mapTargetX, mapTargetY, mapTargetW, mapTargetH)
   } else if (shapeConfig && (isDualMap || isSplitPhoto || !mask.shape)) {

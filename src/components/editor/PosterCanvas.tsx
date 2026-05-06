@@ -107,23 +107,30 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
   const useComposedMask = !!mask.shape && !isDualMap && !isSplitPhoto
   const layoutMapHeight = LAYOUT_MAP_HEIGHT[layoutId]
   const composedMaskSvgString = useComposedMask && mask.shape
-    ? composeMaskSvg(mask.shape, shapeConfig, layoutMapHeight)
+    ? composeMaskSvg(mask.shape, shapeConfig, layoutMapHeight, orientation)
     : null
   // Glow mode uses <radialGradient>, which Chromium doesn't always
   // rasterise from a CSS mask-image SVG data URL. Render those masks
   // through canvas first so the gradient is baked into a PNG.
+  // The composed mask SVG follows the canvas aspect (portrait shape
+  // viewBox in portrait, A4-landscape viewBox in landscape), so the
+  // rasteriser dimensions must match — passing the shape's portrait
+  // dims here in landscape would re-distort the freshly-corrected mask.
+  const isLandscapeForRaster = orientation === 'landscape'
+  const rasterW = mask.shape ? (isLandscapeForRaster ? 841.9 : mask.shape.width) : 0
+  const rasterH = mask.shape ? (isLandscapeForRaster ? 595.3 : mask.shape.height) : 0
   const composedMaskDataUrl = useRasterizedMaskUrl(
     composedMaskSvgString,
     shapeConfig.outer.mode === 'glow',
-    mask.shape?.width ?? 0,
-    mask.shape?.height ?? 0,
+    rasterW,
+    rasterH,
   )
   // PROJ-35: Decoration follows the inner-frame colour so heart silhouette +
   // string/love overlay share one unified design colour, even when the user
   // has the inner frame stroke disabled (the colour value is the source).
   const coloredDecorationUrl = useColoredDecoration(decorationSvgUrl, shapeConfig.innerFrame.color)
   const composedFrameDataUrl = useComposedMask && mask.shape && hasAnyFrame(shapeConfig)
-    ? svgToDataUrl(composeFrameSvg(mask.shape, shapeConfig, layoutMapHeight))
+    ? svgToDataUrl(composeFrameSvg(mask.shape, shapeConfig, layoutMapHeight, 210, orientation))
     : null
 
   // Fullbleed (no shape, no split) with outer.mode != 'none' and a margin > 0:
