@@ -9,6 +9,7 @@ import { LocationSearch } from '@/components/editor/LocationSearch'
 import { PresetPicker } from '@/components/editor/PresetPicker'
 import { useStarMapStore } from '@/hooks/useStarMapStore'
 import { useAuth } from '@/hooks/useAuth'
+import { useIsMobileEditor } from '@/hooks/useIsMobileEditor'
 import { cn } from '@/lib/utils'
 import { STAR_TEXTURES } from '@/lib/star-textures'
 
@@ -23,6 +24,7 @@ export function StarMapTab() {
     setTextureKey, setTextureOpacity,
   } = useStarMapStore()
   const { isAdmin } = useAuth()
+  const isMobile = useIsMobileEditor()
 
   return (
     <div className="space-y-5 p-4">
@@ -95,44 +97,90 @@ export function StarMapTab() {
           above the radial-gradient sky background. */}
       <div className="space-y-3">
         <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">{t('textureLabel')}</Label>
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => setTextureKey(null)}
-            className={cn(
-              'w-9 h-9 rounded-full border flex items-center justify-center text-[9px] uppercase tracking-wide transition',
-              textureKey === null
-                ? 'border-foreground ring-2 ring-foreground ring-offset-1 ring-offset-background text-foreground'
-                : 'border-border text-muted-foreground hover:border-foreground/50',
-            )}
-            style={{ backgroundColor: skyBgColor }}
-            aria-label={t('textureNoneAria')}
-            title={t('textureNoneLabel')}
-          >
-            <span className="sr-only">{t('textureNoneLabel')}</span>
-          </button>
-          {STAR_TEXTURES.map((tex) => {
-            const label = t(`textures.${tex.labelKey}` as 'textures.inkBlue')
-            return (
-              <button
-                key={tex.key}
-                type="button"
-                onClick={() => setTextureKey(tex.key)}
-                className={cn(
-                  'w-9 h-9 rounded-full overflow-hidden border transition bg-cover bg-center',
-                  textureKey === tex.key
-                    ? 'border-foreground ring-2 ring-foreground ring-offset-1 ring-offset-background'
-                    : 'border-border hover:border-foreground/50',
-                )}
-                style={{ backgroundImage: `url(${tex.path})` }}
-                aria-label={label}
-                title={label}
-              >
-                <span className="sr-only">{label}</span>
-              </button>
-            )
-          })}
-        </div>
+        {isMobile ? (
+          // Horizontal swipe-strip on Mobile — wrap-layout shifted around when
+          // the opacity-slider appeared/disappeared below. -mx-4 bleed lets the
+          // 4th item peek past the edge so it's discoverable.
+          <div className="flex gap-1.5 overflow-x-auto snap-x snap-mandatory -mx-4 px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <button
+              type="button"
+              onClick={() => setTextureKey(null)}
+              className={cn(
+                'shrink-0 w-20 snap-start rounded-md border-2 py-3 px-1 transition-all flex flex-col items-center gap-1',
+                textureKey === null ? 'border-primary bg-muted' : 'border-border',
+              )}
+              aria-label={t('textureNoneAria')}
+            >
+              <div
+                className="w-10 h-10 rounded-full border border-border/60"
+                style={{ backgroundColor: skyBgColor }}
+              />
+              <span className="text-[11px] leading-tight text-center text-muted-foreground">
+                {t('textureNoneLabel')}
+              </span>
+            </button>
+            {STAR_TEXTURES.map((tex) => {
+              const label = t(`textures.${tex.labelKey}` as 'textures.inkBlue')
+              return (
+                <button
+                  key={tex.key}
+                  type="button"
+                  onClick={() => setTextureKey(tex.key)}
+                  className={cn(
+                    'shrink-0 w-20 snap-start rounded-md border-2 py-3 px-1 transition-all flex flex-col items-center gap-1',
+                    textureKey === tex.key ? 'border-primary bg-muted' : 'border-border',
+                  )}
+                  aria-label={label}
+                >
+                  <div
+                    className="w-10 h-10 rounded-full overflow-hidden border border-border/60 bg-cover bg-center"
+                    style={{ backgroundImage: `url(${tex.path})` }}
+                  />
+                  <span className="text-[11px] leading-tight text-center text-muted-foreground">{label}</span>
+                </button>
+              )
+            })}
+          </div>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setTextureKey(null)}
+              className={cn(
+                'w-9 h-9 rounded-full border flex items-center justify-center text-[9px] uppercase tracking-wide transition',
+                textureKey === null
+                  ? 'border-foreground ring-2 ring-foreground ring-offset-1 ring-offset-background text-foreground'
+                  : 'border-border text-muted-foreground hover:border-foreground/50',
+              )}
+              style={{ backgroundColor: skyBgColor }}
+              aria-label={t('textureNoneAria')}
+              title={t('textureNoneLabel')}
+            >
+              <span className="sr-only">{t('textureNoneLabel')}</span>
+            </button>
+            {STAR_TEXTURES.map((tex) => {
+              const label = t(`textures.${tex.labelKey}` as 'textures.inkBlue')
+              return (
+                <button
+                  key={tex.key}
+                  type="button"
+                  onClick={() => setTextureKey(tex.key)}
+                  className={cn(
+                    'w-9 h-9 rounded-full overflow-hidden border transition bg-cover bg-center',
+                    textureKey === tex.key
+                      ? 'border-foreground ring-2 ring-foreground ring-offset-1 ring-offset-background'
+                      : 'border-border hover:border-foreground/50',
+                  )}
+                  style={{ backgroundImage: `url(${tex.path})` }}
+                  aria-label={label}
+                  title={label}
+                >
+                  <span className="sr-only">{label}</span>
+                </button>
+              )
+            })}
+          </div>
+        )}
         {textureKey !== null && (
           <div className="space-y-1 pt-1">
             <div className="flex items-center justify-between">
