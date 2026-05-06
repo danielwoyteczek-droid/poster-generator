@@ -10,6 +10,7 @@ import { useEditorStore } from '@/hooks/useEditorStore'
 import { useAuth } from '@/hooks/useAuth'
 import { useCustomMasks } from '@/hooks/useCustomMasks'
 import { MAP_MASK_OPTIONS, MAP_MASKS } from '@/lib/map-masks'
+import { DECORATIONS } from '@/lib/decorations'
 import { cn } from '@/lib/utils'
 
 const SPLIT_MASK_OPTIONS = MAP_MASK_OPTIONS.filter((m) => m.isSplit)
@@ -94,6 +95,55 @@ export function MobileLayoutTab() {
             </button>
           ))}
         </div>
+        {/* PROJ-35: Admin-only Decoration-Picker — horizontal-scroll matching
+            the mask grid above. Customers see only the visibility toggle. */}
+        {isAdmin && (
+          <div className="space-y-1.5 pt-3">
+            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
+              Decoration (Admin)
+            </Label>
+            <div className="flex gap-1.5 overflow-x-auto snap-x snap-mandatory -mx-4 px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <button
+                type="button"
+                onClick={() => setDecorationSvgUrl(null)}
+                className={cn(
+                  'shrink-0 w-20 snap-start rounded-md border-2 py-3 px-1 transition-all flex flex-col items-center gap-1',
+                  !decorationSvgUrl
+                    ? 'border-primary bg-muted'
+                    : 'border-border',
+                )}
+              >
+                <div className="w-10 h-10 flex items-center justify-center text-muted-foreground/40 text-lg">
+                  —
+                </div>
+                <span className="text-[11px] leading-tight text-center text-muted-foreground">
+                  Keine
+                </span>
+              </button>
+              {DECORATIONS.map((d) => (
+                <button
+                  key={d.key}
+                  type="button"
+                  onClick={() => setDecorationSvgUrl(d.url)}
+                  className={cn(
+                    'shrink-0 w-20 snap-start rounded-md border-2 py-3 px-1 transition-all flex flex-col items-center gap-1',
+                    decorationSvgUrl === d.url
+                      ? 'border-primary bg-muted'
+                      : 'border-border',
+                  )}
+                >
+                  <div className="w-10 h-10 flex items-center justify-center">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={d.url} alt={d.label} className="w-9 h-9 object-contain" />
+                  </div>
+                  <span className="text-[11px] leading-tight text-center text-muted-foreground">
+                    {d.label}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         {decorationSvgUrl && (
           <div className="flex items-center justify-between pt-2">
             <Label className="text-xs text-foreground/70">Decoration anzeigen</Label>

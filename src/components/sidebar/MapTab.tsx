@@ -27,6 +27,7 @@ import { PRINT_FORMAT_OPTIONS, type PosterOrientation } from '@/lib/print-format
 import { useAuth } from '@/hooks/useAuth'
 import { useCustomMasks } from '@/hooks/useCustomMasks'
 import { MAP_MASK_OPTIONS, MAP_MASKS } from '@/lib/map-masks'
+import { DECORATIONS } from '@/lib/decorations'
 import { MAP_LAYOUTS } from '@/lib/map-layouts'
 import { MAP_PALETTES, type MapPaletteColors } from '@/lib/map-palettes'
 import { extractPaletteFromLayout } from '@/lib/petite-style-loader'
@@ -778,8 +779,56 @@ export function MapTab() {
             {masksExpanded ? t('mapShowLess') : t('mapShowMore', { n: visibleMasks.length - MASK_INITIAL_VISIBLE })}
           </button>
         )}
-        {/* PROJ-35: Decoration toggle — only shown when the active mask has
-            an associated decoration overlay (string + cursive text etc.). */}
+        {/* PROJ-35: Decoration — admins get a picker (so they can attach a
+            decoration to any preset, not only mask-bound ones). Customers see
+            only the visibility toggle, and only when a decoration is active. */}
+        {isAdmin && (
+          <div className="space-y-1.5 pt-3">
+            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
+              Decoration (Admin)
+            </Label>
+            <div className="grid grid-cols-3 gap-1.5">
+              <button
+                type="button"
+                onClick={() => setDecorationSvgUrl(null)}
+                className={cn(
+                  'rounded-md border-2 py-2 px-1 transition-all flex flex-col items-center gap-1',
+                  !decorationSvgUrl
+                    ? 'border-primary bg-muted'
+                    : 'border-border hover:border-muted-foreground',
+                )}
+              >
+                <div className="w-8 h-8 flex items-center justify-center text-muted-foreground/40 text-lg">
+                  —
+                </div>
+                <span className="text-[9px] leading-tight text-center text-muted-foreground">
+                  Keine
+                </span>
+              </button>
+              {DECORATIONS.map((d) => (
+                <button
+                  key={d.key}
+                  type="button"
+                  onClick={() => setDecorationSvgUrl(d.url)}
+                  className={cn(
+                    'rounded-md border-2 py-2 px-1 transition-all flex flex-col items-center gap-1',
+                    decorationSvgUrl === d.url
+                      ? 'border-primary bg-muted'
+                      : 'border-border hover:border-muted-foreground',
+                  )}
+                >
+                  <div className="w-8 h-8 flex items-center justify-center">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={d.url} alt={d.label} className="w-7 h-7 object-contain" />
+                  </div>
+                  <span className="text-[9px] leading-tight text-center text-muted-foreground">
+                    {d.label}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         {decorationSvgUrl && (
           <div className="flex items-center justify-between pt-2">
             <Label className="text-xs text-foreground/70">Decoration anzeigen</Label>
