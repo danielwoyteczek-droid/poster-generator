@@ -28,6 +28,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { invalidateMapPalettesCache } from '@/hooks/useMapPalettes'
 import type { MapPaletteColors } from '@/lib/map-palettes'
+import { PalettePreviewMap } from './PalettePreviewMap'
 
 interface PaletteRow {
   id: string
@@ -285,7 +286,7 @@ export function AdminPalettesList() {
 
       {/* Create / Edit dialog */}
       <Dialog open={editorOpen} onOpenChange={setEditorOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle>{editingId ? 'Palette bearbeiten' : 'Neue Palette'}</DialogTitle>
             <DialogDescription>
@@ -339,30 +340,37 @@ export function AdminPalettesList() {
                 disabled={saving}
               />
             </div>
-            <div className="pt-2">
-              <Label className="text-xs text-muted-foreground mb-1.5 block">Farben (alle 8 erforderlich)</Label>
-              <div className="grid grid-cols-2 gap-2">
-                {COLOR_LABELS.map(({ key, label }) => (
-                  <div key={key} className="flex items-center gap-2">
-                    <input
-                      type="color"
-                      value={formColors[key]}
-                      onChange={(e) => setFormColors((c) => ({ ...c, [key]: e.target.value }))}
-                      className="w-8 h-8 rounded border border-border cursor-pointer"
-                      disabled={saving}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <Label htmlFor={`col-${key}`} className="text-[10px] text-muted-foreground">{label}</Label>
-                      <Input
-                        id={`col-${key}`}
+            <div className="pt-2 grid grid-cols-[1fr,260px] gap-4">
+              <div>
+                <Label className="text-xs text-muted-foreground mb-1.5 block">Farben (alle 8 erforderlich)</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  {COLOR_LABELS.map(({ key, label }) => (
+                    <div key={key} className="flex items-center gap-2">
+                      <input
+                        type="color"
                         value={formColors[key]}
                         onChange={(e) => setFormColors((c) => ({ ...c, [key]: e.target.value }))}
+                        className="w-8 h-8 rounded border border-border cursor-pointer"
                         disabled={saving}
-                        className="h-7 text-xs font-mono"
                       />
+                      <div className="flex-1 min-w-0">
+                        <Label htmlFor={`col-${key}`} className="text-[10px] text-muted-foreground">{label}</Label>
+                        <Input
+                          id={`col-${key}`}
+                          value={formColors[key]}
+                          onChange={(e) => setFormColors((c) => ({ ...c, [key]: e.target.value }))}
+                          disabled={saving}
+                          className="h-7 text-xs font-mono"
+                        />
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground mb-1.5 block">Vorschau</Label>
+                <PalettePreviewMap colors={formColors} />
+                <p className="text-[10px] text-muted-foreground/70 mt-1.5">Berlin Mitte · Layout „Klassisch"</p>
               </div>
             </div>
           </div>
