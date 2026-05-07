@@ -265,7 +265,25 @@ export interface EditorConfig {
   splitPhotoZone: number
 }
 
+// PROJ-1: Initial state mirrors the "New York" preset — first-time visitors
+// see a strong, finished-looking poster instead of a blank München template,
+// which converts better. Location, zoom, style, palette, layout and text
+// blocks are all aligned with the published New York preset (id
+// 0726c022-a6ce-408c-affe-8f1dfbbb6207). To change the welcome look, swap
+// the values below — single-source of truth, no admin field needed yet.
 const DEFAULT_VIEW: ViewState = {
+  lng: -74.006,
+  lat: 40.7128,
+  zoom: 11,
+  viewportWidth: 0,
+  viewportHeight: 0,
+  bounds: { west: 0, south: 0, east: 0, north: 0 },
+}
+
+// München fallback for the second-map slot (split-map feature). Customers
+// rarely reach this and it's not the welcome experience, so keep it close
+// to home.
+const SECOND_MAP_DEFAULT_VIEW: ViewState = {
   lng: 11.576124,
   lat: 48.137154,
   zoom: 12,
@@ -283,10 +301,19 @@ export const EDITOR_INITIAL_STATE = {
   viewState: DEFAULT_VIEW,
   pendingCenter: null,
   pendingZoomDelta: null,
-  styleId: 'klassisch',
-  paletteId: 'original',
-  customPaletteBase: null,
-  customPalette: null,
+  styleId: 'tusche',
+  paletteId: 'custom',
+  customPaletteBase: '#111111',
+  customPalette: {
+    land: '#eeeeee',
+    road: '#1a1a1a',
+    label: '#222222',
+    water: '#2a75c6',
+    border: '#bdbdbd',
+    building: '#dddddd',
+    labelHalo: '#ffffff',
+    background: '#ffffff',
+  },
   streetLabelsVisible: false,
   posterDarkMode: false,
   maskKey: 'none',
@@ -295,7 +322,7 @@ export const EDITOR_INITIAL_STATE = {
   marker: { enabled: false, type: 'classic' as const, color: '#e63946' },
   secondMarker: { enabled: false, type: 'classic' as const, color: '#e63946' },
   shapeConfig: DEFAULT_SHAPE_CONFIG,
-  layoutId: 'full' as const,
+  layoutId: 'text-15' as const,
   innerMarginMm: 0,
   decorationSvgUrl: null,
   decorationVisible: true,
@@ -305,40 +332,31 @@ export const EDITOR_INITIAL_STATE = {
     paletteId: 'original',
     customPaletteBase: null,
     customPalette: null,
-    viewState: DEFAULT_VIEW,
+    viewState: SECOND_MAP_DEFAULT_VIEW,
     pendingCenter: null,
     pendingZoomDelta: null,
   },
   textBlocks: [
     {
       id: 'block-title',
-      text: 'Dein Moment',
-      x: 0.1, y: 0.75, width: 0.8,
-      fontFamily: 'Amsterdam',
-      fontSize: 32, color: '#000000',
+      text: 'NEW YORK',
+      x: 0.1, y: 0.87, width: 0.8,
+      fontFamily: 'Playfair Display',
+      fontSize: 61, color: '#000000',
       align: 'center' as const, bold: false, uppercase: false,
       locked: false, isCoordinates: false,
     },
     {
-      id: 'block-subtitle',
-      text: 'Emma & Leo',
-      x: 0.1, y: 0.87, width: 0.8,
-      fontFamily: 'CaviarDreams',
-      fontSize: 13, color: '#555555',
-      align: 'center' as const, bold: false, uppercase: true,
-      locked: false, isCoordinates: false, label: 'Name',
-    },
-    {
       id: 'block-coords',
       text: '',
-      x: 0.1, y: 0.91, width: 0.8,
+      x: 0.1, y: 0.96, width: 0.8,
       fontFamily: 'CaviarDreams',
       fontSize: 11, color: '#888888',
       align: 'center' as const, bold: false, uppercase: false,
       locked: false, isCoordinates: true, label: 'Ort & Koordinaten',
     },
   ],
-  locationName: 'München',
+  locationName: 'New York',
   selectedBlockId: null,
   projectId: null,
   projectPosterType: null,
