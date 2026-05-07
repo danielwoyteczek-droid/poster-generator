@@ -26,8 +26,22 @@ export interface MapMaskDefinition {
    * Used when the left/right shapes intentionally extend across the midline
    * (entwined hearts etc.) — without this flag the shapes would be cut
    * along the poster centre.
+   *
+   * Caveat: with `noHalfClip: true` AND no `leftClipPath`/`rightClipPath`,
+   * the right map div covers the whole canvas and steals all pointer events
+   * from the left. Define matching clip-paths to partition pointer regions.
    */
   noHalfClip?: boolean
+  /**
+   * Optional CSS clip-path string for the LEFT split-map container. Overrides
+   * the default 50/50 polygon. Used when the visual divider between two split
+   * shapes is diagonal/curvy (e.g. tilted hearts) — pointer events follow
+   * this polygon, so the user can interact with whichever map is "under" the
+   * cursor's region. Use percentage units. Falls through to the default 50%
+   * polygon (or no clip if `noHalfClip`) when not set.
+   */
+  leftClipPath?: string
+  rightClipPath?: string
   /**
    * Pure shape definition (viewBox + inner markup). Present for non-split
    * masks that participate in the mask composer. Split masks or the "none"
@@ -154,10 +168,12 @@ export const MAP_MASKS: Record<MapMaskKey, MapMaskDefinition> = {
     isSplit: true,
     leftSvgPath: '/masks/hearts-curved-left.svg',
     rightSvgPath: '/masks/hearts-curved-right.svg',
-    // Hearts curve into each other near the centre — same noHalfClip
-    // reasoning as hearts-diagonal: each shape's own SVG defines its
-    // pixels, so the standard half-polygon clip would mis-slice.
+    // Hearts curve into each other near the centre — partition pointer
+    // events along a roughly vertical line through the entwine point so
+    // the left map stays interactive on the left, right on the right.
     noHalfClip: true,
+    leftClipPath: 'polygon(0% 0%, 50% 0%, 42% 100%, 0% 100%)',
+    rightClipPath: 'polygon(50% 0%, 100% 0%, 100% 100%, 42% 100%)',
     shape: {
       viewBox: '0 0 595.3 841.9',
       width: 595.3, height: 841.9,
@@ -172,11 +188,13 @@ export const MAP_MASKS: Record<MapMaskKey, MapMaskDefinition> = {
     isSplit: true,
     leftSvgPath: '/masks/hearts-diagonal-left.svg',
     rightSvgPath: '/masks/hearts-diagonal-right.svg',
-    // Hearts overlap across the canvas midline at angles, so the standard
-    // half-clip (left half / right half polygon) would slice each heart in
-    // half. noHalfClip lets each heart's own SVG mask define which pixels
-    // belong to which map.
+    // Hearts cross the canvas midline at angles. noHalfClip prevents the
+    // straight-midline polygon from slicing them visually; the diagonal
+    // leftClipPath / rightClipPath partition pointer events so the user
+    // can drag whichever map sits under the cursor.
     noHalfClip: true,
+    leftClipPath: 'polygon(0% 0%, 30% 0%, 98% 100%, 0% 100%)',
+    rightClipPath: 'polygon(30% 0%, 100% 0%, 100% 100%, 98% 100%)',
     shape: {
       viewBox: '0 0 595.3 841.9',
       width: 595.3, height: 841.9,

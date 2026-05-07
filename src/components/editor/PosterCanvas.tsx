@@ -271,27 +271,36 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
               const gapHalfPx = mmToPx * 1
               const leftEdge = `calc(50% - ${gapHalfPx}px)`
               const rightEdge = `calc(50% + ${gapHalfPx}px)`
-              const leftClip = `polygon(0 0, ${leftEdge} 0, ${leftEdge} 100%, 0 100%)`
-              const rightClip = `polygon(${rightEdge} 0, 100% 0, 100% 100%, ${rightEdge} 100%)`
+              const defaultLeftClip = `polygon(0 0, ${leftEdge} 0, ${leftEdge} 100%, 0 100%)`
+              const defaultRightClip = `polygon(${rightEdge} 0, 100% 0, 100% 100%, ${rightEdge} 100%)`
+              // Per-mask custom polygons take precedence so that masks with
+              // diagonal / curvy dividers (entwined hearts) can split pointer
+              // events along the visual boundary instead of the canvas midline.
+              // Falls through to the default 50/50 unless `noHalfClip` is set,
+              // in which case no clip is applied at all (the mask SVG itself
+              // defines visual regions; pointer events leak — see fix in
+              // hearts-diagonal & hearts-curved which set leftClipPath/rightClipPath).
+              const leftClip = mask.leftClipPath ?? (mask.noHalfClip ? null : defaultLeftClip)
+              const rightClip = mask.rightClipPath ?? (mask.noHalfClip ? null : defaultRightClip)
               return (
               <>
-                {/* Left map — clip-path restricts pointer events to left half unless the
-                    mask explicitly extends across the midline */}
+                {/* Left map — clip-path partitions pointer events so the left
+                    half (or per-mask custom region) routes to the primary map */}
                 <div
                   className="absolute inset-0"
                   style={{
                     ...(mask.leftSvgPath ? makeMaskStyle(mask.leftSvgPath) : {}),
-                    ...(mask.noHalfClip ? {} : { clipPath: leftClip }),
+                    ...(leftClip ? { clipPath: leftClip } : {}),
                   }}
                 >
                   <MapPreview storeSlice="primary" />
                 </div>
-                {/* Right map — same, but clipped to the right half */}
+                {/* Right map */}
                 <div
                   className="absolute inset-0"
                   style={{
                     ...(mask.rightSvgPath ? makeMaskStyle(mask.rightSvgPath) : {}),
-                    ...(mask.noHalfClip ? {} : { clipPath: rightClip }),
+                    ...(rightClip ? { clipPath: rightClip } : {}),
                   }}
                 >
                   <MapPreview storeSlice="secondary" />
