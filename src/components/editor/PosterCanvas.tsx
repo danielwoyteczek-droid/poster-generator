@@ -18,7 +18,7 @@ import { PhotoOverlay } from './PhotoOverlay'
 import { SplitPhotoOverlay } from './SplitPhotoOverlay'
 import { PreviewTriggerButton } from './PreviewTriggerButton'
 import { MapAttribution } from './MapAttribution'
-import { SplitMaskClipDefs } from './SplitMaskClipDefs'
+import { cn } from '@/lib/utils'
 
 function ClassicPin({ color }: { color: string }) {
   return (
@@ -85,7 +85,7 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
   const photoInteractive = activeMobileTool === undefined || activeMobileTool === 'photo'
   const markerInteractive = activeMobileTool === undefined || activeMobileTool === 'marker'
 
-  const { maskKey, printFormat, orientation, zoomIn, zoomOut, flyToLocation, zoomInSecond, zoomOutSecond, secondMap, marker, secondMarker, shapeConfig, viewState, setMarker, setSecondMarker, setSelectedBlockId, splitMode, splitPhoto, splitPhotoZone, layoutId, innerMarginMm, paletteId, customPalette, posterDarkMode, decorationSvgUrl, decorationVisible } = useEditorStore()
+  const { maskKey, printFormat, orientation, zoomIn, zoomOut, flyToLocation, zoomInSecond, zoomOutSecond, secondMap, marker, secondMarker, shapeConfig, viewState, setMarker, setSecondMarker, setSelectedBlockId, splitMode, splitPhoto, splitPhotoZone, layoutId, innerMarginMm, paletteId, customPalette, posterDarkMode, decorationSvgUrl, decorationVisible, activeSplitMap, setActiveSplitMap } = useEditorStore()
   const mapAreaRef = useRef<HTMLDivElement>(null)
   const { masks: customMasks } = useCustomMasks()
   const mask =
@@ -223,9 +223,6 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
   return (
     <div ref={wrapperRef} className="flex-1 relative bg-muted min-h-0 overflow-hidden flex items-center justify-center">
       <PreviewTriggerButton />
-      {/* Inline SVG <clipPath> defs for shape-following pointer-event
-          partitions (entwined hearts etc.). Hidden, just provides id refs. */}
-      <SplitMaskClipDefs />
       {/* OSM/MapTiler attribution — outside the poster card, in the editor
           chrome. ODbL-compliant placement, doesn't pollute the canvas. */}
       <MapAttribution className="absolute bottom-1 right-2" />
@@ -277,24 +274,25 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
               const rightEdge = `calc(50% + ${gapHalfPx}px)`
               const defaultLeftClip = `polygon(0 0, ${leftEdge} 0, ${leftEdge} 100%, 0 100%)`
               const defaultRightClip = `polygon(${rightEdge} 0, 100% 0, 100% 100%, ${rightEdge} 100%)`
-              // Per-mask custom polygons take precedence so that masks with
-              // diagonal / curvy dividers (entwined hearts) can split pointer
-              // events along the visual boundary instead of the canvas midline.
-              // Falls through to the default 50/50 unless `noHalfClip` is set,
-              // in which case no clip is applied at all (the mask SVG itself
-              // defines visual regions; pointer events leak — see fix in
-              // hearts-diagonal & hearts-curved which set leftClipPath/rightClipPath).
-              const leftClip = mask.leftClipPath ?? (mask.noHalfClip ? null : defaultLeftClip)
-              const rightClip = mask.rightClipPath ?? (mask.noHalfClip ? null : defaultRightClip)
+              // For non-noHalfClip masks the polygon partitions pointer events
+              // along the canvas midline. For noHalfClip masks the activeSplitMap
+              // toggle (sticky badge above the canvas) decides which map is
+              // interactive — the inactive one gets pointer-events:none so it
+              // doesn't steal touches in shape overlap zones.
+              const leftClip = mask.noHalfClip ? null : defaultLeftClip
+              const rightClip = mask.noHalfClip ? null : defaultRightClip
+              const usesActiveToggle = Boolean(mask.noHalfClip)
+              const primaryInteractive = !usesActiveToggle || activeSplitMap === 'primary'
+              const secondaryInteractive = !usesActiveToggle || activeSplitMap === 'secondary'
               return (
               <>
-                {/* Left map — clip-path partitions pointer events so the left
-                    half (or per-mask custom region) routes to the primary map */}
+                {/* Left map */}
                 <div
                   className="absolute inset-0"
                   style={{
                     ...(mask.leftSvgPath ? makeMaskStyle(mask.leftSvgPath) : {}),
                     ...(leftClip ? { clipPath: leftClip } : {}),
+                    ...(primaryInteractive ? {} : { pointerEvents: 'none' as const }),
                   }}
                 >
                   <MapPreview storeSlice="primary" />
@@ -305,10 +303,43 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
                   style={{
                     ...(mask.rightSvgPath ? makeMaskStyle(mask.rightSvgPath) : {}),
                     ...(rightClip ? { clipPath: rightClip } : {}),
+                    ...(secondaryInteractive ? {} : { pointerEvents: 'none' as const }),
                   }}
                 >
                   <MapPreview storeSlice="secondary" />
                 </div>
+                {/* Active-Map toggle badge — only for masks where pointer events
+                    can't be partitioned by a static clip-path (entwined hearts). */}
+                {usesActiveToggle && (
+                  <div className="absolute top-3 left-1/2 -translate-x-1/2 z-50 flex gap-1 bg-white/90 backdrop-blur-sm rounded-full shadow-md border border-border p-1">
+                    <button
+                      type="button"
+                      onClick={() => setActiveSplitMap('primary')}
+                      className={cn(
+                        'px-3 py-1 rounded-full text-[11px] font-medium transition-colors',
+                        activeSplitMap === 'primary'
+                          ? 'bg-primary text-primary-foreground'
+                          : 'text-muted-foreground hover:text-foreground',
+                      )}
+                      title="Linke Karte aktivieren"
+                    >
+                      Karte 1
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveSplitMap('secondary')}
+                      className={cn(
+                        'px-3 py-1 rounded-full text-[11px] font-medium transition-colors',
+                        activeSplitMap === 'secondary'
+                          ? 'bg-primary text-primary-foreground'
+                          : 'text-muted-foreground hover:text-foreground',
+                      )}
+                      title="Rechte Karte aktivieren"
+                    >
+                      Karte 2
+                    </button>
+                  </div>
+                )}
               </>
               )
             })() : isSplitPhoto && mapHalfSvg && photoHalfSvg ? (

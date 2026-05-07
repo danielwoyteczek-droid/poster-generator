@@ -27,21 +27,12 @@ export interface MapMaskDefinition {
    * (entwined hearts etc.) — without this flag the shapes would be cut
    * along the poster centre.
    *
-   * Caveat: with `noHalfClip: true` AND no `leftClipPath`/`rightClipPath`,
-   * the right map div covers the whole canvas and steals all pointer events
-   * from the left. Define matching clip-paths to partition pointer regions.
+   * Pointer-event routing in this mode is handled by the editor store's
+   * `activeSplitMap` toggle (see PosterCanvas) — the user explicitly picks
+   * which map is interactive via a "Karte 1 / Karte 2" badge above the
+   * canvas.
    */
   noHalfClip?: boolean
-  /**
-   * Optional CSS clip-path string for the LEFT split-map container. Overrides
-   * the default 50/50 polygon. Used when the visual divider between two split
-   * shapes is diagonal/curvy (e.g. tilted hearts) — pointer events follow
-   * this polygon, so the user can interact with whichever map is "under" the
-   * cursor's region. Use percentage units. Falls through to the default 50%
-   * polygon (or no clip if `noHalfClip`) when not set.
-   */
-  leftClipPath?: string
-  rightClipPath?: string
   /**
    * Pure shape definition (viewBox + inner markup). Present for non-split
    * masks that participate in the mask composer. Split masks or the "none"
@@ -168,13 +159,12 @@ export const MAP_MASKS: Record<MapMaskKey, MapMaskDefinition> = {
     isSplit: true,
     leftSvgPath: '/masks/hearts-curved-left.svg',
     rightSvgPath: '/masks/hearts-curved-right.svg',
-    // Each map div is clipped to its OWN heart shape via inline SVG
-    // <clipPath> defs (see SplitMaskClipDefs). This way pointer events
-    // and visuals follow the actual heart silhouettes — no diagonal cut
-    // through the design like a polygon would produce.
+    // Hearts curve into each other near the centre — neither a midline
+    // polygon nor SVG-clip-path partition holds up reliably for pointer
+    // events. Instead, PosterCanvas reads `activeSplitMap` from the
+    // editor store and gates pointer-events: the user toggles which map
+    // is interactive via the "Karte 1 / Karte 2" badge above the canvas.
     noHalfClip: true,
-    leftClipPath: 'url(#mask-hearts-curved-left)',
-    rightClipPath: 'url(#mask-hearts-curved-right)',
     shape: {
       viewBox: '0 0 595.3 841.9',
       width: 595.3, height: 841.9,
@@ -189,13 +179,10 @@ export const MAP_MASKS: Record<MapMaskKey, MapMaskDefinition> = {
     isSplit: true,
     leftSvgPath: '/masks/hearts-diagonal-left.svg',
     rightSvgPath: '/masks/hearts-diagonal-right.svg',
-    // Each map div is clipped to its OWN heart shape via inline SVG
-    // <clipPath> defs (see SplitMaskClipDefs). Pointer events follow the
-    // actual heart silhouette, so the user can drag whichever map sits
-    // under the cursor — no straight diagonal cut, no visual loss.
+    // Hearts cross the canvas midline at angles. Same reasoning as
+    // hearts-curved: pointer events follow `activeSplitMap` (toggle badge
+    // above the canvas) instead of any geometric partition.
     noHalfClip: true,
-    leftClipPath: 'url(#mask-hearts-diagonal-left)',
-    rightClipPath: 'url(#mask-hearts-diagonal-right)',
     shape: {
       viewBox: '0 0 595.3 841.9',
       width: 595.3, height: 841.9,

@@ -178,6 +178,11 @@ export interface EditorStore {
   splitMode: 'none' | 'second-map' | 'photo'
   splitPhoto: SplitPhoto | null
   splitPhotoZone: number
+  /** Which map receives pan/zoom interactions in split mode. Doesn't
+   *  affect rendering, only pointer-events routing. Used to side-step
+   *  CSS-mask z-order issues with shapes that cross the canvas midline
+   *  (entwined hearts etc.) — user toggles which map is "active". */
+  activeSplitMap: 'primary' | 'secondary'
 
   setViewState: (vs: ViewState) => void
   flyToLocation: (lng: number, lat: number, zoom?: number) => void
@@ -235,6 +240,7 @@ export interface EditorStore {
   setSplitPhoto: (photo: SplitPhoto | null) => void
   updateSplitPhoto: (updates: Partial<SplitPhoto>) => void
   setSplitPhotoZone: (zone: number) => void
+  setActiveSplitMap: (which: 'primary' | 'secondary') => void
   loadFromConfig: (config: Partial<EditorConfig>) => void
 }
 
@@ -365,6 +371,7 @@ export const EDITOR_INITIAL_STATE = {
   splitMode: 'none' as const,
   splitPhoto: null,
   splitPhotoZone: 1,
+  activeSplitMap: 'primary' as const,
 }
 
 export const useEditorStore = create<EditorStore>((set) => ({
@@ -500,6 +507,7 @@ export const useEditorStore = create<EditorStore>((set) => ({
   updateSplitPhoto: (updates) =>
     set((s) => ({ splitPhoto: s.splitPhoto ? { ...s.splitPhoto, ...updates } : null })),
   setSplitPhotoZone: (splitPhotoZone) => set({ splitPhotoZone }),
+  setActiveSplitMap: (activeSplitMap) => set({ activeSplitMap }),
   loadFromConfig: (config) => set((s) => ({
     viewState: config.viewState ?? s.viewState,
     styleId: config.styleId ?? s.styleId,
