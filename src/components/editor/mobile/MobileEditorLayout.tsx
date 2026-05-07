@@ -91,8 +91,10 @@ export function MobileEditorLayout() {
         })}
       </nav>
 
-      {/* Tool content — own scroll container */}
-      <div className="flex-1 min-h-0 overflow-y-auto bg-white">
+      {/* Tool content — own scroll container.
+          overflow-x-hidden clamps inner snap-strip bleed (-mx-4 px-4)
+          so horizontal scroll stays inside the strip, not the body. */}
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden bg-white">
         <EditorViewProvider value="customer">
           {renderActiveTab()}
         </EditorViewProvider>

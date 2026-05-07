@@ -107,7 +107,7 @@ export function MobilePhotoEditorLayout() {
         })}
       </nav>
 
-      <div className="flex-1 min-h-0 overflow-y-auto bg-white">
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden bg-white">
         {activeTab === 'word' && isLetterMask && <LetterMaskTab />}
         {activeTab === 'slots' &&
           (isLetterMask ? (

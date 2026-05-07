@@ -117,8 +117,9 @@ export function MobileStarMapLayout() {
         })}
       </nav>
 
-      {/* Tool-Container */}
-      <div className="flex-1 min-h-0 overflow-y-auto bg-white">
+      {/* Tool-Container — overflow-x-hidden clamps the horizontal bleed of
+          inner snap-strips (`-mx-4 px-4`) so they don't leak into body scroll. */}
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden bg-white">
         {activeTab === 'stars' && <MobileStarMapTab />}
         {activeTab === 'sky' && <MobileHimmelTab />}
         {activeTab === 'text' && <MobileTextTab coordinatesSource={{ lat, lng, locationName }} />}
