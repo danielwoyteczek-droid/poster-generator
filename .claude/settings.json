@@ -27,7 +27,8 @@
       "Bash(PORT=30001 npm run dev)",
       "PowerShell(Get-NetTCPConnection -LocalPort 3001 -ErrorAction SilentlyContinue)",
       "PowerShell(Get-NetTCPConnection -LocalPort 30001 -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }; Start-Sleep -Seconds 1; if \\(Test-Path .next\\) { Remove-Item .next -Recurse -Force }; \"OK\")",
-      "Bash(curl -s https://petite-moment.com/de/star-map -A \"Mozilla/5.0 \\(iPhone\\)\")"
+      "Bash(curl -s https://petite-moment.com/de/star-map -A \"Mozilla/5.0 \\(iPhone\\)\")",
+      "Bash(npm run *)"
     ]
   }
 }

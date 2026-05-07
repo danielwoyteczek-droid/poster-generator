@@ -322,7 +322,7 @@ export function MobileMapTab() {
                     </span>
                   </div>
                   <Slider
-                    min={1} max={4} step={0.1}
+                    min={0.3} max={4} step={0.1}
                     value={[splitPhoto.cropScale]}
                     onValueChange={([v]) => updateSplitPhoto({ cropScale: v })}
                   />

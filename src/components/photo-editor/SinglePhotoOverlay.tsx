@@ -49,7 +49,7 @@ export function SinglePhotoOverlay({ posterRef, interactive = true }: Props) {
     const handleWheel = (e: WheelEvent) => {
       e.preventDefault()
       const delta = -e.deltaY * 0.002
-      const next = clamp(singlePhoto.scale + delta, 1, 4)
+      const next = clamp(singlePhoto.scale + delta, 0.3, 4)
       updateSinglePhotoCrop({ scale: next })
     }
     el.addEventListener('wheel', handleWheel, { passive: false })
@@ -104,7 +104,7 @@ export function SinglePhotoOverlay({ posterRef, interactive = true }: Props) {
           const distance = Math.hypot(b.x - a.x, b.y - a.y)
           if (lastDistance !== null) {
             const factor = distance / lastDistance
-            const next = clamp(singlePhoto.scale * factor, 1, 4)
+            const next = clamp(singlePhoto.scale * factor, 0.3, 4)
             updateSinglePhotoCrop({ scale: next })
           }
           lastDistance = distance

@@ -315,7 +315,7 @@ function GridSlotCard({
             <ZoomIn className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
             <Slider
               value={[photo.scale * 100]}
-              min={100}
+              min={30}
               max={400}
               step={5}
               onValueChange={(v) => onCropUpdate({ scale: v[0] / 100 })}

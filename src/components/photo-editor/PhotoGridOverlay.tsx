@@ -105,7 +105,7 @@ function GridSlotCell({
     const handleWheel = (e: WheelEvent) => {
       e.preventDefault()
       const delta = -e.deltaY * 0.002
-      const next = clamp(photo.scale + delta, 1, 4)
+      const next = clamp(photo.scale + delta, 0.3, 4)
       updateGridSlotCrop(index, { scale: next })
     }
     el.addEventListener('wheel', handleWheel, { passive: false })
@@ -144,7 +144,7 @@ function GridSlotCell({
           const distance = Math.hypot(b.x - a.x, b.y - a.y)
           if (lastDistance !== null) {
             const factor = distance / lastDistance
-            const next = clamp(photo.scale * factor, 1, 4)
+            const next = clamp(photo.scale * factor, 0.3, 4)
             updateGridSlotCrop(index, { scale: next })
           }
           lastDistance = distance
