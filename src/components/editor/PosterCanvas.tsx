@@ -183,6 +183,24 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
         1,
       ))
     : null
+  // PROJ-1: when the shape provides splitMarkup, render the inner-frame
+  // stroke separately for each half so each heart's outline matches its
+  // own filled mask. Otherwise fall back to innerFrameForSplit which
+  // strokes the combined shape.
+  const innerFrameLeft = splitInner && mask.shape?.splitMarkup
+    ? svgToDataUrl(composeFrameSvg(
+        { ...mask.shape, markup: mask.shape.splitMarkup.left },
+        { ...shapeConfig, outerFrame: { ...shapeConfig.outerFrame, enabled: false } },
+        1,
+      ))
+    : null
+  const innerFrameRight = splitInner && mask.shape?.splitMarkup
+    ? svgToDataUrl(composeFrameSvg(
+        { ...mask.shape, markup: mask.shape.splitMarkup.right },
+        { ...shapeConfig, outerFrame: { ...shapeConfig.outerFrame, enabled: false } },
+        1,
+      ))
+    : null
   const innerSeamForSplit = splitInner && mask.shape && !mask.noHalfClip
     ? svgToDataUrl(composeSplitSeamSvg(mask.shape, shapeConfig.innerFrame))
     : null
@@ -410,6 +428,28 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
                 maps, so heart/circle splits open up at the midline. */}
             {innerFrameForSplit && (() => {
               if (mask.noHalfClip) {
+                // Per-side outlines if the shape provides splitMarkup —
+                // one outline per heart, matching its own filled mask.
+                if (innerFrameLeft && innerFrameRight) {
+                  return (
+                    <>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={innerFrameLeft}
+                        alt=""
+                        className="absolute inset-0 w-full h-full pointer-events-none"
+                        style={{ objectFit: 'fill' }}
+                      />
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={innerFrameRight}
+                        alt=""
+                        className="absolute inset-0 w-full h-full pointer-events-none"
+                        style={{ objectFit: 'fill' }}
+                      />
+                    </>
+                  )
+                }
                 return (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img

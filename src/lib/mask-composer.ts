@@ -65,6 +65,14 @@ export interface ShapeDefinition {
    * (treat as filling the whole viewBox; no scaling).
    */
   bottomFraction?: number
+  /**
+   * Per-side markup for split-mask frames (PROJ-1, hearts-curved /
+   * hearts-diagonal). When the mask is `isSplit + noHalfClip`, the
+   * inner-frame stroke uses these instead of the combined `markup` so
+   * each side gets its own outline matching its own filled mask. Falls
+   * back to `markup` when not present.
+   */
+  splitMarkup?: { left: string; right: string }
 }
 
 /**
