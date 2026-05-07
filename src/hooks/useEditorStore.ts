@@ -497,12 +497,22 @@ export const useEditorStore = create<EditorStore>((set) => ({
       photos: s.photos.filter((p) => p.id !== id),
     })),
   setSplitMode: (splitMode) =>
-    set((s) => ({
-      splitMode,
-      secondMap: { ...s.secondMap, enabled: splitMode === 'second-map' },
-      // Keep the uploaded split photo around so switching modes doesn't
-      // force the user to re-upload. It just becomes inactive.
-    })),
+    set((s) => {
+      const isSplitMap = splitMode === 'second-map'
+      return {
+        splitMode,
+        secondMap: { ...s.secondMap, enabled: isSplitMap },
+        // PROJ-1: when activating split-map, mirror the primary marker's
+        // visibility on the secondary marker so the customer gets two
+        // pins by default (one per map). Each can still be toggled
+        // independently afterwards.
+        secondMarker: isSplitMap
+          ? { ...s.secondMarker, enabled: s.marker.enabled || s.secondMarker.enabled }
+          : s.secondMarker,
+        // Keep the uploaded split photo around so switching modes doesn't
+        // force the user to re-upload. It just becomes inactive.
+      }
+    }),
   setSplitPhoto: (photo) => set({ splitPhoto: photo }),
   updateSplitPhoto: (updates) =>
     set((s) => ({ splitPhoto: s.splitPhoto ? { ...s.splitPhoto, ...updates } : null })),
