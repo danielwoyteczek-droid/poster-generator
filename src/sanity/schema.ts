@@ -9,7 +9,8 @@ import { blogTopic } from './schemas/blogTopic'
 import { homepage } from './schemas/homepage'
 import { galleryPage } from './schemas/galleryPage'
 import { occasionPage } from './schemas/occasionPage'
+import { occasion } from './schemas/occasion'
 
 export const schema: { types: SchemaTypeDefinition[] } = {
-  types: [portableText, legalPage, blogPost, aboutPage, faqItem, siteSettings, blogTopic, homepage, galleryPage, occasionPage],
+  types: [portableText, legalPage, blogPost, aboutPage, faqItem, siteSettings, blogTopic, homepage, galleryPage, occasionPage, occasion],
 }
