@@ -197,13 +197,27 @@ export function TextBlockOverlay({ coordinatesSource, fontScale = 1, interactive
     viewState,
     marker,
     locationName,
+    secondMap,
+    secondMarker,
+    splitMode,
   } = useEditorStore()
   // Pin-Position hat Vorrang vor Map-Zentrum, damit Koordinaten dem Pin folgen
-  const coords = coordinatesSource ?? {
+  const primaryCoords = coordinatesSource ?? {
     lat: marker.lat ?? viewState.lat,
     lng: marker.lng ?? viewState.lng,
     locationName,
   }
+  // PROJ-1: secondary coords-block in split-map mode pulls from the
+  // second map's view + its own marker. Falls back to primary outside
+  // split-map so the block doesn't show stale data.
+  const isSplitMap = splitMode === 'second-map'
+  const secondaryCoords = isSplitMap
+    ? {
+        lat: secondMarker.lat ?? secondMap.viewState.lat,
+        lng: secondMarker.lng ?? secondMap.viewState.lng,
+        locationName: '',
+      }
+    : primaryCoords
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -266,8 +280,9 @@ export function TextBlockOverlay({ coordinatesSource, fontScale = 1, interactive
     >
       {textBlocks.map((block) => {
         if (hideCoordinates && block.isCoordinates) return null
+        const blockCoords = block.coordsSource === 'secondary' ? secondaryCoords : primaryCoords
         const displayText = block.isCoordinates
-          ? getCoordinatesText(coords.lat, coords.lng, coords.locationName)
+          ? getCoordinatesText(blockCoords.lat, blockCoords.lng, blockCoords.locationName)
           : block.text
         return (
           <BlockItem

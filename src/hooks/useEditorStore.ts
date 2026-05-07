@@ -114,6 +114,11 @@ export interface TextBlock {
   uppercase: boolean
   locked: boolean
   isCoordinates: boolean
+  /** For coords-blocks (`isCoordinates: true`) only: which map's lat/lng
+   *  to format. Defaults to 'primary' when undefined (legacy blocks). The
+   *  'secondary' option requires split-map mode active — otherwise the
+   *  block falls back to primary so the customer doesn't see stale values. */
+  coordsSource?: 'primary' | 'secondary'
   label?: string
 }
 
@@ -499,6 +504,30 @@ export const useEditorStore = create<EditorStore>((set) => ({
   setSplitMode: (splitMode) =>
     set((s) => {
       const isSplitMap = splitMode === 'second-map'
+      // PROJ-1: when activating split-map, ensure a secondary coords-block
+      // exists alongside the existing primary one. Skip if the user already
+      // has a secondary-coords block (e.g. from a saved project).
+      const hasSecondaryCoords = s.textBlocks.some(
+        (b) => b.isCoordinates && b.coordsSource === 'secondary',
+      )
+      const primaryCoordsBlock = s.textBlocks.find(
+        (b) => b.isCoordinates && (b.coordsSource ?? 'primary') === 'primary',
+      )
+      const textBlocks =
+        isSplitMap && !hasSecondaryCoords && primaryCoordsBlock
+          ? [
+              ...s.textBlocks,
+              {
+                ...primaryCoordsBlock,
+                id: `block-coords-secondary-${Date.now()}`,
+                coordsSource: 'secondary' as const,
+                // Default to the right side so customer sees it immediately;
+                // they can drag it anywhere afterwards.
+                x: 0.5,
+                label: 'Koordinaten Karte 2',
+              },
+            ]
+          : s.textBlocks
       return {
         splitMode,
         secondMap: { ...s.secondMap, enabled: isSplitMap },
@@ -509,6 +538,7 @@ export const useEditorStore = create<EditorStore>((set) => ({
         secondMarker: isSplitMap
           ? { ...s.secondMarker, enabled: s.marker.enabled || s.secondMarker.enabled }
           : s.secondMarker,
+        textBlocks,
         // Keep the uploaded split photo around so switching modes doesn't
         // force the user to re-upload. It just becomes inactive.
       }

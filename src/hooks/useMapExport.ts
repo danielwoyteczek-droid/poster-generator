@@ -654,14 +654,28 @@ export async function buildPosterCanvas(
     }
   }
 
-  // Build display texts for coordinate blocks — pin position takes precedence over map center
+  // Build display texts for coordinate blocks — pin position takes precedence
+  // over map center. PROJ-1: secondary coords-blocks pull from the second
+  // map's view + its own marker; primary blocks (default) use the primary.
   const coordLat = marker.lat ?? viewState.lat
   const coordLng = marker.lng ?? viewState.lng
+  const isSplitMapForCoords = store.splitMode === 'second-map'
+  const secondaryCoordLat = isSplitMapForCoords
+    ? secondMarker.lat ?? store.secondMap.viewState.lat
+    : coordLat
+  const secondaryCoordLng = isSplitMapForCoords
+    ? secondMarker.lng ?? store.secondMap.viewState.lng
+    : coordLng
   const displayTexts: Record<string, string> = {}
   for (const block of textBlocks) {
-    displayTexts[block.id] = block.isCoordinates
-      ? getCoordinatesText(coordLat, coordLng, locationName)
-      : block.text
+    if (block.isCoordinates) {
+      const useSecondary = block.coordsSource === 'secondary'
+      displayTexts[block.id] = useSecondary
+        ? getCoordinatesText(secondaryCoordLat, secondaryCoordLng, '')
+        : getCoordinatesText(coordLat, coordLng, locationName)
+    } else {
+      displayTexts[block.id] = block.text
+    }
   }
 
   // Photos (before text so text sits on top)
