@@ -168,12 +168,13 @@ export const MAP_MASKS: Record<MapMaskKey, MapMaskDefinition> = {
     isSplit: true,
     leftSvgPath: '/masks/hearts-curved-left.svg',
     rightSvgPath: '/masks/hearts-curved-right.svg',
-    // Hearts curve into each other near the centre — partition pointer
-    // events along a roughly vertical line through the entwine point so
-    // the left map stays interactive on the left, right on the right.
+    // Each map div is clipped to its OWN heart shape via inline SVG
+    // <clipPath> defs (see SplitMaskClipDefs). This way pointer events
+    // and visuals follow the actual heart silhouettes — no diagonal cut
+    // through the design like a polygon would produce.
     noHalfClip: true,
-    leftClipPath: 'polygon(0% 0%, 50% 0%, 42% 100%, 0% 100%)',
-    rightClipPath: 'polygon(50% 0%, 100% 0%, 100% 100%, 42% 100%)',
+    leftClipPath: 'url(#mask-hearts-curved-left)',
+    rightClipPath: 'url(#mask-hearts-curved-right)',
     shape: {
       viewBox: '0 0 595.3 841.9',
       width: 595.3, height: 841.9,
@@ -188,13 +189,13 @@ export const MAP_MASKS: Record<MapMaskKey, MapMaskDefinition> = {
     isSplit: true,
     leftSvgPath: '/masks/hearts-diagonal-left.svg',
     rightSvgPath: '/masks/hearts-diagonal-right.svg',
-    // Hearts cross the canvas midline at angles. noHalfClip prevents the
-    // straight-midline polygon from slicing them visually; the diagonal
-    // leftClipPath / rightClipPath partition pointer events so the user
-    // can drag whichever map sits under the cursor.
+    // Each map div is clipped to its OWN heart shape via inline SVG
+    // <clipPath> defs (see SplitMaskClipDefs). Pointer events follow the
+    // actual heart silhouette, so the user can drag whichever map sits
+    // under the cursor — no straight diagonal cut, no visual loss.
     noHalfClip: true,
-    leftClipPath: 'polygon(0% 0%, 30% 0%, 98% 100%, 0% 100%)',
-    rightClipPath: 'polygon(30% 0%, 100% 0%, 100% 100%, 98% 100%)',
+    leftClipPath: 'url(#mask-hearts-diagonal-left)',
+    rightClipPath: 'url(#mask-hearts-diagonal-right)',
     shape: {
       viewBox: '0 0 595.3 841.9',
       width: 595.3, height: 841.9,

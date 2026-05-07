@@ -18,6 +18,7 @@ import { PhotoOverlay } from './PhotoOverlay'
 import { SplitPhotoOverlay } from './SplitPhotoOverlay'
 import { PreviewTriggerButton } from './PreviewTriggerButton'
 import { MapAttribution } from './MapAttribution'
+import { SplitMaskClipDefs } from './SplitMaskClipDefs'
 
 function ClassicPin({ color }: { color: string }) {
   return (
@@ -222,6 +223,9 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
   return (
     <div ref={wrapperRef} className="flex-1 relative bg-muted min-h-0 overflow-hidden flex items-center justify-center">
       <PreviewTriggerButton />
+      {/* Inline SVG <clipPath> defs for shape-following pointer-event
+          partitions (entwined hearts etc.). Hidden, just provides id refs. */}
+      <SplitMaskClipDefs />
       {/* OSM/MapTiler attribution — outside the poster card, in the editor
           chrome. ODbL-compliant placement, doesn't pollute the canvas. */}
       <MapAttribution className="absolute bottom-1 right-2" />
