@@ -1,16 +1,12 @@
 import { getLocale } from 'next-intl/server'
 import { listOccasionPagesForLocale } from '@/sanity/queries'
 import { buildOccasionPagePath } from '@/lib/occasion-routing'
-import { occasionLabels, type OccasionCode, OCCASION_CODES } from '@/lib/occasions'
+import { getOccasions } from '@/lib/occasions-server'
 import { locales, type Locale } from '@/i18n/config'
 import { LandingNavClient, type OccasionNavLink } from './LandingNavClient'
 
 function isLocale(value: string): value is Locale {
   return (locales as readonly string[]).includes(value)
-}
-
-function isOccasionCode(value: string): value is OccasionCode {
-  return (OCCASION_CODES as readonly string[]).includes(value)
 }
 
 /**
@@ -28,14 +24,22 @@ export async function LandingNav() {
   const rawLocale = await getLocale().catch(() => 'de')
   const locale: Locale = isLocale(rawLocale) ? rawLocale : 'de'
 
-  const occasionRefs = (await listOccasionPagesForLocale(locale)) ?? []
+  const [occasionRefsRaw, occasionsList] = await Promise.all([
+    listOccasionPagesForLocale(locale),
+    getOccasions(),
+  ])
+  const occasionRefs = occasionRefsRaw ?? []
+  const occasionsByCode = new Map(occasionsList.map((o) => [o.code, o]))
 
   const occasionLinks: OccasionNavLink[] = occasionRefs
-    .filter((ref) => isOccasionCode(ref.occasion) && Boolean(ref.slug))
-    .map((ref) => ({
-      label: occasionLabels[ref.occasion as OccasionCode][locale],
-      href: buildOccasionPagePath(locale, ref.slug),
-    }))
+    .filter((ref) => occasionsByCode.has(ref.occasion) && Boolean(ref.slug))
+    .map((ref) => {
+      const entry = occasionsByCode.get(ref.occasion)!
+      return {
+        label: entry.localizedTitles[locale] ?? entry.title,
+        href: buildOccasionPagePath(locale, ref.slug),
+      }
+    })
 
   return <LandingNavClient occasionLinks={occasionLinks} />
 }

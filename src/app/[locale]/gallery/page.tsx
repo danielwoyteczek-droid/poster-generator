@@ -10,15 +10,11 @@ import type { GalleryPreset } from '@/components/landing/GalleryPresetCard'
 import { getGalleryPage, listOccasionPagesForLocale, type GalleryCategory } from '@/sanity/queries'
 import { createAdminClient } from '@/lib/supabase-admin'
 import { buildOccasionPagePath } from '@/lib/occasion-routing'
-import { OCCASION_CODES, type OccasionCode } from '@/lib/occasions'
+import { getOccasionCodes } from '@/lib/occasions-server'
 import { locales, type Locale } from '@/i18n/config'
 
 function isLocale(value: string): value is Locale {
   return (locales as readonly string[]).includes(value)
-}
-
-function isOccasionCode(value: string): value is OccasionCode {
-  return (OCCASION_CODES as readonly string[]).includes(value)
 }
 
 export const revalidate = 3600
@@ -92,8 +88,10 @@ export default async function GalleryPageRoute(
   const categories = page?.categories ?? []
 
   // Aktiver Filter aus URL — alles andere als ein gültiger Code ignorieren.
-  const activeFilter: OccasionCode | null =
-    params?.anlass && isOccasionCode(params.anlass) ? params.anlass : null
+  // PROJ-29: gültig = in der aktuellen Sanity-Liste vorhanden.
+  const validCodes = new Set(await getOccasionCodes())
+  const activeFilter: string | null =
+    params?.anlass && validCodes.has(params.anlass) ? params.anlass : null
 
   // Build a tag → occasion-page-href lookup so each GallerySection can render
   // a "More about this occasion →" link without triggering N+1 Sanity queries.

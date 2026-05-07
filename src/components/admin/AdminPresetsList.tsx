@@ -34,7 +34,7 @@ import { applyPreset } from '@/lib/apply-preset'
 import { LocaleMultiSelect } from '@/components/admin/LocaleMultiSelect'
 import { OccasionMultiSelect } from '@/components/admin/OccasionMultiSelect'
 import { locales as ALL_LOCALES, localeNames, type Locale } from '@/i18n/config'
-import { occasionLabels, type OccasionCode } from '@/lib/occasions'
+import { useOccasions } from '@/hooks/useOccasions'
 import { cn } from '@/lib/utils'
 
 type PosterType = 'map' | 'star-map' | 'photo'
@@ -131,7 +131,9 @@ export function AdminPresetsList() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [typeFilter, setTypeFilter] = useState('all')
   const [localeFilter, setLocaleFilter] = useState<'all' | 'none' | Locale>('all')
-  const [occasionFilter, setOccasionFilter] = useState<'all' | 'none' | OccasionCode>('all')
+  const [occasionFilter, setOccasionFilter] = useState<'all' | 'none' | string>('all')
+  const { occasions: occasionsList } = useOccasions()
+  const occasionLabel = (code: string) => occasionsList.find((o) => o.code === code)?.title ?? code
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [previewModalSrc, setPreviewModalSrc] = useState<{ url: string; alt: string } | null>(null)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
@@ -684,7 +686,7 @@ export function AdminPresetsList() {
               value={occasionFilter !== 'all' && occasionFilter !== 'none' ? occasionFilter : ''}
               onChange={(e) => {
                 const v = e.target.value
-                setOccasionFilter(v ? (v as OccasionCode) : 'all')
+                setOccasionFilter(v ? v : 'all')
               }}
               className={cn(
                 'h-7 px-2 rounded text-xs font-medium border-0 bg-transparent focus:outline-none focus:ring-2 focus:ring-ring transition-colors',
@@ -694,9 +696,9 @@ export function AdminPresetsList() {
               )}
             >
               <option value="">Anlass …</option>
-              {(Object.keys(occasionLabels) as OccasionCode[]).map((code) => (
-                <option key={code} value={code}>
-                  {occasionLabels[code].de}
+              {occasionsList.map((occ) => (
+                <option key={occ.code} value={occ.code}>
+                  {occ.title}
                 </option>
               ))}
             </select>
@@ -909,9 +911,9 @@ export function AdminPresetsList() {
                       <span
                         key={code}
                         className="text-[10px] font-medium bg-muted text-foreground/80 px-1.5 py-0.5 rounded"
-                        title={occasionLabels[code as OccasionCode]?.de ?? code}
+                        title={occasionLabel(code)}
                       >
-                        {occasionLabels[code as OccasionCode]?.de ?? code}
+                        {occasionLabel(code)}
                       </span>
                     ))
                   )}
@@ -1170,7 +1172,7 @@ export function AdminPresetsList() {
                       Kein Tag
                     </span>
                   ) : (
-                    <span className="text-[10px] font-medium bg-muted text-foreground/80 px-1.5 py-0.5 rounded" title={preset.occasions.map((c) => occasionLabels[c as OccasionCode]?.de ?? c).join(', ')}>
+                    <span className="text-[10px] font-medium bg-muted text-foreground/80 px-1.5 py-0.5 rounded" title={preset.occasions.map((c) => occasionLabel(c)).join(', ')}>
                       {preset.occasions.length} {preset.occasions.length === 1 ? 'Anlass' : 'Anlässe'}
                     </span>
                   )}

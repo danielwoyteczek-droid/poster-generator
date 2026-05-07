@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog'
-import { OCCASION_CODES, occasionLabels } from '@/lib/occasions'
+import { useOccasions } from '@/hooks/useOccasions'
 import { locales as LOCALES } from '@/i18n/config'
 
 const LOCALE_LABELS: Record<string, string> = {
@@ -40,6 +40,7 @@ interface RenderItem {
 interface MockupSetMeta { id: string; name: string; slug: string }
 
 export function AdminRenderLibrary() {
+  const { occasions: occasionsList } = useOccasions()
   const [renders, setRenders] = useState<RenderItem[]>([])
   const [loading, setLoading] = useState(true)
   const [mockupSetsMeta, setMockupSetsMeta] = useState<MockupSetMeta[]>([])
@@ -143,7 +144,7 @@ export function AdminRenderLibrary() {
               className="block w-full h-9 px-2 rounded-md border border-border bg-background text-sm"
             >
               <option value="all">Alle</option>
-              {OCCASION_CODES.map((o) => <option key={o} value={o}>{occasionLabels[o].de}</option>)}
+              {occasionsList.map((o) => <option key={o.code} value={o.code}>{o.title}</option>)}
             </select>
           </div>
         </div>

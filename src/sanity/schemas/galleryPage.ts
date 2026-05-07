@@ -1,4 +1,5 @@
 import { defineType, defineField } from 'sanity'
+import { OccasionTagInput } from '../components/OccasionTagInput'
 
 /**
  * PROJ-11 Beispielgalerie: lokalisierte Galerie-Seite.
@@ -20,16 +21,9 @@ import { defineType, defineField } from 'sanity'
  *  - DB-CHECK-Constraint `presets_occasions_valid`
  */
 
-const OCCASION_OPTIONS = [
-  { title: 'Muttertag', value: 'muttertag' },
-  { title: 'Geburt', value: 'geburt' },
-  { title: 'Hochzeit', value: 'hochzeit' },
-  { title: 'Heimat', value: 'heimat' },
-  { title: 'Reise', value: 'reise' },
-  { title: 'Geschenk', value: 'geschenk' },
-  { title: 'Jahrestag', value: 'jahrestag' },
-  { title: 'Weihnachten', value: 'weihnachten' },
-] as const
+// PROJ-29 Iteration 2: hardcoded list removed. The `tag`-field below uses
+// the `OccasionTagInput` custom input which fetches the live list of
+// `occasion`-Docs from Sanity at render-time.
 
 export const galleryPage = defineType({
   name: 'galleryPage',
@@ -94,9 +88,10 @@ export const galleryPage = defineType({
               title: 'Anlass-Tag',
               type: 'string',
               description:
-                'Verknuepft die Sektion mit Presets, die denselben Tag in `occasions` tragen. Liste ' +
-                'muss synchron mit src/lib/occasions.ts gehalten werden.',
-              options: { list: [...OCCASION_OPTIONS] },
+                'Verknuepft die Sektion mit Presets, die denselben Tag in `occasions` tragen. Liste der ' +
+                'verfuegbaren Anlaesse wird live aus den `occasion`-Stammdaten geladen (siehe Studio-Menue ' +
+                '„Anlaesse (Stammdaten)").',
+              components: { input: OccasionTagInput },
               validation: (rule) => rule.required(),
             }),
             defineField({

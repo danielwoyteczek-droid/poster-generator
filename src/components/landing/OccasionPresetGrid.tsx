@@ -1,7 +1,7 @@
 import { LayoutTemplate } from 'lucide-react'
 import { GalleryPresetCard, type GalleryPreset } from './GalleryPresetCard'
 import { PresetCarousel } from './PresetCarousel'
-import { occasionLabels, type OccasionCode } from '@/lib/occasions'
+import { getOccasions } from '@/lib/occasions-server'
 
 interface Props {
   occasion: string
@@ -16,13 +16,21 @@ interface Props {
   showPlaceholder?: boolean
 }
 
-const FALLBACK_LOCALE = 'de'
+type LabelLocale = 'de' | 'en' | 'fr' | 'it' | 'es'
+const FALLBACK_LOCALE: LabelLocale = 'de'
 
-function getLabelLocale(locale: string): keyof (typeof occasionLabels)['muttertag'] {
-  const allowed = ['de', 'en', 'fr', 'it', 'es'] as const
+function getLabelLocale(locale: string): LabelLocale {
+  const allowed: LabelLocale[] = ['de', 'en', 'fr', 'it', 'es']
   return (allowed as readonly string[]).includes(locale)
-    ? (locale as (typeof allowed)[number])
+    ? (locale as LabelLocale)
     : FALLBACK_LOCALE
+}
+
+async function resolveOccasionDisplay(occasion: string, locale: LabelLocale): Promise<string> {
+  const occasions = await getOccasions()
+  const entry = occasions.find((o) => o.code === occasion)
+  if (!entry) return occasion
+  return entry.localizedTitles[locale] ?? entry.title
 }
 
 /**
@@ -36,7 +44,7 @@ function getLabelLocale(locale: string): keyof (typeof occasionLabels)['mutterta
  * so the storytelling + CTA still feel intentional. Preview mode breaks this
  * rule and renders placeholder tiles so marketing can see the layout.
  */
-export function OccasionPresetGrid({
+export async function OccasionPresetGrid({
   occasion,
   locale,
   presets,
@@ -50,7 +58,7 @@ export function OccasionPresetGrid({
   }
 
   const labelLocale = getLabelLocale(locale)
-  const occasionDisplay = occasionLabels[occasion as OccasionCode]?.[labelLocale] ?? occasion
+  const occasionDisplay = await resolveOccasionDisplay(occasion, labelLocale)
 
   return (
     <section className="py-12 sm:py-16 bg-muted">
@@ -80,9 +88,9 @@ export function OccasionPresetGrid({
   )
 }
 
-function PlaceholderCarousel({ occasion, locale }: { occasion: string; locale: string }) {
+async function PlaceholderCarousel({ occasion, locale }: { occasion: string; locale: string }) {
   const labelLocale = getLabelLocale(locale)
-  const occasionDisplay = occasionLabels[occasion as OccasionCode]?.[labelLocale] ?? occasion
+  const occasionDisplay = await resolveOccasionDisplay(occasion, labelLocale)
   const placeholders = [0, 1, 2, 3]
   return (
     <section className="py-12 sm:py-16 bg-muted">

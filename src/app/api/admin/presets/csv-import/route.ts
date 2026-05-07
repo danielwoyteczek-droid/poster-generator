@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { requireAdmin } from '@/lib/admin-auth'
 import { createAdminClient } from '@/lib/supabase-admin'
-import { OCCASION_CODES } from '@/lib/occasions'
+import { getOccasionCodes } from '@/lib/occasions-server'
 import { LocaleSchema } from '@/lib/preset-locales'
 
 /**
@@ -119,6 +119,9 @@ async function validateAndEnrich(
     : { data: [] }
   const mockupMap = Object.fromEntries((mockupSets ?? []).map((m) => [m.slug, m.id]))
 
+  // PROJ-29 Iteration 2: occasion list comes from Sanity now.
+  const validOccasions = new Set(await getOccasionCodes())
+
   const valid: ImportRow[] = []
   const invalid: ParsedRow[] = []
 
@@ -149,7 +152,7 @@ async function validateAndEnrich(
     }
 
     const occasions = p.fields.occasions.split(',').map((s) => s.trim()).filter(Boolean)
-    const occasionErrors = occasions.filter((o) => !(OCCASION_CODES as readonly string[]).includes(o))
+    const occasionErrors = occasions.filter((o) => !validOccasions.has(o))
     if (occasionErrors.length > 0) {
       p.errors.push(`Ungültige Anlässe: ${occasionErrors.join(', ')}`)
       invalid.push(p)

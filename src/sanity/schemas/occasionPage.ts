@@ -1,5 +1,6 @@
 import { defineType, defineField } from 'sanity'
 import { PresetPickerInput } from '../components/PresetPickerInput'
+import { OccasionTagInput } from '../components/OccasionTagInput'
 
 /**
  * PROJ-29 Anlass-Landing-Pages: lokalisierte SEO-Hubs pro Anlass × Locale.
@@ -21,16 +22,8 @@ import { PresetPickerInput } from '../components/PresetPickerInput'
  *  - galleryPage-Schema (`categories[].tag`)
  */
 
-const OCCASION_OPTIONS = [
-  { title: 'Muttertag', value: 'muttertag' },
-  { title: 'Geburt', value: 'geburt' },
-  { title: 'Hochzeit', value: 'hochzeit' },
-  { title: 'Heimat', value: 'heimat' },
-  { title: 'Reise', value: 'reise' },
-  { title: 'Geschenk', value: 'geschenk' },
-  { title: 'Jahrestag', value: 'jahrestag' },
-  { title: 'Weihnachten', value: 'weihnachten' },
-] as const
+// PROJ-29 Iteration 2: hardcoded OCCASION_OPTIONS removed. Live list comes
+// from `occasion`-Docs via the OccasionTagInput custom input.
 
 const SLUG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/
 
@@ -64,7 +57,9 @@ export const occasionPage = defineType({
         'Bestimmt, welche Presets im Grid erscheinen (presets.occasions @> [code]) und ' +
         'welche Anlass-Sektion in der Galerie auf diese Seite verlinkt. Pro Sprache + ' +
         'Anlass darf nur ein Dokument existieren.',
-      options: { list: [...OCCASION_OPTIONS] },
+      // Liste wird live aus den `occasion`-Stammdaten geladen — Auswahl folgt
+      // dem Sanity-Studio statt einer hardcoded TS-Konstante.
+      components: { input: OccasionTagInput },
       validation: (rule) =>
         rule.required().custom(async (value, context) => {
           if (!value) return true
