@@ -191,12 +191,24 @@ export function composeMaskSvg(
       // Centre on the shape's transformed visual midpoint (in canvas coords).
       const cx = (tx + (shape.width / 2) * totalScale).toFixed(2)
       const cy = (ty + ((shape.height * visibleBottom) / 2) * totalScale).toFixed(2)
+      // Margin inset rect: clips the glow so the user-set "Abstand zum
+      // Posterrand" works in glow mode too (was opacity/full-only before).
+      const sides = resolveSideMarginsMm(config)
+      const hasMargin = sides.top > 0 || sides.right > 0 || sides.bottom > 0 || sides.left > 0
+      const mT = mmToUnits(sides.top, canvasW) * mmCorrection
+      const mR = mmToUnits(sides.right, canvasW) * mmCorrection
+      const mB = mmToUnits(sides.bottom, canvasW) * mmCorrection
+      const mL = mmToUnits(sides.left, canvasW) * mmCorrection
+      const clipDef = hasMargin
+        ? `<clipPath id="m-glow-clip"><rect x="${mL}" y="${mT}" width="${canvasW - mL - mR}" height="${canvasH - mT - mB}"/></clipPath>`
+        : ''
       defs =
         `<defs><radialGradient id="m-glow">` +
         `<stop offset="0%" stop-color="#fff" stop-opacity="${intensity}"/>` +
         `<stop offset="100%" stop-color="#fff" stop-opacity="0"/>` +
-        `</radialGradient></defs>`
-      parts.push(`<circle cx="${cx}" cy="${cy}" r="${r}" fill="url(#m-glow)"/>`)
+        `</radialGradient>${clipDef}</defs>`
+      const circle = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="url(#m-glow)"/>`
+      parts.push(hasMargin ? `<g clip-path="url(#m-glow-clip)">${circle}</g>` : circle)
     }
 
     parts.push(`<g fill="#fff" fill-opacity="1"${shapeTransform}>${shape.markup}</g>`)
@@ -247,14 +259,24 @@ export function composeMaskSvg(
     const visibleBottom = Math.min(bottomFraction, layoutMapHeight)
     const cx = (shape.width / 2).toFixed(2)
     const cy = ((shape.height * visibleBottom) / 2).toFixed(2)
+    // Margin inset rect: clips the glow so "Abstand zum Posterrand" works
+    // in glow mode too (was opacity/full-only before).
+    const sides = resolveSideMarginsMm(config)
+    const hasMargin = sides.top > 0 || sides.right > 0 || sides.bottom > 0 || sides.left > 0
+    const mT = mmToUnits(sides.top, shape.width)
+    const mR = mmToUnits(sides.right, shape.width)
+    const mB = mmToUnits(sides.bottom, shape.width)
+    const mL = mmToUnits(sides.left, shape.width)
+    const clipDef = hasMargin
+      ? `<clipPath id="m-glow-clip"><rect x="${mL}" y="${mT}" width="${shape.width - mL - mR}" height="${shape.height - mT - mB}"/></clipPath>`
+      : ''
     defs =
       `<defs><radialGradient id="m-glow">` +
       `<stop offset="0%" stop-color="#fff" stop-opacity="${intensity}"/>` +
       `<stop offset="100%" stop-color="#fff" stop-opacity="0"/>` +
-      `</radialGradient></defs>`
-    parts.push(
-      `<circle cx="${cx}" cy="${cy}" r="${r}" fill="url(#m-glow)"/>`,
-    )
+      `</radialGradient>${clipDef}</defs>`
+    const circle = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="url(#m-glow)"/>`
+    parts.push(hasMargin ? `<g clip-path="url(#m-glow-clip)">${circle}</g>` : circle)
   }
 
   // Shape always drawn at full opacity on top (unless mode=full made it redundant)
