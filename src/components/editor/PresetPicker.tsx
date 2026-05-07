@@ -46,7 +46,11 @@ export function PresetPicker({ posterType }: Props) {
 
   const apply = useCallback(async (preset: PresetRow) => {
     invalidateCustomMasksCache()
-    const undo = applyPreset(preset)
+    // In-editor switch: only swap the visual design — keep the user's
+    // location, text, marker, photo. PresetUrlApplier (deep-link entry
+    // from /gallery + marketing links) uses the default 'full' mode so
+    // the customer sees the preset exactly as the admin designed it.
+    const undo = applyPreset(preset, { mode: 'design-only' })
     setAppliedId(preset.id)
     toast.success(`Design „${preset.name}" übernommen`, {
       duration: 8000,

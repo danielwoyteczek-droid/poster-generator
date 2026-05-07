@@ -19,14 +19,29 @@ interface PresetLike {
 
 type UndoFn = () => void
 
+export interface ApplyPresetOptions {
+  /**
+   * - `full` (default): apply every saved field, including location, text,
+   *   marker, photo. Right for entry-points where the customer expects to
+   *   see the preset exactly as designed (Gallery card click, deep-links).
+   * - `design-only`: apply only visual style fields (style, palette,
+   *   mask, frame, decoration, layout, orientation, dark-mode). The user's
+   *   data — location, zoom, locationName, text content, marker, photos —
+   *   stays untouched. Right for in-editor preset switching where the
+   *   customer is just trying on different looks.
+   */
+  mode?: 'full' | 'design-only'
+}
+
 /**
  * Apply a preset's config to the corresponding store(s). Returns an undo
  * function that restores the previous state (only for fields the preset
  * actually touches). The user's location / datetime / projectId are never
  * touched by apply — so they're also not part of the undo snapshot.
  */
-export function applyPreset(preset: PresetLike): UndoFn {
+export function applyPreset(preset: PresetLike, options: ApplyPresetOptions = {}): UndoFn {
   const config = preset.config_json
+  const mode = options.mode ?? 'full'
 
   if (preset.poster_type === 'star-map') {
     const s = config as {
@@ -74,10 +89,15 @@ export function applyPreset(preset: PresetLike): UndoFn {
       textBlocks: editor.textBlocks,
     }
 
-    if (typeof s.lat === 'number' && typeof s.lng === 'number') {
-      starMap.setLocation(s.lat, s.lng, s.locationName ?? starMap.locationName)
+    // Star-Map design-only mode (PROJ-8): preserve the user's location +
+    // datetime + text. The constellation depends on time + place, so those
+    // are user-data, not design.
+    if (mode !== 'design-only') {
+      if (typeof s.lat === 'number' && typeof s.lng === 'number') {
+        starMap.setLocation(s.lat, s.lng, s.locationName ?? starMap.locationName)
+      }
+      if (s.datetime) starMap.setDatetime(s.datetime)
     }
-    if (s.datetime) starMap.setDatetime(s.datetime)
     if (s.posterBgColor) starMap.setPosterBgColor(s.posterBgColor)
     if (s.skyBgColor) starMap.setSkyBgColor(s.skyBgColor)
     if (s.starColor) starMap.setStarColor(s.starColor)
@@ -95,7 +115,7 @@ export function applyPreset(preset: PresetLike): UndoFn {
     if (s.frameConfig?.outer) starMap.setOuter(s.frameConfig.outer)
     if (s.frameConfig?.innerFrame) starMap.setInnerFrame(s.frameConfig.innerFrame)
     if (s.frameConfig?.outerFrame) starMap.setOuterFrame(s.frameConfig.outerFrame)
-    if (s.textBlocks) useEditorStore.setState({ textBlocks: s.textBlocks as never })
+    if (s.textBlocks && mode !== 'design-only') useEditorStore.setState({ textBlocks: s.textBlocks as never })
 
     return () => {
       useStarMapStore.setState({
@@ -182,35 +202,41 @@ export function applyPreset(preset: PresetLike): UndoFn {
         })
       : null
 
+    // Photo design-only mode (PROJ-8): preserve the customer's uploaded
+    // photos, word, text — only swap pure design fields (positioning,
+    // font, colour, single-photo mask shape). `layoutMode` and
+    // `gridLayout` are also preserved to avoid wiping data when a customer
+    // switches between letter-mask / single / grid presets mid-edit.
+    const designOnlyPhoto = mode === 'design-only'
     usePhotoEditorStore.setState((state) => ({
       ...state,
-      word: typeof p.word === 'string' ? p.word : state.word,
-      slots: Array.isArray(p.slots) ? p.slots : state.slots,
+      word: !designOnlyPhoto && typeof p.word === 'string' ? p.word : state.word,
+      slots: !designOnlyPhoto && Array.isArray(p.slots) ? p.slots : state.slots,
       wordWidth: typeof p.wordWidth === 'number' ? p.wordWidth : state.wordWidth,
       wordX: typeof p.wordX === 'number' ? p.wordX : state.wordX,
       wordY: typeof p.wordY === 'number' ? p.wordY : state.wordY,
       orientation: p.orientation ?? state.orientation,
       maskFontKey: p.maskFontKey ?? state.maskFontKey,
       defaultSlotColor: p.defaultSlotColor ?? state.defaultSlotColor,
-      layoutMode: p.layoutMode ?? state.layoutMode,
+      layoutMode: !designOnlyPhoto ? (p.layoutMode ?? state.layoutMode) : state.layoutMode,
       // singlePhoto can legitimately be null in a preset (Customer never
       // uploaded one yet) — distinguish "not in config" from "null".
-      singlePhoto: 'singlePhoto' in p ? (p.singlePhoto ?? null) : state.singlePhoto,
+      singlePhoto: !designOnlyPhoto && 'singlePhoto' in p ? (p.singlePhoto ?? null) : state.singlePhoto,
       singlePhotoMaskKey: p.singlePhotoMaskKey ?? state.singlePhotoMaskKey,
       // Photo-grid: only swap layout + slots if the preset actually carries
       // them. A map / star-map / letter-mask preset shouldn't overwrite the
       // current grid state.
-      gridLayout: incomingLayout ?? state.gridLayout,
-      gridSlots: reconciledGridSlots ?? state.gridSlots,
+      gridLayout: !designOnlyPhoto ? (incomingLayout ?? state.gridLayout) : state.gridLayout,
+      gridSlots: !designOnlyPhoto ? (reconciledGridSlots ?? state.gridSlots) : state.gridSlots,
       // Drop any selection that no longer points at a valid slot.
       selectedGridSlotIndex:
-        incomingLayout && state.selectedGridSlotIndex !== null
+        !designOnlyPhoto && incomingLayout && state.selectedGridSlotIndex !== null
           ? state.selectedGridSlotIndex < incomingLayout.length
             ? state.selectedGridSlotIndex
             : null
           : state.selectedGridSlotIndex,
     }))
-    if (p.textBlocks) useEditorStore.setState({ textBlocks: p.textBlocks as never })
+    if (p.textBlocks && !designOnlyPhoto) useEditorStore.setState({ textBlocks: p.textBlocks as never })
 
     return () => {
       usePhotoEditorStore.setState((state) => ({
@@ -271,6 +297,38 @@ export function applyPreset(preset: PresetLike): UndoFn {
   type MapConfigExtras = { zoom?: number; secondMapZoom?: number; lat?: number; lng?: number; locationName?: string }
   useEditorStore.setState((state) => {
     const c = config as Partial<EditorStore> & MapConfigExtras
+    const designOnly = mode === 'design-only'
+
+    // ALL modes apply: pure visual/style fields. None of these reference the
+    // user's data (location, text, marker, photo).
+    const designFields = {
+      styleId: c.styleId ?? state.styleId,
+      paletteId: c.paletteId ?? state.paletteId,
+      customPaletteBase: c.customPaletteBase ?? state.customPaletteBase,
+      customPalette: c.customPalette ?? state.customPalette,
+      streetLabelsVisible: c.streetLabelsVisible ?? state.streetLabelsVisible,
+      posterDarkMode: c.posterDarkMode ?? state.posterDarkMode,
+      maskKey: c.maskKey ?? state.maskKey,
+      shapeConfig: c.shapeConfig ?? state.shapeConfig,
+      layoutId: c.layoutId ?? state.layoutId,
+      innerMarginMm: c.innerMarginMm ?? state.innerMarginMm,
+      // PROJ-35: explicit value wins (string OR null). Auto-inheritance from
+      // mask.decoration_svg_url runs as an async post-step below for legacy
+      // presets where the key is missing entirely from config_json.
+      decorationSvgUrl: 'decorationSvgUrl' in c ? (c.decorationSvgUrl ?? null) : null,
+      orientation: c.orientation ?? state.orientation,
+    }
+
+    if (designOnly) {
+      // In-editor preset switching: keep the user's data (location, zoom,
+      // text content, marker, photos, split state, second map). Only the
+      // visual look changes.
+      return { ...state, ...designFields }
+    }
+
+    // FULL mode (default). Apply user-data fields too — this is the
+    // gallery-card / external-link entry point, where the customer wants
+    // to see the preset exactly as designed.
     const newSecondMap = c.secondMap ? { ...state.secondMap, ...c.secondMap } : state.secondMap
     const zoom = typeof c.zoom === 'number' ? c.zoom : null
     const secondZoom = typeof c.secondMapZoom === 'number' ? c.secondMapZoom : null
@@ -285,26 +343,12 @@ export function applyPreset(preset: PresetLike): UndoFn {
     const cameraChanged = zoom != null || presetLng != null || presetLat != null
     return {
       ...state,
-      styleId: c.styleId ?? state.styleId,
-      paletteId: c.paletteId ?? state.paletteId,
-      customPaletteBase: c.customPaletteBase ?? state.customPaletteBase,
-      customPalette: c.customPalette ?? state.customPalette,
-      streetLabelsVisible: c.streetLabelsVisible ?? state.streetLabelsVisible,
-      posterDarkMode: c.posterDarkMode ?? state.posterDarkMode,
-      maskKey: c.maskKey ?? state.maskKey,
+      ...designFields,
       marker: c.marker ?? state.marker,
       secondMarker: c.secondMarker ?? state.secondMarker,
       secondMap: secondZoom != null
         ? { ...newSecondMap, pendingCenter: { lng: state.secondMap.viewState.lng, lat: state.secondMap.viewState.lat, zoom: secondZoom } }
         : newSecondMap,
-      shapeConfig: c.shapeConfig ?? state.shapeConfig,
-      layoutId: c.layoutId ?? state.layoutId,
-      innerMarginMm: c.innerMarginMm ?? state.innerMarginMm,
-      // PROJ-35: explicit value wins (string OR null). Auto-inheritance from
-      // mask.decoration_svg_url runs as an async post-step below for legacy
-      // presets where the key is missing entirely from config_json.
-      decorationSvgUrl: 'decorationSvgUrl' in c ? (c.decorationSvgUrl ?? null) : null,
-      orientation: c.orientation ?? state.orientation,
       textBlocks: c.textBlocks ?? state.textBlocks,
       splitMode: c.splitMode ?? state.splitMode,
       splitPhotoZone: c.splitPhotoZone ?? state.splitPhotoZone,
