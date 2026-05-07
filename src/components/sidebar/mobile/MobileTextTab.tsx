@@ -40,6 +40,7 @@ const FONT_OPTIONS: { value: string; label: string }[] = [
   { value: 'Amsterdam', label: 'Amsterdam' },
   { value: 'Cathalia', label: 'Cathalia' },
   { value: 'Lindsey Signature', label: 'Lindsey Signature' },
+  { value: 'Brittany Signature', label: 'Brittany Signature' },
   { value: 'CaviarDreams', label: 'Caviar Dreams' },
   { value: 'Arial', label: 'Arial' },
 ]
