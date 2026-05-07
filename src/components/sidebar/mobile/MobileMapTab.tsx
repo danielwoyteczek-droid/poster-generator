@@ -135,32 +135,9 @@ export function MobileMapTab() {
 
   return (
     <div className="space-y-5 p-4">
-      {/* Page setup — paper format + orientation. First decision the
-          customer makes (PROJ-1 + Photo-Editor parity). */}
+      {/* Page setup — orientation only. Paper format moved to Export tab
+          (PROJ-1, sidebar-tidy). */}
       <div className="space-y-3">
-        <div className="space-y-1.5">
-          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
-            {t('paperFormat')}
-          </Label>
-          <div className="grid grid-cols-3 gap-1.5">
-            {PRINT_FORMAT_OPTIONS.map((f) => (
-              <button
-                key={f.id}
-                type="button"
-                onClick={() => setPrintFormat(f.id)}
-                className={cn(
-                  'h-9 rounded-md border-2 text-sm font-medium transition-colors',
-                  printFormat === f.id
-                    ? 'border-primary bg-primary text-primary-foreground'
-                    : 'border-border text-foreground/70 hover:border-muted-foreground',
-                )}
-              >
-                {f.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
         <div className="space-y-1.5">
           <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
             {t('orientationLabel')}
