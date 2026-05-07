@@ -12,8 +12,10 @@ import { MobileTextTab } from '@/components/sidebar/mobile/MobileTextTab'
 import { PhotoPosterCanvas } from '../PhotoPosterCanvas'
 import { useProjectSync } from '@/hooks/useProjectSync'
 import { usePhotoEditorStore } from '@/hooks/usePhotoEditorStore'
+import { useCanvasResize } from '@/hooks/useCanvasResize'
 import type { MobileEditorTool } from '@/components/editor/PosterCanvas'
 import { cn } from '@/lib/utils'
+import { CanvasResizeHandle } from '@/components/editor/mobile/CanvasResizeHandle'
 
 type MobilePhotoTab = 'word' | 'slots' | 'text' | 'export'
 
@@ -45,6 +47,7 @@ export function MobilePhotoEditorLayout() {
     isLetterMask ? 'word' : 'slots',
   )
   useProjectSync('photo')
+  const { canvasStyle, handleProps } = useCanvasResize()
 
   const allTabs: { id: MobilePhotoTab; label: string; Icon: typeof Type }[] = [
     { id: 'word', label: t('tabWord'), Icon: Layers },
@@ -66,12 +69,14 @@ export function MobilePhotoEditorLayout() {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="h-[58vh] shrink-0 flex min-h-0 border-b border-border relative">
+      <div className="shrink-0 flex min-h-0 border-b border-border relative" style={canvasStyle}>
         <PhotoPosterCanvas
           padding={16}
           activeMobileTool={TAB_TO_TOOL[activeTab]}
         />
       </div>
+
+      <CanvasResizeHandle {...handleProps} />
 
       <nav
         className={cn(

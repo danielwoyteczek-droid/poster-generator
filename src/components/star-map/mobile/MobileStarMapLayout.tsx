@@ -13,8 +13,10 @@ import { useEditorStore } from '@/hooks/useEditorStore'
 import { useStarMapStore } from '@/hooks/useStarMapStore'
 import { useStarMapExport } from '@/hooks/useStarMapExport'
 import { useProjectSync } from '@/hooks/useProjectSync'
+import { useCanvasResize } from '@/hooks/useCanvasResize'
 import type { PrintFormat } from '@/lib/print-formats'
 import { cn } from '@/lib/utils'
+import { CanvasResizeHandle } from '@/components/editor/mobile/CanvasResizeHandle'
 
 /**
  * Mobile-Pendant zu `StarMapLayout` — fixe Vorschau oben, fixe Tab-Bar,
@@ -44,6 +46,7 @@ export function MobileStarMapLayout() {
   const [zimmerImage, setZimmerImage] = useState<string | null>(null)
   const [zimmerLoading, setZimmerLoading] = useState(false)
   const [zimmerError, setZimmerError] = useState<string | null>(null)
+  const { canvasStyle, handleProps } = useCanvasResize()
 
   const handleOpenZimmer = async () => {
     setZimmerOpen(true)
@@ -69,10 +72,10 @@ export function MobileStarMapLayout() {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      {/* Preview — fixe Höhe, immer sichtbar. Auf Star-Map gibt es keine
-          Map-Pan/Zoom-Geste, daher einzige interaktive Zone: Textblöcke im
-          Text-Tab. */}
-      <div className="h-[58vh] shrink-0 flex min-h-0 border-b border-border relative">
+      {/* Preview — height user-controlled via the drag-handle below.
+          Auf Star-Map gibt es keine Map-Pan/Zoom-Geste, daher einzige
+          interaktive Zone: Textblöcke im Text-Tab. */}
+      <div className="shrink-0 flex min-h-0 border-b border-border relative" style={canvasStyle}>
         <StarMapCanvas padding={16} textInteractive={activeTab === 'text'} />
         <button
           type="button"
@@ -83,6 +86,8 @@ export function MobileStarMapLayout() {
           <Eye className="w-5 h-5" />
         </button>
       </div>
+
+      <CanvasResizeHandle {...handleProps} />
 
       {/* Tab-Bar */}
       <nav
