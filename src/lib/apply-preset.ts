@@ -268,12 +268,21 @@ export function applyPreset(preset: PresetLike): UndoFn {
     rawConfig.layoutId = 'text-30'
   }
 
-  type MapConfigExtras = { zoom?: number; secondMapZoom?: number }
+  type MapConfigExtras = { zoom?: number; secondMapZoom?: number; lat?: number; lng?: number; locationName?: string }
   useEditorStore.setState((state) => {
     const c = config as Partial<EditorStore> & MapConfigExtras
     const newSecondMap = c.secondMap ? { ...state.secondMap, ...c.secondMap } : state.secondMap
     const zoom = typeof c.zoom === 'number' ? c.zoom : null
     const secondZoom = typeof c.secondMapZoom === 'number' ? c.secondMapZoom : null
+    // PROJ-8: presets save lat/lng/locationName since 2026-05-07. Older
+    // presets don't have them — the user's current location stays in that
+    // case (existing behaviour preserved).
+    const presetLng = typeof c.lng === 'number' ? c.lng : null
+    const presetLat = typeof c.lat === 'number' ? c.lat : null
+    const targetLng = presetLng ?? state.viewState.lng
+    const targetLat = presetLat ?? state.viewState.lat
+    const targetZoom = zoom ?? state.viewState.zoom
+    const cameraChanged = zoom != null || presetLng != null || presetLat != null
     return {
       ...state,
       styleId: c.styleId ?? state.styleId,
@@ -300,8 +309,9 @@ export function applyPreset(preset: PresetLike): UndoFn {
       splitMode: c.splitMode ?? state.splitMode,
       splitPhotoZone: c.splitPhotoZone ?? state.splitPhotoZone,
       splitPhoto: c.splitPhoto ?? state.splitPhoto,
-      pendingCenter: zoom != null
-        ? { lng: state.viewState.lng, lat: state.viewState.lat, zoom }
+      locationName: typeof c.locationName === 'string' ? c.locationName : state.locationName,
+      pendingCenter: cameraChanged
+        ? { lng: targetLng, lat: targetLat, zoom: targetZoom }
         : state.pendingCenter,
     }
   })

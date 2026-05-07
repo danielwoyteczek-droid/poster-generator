@@ -138,6 +138,12 @@ export function SaveAsPresetButton() {
       orientation: editor.orientation,
       zoom: editor.viewState.zoom,
       secondMapZoom: editor.secondMap.viewState.zoom,
+      // PROJ-8: persist the preset's "exact view" — applyPreset uses these
+      // as the new camera centre so a customer who clicks "Hamburg im
+      // Tusche-Look" sees Hamburg, not their previous search.
+      lat: editor.viewState.lat,
+      lng: editor.viewState.lng,
+      locationName: editor.locationName,
     }
   }
 
