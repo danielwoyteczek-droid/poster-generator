@@ -68,6 +68,12 @@ export default function MapPreviewInner({ storeSlice = 'primary' }: MapPreviewIn
       hash: false,
       navigationControl: false,
       geolocateControl: false,
+      // MapLibre/MapTiler regenerates the attribution widget on every
+      // setStyle, so CSS-hiding it doesn't stick. Disable at init instead.
+      // OSM attribution stays legally required — keep a static link in the
+      // page footer (or a dedicated /karten-attribution route) so you stay
+      // compliant with the ODbL license.
+      attributionControl: false,
       language: maptilersdk.Language.AUTO,
     })
 
