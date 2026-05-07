@@ -531,13 +531,12 @@ export const useEditorStore = create<EditorStore>((set) => ({
       return {
         splitMode,
         secondMap: { ...s.secondMap, enabled: isSplitMap },
-        // PROJ-1: when activating split-map, mirror the primary marker's
-        // visibility on the secondary marker so the customer gets two
-        // pins by default (one per map). Each can still be toggled
-        // independently afterwards.
-        secondMarker: isSplitMap
-          ? { ...s.secondMarker, enabled: s.marker.enabled || s.secondMarker.enabled }
-          : s.secondMarker,
+        // PROJ-1: when activating split-map, ensure both markers are
+        // visible by default. User's request: "wenn zwei Karten da
+        // sind, sollten auch zwei Marker da sein". Each can still be
+        // toggled independently afterwards via the sidebar switches.
+        marker: isSplitMap ? { ...s.marker, enabled: true } : s.marker,
+        secondMarker: isSplitMap ? { ...s.secondMarker, enabled: true } : s.secondMarker,
         textBlocks,
         // Keep the uploaded split photo around so switching modes doesn't
         // force the user to re-upload. It just becomes inactive.

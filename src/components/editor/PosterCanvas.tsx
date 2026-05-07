@@ -98,6 +98,19 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
 
   const isDualMap = mask.isSplit && splitMode === 'second-map'
   const isSplitPhoto = mask.isSplit && splitMode === 'photo' && splitPhoto != null
+
+  // PROJ-1 migration: users who had split-map active before the
+  // auto-enable fix landed end up with secondMarker.enabled=false in
+  // their state. Force-enable once on mount so they see the second
+  // marker without having to toggle Zweite Ansicht off and on again.
+  const secondMarkerMigrationFiredRef = useRef(false)
+  useEffect(() => {
+    if (secondMarkerMigrationFiredRef.current) return
+    if (isDualMap && !secondMarker.enabled) {
+      setSecondMarker({ enabled: true })
+      secondMarkerMigrationFiredRef.current = true
+    }
+  }, [isDualMap, secondMarker.enabled, setSecondMarker])
   // Zone 0 = left/first half, zone 1 = right/second half
   const photoIsRightZone = splitPhotoZone === 1
   const mapHalfSvg = isSplitPhoto
