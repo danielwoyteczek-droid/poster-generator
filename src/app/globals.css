@@ -72,6 +72,13 @@ html {
   font-display: swap;
 }
 
+@font-face {
+  font-family: 'Welcome';
+  src: url('/fonts/Welcome.ttf') format('truetype');
+  font-weight: normal;
+  font-display: swap;
+}
+
 @layer base {
   :root {
     /* Core palette — Zeitlos-Minimalistisch (PROJ-23) */

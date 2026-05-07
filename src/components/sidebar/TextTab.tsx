@@ -33,6 +33,7 @@ const FONT_OPTIONS: { value: string; label: string }[] = [
   { value: 'Cathalia', label: 'Cathalia' },
   { value: 'Lindsey Signature', label: 'Lindsey Signature' },
   { value: 'Brittany Signature', label: 'Brittany Signature' },
+  { value: 'Welcome', label: 'Welcome' },
   { value: 'CaviarDreams', label: 'Caviar Dreams' },
   { value: 'Arial', label: 'Arial' },
 ]
