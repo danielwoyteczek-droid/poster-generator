@@ -26,7 +26,18 @@ export const OCCASION_CODES = [
 
 export type OccasionCode = (typeof OCCASION_CODES)[number]
 
-export const OccasionSchema = z.enum(OCCASION_CODES)
+// PROJ-29 Iteration 2: occasions are now Sanity-managed. The API used to
+// strict-validate against the hardcoded list; now any non-empty slug-style
+// string is accepted at the schema level, and the operator's authoritative
+// list lives in Sanity (`occasion`-Doc-Type). Bad input is still caught by
+// the Studio dropdown and the lookup at render-time (orphan codes don't
+// match any Sanity-Doc → don't render anywhere).
+const SLUG_PATTERN = /^[a-z][a-z0-9-]*$/
+export const OccasionSchema = z
+  .string()
+  .min(1)
+  .max(64)
+  .regex(SLUG_PATTERN, 'Anlass-Code muss klein-Slug-Format sein (a–z, 0–9, Bindestrich)')
 
 export const OccasionsSchema = z
   .array(OccasionSchema)
