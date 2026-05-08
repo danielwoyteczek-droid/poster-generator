@@ -403,7 +403,33 @@ export const useEditorStore = create<EditorStore>((set) => ({
   setMaskKey: (maskKey) => set({ maskKey }),
   setDecorationSvgUrl: (decorationSvgUrl) => set({ decorationSvgUrl }),
   setDecorationVisible: (decorationVisible) => set({ decorationVisible }),
-  setPrintFormat: (printFormat) => set({ printFormat }),
+  setPrintFormat: (printFormat) =>
+    // PROJ-37: Format-Wechsel re-zentriert die Map auf den Marker (Zoom
+    // bleibt). Ohne dies würde der Marker beim Verkleinern (z.B. A2 → A4)
+    // potentiell aus dem schmaleren Viewport rutschen. Nur wenn ein
+    // Marker mit konkreter Position aktiv ist — sonst bleibt viewState
+    // unverändert.
+    set((s) => {
+      if (s.printFormat === printFormat) return { printFormat }
+      const hasPrimaryMarker =
+        s.marker.enabled && s.marker.lat != null && s.marker.lng != null
+      const pendingCenter = hasPrimaryMarker
+        ? { lng: s.marker.lng as number, lat: s.marker.lat as number, zoom: s.viewState.zoom }
+        : s.pendingCenter
+      const hasSecondaryMarker =
+        s.secondMarker.enabled && s.secondMarker.lat != null && s.secondMarker.lng != null
+      const secondMap = hasSecondaryMarker
+        ? {
+            ...s.secondMap,
+            pendingCenter: {
+              lng: s.secondMarker.lng as number,
+              lat: s.secondMarker.lat as number,
+              zoom: s.secondMap.viewState.zoom,
+            },
+          }
+        : s.secondMap
+      return { printFormat, pendingCenter, secondMap }
+    }),
   setOrientation: (orientation) => set({ orientation }),
   setMarker: (updates) => set((s) => ({ marker: { ...s.marker, ...updates } })),
   setSecondMarker: (updates) => set((s) => ({ secondMarker: { ...s.secondMarker, ...updates } })),

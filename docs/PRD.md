@@ -36,6 +36,7 @@ Ein webbasierter Karten-Poster-Generator, mit dem Nutzer ohne Designkenntnisse p
 | P1 | Saisonaler Marketing-Kalender (Event-driven Topic-Refill für Blog-Automation pro Locale) | Planned |
 | P1 | Customer-sichtbare Custom-Masks mit Decoration (Per-Mask-Toggle + Decoration-SVG-Layer) | Planned |
 | P1 | Editor Reduction Pass (Customer-Min sichtbar, Profi-Settings hinter „Anpassen"-Toggle) | Planned |
+| P1 | Format-gekoppelter Editor-Viewport (A4/A3/A2 zeigt entsprechend mehr/weniger Karte bei gleichem Zoom) | Planned |
 
 ## Success Metrics
 - Conversion Rate: >5% der anonymen Nutzer erstellen ein Konto

@@ -10,7 +10,7 @@ import { getPalette } from '@/lib/map-palettes'
 import { composeMaskSvg, composeFrameSvg, composeFullbleedMaskSvg, composeSplitSeamSvg, svgToDataUrl, hasAnyFrame } from '@/lib/mask-composer'
 import { useRasterizedMaskUrl } from '@/hooks/useRasterizedMaskUrl'
 import { useColoredDecoration } from '@/hooks/useColoredDecoration'
-import { PRINT_FORMATS, effectiveDimensions } from '@/lib/print-formats'
+import { PRINT_FORMATS, effectiveDimensions, effectiveLogicalCanvas } from '@/lib/print-formats'
 import { MapPreview } from './MapPreview'
 import { TextBlockOverlay } from './TextBlockOverlay'
 import { DraggablePin } from './DraggablePin'
@@ -73,9 +73,13 @@ interface PosterCanvasProps {
 export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasProps = {}) {
   const wrapperRef = useRef<HTMLDivElement>(null)
   const posterRef = useRef<HTMLDivElement>(null)
-  const [posterSize, setPosterSize] = useState({ width: 0, height: 0 })
+  // PROJ-37: visualSize = was der Customer am Bildschirm sieht (gefittet in
+  // den verfügbaren Wrapper-Platz). Wird via CSS-Transform-Scale aus der
+  // logicalSize abgeleitet. fontScale arbeitet im LOGICAL-Pixel-Raum
+  // (poster div ist logisch dimensioniert) damit Editor- und Export-
+  // Pipeline denselben Wert nutzen → konsistente Print-Ratios.
+  const [visualSize, setVisualSize] = useState({ width: 0, height: 0 })
   const [locating, setLocating] = useState(false)
-  const fontScale = computeFontScale(posterSize.width)
 
   // On Mobile exactly one overlay is interactive at a time, matched to the
   // active tab. On Desktop (activeMobileTool === undefined) every overlay
@@ -95,6 +99,13 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
   const format = PRINT_FORMATS[printFormat]
   const dims = effectiveDimensions(format, orientation)
   const ratio = dims.widthMm / dims.heightMm
+  // PROJ-37: Logical Canvas — die virtuelle Pixel-Fläche, in der MapLibre
+  // rendert. Größere Logical Canvas = mehr Geografie sichtbar bei gleichem
+  // Zoom. Editor-Preview bleibt am Bildschirm gleich (visualSize), wird aber
+  // per CSS-Transform-Scale aus der Logical Canvas runter-/hochskaliert.
+  const logicalCanvas = effectiveLogicalCanvas(printFormat, orientation)
+  const visualScale = visualSize.width > 0 ? visualSize.width / logicalCanvas.width : 1
+  const fontScale = computeFontScale(logicalCanvas.width)
 
   const isDualMap = mask.isSplit && splitMode === 'second-map'
   const isSplitPhoto = mask.isSplit && splitMode === 'photo' && splitPhoto != null
@@ -225,9 +236,9 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
       const availH = height - padding
       if (availW <= 0 || availH <= 0) return
       if (availW / ratio <= availH) {
-        setPosterSize({ width: availW, height: availW / ratio })
+        setVisualSize({ width: availW, height: availW / ratio })
       } else {
-        setPosterSize({ width: availH * ratio, height: availH })
+        setVisualSize({ width: availH * ratio, height: availH })
       }
     }
     const observer = new ResizeObserver(([entry]) => {
@@ -257,8 +268,11 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
       {/* OSM/MapTiler attribution — outside the poster card, in the editor
           chrome. ODbL-compliant placement, doesn't pollute the canvas. */}
       <MapAttribution className="absolute bottom-1 right-2" />
-      {posterSize.width > 0 && (() => {
-        const mmToPx = posterSize.width / dims.widthMm
+      {visualSize.width > 0 && (() => {
+        // PROJ-37: mmToPx und marginPx leben jetzt im LOGICAL-Pixel-Raum
+        // (der Poster-div ist logicalCanvas.width × logicalCanvas.height).
+        // Visual-Skalierung passiert via CSS-transform am visualWrapper.
+        const mmToPx = logicalCanvas.width / dims.widthMm
         const marginPx = innerMarginMm * mmToPx
         // Layout only shrinks the map when the user has no shape (plain
         // rectangle). Circles, hearts and splits already position themselves
@@ -268,12 +282,24 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
         const mapHeightFactor = isPlainRectangle ? LAYOUT_MAP_HEIGHT[layoutId] : 1.0
         return (
         <>
+          {/* Visual wrapper: CSS-Transform-Scale skaliert die Logical Canvas
+              in den verfügbaren Bildschirm-Platz. Width/Height = visualSize
+              damit Layout-Engine den richtigen Bildschirm-Platz reserviert.
+              Inhalt (poster-div) lebt im logicalCanvas-Pixel-Raum.
+              transform-origin top-left + size-Berechnungen halten alles
+              positioniert ohne overflow-Probleme. */}
+          <div
+            className="flex-none relative"
+            style={{ width: visualSize.width, height: visualSize.height }}
+          >
           <div
             ref={posterRef}
-            className="relative shadow-2xl overflow-hidden flex-none"
+            className="absolute top-0 left-0 shadow-2xl overflow-hidden"
             style={{
-              width: posterSize.width,
-              height: posterSize.height,
+              width: logicalCanvas.width,
+              height: logicalCanvas.height,
+              transform: `scale(${visualScale})`,
+              transformOrigin: 'top left',
               backgroundColor: posterDarkMode
                 ? (customPalette?.background
                     ?? getPalette(paletteId)?.colors.background
@@ -567,6 +593,8 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
             {/* Text blocks overlay */}
             <TextBlockOverlay fontScale={fontScale} interactive={textInteractive} />
           </div>
+          </div>
+          {/* End of visual wrapper (PROJ-37) */}
 
           {isDualMap ? (
             <>
@@ -574,8 +602,8 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
               <div
                 className="absolute flex flex-col gap-1"
                 style={{
-                  top: `calc(50% - ${posterSize.height / 2}px)`,
-                  left: `calc(50% - ${posterSize.width / 2}px - 44px)`,
+                  top: `calc(50% - ${visualSize.height / 2}px)`,
+                  left: `calc(50% - ${visualSize.width / 2}px - 44px)`,
                 }}
               >
                 <button
@@ -609,8 +637,8 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
               <div
                 className="absolute flex flex-col gap-1"
                 style={{
-                  top: `calc(50% - ${posterSize.height / 2}px)`,
-                  left: `calc(50% + ${posterSize.width / 2}px + 12px)`,
+                  top: `calc(50% - ${visualSize.height / 2}px)`,
+                  left: `calc(50% + ${visualSize.width / 2}px + 12px)`,
                 }}
               >
                 <button
@@ -636,8 +664,8 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
             <div
               className="absolute flex flex-col gap-1"
               style={{
-                top: `calc(50% - ${posterSize.height / 2}px)`,
-                left: `calc(50% + ${posterSize.width / 2}px + 12px)`,
+                top: `calc(50% - ${visualSize.height / 2}px)`,
+                left: `calc(50% + ${visualSize.width / 2}px + 12px)`,
               }}
             >
               <button

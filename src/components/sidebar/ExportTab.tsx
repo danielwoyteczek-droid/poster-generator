@@ -10,7 +10,7 @@ import { useEditorStore } from '@/hooks/useEditorStore'
 import { useMapExport } from '@/hooks/useMapExport'
 import { useAuth } from '@/hooks/useAuth'
 import { useCartStore } from '@/hooks/useCartStore'
-import { type PrintFormat, PRINT_FORMAT_OPTIONS } from '@/lib/print-formats'
+import { type PrintFormat } from '@/lib/print-formats'
 import { PRODUCTS, formatPrice, type ProductId } from '@/lib/products'
 import { cn } from '@/lib/utils'
 import { trackAddToCart } from '@/lib/analytics'
@@ -230,38 +230,14 @@ function CustomerProductView({ printFormat }: { printFormat: string }) {
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function ExportTab() {
-  const t = useTranslations('editor')
-  const { printFormat, setPrintFormat } = useEditorStore()
+  const { printFormat } = useEditorStore()
   const { isAdmin, loading } = useAuth()
 
   return (
     <div className="space-y-5 p-4">
-      {/* Paper format — moved here from MapTab (PROJ-1, sidebar-tidy) so
-          the main map controls stay focused on composition. The format is
-          a buy-time decision (price differs A4/A3) and naturally lives in
-          the export/checkout area. */}
-      <div className="space-y-1.5">
-        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
-          {t('paperFormat')}
-        </Label>
-        <div className="grid grid-cols-3 gap-1.5">
-          {PRINT_FORMAT_OPTIONS.map((f) => (
-            <button
-              key={f.id}
-              type="button"
-              onClick={() => setPrintFormat(f.id)}
-              className={cn(
-                'h-9 rounded-md border-2 text-sm font-medium transition-colors',
-                printFormat === f.id
-                  ? 'border-primary bg-primary text-primary-foreground'
-                  : 'border-border text-foreground/70 hover:border-muted-foreground',
-              )}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
-      </div>
+      {/* PROJ-37: Format-Selector lebt jetzt im MapTab (am Top), weil das
+          Format den Editor-Map-Viewport beeinflusst. Hier nur noch
+          Produkt-Auswahl + Buy-Flow. */}
 
       {loading ? (
         <div className="space-y-2">

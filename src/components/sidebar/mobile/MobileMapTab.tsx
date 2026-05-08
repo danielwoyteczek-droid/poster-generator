@@ -135,9 +135,32 @@ export function MobileMapTab() {
 
   return (
     <div className="space-y-5 p-4">
-      {/* Page setup — orientation only. Paper format moved to Export tab
-          (PROJ-1, sidebar-tidy). */}
+      {/* Page setup — paper format + orientation. PROJ-37: Format zurück
+          in den Editor (am Top), weil Format jetzt den Map-Viewport
+          beeinflusst (A3/A2 = mehr Geografie sichtbar). */}
       <div className="space-y-3">
+        <div className="space-y-1.5">
+          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
+            {t('paperFormat')}
+          </Label>
+          <div className="grid grid-cols-3 gap-1.5">
+            {PRINT_FORMAT_OPTIONS.map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                onClick={() => setPrintFormat(f.id)}
+                className={cn(
+                  'h-10 rounded-md border-2 text-sm font-medium transition-colors',
+                  printFormat === f.id
+                    ? 'border-primary bg-primary text-primary-foreground'
+                    : 'border-border text-foreground/70 hover:border-muted-foreground',
+                )}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+        </div>
         <div className="space-y-1.5">
           <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
             {t('orientationLabel')}
@@ -152,7 +175,7 @@ export function MobileMapTab() {
                   onClick={() => setOrientation(value)}
                   aria-pressed={active}
                   className={cn(
-                    'flex items-center justify-center gap-1.5 h-9 rounded-md border-2 text-sm font-medium transition-colors',
+                    'flex items-center justify-center gap-1.5 h-10 rounded-md border-2 text-sm font-medium transition-colors',
                     active
                       ? 'border-primary bg-primary text-primary-foreground'
                       : 'border-border text-foreground/70 hover:border-muted-foreground',
