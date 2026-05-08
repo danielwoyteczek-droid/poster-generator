@@ -648,22 +648,31 @@ export async function buildPosterCanvas(
       const text = await fetchDecorationSvgText(store.decorationSvgUrl)
       const recolored = recolorSvg(text, shapeConfig?.innerFrame.color ?? '#1a1a1a')
       const decoImg = await loadImage(svgTextToDataUrl(recolored))
-      // PROJ-38 follow-up: apply admin-tuned decoration transform. Values
-      // are in canvas A4 units (595.3 wide); convert to print-pixel scale
-      // via W/595.3. CSS-equivalent order: translate after scale → call
-      // ctx.translate before ctx.scale so a point P ends up at
-      //   (tx + scale * P_x, ty + scale * P_y).
-      const dt = mask.decorationTransform
-      const hasDecoTransform = dt && (dt.x !== 0 || dt.y !== 0 || dt.scale !== 1)
-      if (hasDecoTransform) {
-        const decoPxPerUnit = W / 595.3
+      // PROJ-38 follow-up: decoration follows the same layout transform the
+      // composer applies to the mask (so they stay aligned across full vs
+      // text-* layouts), composed with the admin-tuned decoration_transform.
+      const decoPxPerUnit = W / 595.3
+      const decoLayoutScale = (() => {
+        if (!mask.shape) return 1
+        const fitScale = Math.min(595.3 / mask.shape.width, 841.9 / mask.shape.height)
+        const eff = (mask.shape.height * fitScale * (mask.shape.bottomFraction ?? 1)) / 841.9
+        return eff > rawLayoutFactor ? rawLayoutFactor / eff : 1
+      })()
+      const decoLayoutTxCanvas = 595.3 * (1 - decoLayoutScale) / 2
+      const dt = mask.decorationTransform ?? { x: 0, y: 0, scale: 1 }
+      const decoFinalScale = decoLayoutScale * dt.scale
+      const decoFinalTxCanvas = decoLayoutTxCanvas + decoLayoutScale * dt.x
+      const decoFinalTyCanvas = decoLayoutScale * dt.y // layoutTy=0 for text layouts
+      const decoIdentity =
+        decoFinalScale === 1 && decoFinalTxCanvas === 0 && decoFinalTyCanvas === 0
+      if (decoIdentity) {
+        ctx.drawImage(decoImg, 0, 0, W, H)
+      } else {
         ctx.save()
-        ctx.translate(dt!.x * decoPxPerUnit, dt!.y * decoPxPerUnit)
-        ctx.scale(dt!.scale, dt!.scale)
+        ctx.translate(decoFinalTxCanvas * decoPxPerUnit, decoFinalTyCanvas * decoPxPerUnit)
+        ctx.scale(decoFinalScale, decoFinalScale)
         ctx.drawImage(decoImg, 0, 0, W, H)
         ctx.restore()
-      } else {
-        ctx.drawImage(decoImg, 0, 0, W, H)
       }
     } catch {
       // ignore — decoration is optional

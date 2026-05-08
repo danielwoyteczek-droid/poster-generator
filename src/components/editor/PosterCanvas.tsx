@@ -582,20 +582,34 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
                 with the heart silhouette outline. Customer can hide via the
                 Karten-Tab toggle (decorationVisible). Sits below photos/text. */}
             {decorationSvgUrl && decorationVisible && coloredDecorationUrl && (() => {
-              // PROJ-38 follow-up: apply admin-tuned decoration transform so
-              // operators can nudge the overlay independently from the mask.
-              // Values are in canvas A4 units; convert to logical-canvas px
-              // via the constant pxPerCanvasUnit ratio.
-              const dt = mask.decorationTransform
-              const hasDecoTransform = dt && (dt.x !== 0 || dt.y !== 0 || dt.scale !== 1)
+              // PROJ-38 follow-up: decoration must follow the same layout
+              // transform the composer applies to the mask, otherwise the
+              // two drift apart in non-full layouts (mask shrinks by
+              // layoutScale, decoration stays at full A4 size). Combined
+              // with the admin-tuned decoration_transform on top so admins
+              // can fine-tune alignment in the pre-layout reference frame.
               const decoPxPerUnit = logicalCanvas.width / 595.3
-              const decoStyle = hasDecoTransform
-                ? {
+              const layoutScale = (() => {
+                if (!mask.shape) return 1
+                const fitScale = Math.min(595.3 / mask.shape.width, 841.9 / mask.shape.height)
+                const eff = (mask.shape.height * fitScale * (mask.shape.bottomFraction ?? 1)) / 841.9
+                return eff > layoutMapHeight ? layoutMapHeight / eff : 1
+              })()
+              const layoutTxCanvas = 595.3 * (1 - layoutScale) / 2
+              const layoutTyCanvas = layoutMapHeight < 1 ? 0 : 0
+              const dt = mask.decorationTransform ?? { x: 0, y: 0, scale: 1 }
+              const finalScale = layoutScale * dt.scale
+              const finalTxCanvas = layoutTxCanvas + layoutScale * dt.x
+              const finalTyCanvas = layoutTyCanvas + layoutScale * dt.y
+              const isIdentity =
+                finalScale === 1 && finalTxCanvas === 0 && finalTyCanvas === 0
+              const decoStyle = isIdentity
+                ? { objectFit: 'fill' as const }
+                : {
                     objectFit: 'fill' as const,
-                    transform: `translate(${dt!.x * decoPxPerUnit}px, ${dt!.y * decoPxPerUnit}px) scale(${dt!.scale})`,
+                    transform: `translate(${finalTxCanvas * decoPxPerUnit}px, ${finalTyCanvas * decoPxPerUnit}px) scale(${finalScale})`,
                     transformOrigin: '0 0' as const,
                   }
-                : { objectFit: 'fill' as const }
               return (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
