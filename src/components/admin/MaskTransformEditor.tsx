@@ -65,12 +65,11 @@ export function MaskTransformEditor({ mask, open, onOpenChange, onSaved }: Props
 
   if (!mask || !vb) return null
 
-  // px ↔ viewBox unit conversion. Preview height = PREVIEW_H px = vb.h * (PREVIEW_W/vb.w) px in viewBox units.
-  // We anchor the preview to the viewBox aspect via mask-image render: the
-  // viewBox is stretched to fit the A4-shaped preview, so 1 viewBox-x-unit
-  // = PREVIEW_W/vb.w px and 1 viewBox-y-unit = PREVIEW_H/vb.h px.
-  const pxPerUnitX = PREVIEW_W / vb.w
-  const pxPerUnitY = PREVIEW_H / vb.h
+  // Uniform px-per-viewBox-unit, matching the composer's uniform-fit. The
+  // preview displays the SVG with object-fit: contain so the shape sits at
+  // the same proportional position as on the actual poster (no anisotropic
+  // stretch). Drag math uses this same uniform factor.
+  const pxPerUnit = Math.min(PREVIEW_W / vb.w, PREVIEW_H / vb.h)
 
   // Drag handler — converts pointer-pixel deltas into viewBox-unit deltas.
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -80,8 +79,8 @@ export function MaskTransformEditor({ mask, open, onOpenChange, onSaved }: Props
     const startTx = tx
     const startTy = ty
     const onMove = (ev: PointerEvent) => {
-      const dx = (ev.clientX - startX) / pxPerUnitX
-      const dy = (ev.clientY - startY) / pxPerUnitY
+      const dx = (ev.clientX - startX) / pxPerUnit
+      const dy = (ev.clientY - startY) / pxPerUnit
       setTx(startTx + dx)
       setTy(startTy + dy)
     }
@@ -124,16 +123,15 @@ export function MaskTransformEditor({ mask, open, onOpenChange, onSaved }: Props
     }
   }
 
-  // Live-preview: render the mask SVG inside an A4-shaped box, with the
-  // transform applied via CSS so it tracks the slider/drag without re-fetching.
-  // The mask file's intrinsic viewBox is stretched to PREVIEW_W × PREVIEW_H
-  // (matches how it's used as a CSS mask in the editor), so admins see exactly
-  // what customers will see relative to the poster aspect.
+  // Live-preview: render the mask SVG inside an A4-shaped box. object-fit:
+  // contain on the IMG mirrors the composer's uniform-fit behaviour, so the
+  // shape sits at the same proportional position as on the real poster.
+  // CSS transform on the IMG layers the admin's translate/scale on top — in
+  // viewBox-unit-per-preview-pixel terms via the uniform pxPerUnit, so the
+  // numeric values stored in DB (viewBox units) map 1:1 to what the composer
+  // applies at render time.
   const transformStyle = {
-    // CSS transform-origin defaults to center, but our DB values are SVG-style
-    // (origin at top-left of viewBox), so we apply translate first then scale
-    // around the SVG's top-left corner — mimicking the composer's behaviour.
-    transform: `translate(${tx * pxPerUnitX}px, ${ty * pxPerUnitY}px) scale(${scale})`,
+    transform: `translate(${tx * pxPerUnit}px, ${ty * pxPerUnit}px) scale(${scale})`,
     transformOrigin: '0 0',
   }
 
@@ -153,7 +151,9 @@ export function MaskTransformEditor({ mask, open, onOpenChange, onSaved }: Props
             className="relative bg-muted/30 border border-dashed border-border overflow-hidden"
             style={{ width: PREVIEW_W, height: PREVIEW_H }}
           >
-            {/* Draggable mask silhouette */}
+            {/* Draggable mask silhouette. object-fit: contain uniform-fits the
+                shape to the A4-shaped preview, matching the composer's
+                portrait-branch behaviour at render time. */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={mask.mask_svg_url}
@@ -164,6 +164,8 @@ export function MaskTransformEditor({ mask, open, onOpenChange, onSaved }: Props
               style={{
                 width: PREVIEW_W,
                 height: PREVIEW_H,
+                objectFit: 'contain',
+                objectPosition: 'top center',
                 ...transformStyle,
               }}
             />
