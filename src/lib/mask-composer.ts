@@ -224,28 +224,37 @@ export function composeMaskSvg(
     return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${canvasW} ${canvasH}" width="${canvasW}" height="${canvasH}">${defs}${parts.join('')}</svg>`
   }
 
-  // Portrait — original behaviour, preserved bit-for-bit so existing presets
-  // render identically.
-  // Layout-aware scaling: if the shape's natural bottom sits lower than the
-  // map area allows (e.g. heart-single bottoms at 84 % but the layout only
-  // grants 70 %), scale it down uniformly so it fits — preserving aspect
-  // ratio — and anchor it at the top of the viewBox.
+  // Portrait — render into an A4-portrait viewBox (595.3 × 841.9) and
+  // uniformly fit + centre the shape inside it, mirroring the landscape
+  // branch's behaviour. Without uniform-fit, a non-A4 source viewBox (e.g.
+  // 572.77 × 549.93 for some custom uploads) gets stretched anisotropically
+  // when the mask SVG is rasterised to the poster aspect — the figure ends
+  // up vertically elongated. Built-in shapes whose viewBox already matches
+  // A4 portrait keep rendering identically.
+  const canvasW = 595.3
+  const canvasH = 841.9
   const bottom = shape.bottomFraction ?? 1
-  const shapeScale = bottom > layoutMapHeight ? layoutMapHeight / bottom : 1
-  const translateX = +((shape.width * (1 - shapeScale)) / 2).toFixed(2)
-  const scaleStr = shapeScale.toFixed(4)
-  const shapeTransform = shapeScale < 1
-    ? ` transform="translate(${translateX} 0) scale(${scaleStr})"`
-    : ''
+  const layoutScale = bottom > layoutMapHeight ? layoutMapHeight / bottom : 1
+  const fitScale = Math.min(canvasW / shape.width, canvasH / shape.height)
+  const totalScale = layoutScale * fitScale
+  const scaledW = shape.width * totalScale
+  const scaledH = shape.height * totalScale
+  const tx = +((canvasW - scaledW) / 2).toFixed(2)
+  // Anchor at the top of the canvas (consistent with the legacy behaviour
+  // where bottomFraction-clipped shapes hugged the top edge so the layout's
+  // text area below stays clear).
+  const ty = layoutScale < 1 ? 0 : +((canvasH - scaledH) / 2).toFixed(2)
+  const scaleStr = totalScale.toFixed(4)
+  const shapeTransform = ` transform="translate(${tx} ${ty}) scale(${scaleStr})"`
 
   if (outer.mode === 'opacity' || outer.mode === 'full') {
     const sides = resolveSideMarginsMm(config)
-    const mT = mmToUnits(sides.top, shape.width)
-    const mR = mmToUnits(sides.right, shape.width)
-    const mB = mmToUnits(sides.bottom, shape.width)
-    const mL = mmToUnits(sides.left, shape.width)
-    const w = shape.width - mL - mR
-    const h = shape.height - mT - mB
+    const mT = mmToUnits(sides.top, canvasW)
+    const mR = mmToUnits(sides.right, canvasW)
+    const mB = mmToUnits(sides.bottom, canvasW)
+    const mL = mmToUnits(sides.left, canvasW)
+    const w = canvasW - mL - mR
+    const h = canvasH - mT - mB
     const op = outer.mode === 'full' ? 1 : outer.opacity
     parts.push(
       `<rect x="${mL}" y="${mT}" width="${w}" height="${h}" fill="#fff" fill-opacity="${op}"/>`,
@@ -253,7 +262,8 @@ export function composeMaskSvg(
   }
 
   // Glow: a true radial gradient on a circle centred on the shape's
-  // visual midpoint. Rendering correctness in CSS mask-image relies on
+  // visual midpoint (in canvas coords, since the shape is uniform-fit
+  // into the canvas). Rendering correctness in CSS mask-image relies on
   // the consumer rasterising this SVG to a PNG first (see
   // useRasterizedMaskUrl in PosterCanvas) — Chromium doesn't always
   // honour <radialGradient> when an SVG data URL is used directly as a
@@ -262,21 +272,18 @@ export function composeMaskSvg(
   if (outer.mode === 'glow') {
     const radiusMm = outer.glowRadius ?? 250
     const intensity = outer.glowIntensity ?? 0.5
-    const r = mmToUnits(radiusMm, shape.width).toFixed(2)
-    const bottomFraction = shape.bottomFraction ?? 1
-    const visibleBottom = Math.min(bottomFraction, layoutMapHeight)
-    const cx = (shape.width / 2).toFixed(2)
-    const cy = ((shape.height * visibleBottom) / 2).toFixed(2)
-    // Margin inset rect: clips the glow so "Abstand zum Posterrand" works
-    // in glow mode too (was opacity/full-only before).
+    const r = mmToUnits(radiusMm, canvasW).toFixed(2)
+    const visibleBottom = Math.min(bottom, layoutMapHeight)
+    const cx = (tx + (shape.width / 2) * totalScale).toFixed(2)
+    const cy = (ty + ((shape.height * visibleBottom) / 2) * totalScale).toFixed(2)
     const sides = resolveSideMarginsMm(config)
     const hasMargin = sides.top > 0 || sides.right > 0 || sides.bottom > 0 || sides.left > 0
-    const mT = mmToUnits(sides.top, shape.width)
-    const mR = mmToUnits(sides.right, shape.width)
-    const mB = mmToUnits(sides.bottom, shape.width)
-    const mL = mmToUnits(sides.left, shape.width)
+    const mT = mmToUnits(sides.top, canvasW)
+    const mR = mmToUnits(sides.right, canvasW)
+    const mB = mmToUnits(sides.bottom, canvasW)
+    const mL = mmToUnits(sides.left, canvasW)
     const clipDef = hasMargin
-      ? `<clipPath id="m-glow-clip"><rect x="${mL}" y="${mT}" width="${shape.width - mL - mR}" height="${shape.height - mT - mB}"/></clipPath>`
+      ? `<clipPath id="m-glow-clip"><rect x="${mL}" y="${mT}" width="${canvasW - mL - mR}" height="${canvasH - mT - mB}"/></clipPath>`
       : ''
     defs =
       `<defs><radialGradient id="m-glow">` +
@@ -290,7 +297,7 @@ export function composeMaskSvg(
   // Shape always drawn at full opacity on top (unless mode=full made it redundant)
   parts.push(`<g fill="#fff" fill-opacity="1"${shapeTransform}>${shape.markup}</g>`)
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${shape.viewBox}" width="${shape.width}" height="${shape.height}">${defs}${parts.join('')}</svg>`
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${canvasW} ${canvasH}" width="${canvasW}" height="${canvasH}">${defs}${parts.join('')}</svg>`
 }
 
 /**
@@ -366,26 +373,34 @@ export function composeFrameSvg(
     return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${canvasW} ${canvasH}">${parts.join('')}</svg>`
   }
 
-  // Portrait — original behaviour, preserved bit-for-bit.
+  // Portrait — render into A4-portrait viewBox and uniform-fit + center
+  // the shape inside it (mirrors composeMaskSvg portrait branch). Outer
+  // frame wraps the canvas (not the shape's source viewBox), inner frame
+  // strokes follow the same fit-and-centre transform as the mask so they
+  // stay aligned.
+  const canvasW = 595.3
+  const canvasH = 841.9
   const bottom = shape.bottomFraction ?? 1
-  const shapeScale = bottom > layoutMapHeight ? layoutMapHeight / bottom : 1
-  const frameTranslateX = +((shape.width * (1 - shapeScale)) / 2).toFixed(2)
-  const frameScaleStr = shapeScale.toFixed(4)
-  const frameTransform = shapeScale < 1
-    ? ` transform="translate(${frameTranslateX} 0) scale(${frameScaleStr})"`
-    : ''
+  const layoutScale = bottom > layoutMapHeight ? layoutMapHeight / bottom : 1
+  const fitScale = Math.min(canvasW / shape.width, canvasH / shape.height)
+  const totalScale = layoutScale * fitScale
+  const scaledW = shape.width * totalScale
+  const scaledH = shape.height * totalScale
+  const tx = +((canvasW - scaledW) / 2).toFixed(2)
+  const ty = layoutScale < 1 ? 0 : +((canvasH - scaledH) / 2).toFixed(2)
+  const frameTransform = ` transform="translate(${tx} ${ty}) scale(${totalScale.toFixed(4)})"`
   const parts: string[] = []
   const { innerFrame, outerFrame } = config
   const mmCorrection = 210 / referenceMm
-  const toUnits = (mm: number) => mmToUnits(mm, shape.width) * mmCorrection
+  const toUnits = (mm: number) => mmToUnits(mm, canvasW) * mmCorrection
 
   if (outerFrame.enabled) {
     // Eigener Offset (alle Seiten gleich), nicht an outer.margin gekoppelt.
     const offsetMm = outerFrame.offset ?? 10
     const off0 = toUnits(offsetMm)
     const thickness = toUnits(outerFrame.thickness)
-    const w = shape.width - 2 * off0
-    const h = shape.height - 2 * off0
+    const w = canvasW - 2 * off0
+    const h = canvasH - 2 * off0
     parts.push(
       `<rect x="${off0}" y="${off0}" width="${w}" height="${h}" fill="none" stroke="${outerFrame.color}" stroke-width="${thickness}"/>`,
     )
@@ -394,8 +409,8 @@ export function composeFrameSvg(
       const off = thickness + gap
       const innerX = off0 + off
       const innerY = off0 + off
-      const innerW = shape.width - 2 * off0 - 2 * off
-      const innerH = shape.height - 2 * off0 - 2 * off
+      const innerW = canvasW - 2 * off0 - 2 * off
+      const innerH = canvasH - 2 * off0 - 2 * off
       if (innerW > 0 && innerH > 0) {
         parts.push(
           `<rect x="${innerX}" y="${innerY}" width="${innerW}" height="${innerH}" fill="none" stroke="${outerFrame.color}" stroke-width="${thickness}"/>`,
@@ -407,14 +422,14 @@ export function composeFrameSvg(
   if (innerFrame.enabled) {
     const thickness = toUnits(innerFrame.thickness)
     // Compensate stroke thickness so the outline doesn't thicken when the
-    // shape is scaled down by the layout transform.
-    const scaledThickness = thickness / (shapeScale || 1)
+    // shape is scaled down by the fit+layout transform.
+    const scaledThickness = thickness / (totalScale || 1)
     parts.push(
       `<g fill="none" stroke="${innerFrame.color}" stroke-width="${scaledThickness}" stroke-linejoin="round"${frameTransform}>${shape.markup}</g>`,
     )
   }
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${shape.viewBox}">${parts.join('')}</svg>`
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${canvasW} ${canvasH}">${parts.join('')}</svg>`
 }
 
 /**
