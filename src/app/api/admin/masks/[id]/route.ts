@@ -6,12 +6,18 @@ import { createAdminClient } from '@/lib/supabase-admin'
 const PatchSchema = z.object({
   is_public: z.boolean().optional(),
   decoration_svg_url: z.string().url().nullable().optional(),
+  // PROJ-38: visual transform editor — admin-set translate/scale offsets
+  // applied at render time so the SVG can be repositioned without re-export.
+  transform_x: z.number().finite().optional(),
+  transform_y: z.number().finite().optional(),
+  transform_scale: z.number().finite().positive().max(10).optional(),
 })
 
 /**
- * Update visibility flag and/or decoration URL of a custom mask.
- * Decoration upload itself goes through POST /decoration — this PATCH only
- * accepts a pre-existing URL (or null) so the admin can clear without re-uploading.
+ * Update mutable fields on a custom mask (visibility, decoration URL,
+ * transform offsets). Decoration upload itself goes through POST /decoration —
+ * this PATCH only accepts a pre-existing URL (or null) so the admin can clear
+ * without re-uploading.
  */
 export async function PATCH(
   req: NextRequest,
@@ -29,7 +35,7 @@ export async function PATCH(
   }
 
   // Reject empty patches so callers don't trigger an updated_at bump for nothing.
-  if (parsed.data.is_public === undefined && parsed.data.decoration_svg_url === undefined) {
+  if (Object.keys(parsed.data).length === 0) {
     return NextResponse.json({ error: 'Keine Felder zum Aktualisieren' }, { status: 400 })
   }
 

@@ -31,7 +31,7 @@ export async function GET() {
   const admin = createAdminClient()
   let query = admin
     .from('custom_masks')
-    .select('mask_key, label, mask_svg_url, shape_viewbox, shape_markup, is_public, decoration_svg_url')
+    .select('mask_key, label, mask_svg_url, shape_viewbox, shape_markup, is_public, decoration_svg_url, transform_x, transform_y, transform_scale')
     .order('display_order', { ascending: true })
     .order('created_at', { ascending: false })
     .limit(200)

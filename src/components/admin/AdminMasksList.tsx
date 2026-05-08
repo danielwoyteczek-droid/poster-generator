@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Loader2, Upload, Trash2, Info, ImagePlus, ImageOff } from 'lucide-react'
+import { Loader2, Upload, Trash2, Info, ImagePlus, ImageOff, Move } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -27,6 +27,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { invalidateCustomMasksCache } from '@/hooks/useCustomMasks'
+import { MaskTransformEditor } from './MaskTransformEditor'
 
 interface CustomMaskRow {
   id: string
@@ -38,6 +39,10 @@ interface CustomMaskRow {
   is_public: boolean
   decoration_svg_url: string | null
   created_at: string
+  // PROJ-38: visual transform editor — admin-set translate/scale offsets.
+  transform_x: number
+  transform_y: number
+  transform_scale: number
 }
 
 interface ReferencingPreset {
@@ -67,6 +72,9 @@ export function AdminMasksList() {
   // Hidden file input for decoration upload, focused per mask via ref.
   const decorationInputRef = useRef<HTMLInputElement>(null)
   const [decorationTargetId, setDecorationTargetId] = useState<string | null>(null)
+
+  // PROJ-38: transform-editor modal state.
+  const [transformTarget, setTransformTarget] = useState<CustomMaskRow | null>(null)
 
   const fetchMasks = useCallback(async () => {
     setLoading(true)
@@ -363,6 +371,18 @@ export function AdminMasksList() {
                     )}
                   </div>
 
+                  {/* PROJ-38: visual transform editor — drag + scale within an A4 preview. */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full h-7 text-xs"
+                    disabled={isBusy}
+                    onClick={() => setTransformTarget(mask)}
+                  >
+                    <Move className="w-3.5 h-3.5 mr-1" />
+                    Position & Größe
+                  </Button>
+
                   <Button
                     variant="ghost"
                     size="sm"
@@ -379,6 +399,16 @@ export function AdminMasksList() {
           })}
         </div>
       )}
+
+      {/* PROJ-38: drag/scale editor modal. */}
+      <MaskTransformEditor
+        mask={transformTarget}
+        open={transformTarget !== null}
+        onOpenChange={(open) => !open && setTransformTarget(null)}
+        onSaved={(updated) => {
+          setMasks((prev) => prev.map((m) => (m.id === updated.id ? { ...m, ...updated } : m)))
+        }}
+      />
 
       {/* PROJ-35: shown when DELETE returned 409 (mask is referenced by ≥ 1 preset). */}
       <AlertDialog open={deleteConfirm !== null} onOpenChange={(open) => !open && setDeleteConfirm(null)}>

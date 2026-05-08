@@ -18,6 +18,11 @@ export interface CustomMaskRow {
    *  selected. The editor auto-applies it via `setDecorationSvgUrl` on
    *  mask change. */
   decoration_svg_url?: string | null
+  /** PROJ-38: visual transform editor — admin-set offsets (in viewBox units)
+   *  applied at render time. Defaults 0/0/1 = no change. */
+  transform_x?: number
+  transform_y?: number
+  transform_scale?: number
 }
 
 // Cache shared across hook instances to avoid duplicate fetches
@@ -53,7 +58,18 @@ function toMaskDefinition(row: CustomMaskRow): MapMaskDefinition {
     const width = parseFloat(parts[2] ?? '0')
     const height = parseFloat(parts[3] ?? '0')
     if (width > 0 && height > 0) {
-      shape = { viewBox: row.shape_viewbox, width, height, markup: row.shape_markup }
+      // PROJ-38: apply admin-set transform by wrapping the markup in a
+      // transform-group at parse time. The composer treats this as opaque
+      // markup and renders it inside its own fill-group, so the transform
+      // composes correctly with layout-scaling on top.
+      const tx = row.transform_x ?? 0
+      const ty = row.transform_y ?? 0
+      const ts = row.transform_scale ?? 1
+      const hasTransform = tx !== 0 || ty !== 0 || ts !== 1
+      const markup = hasTransform
+        ? `<g transform="translate(${tx} ${ty}) scale(${ts})">${row.shape_markup}</g>`
+        : row.shape_markup
+      shape = { viewBox: row.shape_viewbox, width, height, markup }
     }
   }
   return {
