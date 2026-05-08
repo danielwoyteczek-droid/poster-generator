@@ -425,6 +425,7 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
               </>
             ) : (
               <div
+                key={`mask-${maskKey}`}
                 className="absolute inset-0"
                 data-mask-key={maskKey}
                 data-mask-resolved-key={mask.key}
