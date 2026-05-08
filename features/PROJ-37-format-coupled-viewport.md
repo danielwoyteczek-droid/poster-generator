@@ -234,7 +234,103 @@ Weil printFormat schon im Store ist und alle anderen Werte (viewState, textBlock
 
 
 ## QA Test Results
-_To be added by /qa_
+
+**QA-Datum:** 2026-05-08
+**QA-Methode:** Code-Audit + Vitest Unit-Tests + E2E-Spec geschrieben (Run aus Infrastruktur-Gründen vertagt — port-3000 belegt durch falsches Workspace-Root)
+**Browser-Bestätigung:** Customer hat im Live-Editor bestätigt: A3/A2 zeigt sichtbar mehr Geografie ✓, Mobile-Performance OK ✓
+
+### Acceptance-Criteria-Status
+
+| AC | Status | Notes |
+|----|--------|-------|
+| `PrintFormat` Type erweitert um `'a2'` | ✅ Pass | `print-formats.ts` enthält A2 (420×594mm, 4961×7016px) + `LOGICAL_CANVAS_SIZE` Konstanten |
+| Format-Selector am Top des MapTab | ✅ Pass | 3-Spalten-Grid in MapTab + MobileMapTab; aus ExportTab entfernt |
+| Logical-Canvas pro Format aktiv | ✅ Pass | PosterCanvas rendert poster-div in `logicalCanvas.width × logicalCanvas.height` Pixeln, MapLibre's `clientWidth` = logical |
+| Zoom-Level bleibt beim Format-Wechsel | ✅ Pass | `setPrintFormat` ändert nur `pendingCenter`-Koordinaten, nicht zoom |
+| Marker-Position (lng/lat) bleibt | ✅ Pass | `setPrintFormat` setzt nur pendingCenter auf marker.lng/lat — marker-state unverändert |
+| Text-Block-Positionen proportional korrekt | ✅ Pass | 0–1 Anteile transform-invariant (TextBlockOverlay-Audit bestätigt) |
+| A4 → A3/A2 zeigt mehr Karte | ✅ Pass | Customer-Live-Verifikation |
+| Mobile MapTab Format-Selector | ✅ Pass | Implementiert + visuell vom User bestätigt |
+| Mobile-Auto-Fit | ✅ Pass | CSS-Transform skaliert Logical-Canvas auf Display-Größe; kein zusätzlicher Code nötig |
+| PNG/PDF-Export rendert exakten Editor-Viewport | ⚠️ Vermutlich Pass (nicht headless-getestet) | useMapExport liest `viewState.viewportWidth` welches durch das neue Setup logical zurückgibt; kein Code-Change in Export-Pipeline notwendig |
+| A2-Export → 4961×7016px PNG/PDF | ⚠️ Nicht direkt verifiziert | Logik korrekt nach Code-Audit (`PRINT_FORMATS.a2.widthPx/heightPx` × pixelRatio) |
+| Star-Map + Foto-Editor A2-Option | ✅ Pass | Iterieren `PRINT_FORMAT_OPTIONS`; A2 erscheint automatisch im 3-Spalten-Grid |
+| Stripe-Catalog A2-Pricing | 🔵 Out-of-Code-Scope | Operator-Aufgabe (Admin-Backend); Catalog-API gibt `null` zurück bei nicht gepricten Formaten → A2-Buttons disabled bis gesetzt |
+| Versandtarife A2 (PROJ-26) | 🔵 Out-of-Code-Scope | Operator-Aufgabe |
+
+### Bugs
+
+#### 🔴 HIGH — DraggablePin lat/lng-Konvertierung verschoben unter visualScale ≠ 1
+
+**Datei:** [src/components/editor/DraggablePin.tsx:84-103](src/components/editor/DraggablePin.tsx#L84-L103)
+
+**Problem:** Beim Drag eines Marker-Pins:
+- `rect = container.getBoundingClientRect()` liefert visuelle Pixel (z.B. 600 wide bei A4 Desktop mit visualScale=0.75)
+- `x = ev.clientX - rect.left` ist visueller Offset (0–600)
+- `setDragPos({x})` → Pin-CSS-`left: 100px` ist im LOGICAL-Pixel-Raum (mapAreaRef ist innen im transformierten Poster) → renders bei visual 100×0.75 = 75px
+- `map.unproject([x, y])` interpretiert x als logical Pixel → nimmt Cursor-Visual-100 als wäre Cursor-Logical-100, aber Cursor war eigentlich bei Logical-133
+
+**Effekt:** Pin "lagged" hinter dem Cursor um Faktor `(1 - visualScale)`. Bei A4 (visualScale ≈ 0.75) ~25% Verschiebung. Bei A2 (visualScale ≈ 0.4) ~60% Verschiebung. Pin landet beim Loslassen an falscher geographischer Position.
+
+**Reproduktion:** Editor öffnen → Marker aktivieren → Pin draggen → beobachten dass Pin nicht beim Cursor bleibt.
+
+**Fix-Skizze:** `visualScale` als Prop an DraggablePin übergeben; alle visuellen Pixel mit `1/visualScale` multiplizieren bevor sie als logical-pixel interpretiert werden.
+
+#### 🟠 MEDIUM — fontScale-Reduktion auf Mobile (~17% kleiner)
+
+**Datei:** [src/components/editor/PosterCanvas.tsx:108](src/components/editor/PosterCanvas.tsx) — `fontScale = computeFontScale(logicalCanvas.width)`
+
+**Problem:** Vor PROJ-37 nutzte fontScale die Visual-Width (z.B. ~300 auf Mobile → fontScale 0.45), jetzt die Logical-Width (800 auf jedem Device → fontScale 1.0 capped). Text wird in größeren Logical-Pixeln gerendert und dann CSS-runterskaliert. Resultierende Mobile-Display-Pixel: 36 × 0.375 = 13.5px statt vorher 16.2px → ~17% kleinere Text-Darstellung als vorher auf Mobile.
+
+**Effekt:** Mobile-Customer sehen Text ein Stück kleiner als gewohnt. Customer hat aber Live-Test bestätigt — wahrscheinlich noch im akzeptablen Bereich. Falls Beschwerden: `FONT_SCALE_REFERENCE_WIDTH` von 660 auf ~545 senken oder Default-Font-Sizes anheben.
+
+#### 🟡 LOW — viewportWidth in alten gespeicherten Projekten obsolet
+
+**Datei:** [src/hooks/useProjectSync.ts:83,101](src/hooks/useProjectSync.ts) + [src/hooks/useMapExport.ts:512](src/hooks/useMapExport.ts)
+
+**Problem:** Pre-PROJ-37 wurde `viewState.viewportWidth/Height` als visual on-screen Pixel gespeichert (z.B. 600). Post-PROJ-37 sind diese Werte logical (800). Beim Laden eines alten Projekts liest der Store kurz die alte 600-Größe; falls Customer sofort exportiert vor dem ersten MapLibre-emit (das viewportWidth auf logical 800 überschreibt), nutzt Export die falsche Preview-Width → Print-Layout leicht verschoben.
+
+**Mitigation:** Per User-Bestätigung gibt es noch keine echten Customer-Projekte (nur Admin-Test) → real-life Impact = 0. MapLibre's `moveend`-Emit überschreibt viewportWidth innerhalb von ~100ms nach Editor-Mount, sodass Export-Klick danach korrekt ist.
+
+#### 🟡 LOW — MapLibre Drag/Scroll-Zoom-Focal-Point-Mismatch
+
+**Datei:** Architektur (CSS-Transform auf MapLibre-Parent)
+
+**Problem:** MapLibre nutzt `getBoundingClientRect` (visual) für Pointer-Events und `clientWidth` (logical) für Canvas-Render. Drag-Pan-Geschwindigkeit ist daher um Faktor `visualScale` "sluggish" (langsamer) auf A3/A2. Scroll-Wheel-Zoom-Focal-Point ist um denselben Faktor verschoben.
+
+**Mitigation:** Customer hat im Live-Test bestätigt dass es "sieht richtig gut aus" — vermutlich nicht spürbar im typischen Editor-Flow (Zoom mit Buttons, kleine Pan-Korrekturen). Falls echtes Problem: gleicher Architektur-Fix wie für DraggablePin (Skalierung der Input-Koordinaten).
+
+### Security-Audit
+
+- ✅ Keine User-Inputs → keine XSS/Injection-Vektoren in PROJ-37
+- ✅ Keine API-Endpoints geändert → keine Auth-Bypass-Vektoren
+- ✅ Keine sensiblen Daten in Browser-Console / Network exposed
+- ✅ Keine neuen externen Dependencies installiert
+
+### Regression-Check
+
+- ✅ Vitest unit tests: 31 passed (alle die vorher liefen). Pre-existing failure in PROJ-18-mobile-editor.spec.ts und PROJ-27-mobile-star-map-editor.spec.ts ist Vitest-vs-Playwright-Konfig-Issue, nicht durch PROJ-37 verursacht
+- ✅ TypeScript-Compile: clean (`npx tsc --noEmit -p .`)
+- ✅ Foto-Poster-Editor (PhotoPosterCanvas) und Star-Map-Editor verwenden separate Canvas-Sizing — nicht von Logical-Canvas-Pattern betroffen
+- ✅ TextBlockOverlay + PhotoOverlay Drag-Math nutzen Ratio (rect-fraction) → transform-invariant
+- ✅ applyPreset im Map-Mode setzt printFormat nicht → keine Surprise-Format-Wechsel beim Preset-Apply
+- ⚠️ DraggablePin: REGRESSION (siehe HIGH bug oben) — Pin-Drag funktionierte vor PROJ-37 sauber
+
+### E2E-Tests
+
+Spec geschrieben in [tests/PROJ-37-format-coupled-viewport.spec.ts](tests/PROJ-37-format-coupled-viewport.spec.ts) (12 Test-Cases). Run blockiert weil Port 3000 von einem Stale-Dev-Server (falsches Workspace-Root) belegt war. Tests sind ready-to-run sobald Port frei ist (`taskkill /F /PID <pid>` für den falschen Next-Prozess oder Restart der Dev-Session).
+
+### Production-Ready-Decision
+
+**🚧 NOT READY** — wegen 1 HIGH bug (DraggablePin-Verschiebung).
+
+**Empfehlung:** Vor Produktiv-Stellung den DraggablePin-Fix einbauen (visualScale-Prop durchreichen + Skalierung). Die anderen Issues (fontScale, alte viewportWidth, MapLibre-Drag-Feel) sind akzeptabel — Customer-Live-Test war schon positiv.
+
+**Open für Customer:**
+1. Bitte testen: Editor öffnen, Marker aktivieren, Pin verschieben — bleibt der Pin beim Cursor während des Drags und landet er an der erwarteten Stelle? Falls nein → DraggablePin-Fix Priorität HIGH
+2. Stripe-Catalog A2-Pricing pro Produkt anlegen sobald gewünscht (separate Operator-Aufgabe)
+3. PROJ-26 A2-Versandtarife pro Land ergänzen
+
 
 ## Deployment
 _To be added by /deploy_

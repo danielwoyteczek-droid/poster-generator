@@ -50,7 +50,7 @@
 | PROJ-34 | Star-Map Aquarell-Texturen | Deployed | [PROJ-34-starmap-textures.md](PROJ-34-starmap-textures.md) | 2026-04-30 |
 | PROJ-35 | Customer-sichtbare Custom-Masks mit Decoration | Deployed | [PROJ-35-customer-visible-masks-with-decoration.md](PROJ-35-customer-visible-masks-with-decoration.md) | 2026-04-30 |
 | PROJ-36 | Editor Reduction Pass — Customer-First Sidebar | In Progress | [PROJ-36-editor-reduction-pass.md](PROJ-36-editor-reduction-pass.md) | 2026-05-04 |
-| PROJ-37 | Format-gekoppelter Editor-Viewport (A4/A3/A2) | In Progress | [PROJ-37-format-coupled-viewport.md](PROJ-37-format-coupled-viewport.md) | 2026-05-08 |
+| PROJ-37 | Format-gekoppelter Editor-Viewport (A4/A3/A2) | In Review | [PROJ-37-format-coupled-viewport.md](PROJ-37-format-coupled-viewport.md) | 2026-05-08 |
 
 <!-- Add features above this line -->
 
