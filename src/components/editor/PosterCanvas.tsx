@@ -38,9 +38,13 @@ function HeartPin({ color }: { color: string }) {
 }
 
 function makeMaskStyle(svgPath: string) {
+  // Quote the URL: composed mask SVGs can contain literal `(` `)` from the
+  // shape's transform attribute (e.g. `transform="translate(44.65 0)
+  // scale(0.85)"` for layout-scaled shapes). Unquoted CSS `url(...)` would
+  // close at the first inner `)` and silently drop the mask.
   return {
-    maskImage: `url(${svgPath})`,
-    WebkitMaskImage: `url(${svgPath})`,
+    maskImage: `url("${svgPath}")`,
+    WebkitMaskImage: `url("${svgPath}")`,
     maskRepeat: 'no-repeat',
     WebkitMaskRepeat: 'no-repeat',
     maskSize: '100% 100%',
@@ -425,21 +429,7 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
               </>
             ) : (
               <div
-                key={`mask-${maskKey}-${composedMaskDataUrl?.length ?? 0}`}
                 className="absolute inset-0"
-                data-mask-key={maskKey}
-                data-mask-resolved-key={mask.key}
-                data-mask-has-shape={mask.shape ? '1' : '0'}
-                data-mask-custom-count={customMasks.length}
-                data-mask-shape-d={mask.shape?.markup?.match(/d="([^"]{0,40})/)?.[1] ?? ''}
-                data-mask-svg-d={composedMaskSvgString?.match(/d="([^"]{0,40})/)?.[1] ?? ''}
-                data-mask-data-url-len={composedMaskDataUrl?.length ?? 0}
-                data-mask-data-url-head={composedMaskDataUrl?.slice(0, 40) ?? ''}
-                data-mask-data-url-tail={composedMaskDataUrl?.slice(-40) ?? ''}
-                data-mask-data-url-full={composedMaskDataUrl ?? ''}
-                data-mask-outer-mode={shapeConfig.outer.mode}
-                data-mask-svg-path={mask.svgPath ?? ''}
-                data-mask-cascade={composedMaskDataUrl ? 'composed' : mask.svgPath ? 'svgPath' : fullbleedMaskDataUrl ? 'fullbleed' : 'none'}
                 style={
                   composedMaskDataUrl
                     ? makeMaskStyle(composedMaskDataUrl)
