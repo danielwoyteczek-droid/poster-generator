@@ -231,19 +231,26 @@ export function composeMaskSvg(
   // when the mask SVG is rasterised to the poster aspect — the figure ends
   // up vertically elongated. Built-in shapes whose viewBox already matches
   // A4 portrait keep rendering identically.
+  //
+  // layoutScale uses the EFFECTIVE bottom (after fit) rather than the raw
+  // bottomFraction, so a custom mask with a near-square source viewBox
+  // doesn't get over-shrunk for non-full layouts: after uniform-fit it may
+  // already sit comfortably above the layout's text area, in which case no
+  // extra shrinking is needed.
   const canvasW = 595.3
   const canvasH = 841.9
-  const bottom = shape.bottomFraction ?? 1
-  const layoutScale = bottom > layoutMapHeight ? layoutMapHeight / bottom : 1
   const fitScale = Math.min(canvasW / shape.width, canvasH / shape.height)
+  const bottom = shape.bottomFraction ?? 1
+  const effectiveBottom = (shape.height * fitScale * bottom) / canvasH
+  const layoutScale = effectiveBottom > layoutMapHeight ? layoutMapHeight / effectiveBottom : 1
   const totalScale = layoutScale * fitScale
   const scaledW = shape.width * totalScale
   const scaledH = shape.height * totalScale
   const tx = +((canvasW - scaledW) / 2).toFixed(2)
-  // Anchor at the top of the canvas (consistent with the legacy behaviour
-  // where bottomFraction-clipped shapes hugged the top edge so the layout's
-  // text area below stays clear).
-  const ty = layoutScale < 1 ? 0 : +((canvasH - scaledH) / 2).toFixed(2)
+  // Anchor at the top when the layout has a text area below; centre when
+  // the layout grants the full canvas (mapHeight=1) so symmetric figures
+  // don't hug one edge.
+  const ty = layoutMapHeight < 1 ? 0 : +((canvasH - scaledH) / 2).toFixed(2)
   const scaleStr = totalScale.toFixed(4)
   const shapeTransform = ` transform="translate(${tx} ${ty}) scale(${scaleStr})"`
 
@@ -380,14 +387,15 @@ export function composeFrameSvg(
   // stay aligned.
   const canvasW = 595.3
   const canvasH = 841.9
-  const bottom = shape.bottomFraction ?? 1
-  const layoutScale = bottom > layoutMapHeight ? layoutMapHeight / bottom : 1
   const fitScale = Math.min(canvasW / shape.width, canvasH / shape.height)
+  const bottom = shape.bottomFraction ?? 1
+  const effectiveBottom = (shape.height * fitScale * bottom) / canvasH
+  const layoutScale = effectiveBottom > layoutMapHeight ? layoutMapHeight / effectiveBottom : 1
   const totalScale = layoutScale * fitScale
   const scaledW = shape.width * totalScale
   const scaledH = shape.height * totalScale
   const tx = +((canvasW - scaledW) / 2).toFixed(2)
-  const ty = layoutScale < 1 ? 0 : +((canvasH - scaledH) / 2).toFixed(2)
+  const ty = layoutMapHeight < 1 ? 0 : +((canvasH - scaledH) / 2).toFixed(2)
   const frameTransform = ` transform="translate(${tx} ${ty}) scale(${totalScale.toFixed(4)})"`
   const parts: string[] = []
   const { innerFrame, outerFrame } = config
