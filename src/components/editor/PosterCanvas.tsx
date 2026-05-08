@@ -426,6 +426,10 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
             ) : (
               <div
                 className="absolute inset-0"
+                data-mask-key={maskKey}
+                data-mask-resolved-key={mask.key}
+                data-mask-has-shape={mask.shape ? '1' : '0'}
+                data-mask-custom-count={customMasks.length}
                 style={
                   composedMaskDataUrl
                     ? makeMaskStyle(composedMaskDataUrl)
