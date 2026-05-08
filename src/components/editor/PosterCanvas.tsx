@@ -581,15 +581,31 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
                 Colour follows shapeConfig.innerFrame.color so it stays in sync
                 with the heart silhouette outline. Customer can hide via the
                 Karten-Tab toggle (decorationVisible). Sits below photos/text. */}
-            {decorationSvgUrl && decorationVisible && coloredDecorationUrl && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={coloredDecorationUrl}
-                alt=""
-                className="absolute inset-0 w-full h-full pointer-events-none"
-                style={{ objectFit: 'fill' }}
-              />
-            )}
+            {decorationSvgUrl && decorationVisible && coloredDecorationUrl && (() => {
+              // PROJ-38 follow-up: apply admin-tuned decoration transform so
+              // operators can nudge the overlay independently from the mask.
+              // Values are in canvas A4 units; convert to logical-canvas px
+              // via the constant pxPerCanvasUnit ratio.
+              const dt = mask.decorationTransform
+              const hasDecoTransform = dt && (dt.x !== 0 || dt.y !== 0 || dt.scale !== 1)
+              const decoPxPerUnit = logicalCanvas.width / 595.3
+              const decoStyle = hasDecoTransform
+                ? {
+                    objectFit: 'fill' as const,
+                    transform: `translate(${dt!.x * decoPxPerUnit}px, ${dt!.y * decoPxPerUnit}px) scale(${dt!.scale})`,
+                    transformOrigin: '0 0' as const,
+                  }
+                : { objectFit: 'fill' as const }
+              return (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={coloredDecorationUrl}
+                  alt=""
+                  className="absolute inset-0 w-full h-full pointer-events-none"
+                  style={decoStyle}
+                />
+              )
+            })()}
 
             {/* Photo overlay */}
             <PhotoOverlay posterRef={posterRef} interactive={photoInteractive} />

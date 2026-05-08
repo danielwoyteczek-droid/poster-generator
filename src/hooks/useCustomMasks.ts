@@ -23,6 +23,12 @@ export interface CustomMaskRow {
   transform_x?: number
   transform_y?: number
   transform_scale?: number
+  /** PROJ-38 follow-up: per-mask decoration overlay offsets (in poster-unit
+   *  space, i.e. A4 coords). Lets the admin nudge a decoration to line up
+   *  with a custom-positioned mask. Defaults 0/0/1 = no change. */
+  decoration_transform_x?: number
+  decoration_transform_y?: number
+  decoration_transform_scale?: number
 }
 
 // Cache shared across hook instances to avoid duplicate fetches
@@ -72,6 +78,11 @@ function toMaskDefinition(row: CustomMaskRow): MapMaskDefinition {
       shape = { viewBox: row.shape_viewbox, width, height, markup }
     }
   }
+  const decorationTransform = {
+    x: row.decoration_transform_x ?? 0,
+    y: row.decoration_transform_y ?? 0,
+    scale: row.decoration_transform_scale ?? 1,
+  }
   return {
     key: row.mask_key as MapMaskDefinition['key'],
     label: row.label,
@@ -79,6 +90,7 @@ function toMaskDefinition(row: CustomMaskRow): MapMaskDefinition {
     shape,
     isPublic: row.is_public ?? false,
     decorationSvgUrl: row.decoration_svg_url ?? null,
+    decorationTransform,
   }
 }
 

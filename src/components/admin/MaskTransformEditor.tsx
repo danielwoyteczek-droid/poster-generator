@@ -24,10 +24,17 @@ interface MaskRow {
   transform_x: number
   transform_y: number
   transform_scale: number
+  decoration_svg_url?: string | null
+  decoration_transform_x?: number
+  decoration_transform_y?: number
+  decoration_transform_scale?: number
 }
 
 interface Props {
   mask: MaskRow | null
+  /** Which transform we're editing — the mask silhouette itself or the
+   *  decoration overlay (only valid when mask has decoration_svg_url). */
+  target?: 'mask' | 'decoration'
   open: boolean
   onOpenChange: (open: boolean) => void
   onSaved: (updated: MaskRow) => void
@@ -39,39 +46,59 @@ const SCALE_MIN = 0.2
 const SCALE_MAX = 3
 const SCALE_STEP = 0.01
 
+// Decoration SVGs are designed against the A4 canvas the composer renders into.
+const DECO_VIEWBOX_W = 595.3
+const DECO_VIEWBOX_H = 841.9
+
 /**
- * PROJ-38: Visual transform editor for a custom mask.
+ * PROJ-38: Visual transform editor for a custom mask or its decoration.
  * Admin drags the silhouette inside an A4-shaped preview to reposition it,
  * uses the slider to resize. Translate/scale values persist as DB columns
  * applied by the composer at render time — no SVG re-export needed.
+ *
+ * `target='decoration'` switches the editor to operate on the decoration
+ * overlay; the mask silhouette is rendered behind it as a positioning
+ * reference (faded) so the admin can line them up.
  */
-export function MaskTransformEditor({ mask, open, onOpenChange, onSaved }: Props) {
+export function MaskTransformEditor({ mask, target = 'mask', open, onOpenChange, onSaved }: Props) {
   const [tx, setTx] = useState(0)
   const [ty, setTy] = useState(0)
   const [scale, setScale] = useState(1)
   const [saving, setSaving] = useState(false)
   const previewRef = useRef<HTMLDivElement>(null)
 
-  // viewBox dimensions — needed to map between preview pixels and viewBox units.
-  const vb = parseViewBox(mask?.shape_viewbox)
+  const isDecoration = target === 'decoration'
 
-  // Reset state when opening with a different mask.
+  // viewBox dimensions — needed to map between preview pixels and storage units.
+  // Mask uses its uploaded shape viewBox; decoration always lives in the A4
+  // canvas coords the composer uses.
+  const vb = isDecoration
+    ? { w: DECO_VIEWBOX_W, h: DECO_VIEWBOX_H }
+    : parseViewBox(mask?.shape_viewbox)
+
+  // Reset state when opening with a different mask or target.
   useEffect(() => {
     if (!mask) return
-    setTx(mask.transform_x ?? 0)
-    setTy(mask.transform_y ?? 0)
-    setScale(mask.transform_scale ?? 1)
-  }, [mask])
+    if (isDecoration) {
+      setTx(mask.decoration_transform_x ?? 0)
+      setTy(mask.decoration_transform_y ?? 0)
+      setScale(mask.decoration_transform_scale ?? 1)
+    } else {
+      setTx(mask.transform_x ?? 0)
+      setTy(mask.transform_y ?? 0)
+      setScale(mask.transform_scale ?? 1)
+    }
+  }, [mask, isDecoration])
 
   if (!mask || !vb) return null
+  if (isDecoration && !mask.decoration_svg_url) return null
 
-  // Uniform px-per-viewBox-unit, matching the composer's uniform-fit. The
+  // Uniform px-per-storage-unit, matching the composer's uniform-fit. The
   // preview displays the SVG with object-fit: contain so the shape sits at
   // the same proportional position as on the actual poster (no anisotropic
   // stretch). Drag math uses this same uniform factor.
   const pxPerUnit = Math.min(PREVIEW_W / vb.w, PREVIEW_H / vb.h)
 
-  // Drag handler — converts pointer-pixel deltas into viewBox-unit deltas.
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     e.preventDefault()
     const startX = e.clientX
@@ -101,14 +128,21 @@ export function MaskTransformEditor({ mask, open, onOpenChange, onSaved }: Props
   const handleSave = async () => {
     setSaving(true)
     try {
+      const body = isDecoration
+        ? {
+            decoration_transform_x: round2(tx),
+            decoration_transform_y: round2(ty),
+            decoration_transform_scale: round3(scale),
+          }
+        : {
+            transform_x: round2(tx),
+            transform_y: round2(ty),
+            transform_scale: round3(scale),
+          }
       const res = await fetch(`/api/admin/masks/${mask.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          transform_x: round2(tx),
-          transform_y: round2(ty),
-          transform_scale: round3(scale),
-        }),
+        body: JSON.stringify(body),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Speichern fehlgeschlagen')
@@ -123,26 +157,36 @@ export function MaskTransformEditor({ mask, open, onOpenChange, onSaved }: Props
     }
   }
 
-  // Live-preview: render the mask SVG inside an A4-shaped box. object-fit:
-  // contain on the IMG mirrors the composer's uniform-fit behaviour, so the
-  // shape sits at the same proportional position as on the real poster.
-  // CSS transform on the IMG layers the admin's translate/scale on top — in
-  // viewBox-unit-per-preview-pixel terms via the uniform pxPerUnit, so the
-  // numeric values stored in DB (viewBox units) map 1:1 to what the composer
-  // applies at render time.
   const transformStyle = {
     transform: `translate(${tx * pxPerUnit}px, ${ty * pxPerUnit}px) scale(${scale})`,
-    transformOrigin: '0 0',
+    transformOrigin: '0 0' as const,
   }
+
+  // Mask reference: when editing the decoration, render the mask underneath
+  // (faded) with its saved transform applied so the admin sees the alignment
+  // target. When editing the mask, no underlay needed.
+  const maskVb = parseViewBox(mask.shape_viewbox)
+  const maskUnderlayPxPerUnit = maskVb ? Math.min(PREVIEW_W / maskVb.w, PREVIEW_H / maskVb.h) : 0
+  const maskUnderlayStyle = maskVb
+    ? {
+        transform: `translate(${(mask.transform_x ?? 0) * maskUnderlayPxPerUnit}px, ${(mask.transform_y ?? 0) * maskUnderlayPxPerUnit}px) scale(${mask.transform_scale ?? 1})`,
+        transformOrigin: '0 0' as const,
+      }
+    : {}
+
+  const dialogTitle = isDecoration
+    ? `Decoration — ${mask.label}`
+    : `Position & Größe — ${mask.label}`
+  const dialogDescription = isDecoration
+    ? 'Ziehe die Decoration über die (gedimmte) Maske, um sie auszurichten. Slider zum Skalieren.'
+    : 'Ziehe die Maske im Vorschau-Rahmen, um sie zu verschieben. Slider darunter zum Skalieren.'
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Position & Größe — {mask.label}</DialogTitle>
-          <DialogDescription>
-            Ziehe die Maske im Vorschau-Rahmen, um sie zu verschieben. Slider darunter zum Skalieren.
-          </DialogDescription>
+          <DialogTitle>{dialogTitle}</DialogTitle>
+          <DialogDescription>{dialogDescription}</DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-col items-center gap-3">
@@ -151,12 +195,30 @@ export function MaskTransformEditor({ mask, open, onOpenChange, onSaved }: Props
             className="relative bg-muted/30 border border-dashed border-border overflow-hidden"
             style={{ width: PREVIEW_W, height: PREVIEW_H }}
           >
-            {/* Draggable mask silhouette. object-fit: contain uniform-fits the
-                shape to the A4-shaped preview, matching the composer's
-                portrait-branch behaviour at render time. */}
+            {/* Mask underlay (only when editing decoration) — gives the admin
+                a positioning reference. Rendered faded so the decoration on
+                top stays the visual focus. */}
+            {isDecoration && maskVb && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={mask.mask_svg_url}
+                alt=""
+                draggable={false}
+                className="absolute top-0 left-0 pointer-events-none opacity-30"
+                style={{
+                  width: PREVIEW_W,
+                  height: PREVIEW_H,
+                  objectFit: 'contain',
+                  objectPosition: 'top center',
+                  ...maskUnderlayStyle,
+                }}
+              />
+            )}
+
+            {/* Draggable target — mask silhouette OR decoration overlay. */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={mask.mask_svg_url}
+              src={isDecoration ? mask.decoration_svg_url ?? '' : mask.mask_svg_url}
               alt={mask.label}
               draggable={false}
               onPointerDown={handlePointerDown}
@@ -164,12 +226,12 @@ export function MaskTransformEditor({ mask, open, onOpenChange, onSaved }: Props
               style={{
                 width: PREVIEW_W,
                 height: PREVIEW_H,
-                objectFit: 'contain',
+                objectFit: isDecoration ? 'fill' : 'contain',
                 objectPosition: 'top center',
                 ...transformStyle,
               }}
             />
-            {/* Centered cross-hair guide for visual reference */}
+            {/* Centered cross-hair guide */}
             <div className="absolute inset-0 pointer-events-none">
               <div className="absolute top-0 left-1/2 w-px h-full bg-foreground/10" />
               <div className="absolute left-0 top-1/2 h-px w-full bg-foreground/10" />

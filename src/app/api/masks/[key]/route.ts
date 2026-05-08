@@ -19,7 +19,7 @@ export async function GET(
   const admin = createAdminClient()
   const { data, error } = await admin
     .from('custom_masks')
-    .select('mask_key, label, mask_svg_url, shape_viewbox, shape_markup, is_public, decoration_svg_url, transform_x, transform_y, transform_scale')
+    .select('mask_key, label, mask_svg_url, shape_viewbox, shape_markup, is_public, decoration_svg_url, transform_x, transform_y, transform_scale, decoration_transform_x, decoration_transform_y, decoration_transform_scale')
     .eq('mask_key', key)
     .single()
   if (error || !data) return NextResponse.json({ mask: null }, { status: 404 })

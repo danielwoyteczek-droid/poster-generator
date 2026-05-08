@@ -52,6 +52,11 @@ export interface MapMaskDefinition {
    * editor store; preset's `decorationSvgUrl` overrides this when present.
    */
   decorationSvgUrl?: string | null
+  /**
+   * PROJ-38 follow-up: admin-tuned offsets for the decoration overlay,
+   * applied to its rendering on top of the mask. Defaults 0/0/1.
+   */
+  decorationTransform?: { x: number; y: number; scale: number }
 }
 
 export const MAP_MASKS: Record<MapMaskKey, MapMaskDefinition> = {

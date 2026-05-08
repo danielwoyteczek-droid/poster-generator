@@ -11,6 +11,11 @@ const PatchSchema = z.object({
   transform_x: z.number().finite().optional(),
   transform_y: z.number().finite().optional(),
   transform_scale: z.number().finite().positive().max(10).optional(),
+  // PROJ-38 follow-up: same idea for the decoration overlay. Lets the admin
+  // nudge the decoration independently of the mask silhouette.
+  decoration_transform_x: z.number().finite().optional(),
+  decoration_transform_y: z.number().finite().optional(),
+  decoration_transform_scale: z.number().finite().positive().max(10).optional(),
 })
 
 /**

@@ -43,6 +43,10 @@ interface CustomMaskRow {
   transform_x: number
   transform_y: number
   transform_scale: number
+  // PROJ-38 follow-up: per-mask decoration overlay offsets.
+  decoration_transform_x: number
+  decoration_transform_y: number
+  decoration_transform_scale: number
 }
 
 interface ReferencingPreset {
@@ -75,6 +79,7 @@ export function AdminMasksList() {
 
   // PROJ-38: transform-editor modal state.
   const [transformTarget, setTransformTarget] = useState<CustomMaskRow | null>(null)
+  const [transformMode, setTransformMode] = useState<'mask' | 'decoration'>('mask')
 
   const fetchMasks = useCallback(async () => {
     setLoading(true)
@@ -366,11 +371,23 @@ export function AdminMasksList() {
                     size="sm"
                     className="w-full h-7 text-xs"
                     disabled={isBusy}
-                    onClick={() => setTransformTarget(mask)}
+                    onClick={() => { setTransformMode('mask'); setTransformTarget(mask) }}
                   >
                     <Move className="w-3.5 h-3.5 mr-1" />
                     Position & Größe
                   </Button>
+                  {mask.decoration_svg_url && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full h-7 text-xs"
+                      disabled={isBusy}
+                      onClick={() => { setTransformMode('decoration'); setTransformTarget(mask) }}
+                    >
+                      <Move className="w-3.5 h-3.5 mr-1" />
+                      Decoration ausrichten
+                    </Button>
+                  )}
 
                   <Button
                     variant="ghost"
@@ -389,9 +406,10 @@ export function AdminMasksList() {
         </div>
       )}
 
-      {/* PROJ-38: drag/scale editor modal. */}
+      {/* PROJ-38: drag/scale editor modal — for mask silhouette OR decoration overlay. */}
       <MaskTransformEditor
         mask={transformTarget}
+        target={transformMode}
         open={transformTarget !== null}
         onOpenChange={(open) => !open && setTransformTarget(null)}
         onSaved={(updated) => {
@@ -480,19 +498,36 @@ function MaskThumbnail({ mask }: { mask: CustomMaskRow }) {
           transformOrigin: '0 0',
         }}
       />
-      {mask.decoration_svg_url && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={mask.decoration_svg_url}
-          alt=""
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            width: containerW,
-            height: containerH,
-            objectFit: 'contain',
-          }}
-        />
-      )}
+      {mask.decoration_svg_url && (() => {
+        // Decoration SVGs are designed against the composer's A4 canvas,
+        // so the px-per-unit factor maps decoration_transform values
+        // (canvas units) to thumbnail pixels.
+        const decoPxPerUnit = containerW / 595.3
+        const dt = {
+          x: mask.decoration_transform_x ?? 0,
+          y: mask.decoration_transform_y ?? 0,
+          scale: mask.decoration_transform_scale ?? 1,
+        }
+        const hasDt = dt.x !== 0 || dt.y !== 0 || dt.scale !== 1
+        const decoStyle = hasDt
+          ? {
+              width: containerW,
+              height: containerH,
+              objectFit: 'fill' as const,
+              transform: `translate(${dt.x * decoPxPerUnit}px, ${dt.y * decoPxPerUnit}px) scale(${dt.scale})`,
+              transformOrigin: '0 0' as const,
+            }
+          : { width: containerW, height: containerH, objectFit: 'fill' as const }
+        return (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={mask.decoration_svg_url}
+            alt=""
+            className="absolute top-0 left-0 pointer-events-none"
+            style={decoStyle}
+          />
+        )
+      })()}
     </div>
   )
 }

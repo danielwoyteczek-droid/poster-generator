@@ -648,7 +648,23 @@ export async function buildPosterCanvas(
       const text = await fetchDecorationSvgText(store.decorationSvgUrl)
       const recolored = recolorSvg(text, shapeConfig?.innerFrame.color ?? '#1a1a1a')
       const decoImg = await loadImage(svgTextToDataUrl(recolored))
-      ctx.drawImage(decoImg, 0, 0, W, H)
+      // PROJ-38 follow-up: apply admin-tuned decoration transform. Values
+      // are in canvas A4 units (595.3 wide); convert to print-pixel scale
+      // via W/595.3. CSS-equivalent order: translate after scale → call
+      // ctx.translate before ctx.scale so a point P ends up at
+      //   (tx + scale * P_x, ty + scale * P_y).
+      const dt = mask.decorationTransform
+      const hasDecoTransform = dt && (dt.x !== 0 || dt.y !== 0 || dt.scale !== 1)
+      if (hasDecoTransform) {
+        const decoPxPerUnit = W / 595.3
+        ctx.save()
+        ctx.translate(dt!.x * decoPxPerUnit, dt!.y * decoPxPerUnit)
+        ctx.scale(dt!.scale, dt!.scale)
+        ctx.drawImage(decoImg, 0, 0, W, H)
+        ctx.restore()
+      } else {
+        ctx.drawImage(decoImg, 0, 0, W, H)
+      }
     } catch {
       // ignore — decoration is optional
     }
