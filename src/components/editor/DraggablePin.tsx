@@ -81,19 +81,59 @@ export function DraggablePin({
     setDragging(true)
     ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
 
-    const rect = container.getBoundingClientRect()
+    // PROJ-37: container lebt innerhalb des CSS-transform-skalierten Poster-
+    // divs (Logical Canvas Pattern). getBoundingClientRect() liefert daher
+    // VISUELLE Pixel (post-transform), während clientWidth/Height die
+    // LOGISCHEN Layout-Pixel zurückgeben. Pin-CSS-Positionen + map.unproject
+    // erwarten beide LOGISCHE Pixel — das Verhältnis rect-vs-clientWidth
+    // gibt uns den Skalierungsfaktor ohne dass DraggablePin visualScale
+    // explizit wissen muss.
+    const visualRect = container.getBoundingClientRect()
+    const logicalW = container.clientWidth
+    const logicalH = container.clientHeight
+    const toLogical = (clientX: number, clientY: number) => {
+      const xV = clientX - visualRect.left
+      const yV = clientY - visualRect.top
+      const xL = visualRect.width > 0 ? (xV / visualRect.width) * logicalW : xV
+      const yL = visualRect.height > 0 ? (yV / visualRect.height) * logicalH : yV
+      return {
+        x: Math.max(0, Math.min(logicalW, xL)),
+        y: Math.max(0, Math.min(logicalH, yL)),
+      }
+    }
+
+    // Pin-Anker (bottom-center, weil das Pin-Element via translate(-50%,-100%)
+    // dort verankert ist) im Logical-Pixel-Raum berechnen. Der Touch-Punkt
+    // sitzt typischerweise NICHT exakt auf dem Anker — gerade auf Mobile
+    // legt der Finger irgendwo in den Pin-Body. Ohne Offset-Tracking würde
+    // der Pin beim ersten Move-Event auf den Touch-Punkt springen
+    // ("Pin springt nach links oben"). Wir merken uns delta = touch − anchor
+    // und verschieben den Pin damit, sodass der Pin relativ zum Cursor stehen
+    // bleibt.
+    const pinEl = e.currentTarget as HTMLElement
+    const pinVisualRect = pinEl.getBoundingClientRect()
+    const anchorVx = pinVisualRect.left + pinVisualRect.width / 2 - visualRect.left
+    const anchorVy = pinVisualRect.bottom - visualRect.top
+    const anchorLx = visualRect.width > 0 ? (anchorVx / visualRect.width) * logicalW : anchorVx
+    const anchorLy = visualRect.height > 0 ? (anchorVy / visualRect.height) * logicalH : anchorVy
+    const startTouch = toLogical(e.clientX, e.clientY)
+    const offsetX = startTouch.x - anchorLx
+    const offsetY = startTouch.y - anchorLy
 
     const handleMove = (ev: PointerEvent) => {
-      const x = Math.max(0, Math.min(rect.width, ev.clientX - rect.left))
-      const y = Math.max(0, Math.min(rect.height, ev.clientY - rect.top))
-      setDragPos({ x, y })
+      const t = toLogical(ev.clientX, ev.clientY)
+      setDragPos({
+        x: Math.max(0, Math.min(logicalW, t.x - offsetX)),
+        y: Math.max(0, Math.min(logicalH, t.y - offsetY)),
+      })
     }
     const handleUp = (ev: PointerEvent) => {
       document.removeEventListener('pointermove', handleMove)
       document.removeEventListener('pointerup', handleUp)
       setDragging(false)
-      const x = Math.max(0, Math.min(rect.width, ev.clientX - rect.left))
-      const y = Math.max(0, Math.min(rect.height, ev.clientY - rect.top))
+      const t = toLogical(ev.clientX, ev.clientY)
+      const x = Math.max(0, Math.min(logicalW, t.x - offsetX))
+      const y = Math.max(0, Math.min(logicalH, t.y - offsetY))
       setDragPos(null)
       // Convert pixel position back to lat/lng via MapTiler unproject
       const map = getMapInstance(slice)
