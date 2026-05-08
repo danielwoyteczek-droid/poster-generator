@@ -134,8 +134,10 @@ export const MAP_MASKS: Record<MapMaskKey, MapMaskDefinition> = {
     shape: {
       viewBox: '0 0 595.3 841.9',
       width: 595.3, height: 841.9,
-      markup: '<circle cx="297.65" cy="419.95" r="273.84"/>',
-      bottomFraction: 0.824,
+      // Match the non-split `circle` mask geometry (cy=297.6, r=266.5)
+      // so single/split versions sit at the same poster height.
+      markup: '<circle cx="297.6" cy="297.6" r="266.5"/>',
+      bottomFraction: 0.67,
     },
   },
 'split-halves': {
