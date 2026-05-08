@@ -432,6 +432,9 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
                 data-mask-custom-count={customMasks.length}
                 data-mask-shape-d={mask.shape?.markup?.match(/d="([^"]{0,40})/)?.[1] ?? ''}
                 data-mask-svg-d={composedMaskSvgString?.match(/d="([^"]{0,40})/)?.[1] ?? ''}
+                data-mask-data-url-len={composedMaskDataUrl?.length ?? 0}
+                data-mask-data-url-head={composedMaskDataUrl?.slice(0, 40) ?? ''}
+                data-mask-outer-mode={shapeConfig.outer.mode}
                 style={
                   composedMaskDataUrl
                     ? makeMaskStyle(composedMaskDataUrl)
