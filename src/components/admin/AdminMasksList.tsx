@@ -296,18 +296,7 @@ export function AdminMasksList() {
             const isBusy = busyId === mask.id
             return (
               <div key={mask.id} className="rounded-xl bg-white border border-border overflow-hidden">
-                <div className="aspect-square bg-muted flex items-center justify-center p-4 relative">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={mask.mask_svg_url} alt={mask.label} className="max-w-full max-h-full object-contain" />
-                  {mask.decoration_svg_url && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={mask.decoration_svg_url}
-                      alt=""
-                      className="absolute inset-0 w-full h-full object-contain p-4 pointer-events-none"
-                    />
-                  )}
-                </div>
+                <MaskThumbnail mask={mask} />
                 <div className="p-3 space-y-2.5">
                   <div>
                     <h3 className="text-sm font-semibold text-foreground truncate">{mask.label}</h3>
@@ -448,4 +437,70 @@ export function AdminMasksList() {
       </AlertDialog>
     </div>
   )
+}
+
+/**
+ * PROJ-38: live-rendered mask thumbnail. Mirrors the composer's portrait
+ * branch (uniform-fit into A4-portrait + admin transform on top), so the
+ * thumbnail in the admin grid stays in sync with what the customer sees on
+ * the actual poster after a transform-editor save.
+ */
+function MaskThumbnail({ mask }: { mask: CustomMaskRow }) {
+  const vb = parseViewBoxDims(mask.shape_viewbox)
+  if (!vb) {
+    return (
+      <div className="aspect-square bg-muted flex items-center justify-center p-4">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={mask.mask_svg_url} alt={mask.label} className="max-w-full max-h-full object-contain" />
+      </div>
+    )
+  }
+  // Container is A4-portrait so admin sees the figure at the same proportional
+  // position as on the actual poster.
+  const containerW = 200
+  const containerH = Math.round(containerW * 841.9 / 595.3)
+  const pxPerUnit = Math.min(containerW / vb.w, containerH / vb.h)
+  const transform = `translate(${(mask.transform_x ?? 0) * pxPerUnit}px, ${(mask.transform_y ?? 0) * pxPerUnit}px) scale(${mask.transform_scale ?? 1})`
+  return (
+    <div
+      className="bg-muted/30 mx-auto my-2 relative overflow-hidden"
+      style={{ width: containerW, height: containerH }}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={mask.mask_svg_url}
+        alt={mask.label}
+        className="absolute top-0 left-0 select-none"
+        style={{
+          width: containerW,
+          height: containerH,
+          objectFit: 'contain',
+          objectPosition: 'top center',
+          transform,
+          transformOrigin: '0 0',
+        }}
+      />
+      {mask.decoration_svg_url && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={mask.decoration_svg_url}
+          alt=""
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            width: containerW,
+            height: containerH,
+            objectFit: 'contain',
+          }}
+        />
+      )}
+    </div>
+  )
+}
+
+function parseViewBoxDims(vb: string | null | undefined): { w: number; h: number } | null {
+  if (!vb) return null
+  const parts = vb.split(/\s+/)
+  const w = parseFloat(parts[2] ?? '0')
+  const h = parseFloat(parts[3] ?? '0')
+  return w > 0 && h > 0 ? { w, h } : null
 }
