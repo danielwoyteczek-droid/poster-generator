@@ -521,9 +521,9 @@ export const useEditorStore = create<EditorStore>((set) => ({
                 ...primaryCoordsBlock,
                 id: `block-coords-secondary-${Date.now()}`,
                 coordsSource: 'secondary' as const,
-                // Default to the right side so customer sees it immediately;
-                // they can drag it anywhere afterwards.
-                x: 0.5,
+                // Place directly below the primary block (same x/width/align),
+                // ~1 line-height down. Customer can drag afterwards.
+                y: Math.min(primaryCoordsBlock.y + 0.045, 0.97),
                 label: 'Koordinaten Karte 2',
               },
             ]

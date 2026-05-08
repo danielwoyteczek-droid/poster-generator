@@ -543,46 +543,6 @@ export function MapTab() {
               )}
             </div>
 
-            {/* Second marker pin */}
-            <div className="flex items-center justify-between">
-              <Label className="text-xs text-muted-foreground">{t('mapSecondMarker')}</Label>
-              <Switch
-                checked={secondMarker.enabled}
-                onCheckedChange={(enabled) =>
-                  enabled && !secondMarker.enabled
-                    ? setSecondMarker({ enabled: true, lat: null, lng: null })
-                    : setSecondMarker({ enabled })
-                }
-              />
-            </div>
-            {secondMarker.enabled && (
-              <div className="space-y-2">
-                <div className="flex items-center gap-3">
-                  <Label className="text-xs text-muted-foreground w-12 shrink-0">{t('mapMarkerType')}</Label>
-                  <Select
-                    value={secondMarker.type}
-                    onValueChange={(type: 'classic' | 'heart') => setSecondMarker({ type })}
-                  >
-                    <SelectTrigger className="flex-1 h-8 text-sm">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="classic">{t('mapMarkerClassic')}</SelectItem>
-                      <SelectItem value="heart">{t('mapMarkerHeart')}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Label className="text-xs text-muted-foreground w-12 shrink-0">{t('mapMarkerColor')}</Label>
-                  <input
-                    type="color"
-                    value={secondMarker.color}
-                    onChange={(e) => setSecondMarker({ color: e.target.value })}
-                    className="flex-1 h-8 rounded-md border border-border cursor-pointer px-1"
-                  />
-                </div>
-              </div>
-            )}
           </div>
         )}
       </div>
@@ -1195,6 +1155,59 @@ export function MapTab() {
                 className="flex-1 h-8 rounded-md border border-border cursor-pointer px-1"
               />
             </div>
+          </div>
+        )}
+
+        {/* Second marker pin — only when split-map mode active. Grouped here
+            with the primary marker so the customer sees both pins in one
+            place instead of having to scroll between Karte- and Marker-Sektion. */}
+        {splitMode === 'second-map' && (
+          <div className="space-y-3 pt-3 border-t border-border">
+            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
+              {t('mapMarkerSecondLabel')}
+            </Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="second-marker-switch" className="text-sm text-foreground/70 cursor-pointer">
+                {t('mapMarkerShowSecond')}
+              </Label>
+              <Switch
+                id="second-marker-switch"
+                checked={secondMarker.enabled}
+                onCheckedChange={(enabled) =>
+                  enabled && !secondMarker.enabled
+                    ? setSecondMarker({ enabled: true, lat: null, lng: null })
+                    : setSecondMarker({ enabled })
+                }
+              />
+            </div>
+            {secondMarker.enabled && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-3">
+                  <Label className="text-sm text-muted-foreground w-12 shrink-0">{t('mapMarkerType')}</Label>
+                  <Select
+                    value={secondMarker.type}
+                    onValueChange={(type: 'classic' | 'heart') => setSecondMarker({ type })}
+                  >
+                    <SelectTrigger className="flex-1 h-8 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="classic">{t('mapMarkerClassic')}</SelectItem>
+                      <SelectItem value="heart">{t('mapMarkerHeart')}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Label className="text-sm text-muted-foreground w-12 shrink-0">{t('mapMarkerColor')}</Label>
+                  <input
+                    type="color"
+                    value={secondMarker.color}
+                    onChange={(e) => setSecondMarker({ color: e.target.value })}
+                    className="flex-1 h-8 rounded-md border border-border cursor-pointer px-1"
+                  />
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
