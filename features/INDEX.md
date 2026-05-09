@@ -52,10 +52,11 @@
 | PROJ-36 | Editor Reduction Pass — Customer-First Sidebar | In Progress | [PROJ-36-editor-reduction-pass.md](PROJ-36-editor-reduction-pass.md) | 2026-05-04 |
 | PROJ-37 | Format-gekoppelter Editor-Viewport (A4/A3/A2) | In Review | [PROJ-37-format-coupled-viewport.md](PROJ-37-format-coupled-viewport.md) | 2026-05-08 |
 | PROJ-38 | Admin Mask Transform Editor | Deployed | [PROJ-38-admin-mask-transform-editor.md](PROJ-38-admin-mask-transform-editor.md) | 2026-05-08 |
+| PROJ-39 | Multi-Format Preset-Renders + Inspiration Format-Switcher | Planned | [PROJ-39-multi-format-preset-renders.md](PROJ-39-multi-format-preset-renders.md) | 2026-05-09 |
 
 <!-- Add features above this line -->
 
-## Next Available ID: PROJ-39
+## Next Available ID: PROJ-40
 
 ## Recommended Build Order
 1. **PROJ-1** — Karten-Editor Core (Fundament der App)
