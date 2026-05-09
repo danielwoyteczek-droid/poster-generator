@@ -57,9 +57,10 @@ async function fetchPresetsForCategory(
   occasionTag: string,
 ): Promise<GalleryPreset[]> {
   const admin = createAdminClient()
+  // PROJ-39: pull per-format URLs + statuses so the format-switcher works.
   const { data, error } = await admin
     .from('presets')
-    .select('id, name, poster_type, preview_image_url')
+    .select('id, name, poster_type, preview_image_url, preview_image_url_a4, preview_image_url_a3, preview_image_url_a2, render_status_a4, render_status_a3, render_status_a2')
     .eq('status', 'published')
     .contains('target_locales', [locale])
     .contains('occasions', [occasionTag])
@@ -70,7 +71,14 @@ async function fetchPresetsForCategory(
 
   // Inspiration/Gallery zeigt das nackte Poster (Preset-Render), nicht das
   // Mockup-Composite — Mockups sind den SEO-Anlass-Seiten (PROJ-29) vorbehalten.
-  return data as GalleryPreset[]
+  // PROJ-39: drop presets that have no `done` format render at all (they'd
+  // show a blank card on the customer side).
+  return (data as GalleryPreset[]).filter((p) =>
+    p.render_status_a4 === 'done'
+      || p.render_status_a3 === 'done'
+      || p.render_status_a2 === 'done'
+      || Boolean(p.preview_image_url),
+  )
 }
 
 export default async function GalleryPageRoute(

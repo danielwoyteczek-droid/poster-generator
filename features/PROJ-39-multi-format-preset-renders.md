@@ -223,6 +223,27 @@ Es muss **kein neues NPM-Package** installiert werden — PROJ-39 ist eine reine
 - `renderPresetEnd2End()` now iterates over the three formats at the start, **skipping formats already `done`** so a targeted re-render (admin clicks "Re-Render A2 only") doesn't waste work re-rendering A4 and A3. The A4 buffer is cached and reused for the existing mockup-compositing flow — no extra render call for the mockup step.
 - Per-format failures are isolated: if A3 throws, A4 and A2 still complete; the failed format is marked `failed` with its own error message.
 
+## Implementation Notes (Frontend)
+
+**New component** `src/components/landing/PresetFormatSwitcher.tsx`: three-pill A4/A3/A2 selector. Hidden below `lg:` (1024 px) breakpoint per spec ("Mobile zeigt Pills nur im Detail-Modal"). Filters out formats not in the available list — so partially-rendered presets only show pills for `done` formats. `e.stopPropagation()` on click so the wrapping `<Link>` to the editor doesn't fire when the customer toggles a pill.
+
+**`GalleryPresetCard`** converted to client component with local `format` state. Initial value: `DEFAULT_PREVIEW_FORMAT` (A3) if available, else first available, else fallback. Image source goes through `getPreviewUrl(preset, format)` so the helper's fallback chain handles missing renders. Editor link includes `&format=<format>` so PresetUrlApplier carries the choice into the editor.
+
+**`OccasionLandingPage`** SELECT updated to pull per-format URLs + statuses; dropped the previous mockup-composite preference (`firstRenderByPreset`) because mockup composites can't show format differences in a single image. Cards filter out presets with no `done` format render anywhere (including legacy fallback).
+
+**`/gallery/page.tsx`** SELECT updated identically — same per-format columns + filter.
+
+**`/api/presets/route.ts`** (public list endpoint, powers `PresetPicker` in the editor) returns the new columns so the in-editor preset picker can also use the helper if needed in future iterations.
+
+**`AdminPresetsList`**:
+- `Preset` type extended with all per-format columns.
+- New `PerFormatStatusBadges` replaces single `RenderStatusBadge` — three small inline badges (A4 / A3 / A2) coloured by `RENDER_STATUS_CONFIG`. Tooltip shows the actual status word + last error.
+- New `triggerFormatRender(preset, format)` calls `POST /admin/presets/[id]/render` with `{ format }`. Three quick-action ghost buttons (A4 / A3 / A2) next to the existing "Rendern" button — disabled per format when that one is `pending` or `rendering`.
+- New `triggerBackfill()` calls `POST /admin/presets/bulk-render` with `{ filter: 'backfill' }`. Confirmation dialog mentions the time cost. Header gains a "Backfill A3+A2" button that shows the count of incomplete presets.
+- "Worker starten" queue-count now spans all three format statuses (so a per-format re-render triggers the worker badge correctly).
+
+`PresetCarousel` itself unchanged — it's a generic container; the cards inside (`GalleryPresetCard`) handle per-format rendering.
+
 ## QA Test Results
 _To be added by /qa_
 

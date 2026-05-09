@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
   // to the gallery page, which queries Supabase directly.
   let query = admin
     .from('presets')
-    .select('id, name, description, poster_type, preview_image_url, config_json, display_order, target_locales, occasions')
+    .select('id, name, description, poster_type, preview_image_url, preview_image_url_a4, preview_image_url_a3, preview_image_url_a2, render_status_a4, render_status_a3, render_status_a2, config_json, display_order, target_locales, occasions')
     .eq('status', 'published')
     .eq('show_in_editor', true)
     .order('display_order', { ascending: true })

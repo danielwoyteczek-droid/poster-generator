@@ -29,7 +29,14 @@ async function fetchPresetsForOccasion(
   // Variante A: kuratierte Liste aus Sanity → genau diese Presets in
   // gepflegter Reihenfolge laden. Variante B (Fallback): Auto-Match per
   // Locale + Anlass-Tag, sortiert nach display_order.
-  const baseQuery = admin.from('presets').select('id, name, poster_type, preview_image_url').eq('status', 'published')
+  // PROJ-39: also pull per-format preview URLs + statuses so the gallery card
+  // can offer the customer the format-switcher and load the matching image.
+  // The legacy `preview_image_url` is kept for backwards-compat fallback in
+  // `getPreviewUrl()`.
+  const baseQuery = admin
+    .from('presets')
+    .select('id, name, poster_type, preview_image_url, preview_image_url_a4, preview_image_url_a3, preview_image_url_a2, render_status_a4, render_status_a3, render_status_a2')
+    .eq('status', 'published')
 
   const { data, error } = useFeatured
     ? await baseQuery.in('id', featuredIds!)
@@ -51,25 +58,24 @@ async function fetchPresetsForOccasion(
       .filter((p): p is typeof data[number] => Boolean(p)) as GalleryPreset[]
   }
 
-  // Fetch desktop mockup-renders, falls vorhanden — die zeigen wir bevorzugt
-  // statt des nackten Posters, weil sie bereits im Mockup-Frame stecken.
-  const presetIds = ordered.map((p) => p.id)
-  const { data: renders } = await admin
-    .from('preset_renders')
-    .select('preset_id, image_url, rendered_at')
-    .in('preset_id', presetIds)
-    .eq('variant', 'desktop')
-    .order('rendered_at', { ascending: false })
-
-  const firstRenderByPreset: Record<string, string> = {}
-  for (const r of renders ?? []) {
-    if (!firstRenderByPreset[r.preset_id]) firstRenderByPreset[r.preset_id] = r.image_url
-  }
-
-  return ordered.map((p) => ({
-    ...p,
-    preview_image_url: firstRenderByPreset[p.id] ?? p.preview_image_url,
-  })) as GalleryPreset[]
+  // PROJ-39: drop the mockup-composite preference for inspiration cards —
+  // customers want to see how each FORMAT looks (different map content
+  // visible at A4 vs A2), which the bare-poster-per-format renders show
+  // properly. The mockup-composite (PROJ-30) stays unchanged for other
+  // surfaces (admin, marketing emails) but isn't useful here because it
+  // can't represent format differences in a single image.
+  //
+  // Filter out presets that have no `done` format render at all — per spec
+  // "wenn ein Preset für kein Format `done` hat → Karte wird gar nicht
+  // angezeigt (für Customer)". The legacy `preview_image_url` fallback in
+  // getPreviewUrl handles pre-PROJ-39 presets that have only the old
+  // single column populated.
+  return (ordered as GalleryPreset[]).filter((p) =>
+    p.render_status_a4 === 'done'
+      || p.render_status_a3 === 'done'
+      || p.render_status_a2 === 'done'
+      || Boolean(p.preview_image_url),
+  )
 }
 
 /**

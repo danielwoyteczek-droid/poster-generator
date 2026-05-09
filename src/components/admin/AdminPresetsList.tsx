@@ -60,6 +60,17 @@ interface Preset {
   render_error: string | null
   render_completed_at: string | null
   mockup_set_ids: string[]
+  // PROJ-39: per-format columns. Default 'pending' on new rows; existing
+  // rows have a4 copied from the legacy column by the migration.
+  preview_image_url_a4: string | null
+  preview_image_url_a3: string | null
+  preview_image_url_a2: string | null
+  render_status_a4: RenderStatus
+  render_status_a3: RenderStatus
+  render_status_a2: RenderStatus
+  render_error_a4: string | null
+  render_error_a3: string | null
+  render_error_a2: string | null
 }
 
 interface RenderListItem {
@@ -120,6 +131,35 @@ function RenderStatusBadge({ status }: { status: RenderStatus }) {
       <Icon className={`w-3 h-3 ${status === 'rendering' ? 'animate-spin' : ''}`} />
       {cfg.label}
     </span>
+  )
+}
+
+/**
+ * PROJ-39: compact triple badge (A4 / A3 / A2) showing the per-format render
+ * status. Color follows RENDER_STATUS_CONFIG, label is the format. Tooltip
+ * exposes the actual status text + last error if any.
+ */
+function PerFormatStatusBadges({ preset }: { preset: Preset }) {
+  const formats: Array<{ key: 'a4' | 'a3' | 'a2'; status: RenderStatus; error: string | null }> = [
+    { key: 'a4', status: preset.render_status_a4, error: preset.render_error_a4 },
+    { key: 'a3', status: preset.render_status_a3, error: preset.render_error_a3 },
+    { key: 'a2', status: preset.render_status_a2, error: preset.render_error_a2 },
+  ]
+  return (
+    <div className="inline-flex items-center gap-0.5">
+      {formats.map(({ key, status, error }) => {
+        const cfg = RENDER_STATUS_CONFIG[status]
+        return (
+          <span
+            key={key}
+            className={`px-1 py-0.5 rounded border text-[9px] font-mono uppercase font-semibold leading-none ${cfg.className}`}
+            title={error ? `${key.toUpperCase()}: ${cfg.label} — ${error}` : `${key.toUpperCase()}: ${cfg.label}`}
+          >
+            {key}
+          </span>
+        )
+      })}
+    </div>
   )
 }
 
@@ -456,6 +496,57 @@ export function AdminPresetsList() {
     fetchPresets()
   }
 
+  /**
+   * PROJ-39: re-render a single preset for one specific format only. Bypasses
+   * the mockup-set selection dialog (uses whatever is already on the row).
+   */
+  const triggerFormatRender = async (preset: Preset, format: 'a4' | 'a3' | 'a2') => {
+    if (preset.status !== 'published') {
+      toast.error('Erst veröffentlichen, dann rendern')
+      return
+    }
+    const res = await fetch(`/api/admin/presets/${preset.id}/render`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ format }),
+    })
+    const data = await res.json()
+    if (!res.ok) {
+      toast.error(data.error ?? `Render-Trigger ${format.toUpperCase()} fehlgeschlagen`)
+      return
+    }
+    toast.success(`„${preset.name}" — ${format.toUpperCase()} in Render-Queue`)
+    setPresets((prev) =>
+      prev.map((p) =>
+        p.id === preset.id
+          ? { ...p, [`render_status_${format}`]: 'pending' as RenderStatus, [`render_error_${format}`]: null }
+          : p,
+      ),
+    )
+  }
+
+  /**
+   * PROJ-39: trigger backfill of all presets that are missing A3 or A2
+   * renders. The primary use-case after the PROJ-39 deploy.
+   */
+  const triggerBackfill = async () => {
+    if (!confirm('Backfill startet einen Render-Job für alle Presets ohne A3/A2-Bild. Worker dauert ~20s pro Format pro Preset (kann mehrere Stunden bei 200+ Presets sein). Fortfahren?')) {
+      return
+    }
+    const res = await fetch('/api/admin/presets/bulk-render', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filter: 'backfill' }),
+    })
+    const data = await res.json()
+    if (!res.ok) {
+      toast.error(data.error ?? 'Backfill fehlgeschlagen')
+      return
+    }
+    toast.success(`${data.count} Preset${data.count === 1 ? '' : 's'} für A3/A2-Backfill in Render-Queue`)
+    fetchPresets()
+  }
+
   const updateStatus = async (preset: Preset, status: Status) => {
     const res = await fetch(`/api/admin/presets/${preset.id}`, {
       method: 'PATCH',
@@ -746,10 +837,42 @@ export function AdminPresetsList() {
               Neues Fotoposter-Preset
             </Link>
           </Button>
+          {/* PROJ-39: backfill button — finds presets with missing A3/A2 renders. */}
           {(() => {
-            const pendingCount = presets.filter((p) => p.render_status === 'pending').length
-            const renderingCount = presets.filter((p) => p.render_status === 'rendering').length
-            const queueCount = pendingCount + renderingCount
+            const backfillCount = presets.filter(
+              (p) => p.render_status_a3 !== 'done' || p.render_status_a2 !== 'done',
+            ).length
+            return (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={triggerBackfill}
+                disabled={backfillCount === 0}
+                title={
+                  backfillCount === 0
+                    ? 'Alle Presets sind vollständig in A3+A2 gerendert.'
+                    : `${backfillCount} Preset${backfillCount === 1 ? '' : 's'} ohne A3/A2-Bild — alle in Render-Queue setzen`
+                }
+              >
+                <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+                Backfill A3+A2
+                {backfillCount > 0 && (
+                  <span className="ml-1.5 px-1.5 py-0.5 rounded bg-muted text-[10px] font-semibold">
+                    {backfillCount}
+                  </span>
+                )}
+              </Button>
+            )
+          })()}
+          {(() => {
+            // Queue-Count über alle drei Format-Statūs (PROJ-39): jeder
+            // Format-Slot zählt einzeln, weil Worker pro Slot rendert.
+            const queueCount = presets.filter((p) =>
+              p.render_status === 'pending' || p.render_status === 'rendering'
+                || p.render_status_a4 === 'pending' || p.render_status_a4 === 'rendering'
+                || p.render_status_a3 === 'pending' || p.render_status_a3 === 'rendering'
+                || p.render_status_a2 === 'pending' || p.render_status_a2 === 'rendering',
+            ).length
             return (
               <Button
                 size="sm"
@@ -831,7 +954,7 @@ export function AdminPresetsList() {
                   {TYPE_LABELS[preset.poster_type] ?? preset.poster_type}
                 </span>
                 <div className="absolute bottom-2 left-2">
-                  <RenderStatusBadge status={preset.render_status} />
+                  <PerFormatStatusBadges preset={preset} />
                 </div>
                 {!preset.show_in_editor && (
                   <span
@@ -1000,12 +1123,39 @@ export function AdminPresetsList() {
                         ? 'Erst veröffentlichen, dann rendern'
                         : preset.render_error
                           ? `Letzter Fehler: ${preset.render_error}`
-                          : 'Mockup-Render anstoßen'
+                          : 'Komplett-Render (alle 3 Formate + Mockups)'
                     }
                   >
                     <RefreshCw className={`w-3.5 h-3.5 mr-1 ${preset.render_status === 'rendering' ? 'animate-spin' : ''}`} />
                     Rendern
                   </Button>
+                  {/* PROJ-39: per-format quick-trigger. Skip A4 if already
+                      rendering, etc — granular re-render without going through
+                      the dialog. */}
+                  {(['a4', 'a3', 'a2'] as const).map((fmt) => {
+                    const status = preset[`render_status_${fmt}` as const]
+                    const error = preset[`render_error_${fmt}` as const]
+                    const inFlight = status === 'pending' || status === 'rendering'
+                    return (
+                      <Button
+                        key={fmt}
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 px-1.5 text-[10px] font-mono uppercase font-semibold"
+                        onClick={() => triggerFormatRender(preset, fmt)}
+                        disabled={preset.status !== 'published' || inFlight}
+                        title={
+                          preset.status !== 'published'
+                            ? 'Erst veröffentlichen'
+                            : error
+                              ? `Letzter Fehler ${fmt.toUpperCase()}: ${error}`
+                              : `Nur ${fmt.toUpperCase()} neu rendern`
+                        }
+                      >
+                        {fmt}
+                      </Button>
+                    )
+                  })}
                   <Button
                     variant="ghost"
                     size="sm"
