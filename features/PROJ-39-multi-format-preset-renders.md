@@ -98,7 +98,114 @@ Resultat: Customer sieht im Inspiration-Tab exakt was er kauft, egal welches For
 <!-- Sections below are added by subsequent skills -->
 
 ## Tech Design (Solution Architect)
-_To be added by /architecture_
+
+### Big Picture
+Wir erweitern eine existierende Datenpipeline (PROJ-30) um eine Format-Dimension. Heute hat jedes Preset **ein** Vorschau-Bild; nach diesem Feature hat es **drei** (eines pro Hochkant-Format). Die Anzeige-Komponenten lernen, das richtige Bild pro Format zu zeigen, der Render-Worker iteriert pro Preset über die drei Formate, und der Admin sieht pro Preset drei separate Render-Status statt einem.
+
+Die Mockup-Composite-Renders (PSD-Frame-Rendering aus PROJ-30, in `preset_renders`-Tabelle) bleiben **unverändert** — Format-Switching geschieht auf der Bare-Poster-Ebene, weil dort die Karten-Geografie sichtbar ist. Mockup-Frame-Variationen pro Format sind out-of-scope.
+
+### Data Model (in plain words)
+
+**Heute** — jedes Preset hat:
+- ein Vorschau-Bild (`preview_image_url`)
+- einen Render-Status (`render_status`)
+- einen Render-Hash (`render_inputs_hash`)
+- einen Render-Fehler (`render_error`)
+
+**Nach PROJ-39** — jedes Preset hat zusätzlich:
+- drei Vorschau-Bilder, eines pro Format → `preview_image_url_a4`, `_a3`, `_a2`
+- drei Render-Statūs, einen pro Format → `render_status_a4`, `_a3`, `_a2`
+- drei Render-Hashes, einen pro Format → für gezielte Stale-Detection
+- drei Render-Fehler-Felder, einen pro Format
+
+Die alten Single-Format-Spalten bleiben **temporär parallel** während der Migration als Fallback. Wenn alle Konsumenten auf die Format-spezifischen Spalten umgestellt sind, können sie in einer späteren Cleanup-Migration entfernt werden.
+
+**Storage-Layout** im `preset-previews`-Bucket: pro Preset entstehen drei JPEG-Dateien — eine pro Format mit Format-Suffix im Dateinamen. Bestehende Single-Format-Dateien bleiben liegen, bis das Cleanup-Script läuft.
+
+### Component Structure
+
+```
+Inspiration / Galerie / Anlass-Landing-Page
++-- GallerySection (Liste mehrerer Karten)
+|   +-- GalleryPresetCard (einzelne Karte) ✱ wird erweitert
+|       +-- Vorschau-Bild (zeigt aktiv gewähltes Format)
+|       +-- PresetFormatSwitcher (NEU) — Desktop only
+|           +-- 3 Pills (A4/A3/A2), filtert auf erfolgreich gerenderte Formate
+|       +-- Detail-Tap-Handler (Mobile) — öffnet Modal mit Switcher
++-- PresetCarousel (Hero-Slider) ✱ wird erweitert
+    +-- Hero-Card mit größtmöglichem verfügbaren Format (A2 > A3 > A4)
+
+Admin-UI
++-- AdminPresetsList ✱ wird erweitert
+    +-- Pro Preset-Zeile: drei Format-Status-Badges (A4/A3/A2)
+    +-- Pro Preset-Zeile: drei "Re-Render"-Buttons (statt einem)
+    +-- Bulk-Aktionen: zusätzlicher "Backfill A3+A2"-Button
+
+Render-Pipeline
++-- render-worker.ts (Skript) ✱ wird erweitert
+|   +-- Schleife pro Preset:
+|       +-- Schleife pro Format [a4, a3, a2]:
+|           +-- Editor-URL mit ?preset=<id>&format=<format> öffnen
+|           +-- PNG capturen, in Bucket speichern als <id>-<format>.jpg
+|           +-- render_status_<format> aktualisieren
++-- Editor-Seiten (PresetUrlApplier) ✱ wird erweitert
+    +-- liest neuen URL-Param 'format' aus, setzt printFormat
+```
+
+### Helper Function — Smart Fallback
+Eine zentrale Helper-Funktion `getPreviewUrl(preset, requestedFormat)` lebt in `src/lib/preset-previews.ts` und entscheidet, welches Bild angezeigt wird:
+
+1. Wenn das angefragte Format vorhanden ist (`render_status_<format> === 'done'`) → dessen URL.
+2. Sonst Fallback-Kette: A3 → A4 → A2 → bestehender `preview_image_url` (legacy).
+3. Wenn keines davon existiert → `null` (Karte wird ausgeblendet).
+
+Alle Anzeige-Komponenten (`GalleryPresetCard`, `OccasionLandingPage`, `PresetCarousel`) konsumieren **nur** über diesen Helper. Damit ist die Migration minimal-invasiv und die Fallback-Logik liegt an einer einzigen Stelle.
+
+### Tech Decisions (mit Begründung)
+
+**Drei separate Spalten statt JSON-Feld:**
+Wir nehmen `render_status_a4 / _a3 / _a2` als drei `text`-Spalten statt einem `jsonb`-Feld. Vorteil: Postgres kann die einzelnen Werte direkt indizieren und filtern (z. B. "alle Presets, bei denen A2 fehlt"). JSON wäre kompakter, würde aber Filter-Queries komplizieren.
+
+**Bestehende Spalten parallel halten statt in-place ersetzen:**
+Reduziert Deploy-Risiko. Falls ein Konsument vergessen wurde, sieht er weiterhin das alte `preview_image_url` und nichts ist kaputt. Cleanup-Migration kommt erst, wenn alle Stellen umgestellt sind.
+
+**Format als URL-Parameter `?format=a4` statt im Pfad:**
+Editor-Routen sind heute `/{locale}/map`, `/{locale}/star-map`, `/{locale}/photo`. Format als Query-Param ist additiv und benötigt keine Routing-Anpassung. Bestehende Preset-Apply-Logik in `PresetUrlApplier` wird minimal erweitert.
+
+**Worker iteriert pro Preset über Formate (nicht pro Format über Presets):**
+Reduziert Browser-Tab-Wechsel — der Worker bleibt pro Preset bei einem Editor-State und wechselt nur das Format. Bei Worker-Crash mitten in der Iteration: nur das gerade laufende Format steht auf `rendering`, die anderen behalten ihren letzten Stand und werden beim nächsten Lauf separat aufgenommen.
+
+**Per-Format-Hash statt One-Hash-für-alles:**
+Wenn nur ein Format einen Bug hat (z. B. neue Layout-Logik bricht A2), kann der Operator gezielt nur A2 als `stale` markieren ohne A4/A3 unnötig nachzurendern. Granulare Re-Render-Kosten.
+
+**Mobile zeigt Switcher im Modal, nicht auf der Karte:**
+Drei Pills auf einer Mobile-Card (375px breit) sind eng. Modal gibt mehr Platz und macht die Format-Wahl bewusster — Customer entscheidet sich aktiv, statt versehentlich zu wechseln.
+
+**A3 als Default für Customer:**
+A4 ist das Standard-Druckformat, aber zeigt am wenigsten Karten-Detail. A2 ist beeindruckend, aber preislich für viele zu hoch. A3 ist der mittlere Sweet-Spot — zeigt mehr Geografie als A4 (visueller Reiz), bleibt finanziell attraktiver als A2.
+
+### Dependencies (no new packages needed)
+Alle benötigten Bausteine sind bereits installiert:
+- Supabase Client + Storage (DB + JPG-Storage)
+- Playwright (Headless Browser für Worker, bereits in PROJ-30 in Verwendung)
+- Sharp (JPEG-Encoding, bereits eingebunden)
+- React + Next.js + Tailwind (UI-Components)
+
+Es muss **kein neues NPM-Package** installiert werden — PROJ-39 ist eine reine Erweiterung bestehender Infrastruktur.
+
+### Migration / Backfill-Plan
+1. **DB-Migration** anwenden (drei Spalten je `render_status` / `preview_image_url` / `render_inputs_hash` / `render_error`, default `pending` / `null`).
+2. **Worker-Code deployen** — der Worker iteriert pro Preset über alle drei Formate, neue Presets werden ab sofort dreifach gerendert.
+3. **API + GET-Endpoints** liefern die neuen Spalten parallel mit, Helper-Funktion fällt auf alte Spalte zurück.
+4. **UI-Komponenten** umstellen auf den Helper. Während dieser Phase sehen Customer noch das alte Bild, wenn ein neues Format-Render fehlt.
+5. **Backfill-Bulk-Job triggern** (Admin-Button) — markiert alle bestehenden Presets als `pending` für A3+A2. Worker arbeitet sie ab (~2 h für 200 Presets bei seriellem Worker).
+6. Wenn Backfill durch ist und alle Konsumenten auf Helper umgestellt sind: Cleanup-Migration entfernt die obsoleten Single-Format-Spalten.
+
+### Risiken & Mitigation
+- **Worker-Zeit verdreifacht sich** — bei 200 Presets × 3 Formate × ~20 Sek/Render ≈ 3 h pro Bulk-Lauf. Mitigation: Backfill nachts laufen lassen, Worker-Lock-Pattern erlaubt parallele Worker auf verschiedenen Maschinen wenn nötig.
+- **Storage-Volumen verdreifacht sich** — von ~50 MB auf ~150 MB pro Locale. Bei 5 Locales: 750 MB. Supabase-Free-Tier hat 1 GB → noch im Rahmen, aber mit Cleanup der alten Files nach Migration.
+- **Stale Bilder zwischen Migration und Backfill** — Customer sieht alte A4-Bilder bis Backfill durch. Mitigation: Backfill direkt nach Deploy starten, Inspiration-Tab funktioniert dank Helper-Fallback durchgehend.
+- **CSV-Import (PROJ-30) wird langsamer** — neue Presets via CSV erzeugen ab sofort 3 Renders statt 1. Akzeptabel weil offline-Bulk-Job, kein User-Interactive-Pfad.
 
 ## QA Test Results
 _To be added by /qa_
