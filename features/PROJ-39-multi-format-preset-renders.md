@@ -207,6 +207,22 @@ Es muss **kein neues NPM-Package** installiert werden — PROJ-39 ist eine reine
 - **Stale Bilder zwischen Migration und Backfill** — Customer sieht alte A4-Bilder bis Backfill durch. Mitigation: Backfill direkt nach Deploy starten, Inspiration-Tab funktioniert dank Helper-Fallback durchgehend.
 - **CSV-Import (PROJ-30) wird langsamer** — neue Presets via CSV erzeugen ab sofort 3 Renders statt 1. Akzeptabel weil offline-Bulk-Job, kein User-Interactive-Pfad.
 
+## Implementation Notes (Backend)
+
+**DB migration** (`supabase/migrations/20260509000000_proj39_per_format_preset_renders.sql`) added 18 new columns to `presets`: `preview_image_url_<a4|a3|a2>`, `render_status_<a4|a3|a2>`, `render_inputs_hash_<a4|a3|a2>`, `render_error_<a4|a3|a2>`, `render_started_at_<a4|a3|a2>`, `render_completed_at_<a4|a3|a2>`. CHECK constraints on the status enums (`pending|rendering|done|failed|stale`) and partial indexes on the `pending|stale` rows so the worker's job-picker stays fast. Existing `preview_image_url` was copied into `preview_image_url_a4` for migration compat — old data appears under the new column name immediately, no UI breakage.
+
+**Helper** (`src/lib/preset-previews.ts`): `getPreviewUrl(preset, format)` does the fallback chain (requested → A3 → A4 → A2 → legacy `preview_image_url` → null). `getAvailableFormats()` returns formats with `render_status_<format>='done'` for the format-switcher pills. `getLargestAvailableFormat()` returns A2 > A3 > A4 for hero cards. UI components consume only via these helpers, never read columns directly.
+
+**PresetUrlApplier**: reads `?format=a4|a3|a2` query param after `applyPreset()` runs, validates against whitelist, calls `useEditorStore.setPrintFormat()`. Customer arriving from an inspiration card with format=A3 lands in the editor in A3.
+
+**Render endpoint** (`POST /api/admin/presets/[id]/render`): now accepts optional `format` field (`a4|a3|a2|all`, default `all`). Per-format flag flips only that format's columns to `pending`; `all` resets legacy + all per-format columns. Bulk-render endpoint extended with same `format` field plus new `filter='backfill'` option that finds all presets with A3 or A2 not yet `done`.
+
+**Worker** (`scripts/render-worker.ts`):
+- `renderPosterPng()` now takes a `format` param. Adds `?format=<format>` to the headless editor URL so PresetUrlApplier sets printFormat in the store BEFORE the map renders, and passes the same format to `__renderPosterPng({format})` so the export-pipeline outputs at the right resolution.
+- New `renderAndStoreFormatPreview()` renders one format, converts PNG → JPG (88% quality), uploads to `preset-renders/<id>/format-<a4|a3|a2>.jpg`, updates per-format columns. Returns the PNG buffer for downstream re-use.
+- `renderPresetEnd2End()` now iterates over the three formats at the start, **skipping formats already `done`** so a targeted re-render (admin clicks "Re-Render A2 only") doesn't waste work re-rendering A4 and A3. The A4 buffer is cached and reused for the existing mockup-compositing flow — no extra render call for the mockup step.
+- Per-format failures are isolated: if A3 throws, A4 and A2 still complete; the failed format is marked `failed` with its own error message.
+
 ## QA Test Results
 _To be added by /qa_
 

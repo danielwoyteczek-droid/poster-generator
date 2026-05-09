@@ -76,7 +76,16 @@ interface PresetRow {
   config_json: PresetConfigJson | null
   mockup_set_ids: string[] | null
   preview_image_url: string | null
+  // PROJ-39: per-format render statuses. Worker only re-renders formats that
+  // are 'pending' or 'stale' so per-format re-renders triggered via the API
+  // don't waste work on already-done formats.
+  render_status_a4: string | null
+  render_status_a3: string | null
+  render_status_a2: string | null
 }
+
+type PortraitFormat = 'a4' | 'a3' | 'a2'
+const PORTRAIT_FORMATS: PortraitFormat[] = ['a4', 'a3', 'a2']
 
 interface MockupSetRow {
   id: string
@@ -135,7 +144,7 @@ async function claimNextPreset(supabase: SupabaseClient): Promise<PresetRow | nu
   // Step 1: find a pending row (read-only)
   const { data: candidates, error: selErr } = await supabase
     .from('presets')
-    .select('id, name, poster_type, config_json, mockup_set_ids, preview_image_url')
+    .select('id, name, poster_type, config_json, mockup_set_ids, preview_image_url, render_status_a4, render_status_a3, render_status_a2')
     .eq('render_status', 'pending')
     .order('created_at')
     .limit(1)
@@ -161,7 +170,7 @@ async function claimNextPreset(supabase: SupabaseClient): Promise<PresetRow | nu
     })
     .eq('id', candidate.id)
     .eq('render_status', 'pending')
-    .select('id, name, poster_type, config_json, mockup_set_ids, preview_image_url')
+    .select('id, name, poster_type, config_json, mockup_set_ids, preview_image_url, render_status_a4, render_status_a3, render_status_a2')
     .single()
 
   if (updErr || !claimed) return null
@@ -178,6 +187,59 @@ async function markDone(supabase: SupabaseClient, presetId: string) {
     render_error: null,
   }).eq('id', presetId)
   if (error) logErr(`markDone failed: ${error.message}`)
+}
+
+/**
+ * PROJ-39: render the bare poster in the requested format, save as JPG to
+ * preset-renders/<id>/format-<format>.jpg, and update the per-format columns
+ * (preview_image_url_<format>, render_status_<format>, ...). Used for
+ * inspiration-card previews where customers want to see how a preset looks
+ * at A4/A3/A2 before buying.
+ *
+ * Returns the rendered PNG buffer so the caller can reuse it for downstream
+ * mockup-compositing (avoids re-rendering A4 just for the composite step).
+ */
+async function renderAndStoreFormatPreview(
+  supabase: SupabaseClient,
+  context: BrowserContext,
+  preset: PresetRow,
+  format: PortraitFormat,
+): Promise<Buffer> {
+  const sharp = (await import('sharp')).default
+  log(`  → bare poster ${format.toUpperCase()}`)
+
+  // Mark as 'rendering' so a parallel worker (or status query) sees the
+  // in-flight state. Atomicity here is best-effort — worker singleton in V1.
+  await supabase.from('presets').update({
+    [`render_status_${format}`]: 'rendering',
+    [`render_started_at_${format}`]: new Date().toISOString(),
+    [`render_error_${format}`]: null,
+  }).eq('id', preset.id)
+
+  const posterBuffer = await renderPosterPng(context, preset, format)
+
+  // Convert PNG → JPG for storage (smaller, browser-friendly for previews).
+  // Use 88% quality — visually identical to the eye, ~15× smaller than PNG.
+  const jpegBuffer = await sharp(posterBuffer).jpeg({ quality: 88 }).toBuffer()
+  const path = `${preset.id}/format-${format}.jpg`
+  const { error: upErr } = await supabase.storage
+    .from(STORAGE_BUCKET)
+    .upload(path, jpegBuffer, { contentType: 'image/jpeg', upsert: true })
+  if (upErr) throw new Error(`format-${format} upload: ${upErr.message}`)
+
+  // Cache-bust via ?v=<timestamp> so customer browsers pick up new versions
+  // immediately after a re-render (matches the existing mockup-render pattern).
+  const { data: urlData } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path)
+  const url = `${urlData.publicUrl}?v=${Date.now()}`
+
+  await supabase.from('presets').update({
+    [`render_status_${format}`]: 'done',
+    [`render_completed_at_${format}`]: new Date().toISOString(),
+    [`preview_image_url_${format}`]: url,
+    [`render_error_${format}`]: null,
+  }).eq('id', preset.id)
+
+  return posterBuffer
 }
 
 async function markFailed(supabase: SupabaseClient, presetId: string, message: string) {
@@ -246,6 +308,11 @@ async function markCompositionFailed(supabase: SupabaseClient, id: string, msg: 
 async function renderPosterPng(
   context: BrowserContext,
   preset: PresetRow,
+  /** PROJ-39: print-format for the headless render. Sets the editor's
+   *  printFormat (via URL param) so MapLibre's logical-canvas matches what
+   *  a customer would see at that size, AND sets the export-pipeline format
+   *  so the resulting PNG is at the right resolution. */
+  format: PortraitFormat = 'a4',
 ): Promise<Buffer> {
   const editorPath =
     preset.poster_type === 'star-map' ? 'star-map'
@@ -255,6 +322,7 @@ async function renderPosterPng(
   const params = new URLSearchParams({
     preset: preset.id,
     headless: '1',
+    format,
   })
 
   // Photo presets carry no geo state — skip location params entirely so the
@@ -283,11 +351,11 @@ async function renderPosterPng(
     })
 
     const dataUrl = await Promise.race([
-      page.evaluate(async (): Promise<string> => {
+      page.evaluate(async (fmt: string): Promise<string> => {
         const fn = (window as unknown as { __renderPosterPng?: (opts?: { format?: string }) => Promise<string> }).__renderPosterPng
         if (typeof fn !== 'function') throw new Error('window.__renderPosterPng fehlt')
-        return await fn({ format: 'a4' })
-      }),
+        return await fn({ format: fmt })
+      }, format),
       new Promise<string>((_, rej) =>
         setTimeout(() => rej(new Error(`Headless-Render-Timeout ${RENDER_TIMEOUT_MS}ms`)), RENDER_TIMEOUT_MS),
       ),
@@ -450,10 +518,40 @@ async function renderPresetEnd2End(
   const jobUuid = crypto.randomUUID()
   const mockupSetIds = preset.mockup_set_ids ?? []
 
-  // 1. Poster-PNG einmal rendern
   log(`Rendering "${preset.name}" (${mockupSetIds.length} mockup-set(s)) ...`)
-  const posterBuffer = await renderPosterPng(context, preset)
-  log(`  → poster ${(posterBuffer.length / 1024).toFixed(0)} KB`)
+
+  // 1. PROJ-39: bare poster per format. Skip formats already 'done' so a
+  //    targeted re-render (e.g. only A2 marked pending) doesn't waste work.
+  //    The A4 buffer is captured for mockup-compositing reuse below.
+  const formatsToRender = PORTRAIT_FORMATS.filter((f) => {
+    const status = f === 'a4' ? preset.render_status_a4
+      : f === 'a3' ? preset.render_status_a3
+      : preset.render_status_a2
+    return status === 'pending' || status === 'stale' || status == null
+  })
+  let a4Buffer: Buffer | null = null
+  for (const format of formatsToRender) {
+    try {
+      const buf = await renderAndStoreFormatPreview(supabase, context, preset, format)
+      if (format === 'a4') a4Buffer = buf
+    } catch (err) {
+      // Per-format failure must not abort the whole preset job — A3 fail
+      // shouldn't kill A4 or A2 (per spec). Mark the format as failed and
+      // continue.
+      const msg = err instanceof Error ? err.message : String(err)
+      logErr(`  ✗ ${format} render failed: ${msg}`)
+      await supabase.from('presets').update({
+        [`render_status_${format}`]: 'failed',
+        [`render_completed_at_${format}`]: new Date().toISOString(),
+        [`render_error_${format}`]: msg.slice(0, 1000),
+      }).eq('id', preset.id)
+    }
+  }
+
+  // If A4 wasn't in the re-render set (already done), but we still need it for
+  // mockup compositing, render it now without DB-status updates.
+  const posterBuffer = a4Buffer ?? await renderPosterPng(context, preset, 'a4')
+  log(`  → poster A4 ${(posterBuffer.length / 1024).toFixed(0)} KB`)
 
   if (mockupSetIds.length === 0) {
     // Fallback: nackten Poster ohne Mockup speichern, damit nicht alles fehlt

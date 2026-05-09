@@ -6,6 +6,10 @@ import { useLocale } from 'next-intl'
 import { toast } from 'sonner'
 import { invalidateCustomMasksCache } from '@/hooks/useCustomMasks'
 import { applyPreset } from '@/lib/apply-preset'
+import { useEditorStore } from '@/hooks/useEditorStore'
+import type { PrintFormat } from '@/lib/print-formats'
+
+const VALID_FORMATS: ReadonlySet<PrintFormat> = new Set(['a4', 'a3', 'a2'])
 
 interface Props {
   posterType: 'map' | 'star-map' | 'photo'
@@ -47,6 +51,15 @@ export function PresetUrlApplier({ posterType }: Props) {
         }
         invalidateCustomMasksCache()
         const undo = applyPreset(data.preset)
+        // PROJ-39: honour explicit format URL param so customers who picked a
+        // specific format on the inspiration card land in the editor at that
+        // size. Validation against a whitelist guards against open-redirect /
+        // unknown-format input. Applied AFTER applyPreset so it overrides
+        // whatever printFormat the preset itself encodes.
+        const fmt = searchParams.get('format')
+        if (fmt && VALID_FORMATS.has(fmt as PrintFormat)) {
+          useEditorStore.getState().setPrintFormat(fmt as PrintFormat)
+        }
         toast.success(`Design „${data.preset.name}" übernommen`, {
           duration: 8000,
           action: { label: 'Rückgängig', onClick: () => undo() },
@@ -57,6 +70,7 @@ export function PresetUrlApplier({ posterType }: Props) {
         // Strip the query param so a page reload doesn't re-apply
         const params = new URLSearchParams(searchParams.toString())
         params.delete('preset')
+        params.delete('format')
         const query = params.toString()
         router.replace(query ? `${pathname}?${query}` : pathname)
       })
