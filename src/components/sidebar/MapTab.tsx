@@ -714,12 +714,23 @@ export function MapTab() {
                   : 'border-border hover:border-muted-foreground'
               )}
             >
-              <div className="w-8 h-8 flex items-center justify-center">
+              <div className="w-12 h-12 flex items-center justify-center">
                 {mask.svgPath ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={mask.svgPath} alt={maskLabel(mask.key, mask.label)} className="w-7 h-7 object-contain" />
+                  // Filter normalises every mask to a solid dark silhouette
+                  // regardless of its source SVG fill (some uploads use white
+                  // strokes, some dark, some mixed) so the picker grid reads
+                  // uniformly. brightness(0) collapses non-transparent pixels
+                  // to black; the rounded-sm bg-muted fallback above keeps
+                  // the empty 'none' tile visible.
+                  <img
+                    src={mask.svgPath}
+                    alt={maskLabel(mask.key, mask.label)}
+                    className="w-11 h-11 object-contain"
+                    style={{ filter: 'brightness(0)' }}
+                  />
                 ) : (
-                  <div className="w-7 h-7 rounded-sm bg-muted" />
+                  <div className="w-11 h-11 rounded-sm bg-muted" />
                 )}
               </div>
               <span className="text-[9px] leading-tight text-center text-muted-foreground">{maskLabel(mask.key, mask.label)}</span>

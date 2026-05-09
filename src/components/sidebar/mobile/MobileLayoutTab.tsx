@@ -75,12 +75,20 @@ export function MobileLayoutTab() {
                   : 'border-border'
               )}
             >
-              <div className="w-10 h-10 flex items-center justify-center">
+              <div className="w-12 h-12 flex items-center justify-center">
                 {mask.svgPath ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={mask.svgPath} alt={maskLabel(mask.key, mask.label)} className="w-9 h-9 object-contain" />
+                  // brightness(0) normalises mixed source fills (#1d1d1b,
+                  // black, white, etc.) to one solid dark silhouette so the
+                  // picker grid reads uniformly across built-ins + customs.
+                  <img
+                    src={mask.svgPath}
+                    alt={maskLabel(mask.key, mask.label)}
+                    className="w-11 h-11 object-contain"
+                    style={{ filter: 'brightness(0)' }}
+                  />
                 ) : (
-                  <div className="w-9 h-9 rounded-sm bg-muted" />
+                  <div className="w-11 h-11 rounded-sm bg-muted" />
                 )}
               </div>
               <span className="text-[11px] leading-tight text-center text-muted-foreground">{maskLabel(mask.key, mask.label)}</span>
