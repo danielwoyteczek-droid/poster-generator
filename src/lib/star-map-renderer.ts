@@ -82,10 +82,15 @@ export function renderStarMap(ctx: CanvasRenderingContext2D, opts: StarMapRender
     skyMaskImage,
   } = opts
 
-  // Magnitude cutoff derived from starDensity. Linear mapping:
-  // density 1.0 → 7.5 (entire catalogue), density 0.05 → 3.725 (~50 stars).
-  // Tuned so 0.7 ≈ 6.3 (classical naked-eye limit, ~3000 stars).
-  const magCutoff = 3.5 + starDensity * 4
+  // Magnitude cutoff derived from starDensity. Shifted upward in PROJ-40
+  // because the silhouette mask geometry now projects stars onto a larger
+  // disc (half-diagonal), which thins the visual density at the same
+  // catalogue cutoff. Mapping:
+  //   density 1.0  → 7.5 (entire catalogue, unchanged at the top)
+  //   density 0.85 → 7.05 (~6500 stars — new default, dense but not maxed)
+  //   density 0.5  → 6.0 (~1500 stars)
+  //   density 0.05 → 4.65 (~250 stars)
+  const magCutoff = 4.5 + starDensity * 3
 
   // PROJ-40: when a custom silhouette mask is active, expand the sky
   // geometry to cover the whole poster and re-centre on the poster middle —
