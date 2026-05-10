@@ -314,8 +314,14 @@ export function renderStarMap(ctx: CanvasRenderingContext2D, opts: StarMapRender
 
   ctx.restore()
 
+  // PROJ-40: when a custom silhouette mask is active, the sky shape is the
+  // mask itself — anything geometrically tied to the sky CIRCLE (default
+  // border, compass labels, configurable inner frame) would draw on a
+  // shape the customer no longer sees. Skip those decorators in that case.
+  const hasCustomMask = !!skyMaskImage && skyMaskImage.complete && skyMaskImage.naturalWidth > 0
+
   // Default subtle sky-circle border — only shown when admin did NOT configure an inner frame
-  if (!frameConfig?.innerFrame.enabled) {
+  if (!hasCustomMask && !frameConfig?.innerFrame.enabled) {
     ctx.beginPath()
     ctx.arc(cx, cy, skyR, 0, Math.PI * 2)
     ctx.strokeStyle = hexToRgba(starColor, 0.25)
@@ -324,7 +330,7 @@ export function renderStarMap(ctx: CanvasRenderingContext2D, opts: StarMapRender
   }
 
   // Compass labels
-  if (showCompass) {
+  if (showCompass && !hasCustomMask) {
     const COMPASS = [{ label: 'N', az: 0 }, { label: 'O', az: 90 }, { label: 'S', az: 180 }, { label: 'W', az: 270 }]
     const fontSize = Math.max(10, w * 0.013)
     ctx.font = `${fontSize}px sans-serif`
@@ -340,7 +346,7 @@ export function renderStarMap(ctx: CanvasRenderingContext2D, opts: StarMapRender
 
   // Configurable frames (admin via presets)
   if (frameConfig) {
-    if (frameConfig.innerFrame.enabled) {
+    if (frameConfig.innerFrame.enabled && !hasCustomMask) {
       ctx.beginPath()
       ctx.arc(cx, cy, skyR, 0, Math.PI * 2)
       ctx.strokeStyle = frameConfig.innerFrame.color
