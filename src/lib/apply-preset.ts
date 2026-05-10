@@ -112,9 +112,15 @@ export function applyPreset(preset: PresetLike, options: ApplyPresetOptions = {}
     if (s.showGrid !== undefined) starMap.setShowGrid(s.showGrid)
     if (s.gridOpacity !== undefined) starMap.setGridOpacity(s.gridOpacity)
     if (s.starDensity !== undefined) starMap.setStarDensity(s.starDensity)
-    if (s.textureKey !== undefined) starMap.setTextureKey(s.textureKey)
-    if (s.textureOpacity !== undefined) starMap.setTextureOpacity(s.textureOpacity)
-    if (s.maskKey !== undefined) starMap.setMaskKey(s.maskKey)
+    // PROJ-40 fix: a preset that was saved without a textureKey or maskKey
+    // in its config means "no texture / circle silhouette" — applying it
+    // must overwrite whatever the customer had picked previously, not
+    // leave the stale value in place. Set unconditionally with a sane
+    // default fallback. textureOpacity follows the same rule so it
+    // doesn't end up out of sync with a now-null textureKey.
+    starMap.setTextureKey(s.textureKey ?? null)
+    starMap.setTextureOpacity(s.textureOpacity ?? 0.9)
+    starMap.setMaskKey(s.maskKey ?? 'circle')
     if (s.frameConfig?.outer) starMap.setOuter(s.frameConfig.outer)
     if (s.frameConfig?.innerFrame) starMap.setInnerFrame(s.frameConfig.innerFrame)
     if (s.frameConfig?.outerFrame) starMap.setOuterFrame(s.frameConfig.outerFrame)

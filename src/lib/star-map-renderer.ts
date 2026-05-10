@@ -329,16 +329,25 @@ export function renderStarMap(ctx: CanvasRenderingContext2D, opts: StarMapRender
   ctx.restore()
 
   // PROJ-40: when a custom mask is active, the destination-in pass above
-  // wiped the poster background that sat underneath the sky layer (the
-  // larger sky clip covers the whole canvas now). Re-paint posterBg with
-  // destination-over so it fills only the now-transparent area around the
-  // silhouette. Deliberately skip the backdrop here — the sky-background
-  // colour belongs inside the silhouette only; painting it under-and-
-  // around the mask would re-introduce skyBg outside the shape, which the
-  // customer sees as "the sky bleeding into the poster background".
+  // wiped the poster background + backdrop that sat underneath the sky
+  // layer (the larger sky clip covers the whole canvas now). Re-paint
+  // with destination-over so they fill only the transparent area:
+  //   1. Backdrop (skyBgColor at outer-mode opacity) inside the
+  //      frameConfig.outer.margin rectangle — gives the customer-set
+  //      Leer/Faded/Voll its visible effect between mask and poster edge.
+  //   2. posterBgColor across the remaining transparent area (the
+  //      poster border outside the margin rectangle).
   if (hasCustomMask) {
     ctx.save()
     ctx.globalCompositeOperation = 'destination-over'
+    if (frameConfig && frameConfig.outer.mode !== 'none') {
+      const m = frameConfig.outer.margin * pxPerMm
+      const op = frameConfig.outer.mode === 'full' ? 1 : frameConfig.outer.opacity
+      ctx.globalAlpha = op
+      ctx.fillStyle = skyBgColor
+      ctx.fillRect(m, m, w - 2 * m, h - 2 * m)
+      ctx.globalAlpha = 1
+    }
     ctx.fillStyle = posterBgColor
     ctx.fillRect(0, 0, w, h)
     ctx.restore()
