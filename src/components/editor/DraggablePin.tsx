@@ -3,19 +3,20 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { getMapInstance } from '@/hooks/useMapInstance'
 import type { ViewState } from '@/hooks/useEditorStore'
+import { resolvePinSizePx } from '@/lib/pin-scale'
 
-function ClassicPin({ color }: { color: string }) {
+function ClassicPin({ color, width, height }: { color: string; width: number; height: number }) {
   return (
-    <svg width="28" height="40" viewBox="0 0 28 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg width={width} height={height} viewBox="0 0 28 40" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path d="M14 0C6.27 0 0 6.27 0 14C0 24.5 14 40 14 40C14 40 28 24.5 28 14C28 6.27 21.73 0 14 0Z" fill={color} />
       <circle cx="14" cy="13" r="5" fill="white" fillOpacity="0.85" />
     </svg>
   )
 }
 
-function HeartPin({ color }: { color: string }) {
+function HeartPin({ color, width, height }: { color: string; width: number; height: number }) {
   return (
-    <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg width={width} height={height} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path d="M16 30C16 30 2 19 2 10C2 5.58 5.58 2 10 2C12.5 2 14.74 3.18 16 5C17.26 3.18 19.5 2 22 2C26.42 2 30 5.58 30 10C30 19 16 30 16 30Z" fill={color} />
     </svg>
   )
@@ -31,6 +32,11 @@ interface Props {
   viewState: ViewState  // triggers re-render on map pan
   defaultX: string // CSS percentage, e.g. '50%' or '25%'
   onMove: (lat: number, lng: number) => void
+  /** Logical canvas width (PROJ-37). Used to size the pin SVG so it stays
+   *  visually proportional to the poster across A4/A3/A2 — without this
+   *  the pin's hardcoded 28×40 / 32×32 px shrinks relative to a larger
+   *  canvas. */
+  canvasWidth: number
   /** When false, disables pointer interaction so the pin is only visible.
    *  Used on Mobile to keep the pin non-draggable from tabs other than
    *  Marker. Defaults to true (Desktop behaviour unchanged). */
@@ -43,8 +49,9 @@ interface Props {
  */
 export function DraggablePin({
   slice, containerRef, markerLat, markerLng, markerType, markerColor,
-  viewState, defaultX, onMove, interactive = true,
+  viewState, defaultX, onMove, canvasWidth, interactive = true,
 }: Props) {
+  const pinSize = resolvePinSizePx(markerType, canvasWidth)
   const [dragging, setDragging] = useState(false)
   const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(null)
   const pinRef = useRef<HTMLDivElement>(null)
@@ -149,6 +156,7 @@ export function DraggablePin({
   return (
     <div
       ref={pinRef}
+      data-testid={`marker-pin-${slice}`}
       className={
         interactive
           ? 'absolute cursor-grab active:cursor-grabbing touch-none select-none'
@@ -165,7 +173,9 @@ export function DraggablePin({
       onPointerDown={interactive ? handlePointerDown : undefined}
       title={interactive ? 'Pin verschieben' : undefined}
     >
-      {markerType === 'heart' ? <HeartPin color={markerColor} /> : <ClassicPin color={markerColor} />}
+      {markerType === 'heart'
+        ? <HeartPin color={markerColor} width={pinSize.width} height={pinSize.height} />
+        : <ClassicPin color={markerColor} width={pinSize.width} height={pinSize.height} />}
     </div>
   )
 }

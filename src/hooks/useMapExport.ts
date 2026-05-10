@@ -11,6 +11,7 @@ import { PHOTO_MASKS, type PhotoMaskKey } from '@/lib/photo-masks'
 import { filterCss } from '@/lib/photo-filters'
 import { buildPetiteStyle } from '@/lib/petite-style-loader'
 import { resolveFontSizePx } from '@/lib/font-scale'
+import { resolvePinSizePx } from '@/lib/pin-scale'
 import { getPalette, type MapPaletteColors } from '@/lib/map-palettes'
 import { fetchDecorationSvgText, recolorSvg, svgTextToDataUrl } from '@/lib/decoration-color'
 import { wrapTextToWidth } from '@/lib/text-wrap'
@@ -774,14 +775,15 @@ export async function buildPosterCanvas(
 
   // Marker pins — position from marker.lat/lng when dragged, else centered above mask.
   // Pins live inside the map target rect, so transform full-poster coords into it.
-  const pinScale = W / previewW
+  // Pin size scales with poster width (resolvePinSizePx) so A4/A3/A2 keep
+  // the same visual marker proportion — same fix as fontSizeFraction (PROJ-37).
   const scaleX = mapTargetW / W
   const scaleY = mapTargetH / H
   const toTargetX = (x: number) => mapTargetX + x * scaleX
   const toTargetY = (y: number) => mapTargetY + y * scaleY
   if (marker.enabled) {
     const pinImg = await loadImage(makePinSVGUrl(marker.type, marker.color))
-    const [pw, ph] = marker.type === 'heart' ? [32, 32] : [28, 40]
+    const { width: pw, height: ph } = resolvePinSizePx(marker.type, W)
     let cx = (isDualMap ? 0.25 : 0.5) * W
     let cy = 0.5 * H
     // Bevorzuge die tatsächlich gerenderten Bounds (aus Offscreen-Map),
@@ -791,11 +793,11 @@ export async function buildPosterCanvas(
       const pt = projectLngLat(marker.lng, marker.lat, projBounds, W, H)
       cx = pt.x; cy = pt.y
     }
-    ctx.drawImage(pinImg, toTargetX(cx) - (pw * pinScale) / 2, toTargetY(cy) - ph * pinScale, pw * pinScale, ph * pinScale)
+    ctx.drawImage(pinImg, toTargetX(cx) - pw / 2, toTargetY(cy) - ph, pw, ph)
   }
   if (isDualMap && secondMarker.enabled) {
     const pinImg = await loadImage(makePinSVGUrl(secondMarker.type, secondMarker.color))
-    const [pw, ph] = secondMarker.type === 'heart' ? [32, 32] : [28, 40]
+    const { width: pw, height: ph } = resolvePinSizePx(secondMarker.type, W)
     let cx = 0.75 * W
     let cy = 0.5 * H
     const sVS = secondMap.viewState
@@ -807,7 +809,7 @@ export async function buildPosterCanvas(
       cx = 0.5 * W + pt.x * 0.5  // right map lives in the 0.5..1.0 x-range
       cy = pt.y
     }
-    ctx.drawImage(pinImg, toTargetX(cx) - (pw * pinScale) / 2, toTargetY(cy) - ph * pinScale, pw * pinScale, ph * pinScale)
+    ctx.drawImage(pinImg, toTargetX(cx) - pw / 2, toTargetY(cy) - ph, pw, ph)
   }
 
   return canvas

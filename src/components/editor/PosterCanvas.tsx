@@ -552,6 +552,7 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
                 viewState={viewState}
                 defaultX={isDualMap ? '25%' : '50%'}
                 onMove={(lat, lng) => setMarker({ lat, lng })}
+                canvasWidth={logicalCanvas.width}
                 interactive={markerInteractive}
               />
             )}
@@ -568,6 +569,7 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
                 viewState={secondMap.viewState}
                 defaultX="75%"
                 onMove={(lat, lng) => setSecondMarker({ lat, lng })}
+                canvasWidth={logicalCanvas.width}
                 interactive={markerInteractive}
               />
             )}
