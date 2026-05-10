@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
   const admin = createAdminClient()
   let query = admin
     .from('presets')
-    .select('id, name, description, poster_type, preview_image_url, status, display_order, target_locales, occasions, show_in_editor, created_at, updated_at, published_at, render_status, render_error, render_completed_at, mockup_set_ids')
+    .select('id, name, description, poster_type, preview_image_url, status, display_order, target_locales, occasions, show_in_editor, created_at, updated_at, published_at, render_status, render_error, render_completed_at, mockup_set_ids, preview_image_url_a4, preview_image_url_a3, preview_image_url_a2, render_status_a4, render_status_a3, render_status_a2, render_error_a4, render_error_a3, render_error_a2')
     .order('display_order', { ascending: true })
     .order('created_at', { ascending: false })
     .limit(200)
