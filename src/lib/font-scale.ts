@@ -1,18 +1,22 @@
-/** Canonical preview width used to normalise text-block font-scaling across
- *  every render path (live editor preview, Zimmeransicht, PDF/PNG export,
- *  server-rendered snapshots). Keeps the text-to-poster ratio consistent
- *  regardless of the current device's preview width:
- *
- *    - Desktop previews ≈ 660 px → fontScale = 1 (unchanged)
- *    - Mobile previews ≈ 300 px → fontScale ≈ 0.45
- *    - Print export → scaleX compensates so printed text ratio matches
- *
- *  Picking 660 centres the scale on typical Desktop preview widths, so
- *  Desktop users see no change and Mobile users see the same print-ratio
- *  they would see on Desktop, just at smaller pixel dimensions. */
-export const FONT_SCALE_REFERENCE_WIDTH = 660
+/**
+ * Reference width used to convert legacy `fontSize` values (px @ 800-wide
+ * canvas) into format-invariant `fontSizeFraction` values. Picked at 800
+ * because the editor's A4 logical canvas is 800 px wide — A4 designs from
+ * before the format-invariance fix render at the same visual size after
+ * migration. Stable: any change here re-scales every legacy text block.
+ */
+export const FONT_SIZE_LEGACY_REF_WIDTH = 800
 
-export function computeFontScale(previewW: number): number {
-  if (previewW <= 0) return 1
-  return Math.min(1, previewW / FONT_SCALE_REFERENCE_WIDTH)
+/**
+ * Resolve a TextBlock's renderable font size in px for a given canvas
+ * width. `fontSizeFraction` is the renderer truth (fraction of canvas
+ * width); `fontSize` is the legacy backup used only when the block
+ * predates the migration.
+ */
+export function resolveFontSizePx(
+  block: { fontSize: number; fontSizeFraction?: number },
+  canvasWidth: number,
+): number {
+  const fraction = block.fontSizeFraction ?? block.fontSize / FONT_SIZE_LEGACY_REF_WIDTH
+  return fraction * canvasWidth
 }

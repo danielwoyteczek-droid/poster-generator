@@ -9,7 +9,6 @@ import { getStarTexture } from '@/lib/star-textures'
 import { TextBlockOverlay } from '@/components/editor/TextBlockOverlay'
 import { PreviewTriggerButton } from '@/components/editor/PreviewTriggerButton'
 import { useStarMapExport } from '@/hooks/useStarMapExport'
-import { computeFontScale } from '@/lib/font-scale'
 
 interface StarMapCanvasProps {
   /** Total horizontal + vertical padding subtracted from wrapper before
@@ -101,8 +100,6 @@ export function StarMapCanvas({ padding = 64, textInteractive }: StarMapCanvasPr
     return () => obs.disconnect()
   }, [ratio, padding])
 
-  const fontScale = computeFontScale(posterSize.width)
-
   const draw = useCallback(() => {
     const canvas = canvasRef.current
     if (!canvas || posterSize.width === 0 || starData.length === 0) return
@@ -155,7 +152,7 @@ export function StarMapCanvas({ padding = 64, textInteractive }: StarMapCanvasPr
           />
           <TextBlockOverlay
             coordinatesSource={{ lat, lng, locationName }}
-            fontScale={fontScale}
+            canvasWidth={posterSize.width}
             interactive={textInteractive}
           />
         </div>

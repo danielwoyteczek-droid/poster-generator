@@ -5,7 +5,6 @@ import { useEditorStore } from '@/hooks/useEditorStore'
 import { usePhotoEditorStore } from '@/hooks/usePhotoEditorStore'
 import { usePhotoExport } from '@/hooks/usePhotoExport'
 import { PRINT_FORMATS } from '@/lib/print-formats'
-import { computeFontScale } from '@/lib/font-scale'
 import { TextBlockOverlay } from '@/components/editor/TextBlockOverlay'
 import { LetterMaskOverlay } from './LetterMaskOverlay'
 import { SinglePhotoOverlay } from './SinglePhotoOverlay'
@@ -43,8 +42,6 @@ export function PhotoPosterCanvas({
   const format = PRINT_FORMATS[printFormat]
   const baseRatio = format.widthMm / format.heightMm
   const ratio = orientation === 'landscape' ? 1 / baseRatio : baseRatio
-
-  const fontScale = computeFontScale(posterSize.width)
 
   // Keyboard-Drag: Pfeiltasten verschieben das Letter-Mask-Wort um 1% pro
   // Press (5% mit Shift). Aktiv nur, wenn ein Slot ausgewählt ist UND der
@@ -145,7 +142,7 @@ export function PhotoPosterCanvas({
         )}
 
         <TextBlockOverlay
-          fontScale={fontScale}
+          canvasWidth={posterSize.width}
           interactive={textInteractive}
           hideCoordinates
         />

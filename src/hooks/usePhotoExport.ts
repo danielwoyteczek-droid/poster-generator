@@ -10,7 +10,7 @@ import {
   type PosterOrientation,
 } from '@/lib/print-formats'
 import { MASK_FONTS } from '@/lib/letter-mask'
-import { computeFontScale, FONT_SCALE_REFERENCE_WIDTH } from '@/lib/font-scale'
+import { resolveFontSizePx } from '@/lib/font-scale'
 import { drawLetterMask, resolveFontFamily, ensureMaskFontLoaded } from '@/lib/photo-mask-render'
 import { drawSinglePhoto } from '@/lib/photo-single-render'
 import { drawPhotoGrid } from '@/lib/photo-grid-render'
@@ -51,16 +51,14 @@ function drawTextBlocks(
   textBlocks: TextBlock[],
   W: number,
   H: number,
-  previewW: number,
 ) {
-  const scaleX = W / previewW
-  const fontScale = computeFontScale(previewW)
   for (const block of textBlocks) {
     if (block.isCoordinates) continue // photo posters never carry coords
     const text = block.uppercase ? block.text.toUpperCase() : block.text
     if (!text.trim()) continue
 
-    const scaledFontSize = Math.max(8, Math.round(block.fontSize * scaleX * fontScale))
+    // Format-invariant: fontSizeFraction × output width. See useMapExport.
+    const scaledFontSize = Math.max(8, Math.round(resolveFontSizePx(block, W)))
     const weight = block.bold ? 'bold' : 'normal'
     ctx.font = `${weight} ${scaledFontSize}px "${block.fontFamily}", sans-serif`
     ctx.fillStyle = block.color
@@ -161,11 +159,7 @@ export function usePhotoExport() {
       })
     }
 
-    // Pass the canonical 660 px reference as previewW so the export font size
-    // matches what the user sees on a desktop editor canvas (which renders at
-    // ~660 px wide). Using `W` here would make scaleX = 1 on a 3508 px print
-    // canvas, leaving raw `block.fontSize` in pixels — text ~5× too small.
-    drawTextBlocks(ctx, textBlocks, W, H, FONT_SCALE_REFERENCE_WIDTH)
+    drawTextBlocks(ctx, textBlocks, W, H)
 
     return canvas
   }

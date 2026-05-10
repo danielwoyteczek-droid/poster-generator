@@ -10,7 +10,7 @@ import { getCoordinatesText } from '@/components/editor/TextBlockOverlay'
 import { PHOTO_MASKS, type PhotoMaskKey } from '@/lib/photo-masks'
 import { filterCss } from '@/lib/photo-filters'
 import { buildPetiteStyle } from '@/lib/petite-style-loader'
-import { computeFontScale } from '@/lib/font-scale'
+import { resolveFontSizePx } from '@/lib/font-scale'
 import { getPalette, type MapPaletteColors } from '@/lib/map-palettes'
 import { fetchDecorationSvgText, recolorSvg, svgTextToDataUrl } from '@/lib/decoration-color'
 import { wrapTextToWidth } from '@/lib/text-wrap'
@@ -389,20 +389,15 @@ function drawTextBlocks(
   displayTexts: Record<string, string>,
   W: number,
   H: number,
-  previewW: number,
-  previewH: number,
 ) {
-  const scaleX = W / previewW
-  // Match PosterCanvas's live preview so text renders at the same
-  // poster-relative ratio on every device and every render path.
-  const fontScale = computeFontScale(previewW)
-
   for (const block of textBlocks) {
     const raw = displayTexts[block.id] ?? block.text
     const text = block.uppercase ? raw.toUpperCase() : raw
     if (!text.trim()) continue
 
-    const scaledFontSize = Math.max(8, Math.round(block.fontSize * scaleX * fontScale))
+    // Format-invariant: fontSizeFraction × output width gives the same
+    // text-to-poster ratio on every format and preview width (PROJ-37).
+    const scaledFontSize = Math.max(8, Math.round(resolveFontSizePx(block, W)))
     const weight = block.bold ? 'bold' : 'normal'
     ctx.font = `${weight} ${scaledFontSize}px "${block.fontFamily}", sans-serif`
     ctx.fillStyle = block.color
@@ -707,7 +702,7 @@ export async function buildPosterCanvas(
   await drawPhotos(ctx, store.photos ?? [], W, H)
 
   // Text blocks
-  drawTextBlocks(ctx, textBlocks, displayTexts, W, H, previewW, previewH)
+  drawTextBlocks(ctx, textBlocks, displayTexts, W, H)
 
   // Decorative frame (inner + outer), composed from shape + shapeConfig.
   // For shape masks the frame hugs the silhouette and draws into the map

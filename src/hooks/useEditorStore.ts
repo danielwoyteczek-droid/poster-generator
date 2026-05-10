@@ -4,6 +4,9 @@ import type { PrintFormat, PosterOrientation } from '@/lib/print-formats'
 import { DEFAULT_SHAPE_CONFIG, type ShapeConfigState } from '@/lib/mask-composer'
 import type { PhotoMaskKey } from '@/lib/photo-masks'
 import type { MapPaletteColors } from '@/lib/map-palettes'
+import { FONT_SIZE_LEGACY_REF_WIDTH } from '@/lib/font-scale'
+
+export { FONT_SIZE_LEGACY_REF_WIDTH }
 
 export type { MapMaskKey, PrintFormat, PosterOrientation, ShapeConfigState }
 
@@ -107,7 +110,20 @@ export interface TextBlock {
   y: number        // 0-1, fraction of poster height
   width: number    // 0-1, fraction of poster width
   fontFamily: string
-  fontSize: number // px at preview size
+  /**
+   * Legacy "px @ 800-wide canvas". Kept for the sidebar UI which exposes
+   * the familiar 8–120 number and for backwards compat with saved presets
+   * and projects. Renderers MUST use `fontSizeFraction` instead so the
+   * size scales proportionally across A4/A3/A2.
+   */
+  fontSize: number
+  /**
+   * Format-invariant font size as a fraction of poster width (renderer truth).
+   * `fontSizeFraction = 0.06` means the rendered font-size is 6 % of the
+   * canvas width — independent of A4/A3/A2 and of preview vs print pixels.
+   * Optional on legacy data; renderers fall back to `fontSize / 800`.
+   */
+  fontSizeFraction?: number
   color: string
   align: 'left' | 'center' | 'right'
   bold: boolean
@@ -276,6 +292,16 @@ export interface EditorConfig {
   splitPhotoZone: number
 }
 
+/**
+ * Hydrate legacy text blocks (saved before the format-invariant
+ * `fontSizeFraction` rollout) by deriving the fraction from the legacy
+ * `fontSize` value. Idempotent — already-migrated blocks pass through.
+ */
+function migrateTextBlockFraction(block: TextBlock): TextBlock {
+  if (block.fontSizeFraction !== undefined) return block
+  return { ...block, fontSizeFraction: block.fontSize / FONT_SIZE_LEGACY_REF_WIDTH }
+}
+
 // PROJ-1: Initial state mirrors the "New York" preset — first-time visitors
 // see a strong, finished-looking poster instead of a blank München template,
 // which converts better. Location, zoom, style, palette, layout and text
@@ -353,7 +379,8 @@ export const EDITOR_INITIAL_STATE = {
       text: 'NEW YORK',
       x: 0.1, y: 0.87, width: 0.8,
       fontFamily: 'Playfair Display',
-      fontSize: 48, color: '#000000',
+      fontSize: 48, fontSizeFraction: 48 / FONT_SIZE_LEGACY_REF_WIDTH,
+      color: '#000000',
       align: 'center' as const, bold: false, uppercase: false,
       locked: false, isCoordinates: false,
     },
@@ -362,7 +389,8 @@ export const EDITOR_INITIAL_STATE = {
       text: '',
       x: 0.1, y: 0.96, width: 0.8,
       fontFamily: 'CaviarDreams',
-      fontSize: 20, color: '#888888',
+      fontSize: 20, fontSizeFraction: 20 / FONT_SIZE_LEGACY_REF_WIDTH,
+      color: '#888888',
       align: 'center' as const, bold: false, uppercase: false,
       locked: false, isCoordinates: true, label: 'Ort & Koordinaten',
     },
@@ -492,7 +520,8 @@ export const useEditorStore = create<EditorStore>((set) => ({
         id, text: 'Neuer Text',
         x: 0.1, y: 0.5, width: 0.8,
         fontFamily: 'CaviarDreams',
-        fontSize: 16, color: '#000000',
+        fontSize: 16, fontSizeFraction: 16 / FONT_SIZE_LEGACY_REF_WIDTH,
+        color: '#000000',
         align: 'center', bold: false, uppercase: false,
         locked: false, isCoordinates: false,
       }],
@@ -500,7 +529,17 @@ export const useEditorStore = create<EditorStore>((set) => ({
     }))
   },
   updateTextBlock: (id, updates) => set((s) => ({
-    textBlocks: s.textBlocks.map(b => b.id === id ? { ...b, ...updates } : b),
+    // When the sidebar UI changes `fontSize`, keep `fontSizeFraction` in
+    // lock-step so renderers see a consistent value. The UI only writes
+    // fontSize — fraction is the renderer truth derived from it.
+    textBlocks: s.textBlocks.map((b) => {
+      if (b.id !== id) return b
+      const merged = { ...b, ...updates }
+      if (updates.fontSize !== undefined && updates.fontSizeFraction === undefined) {
+        merged.fontSizeFraction = updates.fontSize / FONT_SIZE_LEGACY_REF_WIDTH
+      }
+      return merged
+    }),
   })),
   deleteTextBlock: (id) => set((s) => ({
     textBlocks: s.textBlocks.filter(b => b.id !== id),
@@ -594,7 +633,7 @@ export const useEditorStore = create<EditorStore>((set) => ({
     secondMap: config.secondMap
       ? { ...s.secondMap, ...config.secondMap, pendingCenter: null, pendingZoomDelta: null }
       : s.secondMap,
-    textBlocks: config.textBlocks ?? s.textBlocks,
+    textBlocks: config.textBlocks ? config.textBlocks.map(migrateTextBlockFraction) : s.textBlocks,
     locationName: config.locationName ?? s.locationName,
     photos: config.photos ?? s.photos,
     splitMode: config.splitMode ?? s.splitMode,

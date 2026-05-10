@@ -1,8 +1,19 @@
 # PROJ-37: Format-gekoppelter Editor-Viewport (A4/A3/A2)
 
-## Status: In Progress
+## Status: In Review
 **Created:** 2026-05-08
-**Last Updated:** 2026-05-08
+**Last Updated:** 2026-05-10
+
+## Implementation Notes (Frontend, 2026-05-10) — Format-invariante Schriftgrößen
+- Bug zuvor: Text-Blöcke wurden als absolute `fontSize: number` (px @ ~660-Referenz) gespeichert. Beim Format-Wechsel A4 → A3/A2 blieb die Pixel-Größe konstant, während die Logical Canvas wuchs → Text schrumpfte sichtbar relativ zum Poster, Customer musste manuell nachjustieren.
+- Lösung: neues Feld `TextBlock.fontSizeFraction` (Anteil der Posterbreite, 0–1) als Renderer-Truth; alter `fontSize` bleibt für Sidebar-UI und Backwards-Compat.
+- `lib/font-scale.ts`: `computeFontScale` + `FONT_SCALE_REFERENCE_WIDTH` entfernt; ersetzt durch `resolveFontSizePx(block, canvasWidth)` Helper + `FONT_SIZE_LEGACY_REF_WIDTH = 800` (A4 Logical Canvas, hält A4-Designs visuell konstant)
+- `useEditorStore`: Defaults schreiben beide Felder; `updateTextBlock` synct `fontSizeFraction` automatisch wenn Sidebar `fontSize` ändert; `loadFromConfig` migriert legacy textBlocks via `migrateTextBlockFraction` (idempotent)
+- Renderer-Pfade umgestellt auf `resolveFontSizePx(block, W)`: `useMapExport`, `useStarMapExport`, `usePhotoExport`, `lib/poster-from-snapshot`, `TextBlockOverlay` (Live-Preview + Drag-Clamp)
+- 3 Canvas-Komponenten reichen jetzt `canvasWidth` statt `fontScale` an `TextBlockOverlay`: `PosterCanvas` (logical), `StarMapCanvas` + `PhotoPosterCanvas` (visual)
+- Sidebar UI (TextTab + MobileTextTab) unverändert — Customer sieht weiterhin den gewohnten 8–220 fontSize-Range
+- TypeScript clean, `npm run build` erfolgreich, 47 Vitest-Unit-Tests passen
+- **Visueller Effekt:** A4-Designs vor dem Fix sehen unverändert aus (Ref-Width = 800 = A4 Logical). A3/A2-Designs aus der Übergangszeit erhalten beim Migrate proportional korrekte Schriftgröße — Text wirkt jetzt 41% (A3) / 100% (A2) größer als zuvor. Star-Map und Photo-Editor: Text wird ~17% kleiner als vorher (vorher 660-Ref, jetzt 800-Ref) — bewusst akzeptiert weil der Karten-Editor das primäre Customer-Volumen trägt
 
 ## Implementation Notes (Frontend, 2026-05-08)
 - `print-formats.ts`: A2 (420×594mm, 4961×7016px) hinzugefügt; `LOGICAL_CANVAS_SIZE` Konstanten pro Format (A4=800×1131, A3=1131×1600, A2=1600×2263) und `effectiveLogicalCanvas()` Helper

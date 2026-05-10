@@ -7,7 +7,7 @@ import { PRINT_FORMATS, type PrintFormat } from '@/lib/print-formats'
 import { renderStarMap, type StarEntry, type GeoFeature } from '@/lib/star-map-renderer'
 import { loadStarTexture } from '@/lib/star-textures'
 import { getCoordinatesText } from '@/components/editor/TextBlockOverlay'
-import { computeFontScale } from '@/lib/font-scale'
+import { resolveFontSizePx } from '@/lib/font-scale'
 import { wrapTextToWidth } from '@/lib/text-wrap'
 
 // ─── Text helpers (mirror of useMapExport) ─────────────────────────────────
@@ -27,18 +27,14 @@ function drawTextBlocks(
   displayTexts: Record<string, string>,
   W: number,
   H: number,
-  previewW: number,
 ) {
-  const scaleX = W / previewW
-  // Same font-scale used in PosterCanvas so preview / Zimmeransicht / print
-  // all render text at the same poster-relative ratio.
-  const fontScale = computeFontScale(previewW)
   for (const block of textBlocks) {
     const raw = displayTexts[block.id] ?? block.text
     const text = block.uppercase ? raw.toUpperCase() : raw
     if (!text.trim()) continue
 
-    const scaledFontSize = Math.max(8, Math.round(block.fontSize * scaleX * fontScale))
+    // Format-invariant: fontSizeFraction × output width. See useMapExport.
+    const scaledFontSize = Math.max(8, Math.round(resolveFontSizePx(block, W)))
     const weight = block.bold ? 'bold' : 'normal'
     ctx.font = `${weight} ${scaledFontSize}px "${block.fontFamily}", sans-serif`
     ctx.fillStyle = block.color
@@ -103,7 +99,6 @@ export function useStarMapExport() {
     showCompass, showGrid, gridOpacity, starDensity,
     textureKey, textureOpacity,
     frameConfig,
-    previewWidth,
   } = useStarMapStore()
 
   const { textBlocks } = useEditorStore()
@@ -144,7 +139,7 @@ export function useStarMapExport() {
         ? getCoordinatesText(lat, lng, locationName)
         : block.text
     }
-    drawTextBlocks(ctx, textBlocks, displayTexts, W, H, previewWidth)
+    drawTextBlocks(ctx, textBlocks, displayTexts, W, H)
     return canvas
   }
 

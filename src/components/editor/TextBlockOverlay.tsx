@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react'
 import { Lock } from 'lucide-react'
 import { useEditorStore, type TextBlock } from '@/hooks/useEditorStore'
 import { useIsMobileEditor } from '@/hooks/useIsMobileEditor'
+import { resolveFontSizePx } from '@/lib/font-scale'
 
 function toDMS(deg: number, isLat: boolean): string {
   const dir = isLat ? (deg >= 0 ? 'N' : 'S') : (deg >= 0 ? 'E' : 'W')
@@ -25,11 +26,15 @@ interface BlockItemProps {
   overlayRef: React.RefObject<HTMLDivElement | null>
   displayText: string
   interactive: boolean
-  fontScale: number
+  /** Visible width of the rendered canvas in CSS px. The block's font-size
+   *  is computed as `fontSizeFraction × canvasWidth` so it scales with the
+   *  poster format instead of staying at a fixed pixel value. */
+  canvasWidth: number
 }
 
-function BlockItem({ block, isSelected, overlayRef, displayText, interactive, fontScale }: BlockItemProps) {
+function BlockItem({ block, isSelected, overlayRef, displayText, interactive, canvasWidth }: BlockItemProps) {
   const { updateTextBlock, setSelectedBlockId } = useEditorStore()
+  const fontPx = resolveFontSizePx(block, canvasWidth)
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     e.stopPropagation()
@@ -44,7 +49,7 @@ function BlockItem({ block, isSelected, overlayRef, displayText, interactive, fo
     // margin so line-height slop and outline never push the block over.
     const blockEl = e.currentTarget as HTMLDivElement
     const measuredH = blockEl.getBoundingClientRect().height
-    const blockHeightPx = (measuredH > 0 ? measuredH : block.fontSize * 1.4) + 2
+    const blockHeightPx = (measuredH > 0 ? measuredH : fontPx * 1.4) + 2
 
     const startX = e.clientX
     const startY = e.clientY
@@ -131,7 +136,7 @@ function BlockItem({ block, isSelected, overlayRef, displayText, interactive, fo
       <div
         style={{
           fontFamily: block.fontFamily,
-          fontSize: block.fontSize * fontScale,
+          fontSize: fontPx,
           color: block.color,
           textAlign: block.align,
           fontWeight: block.bold ? 'bold' : 'normal',
@@ -166,12 +171,13 @@ function BlockItem({ block, isSelected, overlayRef, displayText, interactive, fo
 
 interface TextBlockOverlayProps {
   coordinatesSource?: { lat: number; lng: number; locationName: string }
-  /** Multiplier applied to each block's fontSize in the preview. Used on
-   *  Mobile to compensate for the smaller poster preview — the stored
-   *  fontSize is in preview-pixels and looks correct at desktop preview
-   *  width (~600 px), so we scale it down proportionally on smaller
-   *  viewports. Desktop passes 1 (no change). */
-  fontScale?: number
+  /** Width of the rendered canvas in CSS px. Each text block's visible
+   *  font-size is computed as `block.fontSizeFraction × canvasWidth`, so
+   *  the same block scales proportionally between A4/A3/A2 and between
+   *  Mobile and Desktop without any per-canvas multiplier. Required —
+   *  callers pass either the logical canvas width (PosterCanvas) or the
+   *  visual canvas width (StarMap, Photo). */
+  canvasWidth: number
   /** Explicit override for drag/resize interaction. When undefined, falls
    *  back to "interactive on Desktop, non-interactive on Mobile". Mobile
    *  passes `true` while the Text tab is active so users can reposition
@@ -184,7 +190,7 @@ interface TextBlockOverlayProps {
   hideCoordinates?: boolean
 }
 
-export function TextBlockOverlay({ coordinatesSource, fontScale = 1, interactive: interactiveProp, hideCoordinates = false }: TextBlockOverlayProps = {}) {
+export function TextBlockOverlay({ coordinatesSource, canvasWidth, interactive: interactiveProp, hideCoordinates = false }: TextBlockOverlayProps) {
   const overlayRef = useRef<HTMLDivElement>(null)
   const isMobile = useIsMobileEditor()
   const interactive = interactiveProp ?? !isMobile
@@ -259,7 +265,7 @@ export function TextBlockOverlay({ coordinatesSource, fontScale = 1, interactive
           // Measure the rendered block height so the arrow-down clamp matches
           // the pointer-drag clamp and keeps the whole block on the paper.
           const blockEl = document.querySelector(`[data-block-id="${block.id}"]`) as HTMLElement | null
-          const blockHeightPx = blockEl?.getBoundingClientRect().height ?? block.fontSize * 1.4
+          const blockHeightPx = blockEl?.getBoundingClientRect().height ?? resolveFontSizePx(block, rect.width) * 1.4
           const maxY = 1 - blockHeightPx / rect.height
           updateTextBlock(block.id, { y: Math.min(maxY, block.y + stepY) })
         }
@@ -292,7 +298,7 @@ export function TextBlockOverlay({ coordinatesSource, fontScale = 1, interactive
             overlayRef={overlayRef}
             displayText={displayText}
             interactive={interactive}
-            fontScale={fontScale}
+            canvasWidth={canvasWidth}
           />
         )
       })}

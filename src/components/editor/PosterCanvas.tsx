@@ -3,7 +3,6 @@
 import { useRef, useEffect, useState } from 'react'
 import { Plus, Minus, LocateFixed } from 'lucide-react'
 import { useEditorStore, LAYOUT_MAP_HEIGHT } from '@/hooks/useEditorStore'
-import { computeFontScale } from '@/lib/font-scale'
 import { useCustomMasks } from '@/hooks/useCustomMasks'
 import { MAP_MASKS } from '@/lib/map-masks'
 import { getPalette } from '@/lib/map-palettes'
@@ -79,9 +78,10 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
   const posterRef = useRef<HTMLDivElement>(null)
   // PROJ-37: visualSize = was der Customer am Bildschirm sieht (gefittet in
   // den verfügbaren Wrapper-Platz). Wird via CSS-Transform-Scale aus der
-  // logicalSize abgeleitet. fontScale arbeitet im LOGICAL-Pixel-Raum
-  // (poster div ist logisch dimensioniert) damit Editor- und Export-
-  // Pipeline denselben Wert nutzen → konsistente Print-Ratios.
+  // logicalSize abgeleitet. TextBlockOverlay rendert im LOGICAL-Pixel-Raum
+  // (poster div ist logisch dimensioniert) — Schriftgrößen leiten sich
+  // direkt aus `logicalCanvas.width × fontSizeFraction` ab, sodass A4/A3/A2
+  // automatisch dieselbe Text-zu-Poster-Ratio ergeben.
   const [visualSize, setVisualSize] = useState({ width: 0, height: 0 })
   const [locating, setLocating] = useState(false)
 
@@ -109,7 +109,6 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
   // per CSS-Transform-Scale aus der Logical Canvas runter-/hochskaliert.
   const logicalCanvas = effectiveLogicalCanvas(printFormat, orientation)
   const visualScale = visualSize.width > 0 ? visualSize.width / logicalCanvas.width : 1
-  const fontScale = computeFontScale(logicalCanvas.width)
 
   const isDualMap = mask.isSplit && splitMode === 'second-map'
   const isSplitPhoto = mask.isSplit && splitMode === 'photo' && splitPhoto != null
@@ -625,7 +624,7 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
             <PhotoOverlay posterRef={posterRef} interactive={photoInteractive} />
 
             {/* Text blocks overlay */}
-            <TextBlockOverlay fontScale={fontScale} interactive={textInteractive} />
+            <TextBlockOverlay canvasWidth={logicalCanvas.width} interactive={textInteractive} />
           </div>
           </div>
           {/* End of visual wrapper (PROJ-37) */}

@@ -3,7 +3,7 @@ import { renderStarMap, type StarEntry, type GeoFeature } from './star-map-rende
 import { loadStarTexture } from './star-textures'
 import { buildPosterCanvas, type ExportSnapshot } from '@/hooks/useMapExport'
 import { getCoordinatesText } from '@/components/editor/TextBlockOverlay'
-import { computeFontScale } from './font-scale'
+import { resolveFontSizePx } from './font-scale'
 import { drawLetterMask, resolveFontFamily, ensureMaskFontLoaded } from './photo-mask-render'
 import { MASK_FONTS, type MaskFontKey } from './letter-mask'
 import type { LetterSlot } from '@/hooks/usePhotoEditorStore'
@@ -32,18 +32,14 @@ function drawTextBlocks(
   displayTexts: Record<string, string>,
   W: number,
   H: number,
-  previewW: number,
 ) {
-  const scaleX = W / previewW
-  // Same font-scale used in PosterCanvas so preview / Zimmeransicht /
-  // server-rendered snapshots all agree on the text-to-poster ratio.
-  const fontScale = computeFontScale(previewW)
   for (const block of textBlocks) {
     const raw = displayTexts[block.id] ?? block.text
     const text = block.uppercase ? raw.toUpperCase() : raw
     if (!text.trim()) continue
 
-    const scaledFontSize = Math.max(8, Math.round(block.fontSize * scaleX * fontScale))
+    // Format-invariant: fontSizeFraction × output width. See useMapExport.
+    const scaledFontSize = Math.max(8, Math.round(resolveFontSizePx(block, W)))
     const weight = block.bold ? 'bold' : 'normal'
     ctx.font = `${weight} ${scaledFontSize}px "${block.fontFamily}", sans-serif`
     ctx.fillStyle = block.color
@@ -135,15 +131,13 @@ async function renderStarMapCanvas(format: PrintFormat, snapshot: Record<string,
     skyTextureOpacity: s.textureOpacity,
   })
 
-  // Approximate preview width — same heuristic as useStarMapExport default
-  const previewW = 500
   const displayTexts: Record<string, string> = {}
   for (const block of s.textBlocks) {
     displayTexts[block.id] = block.isCoordinates
       ? getCoordinatesText(s.lat, s.lng, s.locationName)
       : block.text
   }
-  drawTextBlocks(ctx, s.textBlocks, displayTexts, W, H, previewW)
+  drawTextBlocks(ctx, s.textBlocks, displayTexts, W, H)
   return canvas
 }
 
@@ -200,7 +194,7 @@ async function renderPhotoCanvas(
     if (block.isCoordinates) continue
     displayTexts[block.id] = block.text
   }
-  drawTextBlocks(ctx, s.textBlocks.filter((b) => !b.isCoordinates), displayTexts, W, H, W)
+  drawTextBlocks(ctx, s.textBlocks.filter((b) => !b.isCoordinates), displayTexts, W, H)
 
   return canvas
 }
