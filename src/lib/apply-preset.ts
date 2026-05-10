@@ -124,7 +124,14 @@ export function applyPreset(preset: PresetLike, options: ApplyPresetOptions = {}
     if (s.frameConfig?.outer) starMap.setOuter(s.frameConfig.outer)
     if (s.frameConfig?.innerFrame) starMap.setInnerFrame(s.frameConfig.innerFrame)
     if (s.frameConfig?.outerFrame) starMap.setOuterFrame(s.frameConfig.outerFrame)
-    if (s.textBlocks && mode !== 'design-only') useEditorStore.setState({ textBlocks: s.textBlocks as never })
+    // PROJ-40 follow-up: textBlocks carry both design (font, size, colour,
+    // position) AND content (the text itself). For star-map presets the
+    // text is normally a placeholder the customer adjusts afterwards; the
+    // font + colours are part of the design and must come with the preset.
+    // Apply unconditionally so design-only previews still pick up the
+    // typography. Snapshot/revert below restores the customer's original
+    // blocks if they cancel.
+    if (s.textBlocks) useEditorStore.setState({ textBlocks: s.textBlocks as never })
 
     return () => {
       useStarMapStore.setState({
