@@ -1,4 +1,4 @@
-import { useEditorStore, type EditorStore } from '@/hooks/useEditorStore'
+import { useEditorStore, type EditorStore, type TextBlock } from '@/hooks/useEditorStore'
 import { useStarMapStore } from '@/hooks/useStarMapStore'
 import {
   usePhotoEditorStore,
@@ -129,10 +129,11 @@ export function applyPreset(preset: PresetLike, options: ApplyPresetOptions = {}
     // in the editor use mode='design-only' and expect design to flow over
     // from the preset while the customer's typed text stays put. Full
     // preset apply (e.g. admin preview) wants everything.
-    if (s.textBlocks) {
+    if (Array.isArray(s.textBlocks)) {
+      const presetBlocks = s.textBlocks as TextBlock[]
       if (mode === 'design-only') {
         const currentById = new Map(editor.textBlocks.map((b) => [b.id, b]))
-        const merged = s.textBlocks.map((preset) => {
+        const merged = presetBlocks.map((preset) => {
           const cur = currentById.get(preset.id)
           if (!cur) return preset
           return {
@@ -143,9 +144,9 @@ export function applyPreset(preset: PresetLike, options: ApplyPresetOptions = {}
             coordsSource: cur.coordsSource,
           }
         })
-        useEditorStore.setState({ textBlocks: merged as never })
+        useEditorStore.setState({ textBlocks: merged })
       } else {
-        useEditorStore.setState({ textBlocks: s.textBlocks as never })
+        useEditorStore.setState({ textBlocks: presetBlocks })
       }
     }
 
