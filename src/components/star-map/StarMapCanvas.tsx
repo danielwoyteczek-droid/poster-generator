@@ -9,8 +9,7 @@ import { getStarTexture } from '@/lib/star-textures'
 import { TextBlockOverlay } from '@/components/editor/TextBlockOverlay'
 import { PreviewTriggerButton } from '@/components/editor/PreviewTriggerButton'
 import { useStarMapExport } from '@/hooks/useStarMapExport'
-import { useCustomMasks } from '@/hooks/useCustomMasks'
-import { MAP_MASKS } from '@/lib/map-masks'
+import { loadSkyMaskImage } from '@/lib/load-mask-image'
 
 interface StarMapCanvasProps {
   /** Total horizontal + vertical padding subtracted from wrapper before
@@ -43,7 +42,6 @@ export function StarMapCanvas({ padding = 64, textInteractive }: StarMapCanvasPr
     frameConfig,
     setPreviewSize,
   } = useStarMapStore()
-  const { masks: customStarMapMasks } = useCustomMasks('star-map')
   const { printFormat, setSelectedBlockId } = useEditorStore()
   const { renderPreview } = useStarMapExport()
   const format = PRINT_FORMATS[printFormat]
@@ -88,28 +86,16 @@ export function StarMapCanvas({ padding = 64, textInteractive }: StarMapCanvasPr
   }, [textureKey])
 
   // PROJ-40: load the silhouette mask SVG so the renderer can intersect
-  // the sky-circle output with it via destination-in. Default 'circle' is
-  // a no-op (renderer keeps today's behaviour when the image is null).
+  // the rendered sky with it via destination-in. Every silhouette including
+  // 'circle' runs through this so the star projection geometry stays
+  // identical regardless of which mask the customer picks.
   useEffect(() => {
-    if (!maskKey || maskKey === 'circle') {
-      setSkyMaskImage(null)
-      return
-    }
-    const builtIn = (MAP_MASKS as Record<string, { svgPath: string | null }>)[maskKey]
-    const custom = customStarMapMasks.find((m) => m.key === maskKey)
-    const url = builtIn?.svgPath ?? custom?.svgPath ?? null
-    if (!url) {
-      setSkyMaskImage(null)
-      return
-    }
-    const img = new Image()
-    img.crossOrigin = 'anonymous'
     let cancelled = false
-    img.onload = () => { if (!cancelled) setSkyMaskImage(img) }
-    img.onerror = () => { if (!cancelled) setSkyMaskImage(null) }
-    img.src = url
+    loadSkyMaskImage(maskKey).then((img) => {
+      if (!cancelled) setSkyMaskImage(img)
+    })
     return () => { cancelled = true }
-  }, [maskKey, customStarMapMasks])
+  }, [maskKey])
 
   useEffect(() => {
     if (!wrapperRef.current) return
