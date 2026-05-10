@@ -323,6 +323,27 @@ export function renderStarMap(ctx: CanvasRenderingContext2D, opts: StarMapRender
 
   ctx.restore()
 
+  // PROJ-40: when a custom mask is active, the destination-in pass above
+  // also wiped the poster background + backdrop that sit underneath the
+  // sky layer (the larger sky clip covers the whole canvas now). Re-paint
+  // them with destination-over so they fill only the now-transparent area
+  // around the silhouette without touching the sky inside it.
+  if (hasCustomMask) {
+    ctx.save()
+    ctx.globalCompositeOperation = 'destination-over'
+    if (frameConfig && frameConfig.outer.mode !== 'none') {
+      const m = frameConfig.outer.margin * pxPerMm
+      const op = frameConfig.outer.mode === 'full' ? 1 : frameConfig.outer.opacity
+      ctx.globalAlpha = op
+      ctx.fillStyle = skyBgColor
+      ctx.fillRect(m, m, w - 2 * m, h - 2 * m)
+      ctx.globalAlpha = 1
+    }
+    ctx.fillStyle = posterBgColor
+    ctx.fillRect(0, 0, w, h)
+    ctx.restore()
+  }
+
   // PROJ-40: anything geometrically tied to the sky CIRCLE (default border,
   // compass labels, configurable inner frame) is skipped when a custom mask
   // is active — the customer sees the silhouette, not the circle.
