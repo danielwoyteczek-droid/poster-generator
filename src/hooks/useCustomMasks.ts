@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { MAP_MASKS, type MapMaskDefinition } from '@/lib/map-masks'
 import { parseShapeSvg, type ShapeDefinition } from '@/lib/mask-composer'
+import { DEFAULT_APPLICABLE_POSTER_TYPES, type PosterType } from '@/lib/poster-types'
 
 export interface CustomMaskRow {
   mask_key: string
@@ -29,6 +30,9 @@ export interface CustomMaskRow {
   decoration_transform_x?: number
   decoration_transform_y?: number
   decoration_transform_scale?: number
+  /** PROJ-40: which editor variants this mask is allowed in. Defaults to
+   *  ['map'] for legacy rows that pre-date the migration. */
+  applicable_poster_types?: PosterType[]
 }
 
 // Cache shared across hook instances to avoid duplicate fetches
@@ -87,6 +91,7 @@ function toMaskDefinition(row: CustomMaskRow): MapMaskDefinition {
     key: row.mask_key as MapMaskDefinition['key'],
     label: row.label,
     svgPath: row.mask_svg_url,
+    applicableTo: row.applicable_poster_types ?? DEFAULT_APPLICABLE_POSTER_TYPES,
     shape,
     isPublic: row.is_public ?? false,
     decorationSvgUrl: row.decoration_svg_url ?? null,
@@ -94,16 +99,25 @@ function toMaskDefinition(row: CustomMaskRow): MapMaskDefinition {
   }
 }
 
-export function useCustomMasks() {
+/**
+ * @param posterType — when set, only masks whose `applicable_poster_types`
+ * contains this value are returned. Drives the per-editor mask picker (PROJ-40).
+ * Default `'map'` keeps the historical behaviour for the map editor.
+ */
+export function useCustomMasks(posterType: PosterType = 'map') {
   const [masks, setMasks] = useState<MapMaskDefinition[]>([])
   const [loaded, setLoaded] = useState(false)
 
   useEffect(() => {
     loadOnce().then((rows) => {
-      setMasks(rows.map(toMaskDefinition))
+      const filtered = rows.filter((row) => {
+        const allowed = row.applicable_poster_types ?? DEFAULT_APPLICABLE_POSTER_TYPES
+        return allowed.includes(posterType)
+      })
+      setMasks(filtered.map(toMaskDefinition))
       setLoaded(true)
     })
-  }, [])
+  }, [posterType])
 
   return { masks, loaded }
 }

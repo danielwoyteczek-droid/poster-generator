@@ -9,6 +9,8 @@ import { getStarTexture } from '@/lib/star-textures'
 import { TextBlockOverlay } from '@/components/editor/TextBlockOverlay'
 import { PreviewTriggerButton } from '@/components/editor/PreviewTriggerButton'
 import { useStarMapExport } from '@/hooks/useStarMapExport'
+import { useCustomMasks } from '@/hooks/useCustomMasks'
+import { MAP_MASKS } from '@/lib/map-masks'
 
 interface StarMapCanvasProps {
   /** Total horizontal + vertical padding subtracted from wrapper before
@@ -29,6 +31,7 @@ export function StarMapCanvas({ padding = 64, textInteractive }: StarMapCanvasPr
   const [constellationData, setConstellationData] = useState<GeoFeature[]>([])
   const [milkyWayData, setMilkyWayData] = useState<GeoFeature[]>([])
   const [skyTextureImage, setSkyTextureImage] = useState<HTMLImageElement | null>(null)
+  const [skyMaskImage, setSkyMaskImage] = useState<HTMLImageElement | null>(null)
   const [loadError, setLoadError] = useState(false)
 
   const {
@@ -36,9 +39,11 @@ export function StarMapCanvas({ padding = 64, textInteractive }: StarMapCanvasPr
     showConstellations, showMilkyWay, showSun, showMoon, showPlanets,
     showCompass, showGrid, gridOpacity, starDensity,
     textureKey, textureOpacity,
+    maskKey,
     frameConfig,
     setPreviewSize,
   } = useStarMapStore()
+  const { masks: customStarMapMasks } = useCustomMasks('star-map')
   const { printFormat, setSelectedBlockId } = useEditorStore()
   const { renderPreview } = useStarMapExport()
   const format = PRINT_FORMATS[printFormat]
@@ -82,6 +87,30 @@ export function StarMapCanvas({ padding = 64, textInteractive }: StarMapCanvasPr
     return () => { cancelled = true }
   }, [textureKey])
 
+  // PROJ-40: load the silhouette mask SVG so the renderer can intersect
+  // the sky-circle output with it via destination-in. Default 'circle' is
+  // a no-op (renderer keeps today's behaviour when the image is null).
+  useEffect(() => {
+    if (!maskKey || maskKey === 'circle') {
+      setSkyMaskImage(null)
+      return
+    }
+    const builtIn = (MAP_MASKS as Record<string, { svgPath: string | null }>)[maskKey]
+    const custom = customStarMapMasks.find((m) => m.key === maskKey)
+    const url = builtIn?.svgPath ?? custom?.svgPath ?? null
+    if (!url) {
+      setSkyMaskImage(null)
+      return
+    }
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    let cancelled = false
+    img.onload = () => { if (!cancelled) setSkyMaskImage(img) }
+    img.onerror = () => { if (!cancelled) setSkyMaskImage(null) }
+    img.src = url
+    return () => { cancelled = true }
+  }, [maskKey, customStarMapMasks])
+
   useEffect(() => {
     if (!wrapperRef.current) return
     const compute = (w: number, h: number) => {
@@ -123,13 +152,14 @@ export function StarMapCanvas({ padding = 64, textInteractive }: StarMapCanvasPr
       frameConfig,
       skyTextureImage,
       skyTextureOpacity: textureOpacity,
+      skyMaskImage,
     })
   }, [
     starData, constellationData, milkyWayData,
     lat, lng, datetime, posterBgColor, skyBgColor, starColor,
     showConstellations, showMilkyWay, showSun, showMoon, showPlanets,
     showCompass, showGrid, gridOpacity, starDensity,
-    frameConfig, posterSize, skyTextureImage, textureOpacity,
+    frameConfig, posterSize, skyTextureImage, textureOpacity, skyMaskImage,
   ])
 
   useEffect(() => { draw() }, [draw])

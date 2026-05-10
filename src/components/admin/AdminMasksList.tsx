@@ -28,6 +28,12 @@ import {
 } from '@/components/ui/alert-dialog'
 import { invalidateCustomMasksCache } from '@/hooks/useCustomMasks'
 import { MaskTransformEditor } from './MaskTransformEditor'
+import {
+  ALL_POSTER_TYPES,
+  DEFAULT_APPLICABLE_POSTER_TYPES,
+  POSTER_TYPE_LABELS,
+  type PosterType,
+} from '@/lib/poster-types'
 
 interface CustomMaskRow {
   id: string
@@ -47,6 +53,8 @@ interface CustomMaskRow {
   decoration_transform_x: number
   decoration_transform_y: number
   decoration_transform_scale: number
+  // PROJ-40: per-mask editor-variant gating.
+  applicable_poster_types: PosterType[]
 }
 
 interface ReferencingPreset {
@@ -62,6 +70,10 @@ export function AdminMasksList() {
   const [uploading, setUploading] = useState(false)
   const [label, setLabel] = useState('')
   const [maskFile, setMaskFile] = useState<File | null>(null)
+  // PROJ-40: which editor variants the new mask is allowed in. Default = map
+  // only, mirroring the historical assumption (the admin opts star-map/photo
+  // in explicitly).
+  const [uploadPosterTypes, setUploadPosterTypes] = useState<PosterType[]>(DEFAULT_APPLICABLE_POSTER_TYPES)
 
   // Per-mask in-flight flags so a row's spinner is independent.
   const [busyId, setBusyId] = useState<string | null>(null)
@@ -96,11 +108,18 @@ export function AdminMasksList() {
       toast.error('Name und Masken-SVG erforderlich')
       return
     }
+    if (uploadPosterTypes.length === 0) {
+      toast.error('Mindestens ein Editor muss ausgewählt sein')
+      return
+    }
     setUploading(true)
     try {
       const form = new FormData()
       form.append('label', label.trim())
       form.append('mask_svg', maskFile)
+      // Send each selected poster-type as its own field; the API parses
+      // formData.getAll('applicable_poster_types') so multiple values work.
+      uploadPosterTypes.forEach((t) => form.append('applicable_poster_types', t))
       const res = await fetch('/api/admin/masks', { method: 'POST', body: form })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Upload fehlgeschlagen')
@@ -110,10 +129,45 @@ export function AdminMasksList() {
       setUploadOpen(false)
       setLabel('')
       setMaskFile(null)
+      setUploadPosterTypes(DEFAULT_APPLICABLE_POSTER_TYPES)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Upload fehlgeschlagen')
     } finally {
       setUploading(false)
+    }
+  }
+
+  // PROJ-40: toggle a single poster-type on a mask. Optimistic, with rollback
+  // on error — same pattern as togglePublic. The CHECK constraint requires
+  // ≥ 1 selected type, so we block the last toggle-off.
+  const togglePosterType = async (mask: CustomMaskRow, type: PosterType, enabled: boolean) => {
+    const next = enabled
+      ? Array.from(new Set([...mask.applicable_poster_types, type]))
+      : mask.applicable_poster_types.filter((t) => t !== type)
+    if (next.length === 0) {
+      toast.error('Mindestens ein Editor muss ausgewählt bleiben')
+      return
+    }
+    setBusyId(mask.id)
+    setMasks((prev) => prev.map((m) => (m.id === mask.id ? { ...m, applicable_poster_types: next } : m)))
+    try {
+      const res = await fetch(`/api/admin/masks/${mask.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ applicable_poster_types: next }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || 'Update fehlgeschlagen')
+      }
+      invalidateCustomMasksCache()
+    } catch (err) {
+      setMasks((prev) =>
+        prev.map((m) => (m.id === mask.id ? { ...m, applicable_poster_types: mask.applicable_poster_types } : m)),
+      )
+      toast.error(err instanceof Error ? err.message : 'Update fehlgeschlagen')
+    } finally {
+      setBusyId(null)
     }
   }
 
@@ -273,6 +327,36 @@ export function AdminMasksList() {
                   viewBox muss gesetzt sein (z.B. 0 0 595.3 841.9 für A4-Proportion).
                 </p>
               </div>
+              <div className="space-y-1.5">
+                <Label>Verfügbar in</Label>
+                <div className="flex flex-col gap-1.5 rounded-md border border-border bg-muted/30 p-2.5">
+                  {ALL_POSTER_TYPES.map((type) => {
+                    const checked = uploadPosterTypes.includes(type)
+                    return (
+                      <label key={type} className="flex items-center gap-2 cursor-pointer text-sm">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          disabled={uploading}
+                          onChange={(e) => {
+                            const enabled = e.target.checked
+                            setUploadPosterTypes((prev) =>
+                              enabled
+                                ? Array.from(new Set([...prev, type]))
+                                : prev.filter((t) => t !== type),
+                            )
+                          }}
+                          className="w-4 h-4"
+                        />
+                        <span>{POSTER_TYPE_LABELS[type]}</span>
+                      </label>
+                    )
+                  })}
+                </div>
+                <p className="text-xs text-muted-foreground/70 leading-snug">
+                  Wählt aus, in welchen Editor-Varianten die Maske angeboten wird. Mindestens einer muss aktiv sein.
+                </p>
+              </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setUploadOpen(false)} disabled={uploading}>
@@ -324,6 +408,32 @@ export function AdminMasksList() {
                       disabled={isBusy}
                       onCheckedChange={(v) => togglePublic(mask, v)}
                     />
+                  </div>
+
+                  {/* PROJ-40: per-editor applicability — admin picks which
+                      editor variants offer this mask in their picker. */}
+                  <div className="space-y-1">
+                    <span className="text-xs text-foreground/70">Verfügbar in</span>
+                    <div className="flex flex-col gap-1">
+                      {ALL_POSTER_TYPES.map((type) => {
+                        const checked = mask.applicable_poster_types.includes(type)
+                        return (
+                          <label
+                            key={type}
+                            className="flex items-center gap-1.5 cursor-pointer text-[11px] text-foreground/80"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              disabled={isBusy}
+                              onChange={(e) => togglePosterType(mask, type, e.target.checked)}
+                              className="w-3 h-3"
+                            />
+                            <span>{POSTER_TYPE_LABELS[type]}</span>
+                          </label>
+                        )
+                      })}
+                    </div>
                   </div>
 
                   {/* PROJ-35: Decoration controls */}

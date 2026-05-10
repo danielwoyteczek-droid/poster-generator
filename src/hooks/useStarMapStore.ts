@@ -63,6 +63,13 @@ interface StarMapStore {
   textureKey: string | null
   /** Opacity of the sky texture, 0.3..1.0. Only matters when textureKey !== null. */
   textureOpacity: number
+  /** PROJ-40: silhouette mask applied to the sky layer. `'circle'` = no
+   *  custom clipping (today's behaviour). Built-in keys (`heart-single`,
+   *  `house`, `frame1`) and custom-mask keys (`custom-...`) reshape the
+   *  visible sky area to that silhouette. The renderer applies the mask
+   *  via `globalCompositeOperation = 'destination-in'` after the sky is
+   *  drawn — see star-map-renderer.ts. */
+  maskKey: string
   frameConfig: StarMapFrameConfig
   previewWidth: number
   previewHeight: number
@@ -83,6 +90,7 @@ interface StarMapStore {
   setStarDensity: (density: number) => void
   setTextureKey: (key: string | null) => void
   setTextureOpacity: (opacity: number) => void
+  setMaskKey: (key: string) => void
   setOuter: (updates: Partial<StarMapFrameConfig['outer']>) => void
   setInnerFrame: (updates: Partial<StarMapFrameConfig['innerFrame']>) => void
   setOuterFrame: (updates: Partial<StarMapFrameConfig['outerFrame']>) => void
@@ -114,6 +122,7 @@ export function getStarMapInitialState() {
     starDensity: 0.7,
     textureKey: null,
     textureOpacity: 0.9,
+    maskKey: 'circle',
     frameConfig: DEFAULT_STAR_FRAME_CONFIG,
     previewWidth: 500,
     previewHeight: 707,
@@ -139,6 +148,7 @@ export const useStarMapStore = create<StarMapStore>((set) => ({
   setStarDensity: (starDensity) => set({ starDensity: Math.max(0.05, Math.min(1, starDensity)) }),
   setTextureKey: (textureKey) => set({ textureKey }),
   setTextureOpacity: (textureOpacity) => set({ textureOpacity: Math.max(0.3, Math.min(1, textureOpacity)) }),
+  setMaskKey: (maskKey) => set({ maskKey }),
   setOuter: (updates) => set((s) => ({ frameConfig: { ...s.frameConfig, outer: { ...s.frameConfig.outer, ...updates } } })),
   setInnerFrame: (updates) => set((s) => ({ frameConfig: { ...s.frameConfig, innerFrame: { ...s.frameConfig.innerFrame, ...updates } } })),
   setOuterFrame: (updates) => set((s) => ({ frameConfig: { ...s.frameConfig, outerFrame: { ...s.frameConfig.outerFrame, ...updates } } })),

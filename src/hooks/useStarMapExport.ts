@@ -9,6 +9,7 @@ import { loadStarTexture } from '@/lib/star-textures'
 import { getCoordinatesText } from '@/components/editor/TextBlockOverlay'
 import { resolveFontSizePx } from '@/lib/font-scale'
 import { wrapTextToWidth } from '@/lib/text-wrap'
+import { loadSkyMaskImage } from '@/lib/load-mask-image'
 
 // ─── Text helpers (mirror of useMapExport) ─────────────────────────────────
 
@@ -98,6 +99,7 @@ export function useStarMapExport() {
     showConstellations, showMilkyWay, showSun, showMoon, showPlanets,
     showCompass, showGrid, gridOpacity, starDensity,
     textureKey, textureOpacity,
+    maskKey,
     frameConfig,
   } = useStarMapStore()
 
@@ -108,11 +110,12 @@ export function useStarMapExport() {
     const W = fmt.widthPx
     const H = fmt.heightPx
 
-    const [starDataRaw, constellationRaw, milkyWayRaw, skyTextureImage] = await Promise.all([
+    const [starDataRaw, constellationRaw, milkyWayRaw, skyTextureImage, skyMaskImage] = await Promise.all([
       fetchJSON<StarEntry[]>('/bright-stars.json'),
       showConstellations ? fetchJSON<{ features: GeoFeature[] }>('/constellations.json').then(d => d.features) : Promise.resolve([] as GeoFeature[]),
       showMilkyWay ? fetchJSON<{ features: GeoFeature[] }>('/milky-way.json').then(d => d.features) : Promise.resolve([] as GeoFeature[]),
       loadStarTexture(textureKey),
+      loadSkyMaskImage(maskKey),
     ])
 
     await ensureFontsLoaded(textBlocks)
@@ -131,6 +134,7 @@ export function useStarMapExport() {
       frameConfig,
       skyTextureImage,
       skyTextureOpacity: textureOpacity,
+      skyMaskImage,
     })
 
     const displayTexts: Record<string, string> = {}

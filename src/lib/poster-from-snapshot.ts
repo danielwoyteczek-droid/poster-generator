@@ -4,6 +4,7 @@ import { loadStarTexture } from './star-textures'
 import { buildPosterCanvas, type ExportSnapshot } from '@/hooks/useMapExport'
 import { getCoordinatesText } from '@/components/editor/TextBlockOverlay'
 import { resolveFontSizePx } from './font-scale'
+import { loadSkyMaskImage } from './load-mask-image'
 import { drawLetterMask, resolveFontFamily, ensureMaskFontLoaded } from './photo-mask-render'
 import { MASK_FONTS, type MaskFontKey } from './letter-mask'
 import type { LetterSlot } from '@/hooks/usePhotoEditorStore'
@@ -94,11 +95,15 @@ async function renderStarMapCanvas(format: PrintFormat, snapshot: Record<string,
     textureKey?: string | null
     /** Optional. Renderer treats undefined as `0.9`. */
     textureOpacity?: number
+    /** PROJ-40: silhouette mask key for the sky layer. Optional for back-compat
+     *  with snapshots from before the feature — renderer keeps the canonical
+     *  circle when missing. */
+    maskKey?: string
     frameConfig?: import('@/hooks/useStarMapStore').StarMapFrameConfig
     textBlocks: TextBlock[]
   }
 
-  const [starData, constellationData, milkyWayData, skyTextureImage] = await Promise.all([
+  const [starData, constellationData, milkyWayData, skyTextureImage, skyMaskImage] = await Promise.all([
     fetchJSON<StarEntry[]>('/bright-stars.json'),
     s.showConstellations
       ? fetchJSON<{ features: GeoFeature[] }>('/constellations.json').then((d) => d.features)
@@ -107,6 +112,7 @@ async function renderStarMapCanvas(format: PrintFormat, snapshot: Record<string,
       ? fetchJSON<{ features: GeoFeature[] }>('/milky-way.json').then((d) => d.features)
       : Promise.resolve([] as GeoFeature[]),
     loadStarTexture(s.textureKey),
+    loadSkyMaskImage(s.maskKey),
   ])
 
   await ensureFontsLoaded(s.textBlocks)
@@ -129,6 +135,7 @@ async function renderStarMapCanvas(format: PrintFormat, snapshot: Record<string,
     frameConfig: s.frameConfig,
     skyTextureImage,
     skyTextureOpacity: s.textureOpacity,
+    skyMaskImage,
   })
 
   const displayTexts: Record<string, string> = {}

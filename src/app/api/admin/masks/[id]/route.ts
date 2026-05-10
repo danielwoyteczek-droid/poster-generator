@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { requireAdmin } from '@/lib/admin-auth'
 import { createAdminClient } from '@/lib/supabase-admin'
+import { ALL_POSTER_TYPES } from '@/lib/poster-types'
+
+const PosterTypeEnum = z.enum(ALL_POSTER_TYPES as ['map', 'star-map', 'photo'])
 
 const PatchSchema = z.object({
   is_public: z.boolean().optional(),
@@ -16,6 +19,9 @@ const PatchSchema = z.object({
   decoration_transform_x: z.number().finite().optional(),
   decoration_transform_y: z.number().finite().optional(),
   decoration_transform_scale: z.number().finite().positive().max(10).optional(),
+  // PROJ-40: per-mask editor-variant gating. Admin chooses which editors
+  // can offer this mask in their picker.
+  applicable_poster_types: z.array(PosterTypeEnum).min(1).optional(),
 })
 
 /**

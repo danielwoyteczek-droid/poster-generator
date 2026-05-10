@@ -55,6 +55,7 @@ export function applyPreset(preset: PresetLike, options: ApplyPresetOptions = {}
       starDensity?: number
       textureKey?: string | null
       textureOpacity?: number
+      maskKey?: string
       frameConfig?: {
         outer?: Partial<{ mode: 'none' | 'opacity' | 'full'; opacity: number; margin: number }>
         innerFrame?: Partial<{ enabled: boolean; color: string; thickness: number }>
@@ -85,6 +86,7 @@ export function applyPreset(preset: PresetLike, options: ApplyPresetOptions = {}
       starDensity: starMap.starDensity,
       textureKey: starMap.textureKey,
       textureOpacity: starMap.textureOpacity,
+      maskKey: starMap.maskKey,
       frameConfig: starMap.frameConfig,
       textBlocks: editor.textBlocks,
     }
@@ -112,6 +114,7 @@ export function applyPreset(preset: PresetLike, options: ApplyPresetOptions = {}
     if (s.starDensity !== undefined) starMap.setStarDensity(s.starDensity)
     if (s.textureKey !== undefined) starMap.setTextureKey(s.textureKey)
     if (s.textureOpacity !== undefined) starMap.setTextureOpacity(s.textureOpacity)
+    if (s.maskKey !== undefined) starMap.setMaskKey(s.maskKey)
     if (s.frameConfig?.outer) starMap.setOuter(s.frameConfig.outer)
     if (s.frameConfig?.innerFrame) starMap.setInnerFrame(s.frameConfig.innerFrame)
     if (s.frameConfig?.outerFrame) starMap.setOuterFrame(s.frameConfig.outerFrame)
@@ -137,6 +140,7 @@ export function applyPreset(preset: PresetLike, options: ApplyPresetOptions = {}
         starDensity: snapshot.starDensity,
         textureKey: snapshot.textureKey,
         textureOpacity: snapshot.textureOpacity,
+        maskKey: snapshot.maskKey,
         frameConfig: snapshot.frameConfig,
       })
       useEditorStore.setState({ textBlocks: snapshot.textBlocks })

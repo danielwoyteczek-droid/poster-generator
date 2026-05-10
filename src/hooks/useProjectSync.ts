@@ -48,6 +48,7 @@ function getConfig(posterType: PosterType): Record<string, unknown> {
       starDensity: sm.starDensity,
       textureKey: sm.textureKey,
       textureOpacity: sm.textureOpacity,
+      maskKey: sm.maskKey,
       frameConfig: sm.frameConfig,
       printFormat: editor.printFormat,
       textBlocks: editor.textBlocks,
@@ -124,6 +125,7 @@ function applyConfig(posterType: PosterType, config: Record<string, unknown>): v
       showGrid?: boolean; gridOpacity?: number
       starDensity?: number
       textureKey?: string | null; textureOpacity?: number
+      maskKey?: string
       frameConfig?: typeof sm.frameConfig
       printFormat?: EditorConfig['printFormat']
       textBlocks?: EditorConfig['textBlocks']
@@ -146,6 +148,7 @@ function applyConfig(posterType: PosterType, config: Record<string, unknown>): v
     if (c.starDensity !== undefined) sm.setStarDensity(c.starDensity)
     if (c.textureKey !== undefined) sm.setTextureKey(c.textureKey)
     if (c.textureOpacity !== undefined) sm.setTextureOpacity(c.textureOpacity)
+    if (c.maskKey !== undefined) sm.setMaskKey(c.maskKey)
     if (c.frameConfig?.outer) sm.setOuter(c.frameConfig.outer)
     if (c.frameConfig?.innerFrame) sm.setInnerFrame(c.frameConfig.innerFrame)
     if (c.frameConfig?.outerFrame) sm.setOuterFrame(c.frameConfig.outerFrame)

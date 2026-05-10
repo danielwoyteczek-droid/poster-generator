@@ -112,6 +112,7 @@ export function SaveAsPresetButton() {
         starDensity: starMap.starDensity,
         textureKey: starMap.textureKey,
         textureOpacity: starMap.textureOpacity,
+        maskKey: starMap.maskKey,
         frameConfig: starMap.frameConfig,
         textBlocks: editor.textBlocks,
       }

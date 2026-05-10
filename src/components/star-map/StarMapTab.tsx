@@ -10,6 +10,8 @@ import { PresetPicker } from '@/components/editor/PresetPicker'
 import { useStarMapStore } from '@/hooks/useStarMapStore'
 import { useAuth } from '@/hooks/useAuth'
 import { useIsMobileEditor } from '@/hooks/useIsMobileEditor'
+import { useCustomMasks } from '@/hooks/useCustomMasks'
+import { MAP_MASKS } from '@/lib/map-masks'
 import { cn } from '@/lib/utils'
 import { STAR_TEXTURES } from '@/lib/star-textures'
 
@@ -19,12 +21,22 @@ export function StarMapTab() {
     locationName, datetime,
     posterBgColor, skyBgColor, starColor, frameConfig,
     textureKey, textureOpacity,
+    maskKey,
     setLocation, setDatetime, setPosterBgColor, setSkyBgColor, setStarColor,
     setOuter, setInnerFrame, setOuterFrame,
     setTextureKey, setTextureOpacity,
+    setMaskKey,
   } = useStarMapStore()
   const { isAdmin } = useAuth()
   const isMobile = useIsMobileEditor()
+  // PROJ-40: only built-in masks marked star-map-applicable + custom masks
+  // the admin opted into 'star-map' show up here. Splits and 'text-below'
+  // are filtered out by their `applicableTo` declarations.
+  const builtInStarMapMasks = Object.values(MAP_MASKS).filter(
+    (m) => !m.isSplit && (m.applicableTo ?? ['map']).includes('star-map'),
+  )
+  const { masks: customStarMapMasks } = useCustomMasks('star-map')
+  const visibleMasks = [...builtInStarMapMasks, ...customStarMapMasks]
 
   return (
     <div className="space-y-5 p-4">
@@ -48,6 +60,39 @@ export function StarMapTab() {
           onChange={(e) => setDatetime(e.target.value)}
           className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
         />
+      </div>
+
+      <Separator />
+
+      {/* PROJ-40: Form-Picker for the sky silhouette. Default 'circle' = no
+          custom mask (today's behaviour). Other masks reshape the visible
+          sky area to that silhouette via the renderer's destination-in pass. */}
+      <div className="space-y-1.5">
+        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">Form</Label>
+        <div className="grid grid-cols-3 gap-1.5">
+          {visibleMasks.map((mask) => (
+            <button
+              key={mask.key}
+              onClick={() => setMaskKey(mask.key)}
+              className={cn(
+                'rounded-md border-2 py-2 px-1 transition-all flex flex-col items-center gap-1',
+                maskKey === mask.key
+                  ? 'border-primary bg-muted'
+                  : 'border-border hover:border-muted-foreground',
+              )}
+            >
+              <div className="w-8 h-8 flex items-center justify-center">
+                {mask.svgPath ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={mask.svgPath} alt={mask.label} className="w-7 h-7 object-contain" />
+                ) : (
+                  <div className="w-7 h-7 rounded-full bg-muted" />
+                )}
+              </div>
+              <span className="text-[9px] leading-tight text-center text-muted-foreground">{mask.label}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       <Separator />

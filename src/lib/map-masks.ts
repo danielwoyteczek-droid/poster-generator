@@ -13,11 +13,20 @@ export type MapMaskKey =
   | (string & {})
 
 import type { ShapeDefinition } from './mask-composer'
+import type { PosterType } from './poster-types'
 
 export interface MapMaskDefinition {
   key: MapMaskKey
   label: string
   svgPath: string | null
+  /**
+   * PROJ-40: editor variants this mask is allowed in. Built-in masks declare
+   * this in code (no DB row); custom masks read it from
+   * `custom_masks.applicable_poster_types`. Defaults to `['map']` for
+   * mask definitions that don't set it — preserving the pre-PROJ-40
+   * behaviour where every mask was assumed to be map-only.
+   */
+  applicableTo?: PosterType[]
   isSplit?: boolean
   leftSvgPath?: string
   rightSvgPath?: string
@@ -60,11 +69,12 @@ export interface MapMaskDefinition {
 }
 
 export const MAP_MASKS: Record<MapMaskKey, MapMaskDefinition> = {
-  none: { key: 'none', label: 'Keins', svgPath: null },
+  none: { key: 'none', label: 'Keins', svgPath: null, applicableTo: ['map'] },
   circle: {
     key: 'circle',
     label: 'Kreis',
     svgPath: '/masks/circle.svg',
+    applicableTo: ['map', 'star-map'],
     shape: {
       viewBox: '0 0 595.3 841.9',
       width: 595.3, height: 841.9,
@@ -76,6 +86,7 @@ export const MAP_MASKS: Record<MapMaskKey, MapMaskDefinition> = {
     key: 'heart',
     label: 'Herz geteilt',
     svgPath: '/masks/heart1.svg',
+    applicableTo: ['map'],
     isSplit: true,
     leftSvgPath: '/masks/heart1-left.svg',
     rightSvgPath: '/masks/heart1-right.svg',
@@ -90,6 +101,7 @@ export const MAP_MASKS: Record<MapMaskKey, MapMaskDefinition> = {
     key: 'heart-single',
     label: 'Herz',
     svgPath: '/masks/heart-single.svg',
+    applicableTo: ['map', 'star-map'],
     shape: {
       viewBox: '0 0 595.3 841.9',
       width: 595.3, height: 841.9,
@@ -101,6 +113,7 @@ export const MAP_MASKS: Record<MapMaskKey, MapMaskDefinition> = {
     key: 'house',
     label: 'Haus',
     svgPath: '/masks/house.svg',
+    applicableTo: ['map', 'star-map'],
     shape: {
       viewBox: '0 0 595.3 841.9',
       width: 595.3, height: 841.9,
@@ -112,6 +125,7 @@ export const MAP_MASKS: Record<MapMaskKey, MapMaskDefinition> = {
     key: 'frame1',
     label: 'Rahmen',
     svgPath: '/masks/frame1.svg',
+    applicableTo: ['map', 'star-map'],
     shape: {
       viewBox: '0 0 1000 1400',
       width: 1000, height: 1400,
@@ -123,6 +137,7 @@ export const MAP_MASKS: Record<MapMaskKey, MapMaskDefinition> = {
     key: 'text-below',
     label: 'Classic',
     svgPath: '/masks/text-below.svg',
+    applicableTo: ['map'],
     shape: {
       viewBox: '0 0 595.3 841.9',
       width: 595.3, height: 841.9,
@@ -133,6 +148,7 @@ export const MAP_MASKS: Record<MapMaskKey, MapMaskDefinition> = {
     key: 'split-circles',
     label: 'Kreis geteilt',
     svgPath: '/masks/split-circles-preview.svg',
+    applicableTo: ['map'],
     isSplit: true,
     leftSvgPath: '/masks/split-circles-left.svg',
     rightSvgPath: '/masks/split-circles-right.svg',
@@ -149,6 +165,7 @@ export const MAP_MASKS: Record<MapMaskKey, MapMaskDefinition> = {
     key: 'split-halves',
     label: '2× Hälfte',
     svgPath: '/masks/split-halves-preview.svg',
+    applicableTo: ['map'],
     isSplit: true,
     leftSvgPath: '/masks/split-halves-left.svg',
     rightSvgPath: '/masks/split-halves-right.svg',
@@ -163,6 +180,7 @@ export const MAP_MASKS: Record<MapMaskKey, MapMaskDefinition> = {
     key: 'hearts-curved',
     label: '2× Herz geschwungen',
     svgPath: '/masks/hearts-curved.svg',
+    applicableTo: ['map'],
     isSplit: true,
     leftSvgPath: '/masks/hearts-curved-left.svg',
     rightSvgPath: '/masks/hearts-curved-right.svg',
@@ -187,6 +205,7 @@ export const MAP_MASKS: Record<MapMaskKey, MapMaskDefinition> = {
     key: 'hearts-diagonal',
     label: '2× Herz schräg',
     svgPath: '/masks/hearts-diagonal.svg',
+    applicableTo: ['map'],
     isSplit: true,
     leftSvgPath: '/masks/hearts-diagonal-left.svg',
     rightSvgPath: '/masks/hearts-diagonal-right.svg',

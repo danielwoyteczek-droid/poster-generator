@@ -41,6 +41,17 @@ export interface StarMapRenderOptions {
   skyTextureImage?: HTMLImageElement | null
   /** Opacity of the sky texture, 0..1. Default 0.9. */
   skyTextureOpacity?: number
+  /**
+   * PROJ-40: silhouette mask applied to the sky layer. When set, the renderer
+   * intersects what was drawn inside the sky-circle clip with this image's
+   * opaque pixels via `globalCompositeOperation = 'destination-in'`. Letting
+   * the silhouette reshape the visible sky area without rewriting the
+   * star-projection geometry — the projection still lives inside the
+   * canonical sky circle, only the clip changes. Iteration-1 trade-off:
+   * masks larger than the sky circle (e.g. tall hearts) only show stars
+   * within the circle ∩ mask intersection; the rest stays poster-background.
+   */
+  skyMaskImage?: HTMLImageElement | null
 }
 
 const DEG = Math.PI / 180
@@ -68,6 +79,7 @@ export function renderStarMap(ctx: CanvasRenderingContext2D, opts: StarMapRender
     frameConfig,
     skyTextureImage,
     skyTextureOpacity = 0.9,
+    skyMaskImage,
   } = opts
 
   // Magnitude cutoff derived from starDensity. Linear mapping:
@@ -288,6 +300,16 @@ export function renderStarMap(ctx: CanvasRenderingContext2D, opts: StarMapRender
       ctx.font = `${fs}px sans-serif`; ctx.fillStyle = hexToRgba(starColor, 0.7)
       ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText('Sonne', pt.x, pt.y + r + 2)
     }
+  }
+
+  // PROJ-40: intersect everything we just drew inside the sky-circle clip
+  // with the silhouette mask, so the visible sky takes the mask's shape.
+  // The clip from earlier still constrains where this composite operates,
+  // so background/frame outside the sky circle stay untouched.
+  if (skyMaskImage && skyMaskImage.complete && skyMaskImage.naturalWidth > 0) {
+    ctx.globalCompositeOperation = 'destination-in'
+    ctx.drawImage(skyMaskImage, 0, 0, w, h)
+    ctx.globalCompositeOperation = 'source-over'
   }
 
   ctx.restore()
