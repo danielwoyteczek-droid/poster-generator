@@ -87,9 +87,18 @@ export function renderStarMap(ctx: CanvasRenderingContext2D, opts: StarMapRender
   // Tuned so 0.7 ≈ 6.3 (classical naked-eye limit, ~3000 stars).
   const magCutoff = 3.5 + starDensity * 4
 
+  // PROJ-40: when a custom silhouette mask is active, expand the sky
+  // geometry to cover the whole poster and re-centre on the poster middle —
+  // the mask silhouette itself clips out everything that isn't part of the
+  // shape, so the customer ends up seeing the full mask filled with stars.
+  // Without this, the canonical top-half sky circle would only fill the
+  // intersection (e.g. House mask shows stars only in its central round
+  // section, leaving roof + lower body empty).
+  const hasCustomMask = !!skyMaskImage && skyMaskImage.complete && skyMaskImage.naturalWidth > 0
   const cx = w / 2
-  const cy = cx
-  const skyR = Math.min(w, h) * 0.41
+  const cy = hasCustomMask ? h / 2 : w / 2
+  // Half-diagonal covers every poster pixel — the mask handles trimming.
+  const skyR = hasCustomMask ? Math.sqrt(w * w + h * h) / 2 : Math.min(w, h) * 0.41
   const pxPerMm = w / 210
 
   // Poster background
@@ -314,11 +323,9 @@ export function renderStarMap(ctx: CanvasRenderingContext2D, opts: StarMapRender
 
   ctx.restore()
 
-  // PROJ-40: when a custom silhouette mask is active, the sky shape is the
-  // mask itself — anything geometrically tied to the sky CIRCLE (default
-  // border, compass labels, configurable inner frame) would draw on a
-  // shape the customer no longer sees. Skip those decorators in that case.
-  const hasCustomMask = !!skyMaskImage && skyMaskImage.complete && skyMaskImage.naturalWidth > 0
+  // PROJ-40: anything geometrically tied to the sky CIRCLE (default border,
+  // compass labels, configurable inner frame) is skipped when a custom mask
+  // is active — the customer sees the silhouette, not the circle.
 
   // Default subtle sky-circle border — only shown when admin did NOT configure an inner frame
   if (!hasCustomMask && !frameConfig?.innerFrame.enabled) {
