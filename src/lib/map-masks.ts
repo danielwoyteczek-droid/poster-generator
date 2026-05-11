@@ -204,7 +204,7 @@ export const MAP_MASKS: Record<MapMaskKey, MapMaskDefinition> = {
         // midline (x=420.95) and vertical midpoint (y=297.65) so the
         // half-clip at canvas midline cuts the circle into two clean
         // semicircles without auto-fit shrinking it.
-        markup: '<circle cx="420.95" cy="297.65" r="266.5"/>',
+        markup: '<circle cx="420.95" cy="297.65" r="213.2"/>',
         bottomFraction: 1,
       },
     },
