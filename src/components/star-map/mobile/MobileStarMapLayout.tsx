@@ -61,7 +61,7 @@ export function MobileStarMapLayout() {
   return (
     <div className="relative flex flex-col h-full overflow-hidden">
       <div className="flex-1 min-h-0 flex relative" {...canvasTapHandlers}>
-        <StarMapCanvas padding={16} textInteractive={activeTab === 'text' && isOpen} />
+        <StarMapCanvas padding={32} textInteractive={activeTab === 'text' && isOpen} />
         <button
           type="button"
           onClick={handleOpenZimmer}

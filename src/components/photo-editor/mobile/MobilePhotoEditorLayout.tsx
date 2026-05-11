@@ -67,7 +67,7 @@ export function MobilePhotoEditorLayout() {
     <div className="relative flex flex-col h-full overflow-hidden">
       <div className="flex-1 min-h-0 flex" {...canvasTapHandlers}>
         <PhotoPosterCanvas
-          padding={16}
+          padding={32}
           activeMobileTool={TAB_TO_TOOL[activeTab]}
         />
       </div>

@@ -4,6 +4,16 @@
 
 html {
   scroll-behavior: smooth;
+  /* PROJ-43: prevent iOS Safari from horizontally rubber-banding the
+   * editor pages (no element is wider than the viewport, but Safari
+   * still allows a small horizontal pull-and-release). */
+  overflow-x: hidden;
+  overscroll-behavior-x: contain;
+}
+
+body {
+  overflow-x: hidden;
+  overscroll-behavior-x: contain;
 }
 
 @font-face {
