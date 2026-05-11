@@ -19,6 +19,8 @@
     "seed:occasion-hero": "tsx scripts/seed-occasion-hero-placeholder.ts",
     "seed:occasions": "tsx scripts/seed-occasions.ts",
     "seed:cities": "tsx scripts/seed-cities.ts",
+    "drafts:cities": "tsx scripts/generate-city-drafts.ts",
+    "patch:city-meta": "tsx scripts/patch-city-meta.ts",
     "render:test-headless": "tsx scripts/test-headless-render.ts",
     "render:test-mockup": "tsx scripts/test-mockup-render.ts",
     "render:worker": "tsx scripts/render-worker.ts",
