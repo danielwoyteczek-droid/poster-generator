@@ -90,6 +90,13 @@ interface PendingCenter {
   lng: number
   lat: number
   zoom: number
+  /**
+   * When true the map renderer animates (flyTo) into the new camera; when
+   * false/undefined it teleports (jumpTo). Default false so legacy paths
+   * (preset apply, format change) keep their instant behaviour — only
+   * user-driven actions like the location search opt into the animation.
+   */
+  animated?: boolean
 }
 
 export interface SecondMapState {
@@ -417,7 +424,7 @@ export const useEditorStore = create<EditorStore>((set) => ({
     // pans afterwards. Previously we nulled lat/lng, which left the pin
     // glued to the viewport center; panning then desynced the pin from the
     // actual searched street and the user lost their reference point.
-    set((s) => ({ pendingCenter: { lng, lat, zoom }, marker: { ...s.marker, lat, lng } })),
+    set((s) => ({ pendingCenter: { lng, lat, zoom, animated: true }, marker: { ...s.marker, lat, lng } })),
   clearPendingCenter: () => set({ pendingCenter: null }),
   zoomIn: () => set({ pendingZoomDelta: 1 }),
   zoomOut: () => set({ pendingZoomDelta: -1 }),
@@ -513,7 +520,7 @@ export const useEditorStore = create<EditorStore>((set) => ({
     // Mirror flyToLocation: anchor the secondary marker at the searched
     // coords so it pans with the map, not with the viewport.
     set((s) => ({
-      secondMap: { ...s.secondMap, pendingCenter: { lng, lat, zoom } },
+      secondMap: { ...s.secondMap, pendingCenter: { lng, lat, zoom, animated: true } },
       secondMarker: { ...s.secondMarker, lat, lng },
     })),
   clearSecondPendingCenter: () => set((s) => ({ secondMap: { ...s.secondMap, pendingCenter: null } })),

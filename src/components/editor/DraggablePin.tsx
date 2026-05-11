@@ -67,6 +67,10 @@ export function DraggablePin({
   const pinSize = resolvePinSizePx(markerType, canvasWidth, canvasHeight)
   const [dragging, setDragging] = useState(false)
   const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(null)
+  // Bumped on every map `move`/`zoom` event (not just moveend) so the pin
+  // re-projects continuously while a flyTo animation is running — without
+  // this it would only update once at the end and "jump" into place.
+  const [mapTick, setMapTick] = useState(0)
   const pinRef = useRef<HTMLDivElement>(null)
 
   // Compute the pin's pixel position within the container. Either:
@@ -98,11 +102,28 @@ export function DraggablePin({
       return { left: `${cxPct}%`, top: `${cyPct}%` }
     }
     return { left: defaultX, top: '50%' }
-  }, [dragPos, markerLat, markerLng, slice, containerRef, defaultX, viewState, safeArea])
-  // `viewState` intentionally in deps so the pin re-projects after pan/zoom
+  }, [dragPos, markerLat, markerLng, slice, containerRef, defaultX, viewState, safeArea, mapTick])
+  // `viewState` covers moveend / external state; `mapTick` covers in-flight
+  // map animations (flyTo) where moveend hasn't fired yet.
 
   const [pos, setPos] = useState(computePosition)
   useEffect(() => { setPos(computePosition()) }, [computePosition])
+
+  // Subscribe to the map's continuous `move`/`zoom` events so the pin tracks
+  // a flyTo animation frame-by-frame instead of snapping at the end. Only
+  // active while marker.lat/lng are set — otherwise nothing to re-project.
+  useEffect(() => {
+    if (markerLat == null || markerLng == null) return
+    const map = getMapInstance(slice)
+    if (!map) return
+    const bump = () => setMapTick((t) => t + 1)
+    map.on('move', bump)
+    map.on('zoom', bump)
+    return () => {
+      map.off('move', bump)
+      map.off('zoom', bump)
+    }
+  }, [slice, markerLat, markerLng])
 
   const handlePointerDown = (e: React.PointerEvent) => {
     e.stopPropagation()

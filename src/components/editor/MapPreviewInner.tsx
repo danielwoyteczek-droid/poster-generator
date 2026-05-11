@@ -195,14 +195,19 @@ export default function MapPreviewInner({ storeSlice = 'primary' }: MapPreviewIn
     }
   }, [streetLabelsVisible])
 
-  // Apply pending camera (geocode result OR preset-apply zoom). Use jumpTo,
-  // not flyTo — applyPreset() also fires a style change in the parallel
-  // useEffect above, and setStyle() can cancel an in-flight flyTo animation
-  // mid-zoom, leaving the camera at an unintended position. jumpTo is
-  // instant and survives a concurrent setStyle.
+  // Apply pending camera. Default path is jumpTo — applyPreset() fires a
+  // parallel style swap and setStyle() would cancel an in-flight flyTo
+  // mid-animation, stranding the camera. User-driven location searches
+  // opt into `animated: true` (no concurrent style swap there) so the
+  // map glides into the new view instead of teleporting.
   useEffect(() => {
     if (!pendingCenter || !mapRef.current) return
-    mapRef.current.jumpTo({ center: [pendingCenter.lng, pendingCenter.lat], zoom: pendingCenter.zoom })
+    const target = { center: [pendingCenter.lng, pendingCenter.lat] as [number, number], zoom: pendingCenter.zoom }
+    if (pendingCenter.animated) {
+      mapRef.current.flyTo({ ...target, duration: 800, essential: true })
+    } else {
+      mapRef.current.jumpTo(target)
+    }
     clearPendingCenterRef.current()
   }, [pendingCenter])
 
