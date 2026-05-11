@@ -331,4 +331,16 @@ Headless can't replicate iOS Safari rendering. The user should manually verify o
 ✅ **READY** — All 22 PROJ-43 ACs verified (21 directly, AC16 indirectly via code path), 18 unit tests + 10 E2E tests pass, no security findings, no real regressions. The two open product questions are non-blocking clarifications. Recommended: deploy + manually verify the iOS-keyboard branch on a physical device once live.
 
 ## Deployment
-_To be added by /deploy_
+
+**Deployed:** 2026-05-11 · **Production URL:** https://petite-moment.com
+
+- **Pre-deploy checks:** `npm run build` green locally (90 s, no TS errors, no warnings beyond pre-existing peer-dep warnings); QA approved (commit `75a93f0`); no Critical / High bugs; no new env vars; no DB migrations.
+- **Ship vector:** Vercel auto-deploy from `main` push (commits `cf12644` frontend + `75a93f0` test/QA artifacts). No manual `vercel --prod` needed.
+- **Verified live:** all three editor URLs respond 200 — `/de/map`, `/de/star-map`, `/de/photo`.
+- **Post-deploy follow-ups for the user (not blocking, recommended within ~24 h):**
+  - Manual on-device test on iPhone (Safari 16+): AC11 / AC13 / AC14 / AC15 / AC16 + Foto-Tab native picker round-trip — these can't be covered by headless E2E.
+  - Watch Editor-First-Action-Rate + Mobile-Editor-Bounce-Rate over 2 weeks (success metrics in spec). Baseline should be captured today.
+  - Decide on PROJ-37 spec drift (format-selector "visible at top" now means "top of MapTab inside the sheet") — amend spec or open a follow-up if customers struggle to find the format buttons.
+  - Test-debt sweep: rewrite the 13 stale tests in PROJ-18 / PROJ-27 / PROJ-37 / font-size-fraction-sanity to assert the new tap-sheet contract.
+
+**Git tag:** `v1.0-PROJ-43`
