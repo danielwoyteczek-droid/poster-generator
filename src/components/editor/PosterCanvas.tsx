@@ -315,8 +315,8 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
               transform-origin top-left + size-Berechnungen halten alles
               positioniert ohne overflow-Probleme. */}
           <div
-            className="flex-none relative"
-            style={{ width: visualSize.width, height: visualSize.height }}
+            className="flex-none relative overflow-hidden"
+            style={{ width: visualSize.width, height: visualSize.height, contain: 'layout size' }}
           >
           <div
             ref={posterRef}

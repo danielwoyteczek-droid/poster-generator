@@ -172,8 +172,8 @@ export function StarMapCanvas({ padding = 64, textInteractive }: StarMapCanvasPr
         // poster div lives inside at A4/A3/A2 logical size and gets CSS-
         // transform-scaled to fit. Mirrors PosterCanvas exactly.
         <div
-          className="flex-none relative"
-          style={{ width: visualSize.width, height: visualSize.height }}
+          className="flex-none relative overflow-hidden"
+          style={{ width: visualSize.width, height: visualSize.height, contain: 'layout size' }}
         >
           <div
             className="relative shadow-2xl overflow-hidden"

@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Suspense } from 'react'
 import { getTranslations } from 'next-intl/server'
 import { LandingNav } from '@/components/landing/LandingNav'
@@ -10,6 +10,15 @@ import { EditorToolbar } from '@/components/editor/EditorToolbar'
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('editorTabs')
   return { title: t('starMapPageTitle') }
+}
+
+// PROJ-43: see /[locale]/map/page.tsx for rationale — fixed-layout
+// editor surface, disable shrink-to-fit + user-scaling.
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 }
 
 export default async function StarMapPage({

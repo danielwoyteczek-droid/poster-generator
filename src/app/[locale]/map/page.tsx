@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Suspense } from 'react'
 import { getTranslations } from 'next-intl/server'
 import { EditorShell } from '@/components/editor/EditorShell'
@@ -11,6 +11,19 @@ import { EditorToolbar } from '@/components/editor/EditorToolbar'
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('editorTabs')
   return { title: t('mapPageTitle') }
+}
+
+// PROJ-43: lock the viewport so iOS Safari does NOT trigger
+// shrink-to-fit when MapLibre renders its internal canvas at logical
+// pixel width (800/1131/1600 px) wider than the device viewport
+// (390 px). Without this the page auto-zooms-out and the customer has
+// to pinch-zoom back in. Editor is a fixed-layout design surface, so
+// disabling user-scaling is the right trade-off.
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 }
 
 export default async function MapPage({
