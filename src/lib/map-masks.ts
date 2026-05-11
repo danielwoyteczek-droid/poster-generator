@@ -196,9 +196,20 @@ export const MAP_MASKS: Record<MapMaskKey, MapMaskDefinition> = {
       bottomFraction: 0.67,
       landscapeScale: 1.15,
       landscapeYOffset: 0.06,
+      shapeLandscape: {
+        viewBox: '0 0 841.9 595.3',
+        width: 841.9,
+        height: 595.3,
+        // Same radius as portrait, centered on the landscape canvas
+        // midline (x=420.95) and vertical midpoint (y=297.65) so the
+        // half-clip at canvas midline cuts the circle into two clean
+        // semicircles without auto-fit shrinking it.
+        markup: '<circle cx="420.95" cy="297.65" r="266.5"/>',
+        bottomFraction: 1,
+      },
     },
   },
-'split-halves': {
+  'split-halves': {
     key: 'split-halves',
     label: '2× Hälfte',
     svgPath: '/masks/split-halves-preview.svg',
