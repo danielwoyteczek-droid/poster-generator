@@ -374,3 +374,127 @@ export const listAllOccasionPages = () =>
     {},
     [],
   )
+
+// ─── PROJ-42 Programmatic City Landing Pages ───────────────────────────────
+
+export interface CityBodySection {
+  heading: string
+  body: unknown[]
+}
+
+export interface CityPage {
+  _id: string
+  language: string
+  cityId: string
+  slug: { current: string }
+  previousSlugs?: string[]
+  pageTitle: string
+  pageSubline?: string
+  bodySections: CityBodySection[]
+  metaTitle: string
+  metaDescription: string
+  aiDraftStatus?: 'draft' | 'reviewed' | 'published'
+}
+
+/**
+ * Lightweight projection used for hreflang generation, footer link blocks,
+ * verwandte-Staedte-Logik und Sitemap — wir brauchen nur (language, cityId,
+ * slug).
+ */
+export interface CityPageRef {
+  language: string
+  cityId: string
+  slug: string
+}
+
+const CITY_PAGE_PROJECTION = groq`{
+  _id,
+  language,
+  cityId,
+  slug,
+  previousSlugs,
+  pageTitle,
+  pageSubline,
+  bodySections[]{ heading, body },
+  metaTitle,
+  metaDescription,
+  aiDraftStatus
+}`
+
+/**
+ * Slug-Lookup fuer eine Stadt-Seite. Trifft sowohl den aktuellen
+ * `slug.current` als auch jeden Eintrag in `previousSlugs[]` — der
+ * Page-Handler entscheidet dann anhand des Vergleichs, ob ein
+ * 301-Redirect auf den aktuellen Slug ausgeliefert wird oder direkt
+ * gerendert wird.
+ *
+ * Anders als getHomepage / getGalleryPage gibt es bewusst KEINEN DE-Fallback:
+ * Wenn das Locale-Doc nicht existiert, soll die Route 404 antworten — eine
+ * SEO-Seite ohne markt-spezifischen Content schadet mehr als sie nutzt.
+ */
+export const getCityPageBySlug = (
+  locale: string,
+  slug: string,
+  options: { preview?: boolean } = {},
+) => {
+  const fetcher = options.preview ? safeFetchPreview : safeFetch
+  return fetcher<CityPage>(
+    groq`*[_type == "cityPage"
+      && language == $locale
+      && (slug.current == $slug || $slug in previousSlugs)
+    ][0]${CITY_PAGE_PROJECTION}`,
+    { locale, slug },
+  )
+}
+
+/**
+ * Listet alle Locale-Varianten EINER Stadt auf — wird vom Page-Handler
+ * fuer hreflang-Tag-Generation und Sitemap-Subelemente konsumiert.
+ * Locales ohne Doc tauchen nicht auf.
+ */
+export const getCityPageVariants = (cityId: string) =>
+  safeFetch<CityPageRef[]>(
+    groq`*[_type == "cityPage" && cityId == $cityId]
+      | order(language asc){
+        language,
+        cityId,
+        "slug": slug.current
+      }`,
+    { cityId },
+    [],
+  )
+
+/**
+ * Liefert eine Locale-spezifische Liste aller Stadt-Seiten — fuer den
+ * Footer "Beliebte Stadtkarten"-Link-Block und die "Verwandte Staedte"-
+ * Filterung. Eine Locale ohne gepflegte Stadt-Seiten liefert ein leeres
+ * Array.
+ */
+export const listCityPagesForLocale = (locale: string) =>
+  safeFetch<CityPageRef[]>(
+    groq`*[_type == "cityPage" && language == $locale]
+      | order(cityId asc){
+        language,
+        cityId,
+        "slug": slug.current
+      }`,
+    { locale },
+    [],
+  )
+
+/**
+ * Listet alle Stadt-Seiten unabhaengig von Locale — wird von der Sitemap-
+ * Generierung konsumiert. Sortierung nach Locale + cityId fuer stabile
+ * Output-Reihenfolge.
+ */
+export const listAllCityPages = () =>
+  safeFetch<CityPageRef[]>(
+    groq`*[_type == "cityPage"]
+      | order(language asc, cityId asc){
+        language,
+        cityId,
+        "slug": slug.current
+      }`,
+    {},
+    [],
+  )

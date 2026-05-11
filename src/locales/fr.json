@@ -246,7 +246,16 @@
     "withdrawal": "Droit de rétractation",
     "cookies": "Politique de cookies",
     "fallbackCopyright": "© {year} Petite Moment",
-    "occasions": "Occasions"
+    "occasions": "Occasions",
+    "cityMaps": "Cartes de ville populaires"
+  },
+  "cityPage": {
+    "stylePickerHeading": "Choisis ton style",
+    "ctaHeadline": "Prêt pour ton poster de {city} ?",
+    "ctaSubline": "Personnalise le format, le style et le texte en quelques minutes.",
+    "ctaButtonLabel": "Crée ta propre carte de ville",
+    "relatedCitiesHeading": "Autres cartes de ville",
+    "breadcrumbCityMaps": "Cartes de ville"
   },
   "cart": {
     "pageTitle": "Panier | Poster Generator",

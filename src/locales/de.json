@@ -246,7 +246,16 @@
     "withdrawal": "Widerrufsbelehrung",
     "cookies": "Cookie-Richtlinie",
     "fallbackCopyright": "© {year} Petite Moment",
-    "occasions": "Anlässe"
+    "occasions": "Anlässe",
+    "cityMaps": "Beliebte Stadtkarten"
+  },
+  "cityPage": {
+    "stylePickerHeading": "Wähle deinen Stil",
+    "ctaHeadline": "Bereit für dein {city}-Poster?",
+    "ctaSubline": "Im Editor passt du Format, Stil und Text in wenigen Minuten an.",
+    "ctaButtonLabel": "Eigene Stadtkarte gestalten",
+    "relatedCitiesHeading": "Weitere Stadtkarten",
+    "breadcrumbCityMaps": "Stadtkarten"
   },
   "cart": {
     "pageTitle": "Warenkorb | Poster Generator",

@@ -246,7 +246,16 @@
     "withdrawal": "Diritto di recesso",
     "cookies": "Politica sui cookie",
     "fallbackCopyright": "© {year} Petite Moment",
-    "occasions": "Occasioni"
+    "occasions": "Occasioni",
+    "cityMaps": "Mappe città popolari"
+  },
+  "cityPage": {
+    "stylePickerHeading": "Scegli il tuo stile",
+    "ctaHeadline": "Pronto per il tuo poster di {city}?",
+    "ctaSubline": "Personalizza formato, stile e testo in pochi minuti.",
+    "ctaButtonLabel": "Crea la tua mappa città",
+    "relatedCitiesHeading": "Altre mappe città",
+    "breadcrumbCityMaps": "Mappe città"
   },
   "cart": {
     "pageTitle": "Carrello | Poster Generator",

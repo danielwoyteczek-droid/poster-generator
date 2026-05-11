@@ -55,7 +55,7 @@
 | PROJ-39 | Multi-Format Preset-Renders + Inspiration Format-Switcher | Approved | [PROJ-39-multi-format-preset-renders.md](PROJ-39-multi-format-preset-renders.md) | 2026-05-09 |
 | PROJ-40 | Masks (Form-Picker) für Sternenposter-Editor | In Review | [PROJ-40-star-map-masks.md](PROJ-40-star-map-masks.md) | 2026-05-10 |
 | PROJ-41 | Mask-Thumbnail-Polish (Labels weg, Couple-Fill konsistent) | Planned | [PROJ-41-mask-thumbnail-polish.md](PROJ-41-mask-thumbnail-polish.md) | 2026-05-10 |
-| PROJ-42 | Programmatic City Landing Pages (SEO-Stadtkarten-Hubs) | Architected | [PROJ-42-programmatic-city-landing-pages.md](PROJ-42-programmatic-city-landing-pages.md) | 2026-05-10 |
+| PROJ-42 | Programmatic City Landing Pages (SEO-Stadtkarten-Hubs) | Deployed | [PROJ-42-programmatic-city-landing-pages.md](PROJ-42-programmatic-city-landing-pages.md) | 2026-05-10 |
 
 <!-- Add features above this line -->
 

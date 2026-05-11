@@ -1,6 +1,7 @@
 import type { MetadataRoute } from 'next'
-import { listBlogPosts } from '@/sanity/queries'
-import { locales } from '@/i18n/config'
+import { listBlogPosts, listAllCityPages, type CityPageRef } from '@/sanity/queries'
+import { locales, type Locale } from '@/i18n/config'
+import { buildCityPagePath, CITY_URL_SEGMENT } from '@/lib/city-routing'
 
 export const revalidate = 3600
 
@@ -26,6 +27,26 @@ function alternatesFor(path: string, baseUrl: string) {
   const languages: Record<string, string> = {}
   for (const loc of locales) languages[loc] = `${baseUrl}/${loc}${path}`
   languages['x-default'] = `${baseUrl}/de${path}`
+  return { languages }
+}
+
+/**
+ * Builds an alternates.languages map specifically for city pages, where
+ * each locale has its own (possibly different) URL segment AND its own
+ * (possibly different) slug. Only locales whose Sanity-cityPage exists
+ * are linked. PROJ-42.
+ */
+function cityAlternatesFor(refsByLocale: Map<Locale, CityPageRef>, baseUrl: string) {
+  const languages: Record<string, string> = {}
+  for (const [loc, ref] of refsByLocale) {
+    languages[loc] = `${baseUrl}${buildCityPagePath(loc, ref.slug)}`
+  }
+  if (languages['de']) {
+    languages['x-default'] = languages['de']
+  } else {
+    const first = Object.values(languages)[0]
+    if (first) languages['x-default'] = first
+  }
   return { languages }
 }
 
@@ -62,5 +83,33 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }
   }
 
-  return [...staticRoutes, ...blogRoutes]
+  // PROJ-42: City landing pages. One URL per (locale × city) where a
+  // Sanity-cityPage exists. Hreflang-Subelements verlinken nur Locales
+  // mit existierendem Doc — der Phase-Rollout-Status (DE first) bleibt
+  // damit fuer Google sauber.
+  const cityRoutes: MetadataRoute.Sitemap = []
+  const allCityPages = (await listAllCityPages()) ?? []
+  // Group all variants by cityId so we can build hreflang per city.
+  const variantsByCity = new Map<string, Map<Locale, CityPageRef>>()
+  for (const ref of allCityPages) {
+    if (!ref.slug) continue
+    const loc = ref.language as Locale
+    if (!(locales as readonly string[]).includes(loc)) continue
+    if (CITY_URL_SEGMENT[loc] == null) continue
+    if (!variantsByCity.has(ref.cityId)) variantsByCity.set(ref.cityId, new Map())
+    variantsByCity.get(ref.cityId)!.set(loc, ref)
+  }
+  for (const [, refsByLocale] of variantsByCity) {
+    for (const [loc, ref] of refsByLocale) {
+      cityRoutes.push({
+        url: `${baseUrl}${buildCityPagePath(loc, ref.slug)}`,
+        lastModified: now,
+        changeFrequency: 'monthly',
+        priority: 0.7,
+        alternates: cityAlternatesFor(refsByLocale, baseUrl),
+      })
+    }
+  }
+
+  return [...staticRoutes, ...blogRoutes, ...cityRoutes]
 }

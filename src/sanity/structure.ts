@@ -20,6 +20,7 @@ export const structure: StructureResolver = (S) =>
       S.documentTypeListItem('galleryPage').title('Galerie-Seite (pro Sprache)'),
       S.documentTypeListItem('occasion').title('Anlässe (Stammdaten)'),
       S.documentTypeListItem('occasionPage').title('Anlass-Seiten (Locale × Anlass)'),
+      S.documentTypeListItem('cityPage').title('Stadt-Seiten (Locale × Stadt)'),
       S.documentTypeListItem('legalPage').title('Rechtliche Seiten'),
       S.documentTypeListItem('faqItem').title('FAQ-Einträge'),
       S.documentTypeListItem('blogPost').title('Blog-Artikel'),

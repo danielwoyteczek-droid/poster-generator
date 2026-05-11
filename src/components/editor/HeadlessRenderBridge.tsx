@@ -93,9 +93,29 @@ function BridgeImpl({
       //    Zoom kommt primär aus dem Preset (pendingCenter.zoom, vom applyPreset
       //    gesetzt). URL-`zoom` ist nur expliziter Override für Test-Szenarien.
       //    Für Foto-Posters (skipLocationOverride) wird das übersprungen.
+      //
+      //    PROJ-42 City-Renders: Wenn `?city_render=1` gesetzt ist (und es kein
+      //    Preset gibt), nimmt der Bridge zusätzlich `?layout=` und `?palette=`
+      //    aus der URL und schreibt sie direkt in den Editor-Store. Damit
+      //    rendert der Worker eine Stadt-Hero-Card (klassisch+sand etc.) ohne
+      //    dass dafür ein Preset im DB gebraucht wird.
       if (skipLocationOverride) {
         // Fall-through to Fonts + Delay
       } else {
+      // PROJ-42: city-render style/palette override (only for map editor).
+      const isCityRender = url.searchParams.get('city_render') === '1'
+      if (isCityRender && !hasPreset) {
+        const layout = url.searchParams.get('layout')
+        const palette = url.searchParams.get('palette')
+        if (layout || palette) {
+          console.log('[hl-debug] HeadlessBridge: applying city_render style/palette', { layout, palette })
+          useEditorStore.setState((state) => ({
+            ...state,
+            ...(layout ? { styleId: layout } : {}),
+            ...(palette ? { paletteId: palette, customPalette: null, customPaletteBase: null } : {}),
+          }))
+        }
+      }
       const lat = parseFloat(url.searchParams.get('lat') ?? '')
       const lng = parseFloat(url.searchParams.get('lng') ?? '')
       const urlZoom = parseFloat(url.searchParams.get('zoom') ?? '')

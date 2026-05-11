@@ -1,9 +1,11 @@
 import Link from 'next/link'
 import { getLocale, getTranslations } from 'next-intl/server'
-import { getSiteSettings, listOccasionPagesForLocale } from '@/sanity/queries'
+import { getSiteSettings, listOccasionPagesForLocale, listCityPagesForLocale } from '@/sanity/queries'
 import { CookieSettingsLink } from '@/components/consent/CookieSettingsLink'
 import { buildOccasionPagePath } from '@/lib/occasion-routing'
+import { buildCityPagePath } from '@/lib/city-routing'
 import { getOccasions } from '@/lib/occasions-server'
+import { createAdminClient } from '@/lib/supabase-admin'
 import { locales, type Locale } from '@/i18n/config'
 
 function isLocale(value: string): value is Locale {
@@ -16,10 +18,11 @@ export async function LandingFooter() {
   const rawLocale = await getLocale().catch(() => 'de')
   const locale: Locale = isLocale(rawLocale) ? rawLocale : 'de'
 
-  const [settings, occasionRefs, occasionsList] = await Promise.all([
+  const [settings, occasionRefs, occasionsList, cityRefs] = await Promise.all([
     getSiteSettings(),
     listOccasionPagesForLocale(locale),
     getOccasions(),
+    listCityPagesForLocale(locale),
   ])
   const year = new Date().getFullYear()
 
@@ -37,11 +40,46 @@ export async function LandingFooter() {
       }
     })
 
+  // PROJ-42: Top-6 popular city pages in the current locale, sorted by
+  // population. Only cities with a Sanity-cityPage doc + a row in the
+  // cities-Tabelle land here. Orphans (Sanity refs city no longer in DB)
+  // are dropped.
+  const cityLinks: { label: string; href: string }[] = []
+  const validCityRefs = (cityRefs ?? []).filter((ref) => Boolean(ref.slug))
+  if (validCityRefs.length > 0) {
+    const admin = createAdminClient()
+    const slugBases = validCityRefs.map((r) => r.cityId)
+    const { data: cityRows } = await admin
+      .from('cities')
+      .select('slug_base, name, population')
+      .in('slug_base', slugBases)
+      .order('population', { ascending: false, nullsFirst: false })
+      .limit(slugBases.length)
+    const cityBySlug = new Map((cityRows ?? []).map((c) => [c.slug_base, c]))
+    const ordered = (cityRows ?? [])
+      .map((c) => {
+        const ref = validCityRefs.find((r) => r.cityId === c.slug_base)
+        if (!ref) return null
+        return {
+          label: c.name,
+          href: buildCityPagePath(locale, ref.slug),
+        }
+      })
+      .filter((entry): entry is { label: string; href: string } => entry !== null)
+      .slice(0, 6)
+    cityLinks.push(...ordered)
+    void cityBySlug
+  }
+
   const showOccasions = occasionLinks.length > 0
-  // Tailwind JIT sees both class strings — runtime picks the right one.
-  const gridClass = showOccasions
-    ? 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8 mb-8'
-    : 'grid grid-cols-2 md:grid-cols-4 gap-8 mb-8'
+  const showCities = cityLinks.length > 0
+  // Column counts: 4 (default) → 5 (one extra block) → 6 (both extras).
+  // Tailwind JIT sees all three class strings literally.
+  const gridClass = showOccasions && showCities
+    ? 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8 mb-8'
+    : (showOccasions || showCities)
+      ? 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8 mb-8'
+      : 'grid grid-cols-2 md:grid-cols-4 gap-8 mb-8'
 
   const legalLinks = [
     { label: t('imprint'), href: '/impressum' },
@@ -87,6 +125,20 @@ export async function LandingFooter() {
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70 mb-3">{t('occasions')}</p>
               <ul className="space-y-2">
                 {occasionLinks.map((link) => (
+                  <li key={link.href}>
+                    <Link href={link.href} className="text-sm text-muted-foreground hover:text-foreground">
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {showCities && (
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70 mb-3">{t('cityMaps')}</p>
+              <ul className="space-y-2">
+                {cityLinks.map((link) => (
                   <li key={link.href}>
                     <Link href={link.href} className="text-sm text-muted-foreground hover:text-foreground">
                       {link.label}

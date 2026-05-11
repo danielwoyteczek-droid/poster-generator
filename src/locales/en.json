@@ -246,7 +246,16 @@
     "withdrawal": "Right of withdrawal",
     "cookies": "Cookie policy",
     "fallbackCopyright": "© {year} Petite Moment",
-    "occasions": "Occasions"
+    "occasions": "Occasions",
+    "cityMaps": "Popular city maps"
+  },
+  "cityPage": {
+    "stylePickerHeading": "Pick your style",
+    "ctaHeadline": "Ready for your {city} poster?",
+    "ctaSubline": "Customize format, style and text in just a few minutes.",
+    "ctaButtonLabel": "Design your own city map",
+    "relatedCitiesHeading": "More city maps",
+    "breadcrumbCityMaps": "City maps"
   },
   "cart": {
     "pageTitle": "Cart | Poster Generator",

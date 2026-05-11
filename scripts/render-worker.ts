@@ -23,6 +23,7 @@ import { chromium, type Browser, type BrowserContext } from 'playwright'
 import { config as loadEnv } from 'dotenv'
 import crypto from 'node:crypto'
 import { renderMockup, fetchCompositeBuffer, DynamicMockupsApiError } from '../src/lib/dynamic-mockups-client'
+import { FEATURED_STYLES, type FeaturedStyle } from '../src/lib/featured-styles'
 
 loadEnv({ path: '.env.local' })
 
@@ -49,6 +50,17 @@ const READY_TIMEOUT_MS = 60_000
 const RENDER_TIMEOUT_MS = 60_000
 const DEFAULT_LOCALE = 'de'
 const STORAGE_BUCKET = 'preset-renders'
+
+// PROJ-42: Bucket fuer Stadt-Hero-Renders (getrennt von preset-renders).
+const CITY_STORAGE_BUCKET = 'city-renders'
+
+// PROJ-42: Default-Format fuer Stadt-Hero-Renders. A3 ist der Sweet-Spot
+// fuer Style-Picker-Cards (gross genug fuer Detail, klein genug fuer Bandbreite).
+const CITY_RENDER_FORMAT: PortraitFormat = 'a3'
+
+// PROJ-42: Default-Zoom fuer Stadt-Renders, falls keine Stadt-spezifische
+// Vorgabe greift. 12 zeigt Stadt-Innenbereiche gut.
+const CITY_RENDER_DEFAULT_ZOOM = 12
 
 const WORKER_ID = crypto.randomUUID()
 const WORKER_SHORT_ID = WORKER_ID.slice(0, 8)
@@ -713,6 +725,217 @@ async function renderCompositionEnd2End(
   await markCompositionDone(supabase, composition.id, results.desktop, results.mobile)
 }
 
+// ─── PROJ-42 City-Renders ──────────────────────────────────────────────────
+//
+// Cities werden als separater Job-Typ in city_renders verwaltet (NICHT in
+// presets). Ablauf identisch zu Presets: atomic-claim 'pending' -> render
+// via Headless-Editor -> upload nach city-renders-Bucket -> Status 'done'.
+//
+// WICHTIG (Editor-Side-Follow-up): Die hier gebauten URL-Params
+// (?city_render=1&layout=X&palette=Y&lat=..&lng=..&zoom=..&format=a3) muessen
+// vom Editor (Map-Page Headless-Bridge) interpretiert werden. Stand
+// 2026-05-10: presets-getriebener Render-Pfad ist live; city_render-Pfad
+// muss in einem nachfolgenden Frontend-PR hinzugefuegt werden, damit der
+// Editor ohne Preset rendert wenn city_render=1 gesetzt ist.
+// Bis dahin laufen Stadt-Render-Jobs in 'failed' wegen fehlender
+// __posterReady-Initialisierung — kein Datenverlust, einfach erneut
+// triggerbar.
+
+interface CityRenderRow {
+  id: string
+  city_id: string
+  style_id: string
+  // City fields joined in for the render setup.
+  city_slug_base: string
+  city_name: string
+  city_country_code: string
+  city_latitude: number
+  city_longitude: number
+}
+
+async function claimNextCityRender(supabase: SupabaseClient): Promise<CityRenderRow | null> {
+  // 1. Read-only: pick the oldest pending city-render-job.
+  const { data: candidates, error: selErr } = await supabase
+    .from('city_renders')
+    .select('id, city_id, style_id, cities!inner(slug_base, name, country_code, latitude, longitude)')
+    .eq('render_status', 'pending')
+    .order('created_at')
+    .limit(1)
+
+  if (selErr) {
+    logErr(`SELECT pending city_renders failed: ${selErr.message}`)
+    return null
+  }
+  if (!candidates || candidates.length === 0) return null
+
+  const candidate = candidates[0] as unknown as {
+    id: string
+    city_id: string
+    style_id: string
+    cities: {
+      slug_base: string
+      name: string
+      country_code: string
+      latitude: number
+      longitude: number
+    }
+  }
+
+  // 2. Atomic claim via UPDATE WHERE status='pending'.
+  const { data: claimed, error: updErr } = await supabase
+    .from('city_renders')
+    .update({
+      render_status: 'rendering',
+      render_started_at: new Date().toISOString(),
+      render_worker_id: WORKER_ID,
+      render_error: null,
+    })
+    .eq('id', candidate.id)
+    .eq('render_status', 'pending')
+    .select('id')
+    .single()
+
+  if (updErr || !claimed) return null
+
+  return {
+    id: candidate.id,
+    city_id: candidate.city_id,
+    style_id: candidate.style_id,
+    city_slug_base: candidate.cities.slug_base,
+    city_name: candidate.cities.name,
+    city_country_code: candidate.cities.country_code,
+    city_latitude: candidate.cities.latitude,
+    city_longitude: candidate.cities.longitude,
+  }
+}
+
+async function markCityRenderDone(
+  supabase: SupabaseClient,
+  renderId: string,
+  imageUrl: string,
+  width: number,
+  height: number,
+) {
+  const now = new Date().toISOString()
+  const { error } = await supabase.from('city_renders').update({
+    render_status: 'done',
+    render_completed_at: now,
+    rendered_at: now,
+    image_url: imageUrl,
+    image_width: width,
+    image_height: height,
+    render_error: null,
+  }).eq('id', renderId)
+  if (error) logErr(`markCityRenderDone failed: ${error.message}`)
+}
+
+async function markCityRenderFailed(supabase: SupabaseClient, renderId: string, message: string) {
+  const { error } = await supabase
+    .from('city_renders')
+    .update({
+      render_status: 'failed',
+      render_completed_at: new Date().toISOString(),
+      render_error: message.slice(0, 1000),
+    })
+    .eq('id', renderId)
+  if (error) logErr(`markCityRenderFailed failed: ${error.message}`)
+}
+
+/**
+ * Rendert ein Stadt-Hero-Poster fuer (city × featured-style) ueber den
+ * Headless-Map-Editor. Anders als renderPosterPng() laedt der Editor hier
+ * KEIN Preset, sondern bekommt Layout + Palette + Geocode direkt als
+ * URL-Params.
+ */
+async function renderCityPosterPng(
+  context: BrowserContext,
+  cityRow: CityRenderRow,
+  style: FeaturedStyle,
+): Promise<Buffer> {
+  const params = new URLSearchParams({
+    headless: '1',
+    city_render: '1',
+    format: CITY_RENDER_FORMAT,
+    layout: style.layoutId,
+    palette: style.paletteId,
+    lat: String(cityRow.city_latitude),
+    lng: String(cityRow.city_longitude),
+    zoom: String(CITY_RENDER_DEFAULT_ZOOM),
+    location_name: cityRow.city_name,
+  })
+  const url = `${APP_BASE_URL}/${DEFAULT_LOCALE}/map?${params.toString()}`
+  log(`  → city headless render: ${url}`)
+
+  const page = await context.newPage()
+  try {
+    const resp = await page.goto(url, { waitUntil: 'load', timeout: READY_TIMEOUT_MS })
+    if (!resp || !resp.ok()) {
+      throw new Error(`Headless-Editor-Page HTTP ${resp?.status()}`)
+    }
+
+    await page.waitForFunction(() => window.__posterReady === true, undefined, {
+      timeout: READY_TIMEOUT_MS,
+    })
+
+    const dataUrl = await Promise.race([
+      page.evaluate(async (fmt: string): Promise<string> => {
+        const fn = (window as unknown as { __renderPosterPng?: (opts?: { format?: string }) => Promise<string> }).__renderPosterPng
+        if (typeof fn !== 'function') throw new Error('window.__renderPosterPng fehlt')
+        return await fn({ format: fmt })
+      }, CITY_RENDER_FORMAT),
+      new Promise<string>((_, rej) =>
+        setTimeout(() => rej(new Error(`Headless-Render-Timeout ${RENDER_TIMEOUT_MS}ms`)), RENDER_TIMEOUT_MS),
+      ),
+    ])
+
+    const base64 = dataUrl.replace(/^data:image\/png;base64,/, '')
+    return Buffer.from(base64, 'base64')
+  } finally {
+    await page.close()
+  }
+}
+
+async function renderCityEnd2End(
+  supabase: SupabaseClient,
+  context: BrowserContext,
+  cityRow: CityRenderRow,
+) {
+  const style = FEATURED_STYLES.find((s) => s.id === cityRow.style_id)
+  if (!style) {
+    throw new Error(
+      `Featured-Style "${cityRow.style_id}" existiert nicht in src/lib/featured-styles.ts. ` +
+        `Vermutlich wurde der Style entfernt — markiere die Render-Zeile als 'stale' oder loesche sie.`,
+    )
+  }
+
+  log(`Rendering city "${cityRow.city_name}" / style "${style.id}" (${style.layoutId} + ${style.paletteId})`)
+
+  const sharp = (await import('sharp')).default
+  const posterBuffer = await renderCityPosterPng(context, cityRow, style)
+  log(`  → city poster ${(posterBuffer.length / 1024).toFixed(0)} KB`)
+
+  // Convert to JPG for storage (smaller, browser-friendly for hero cards).
+  const jpegBuffer = await sharp(posterBuffer).jpeg({ quality: 88 }).toBuffer()
+  const meta = await sharp(jpegBuffer).metadata()
+  const path = `${cityRow.city_id}/${cityRow.style_id}.jpg`
+
+  const { error: upErr } = await supabase.storage
+    .from(CITY_STORAGE_BUCKET)
+    .upload(path, jpegBuffer, { contentType: 'image/jpeg', upsert: true })
+  if (upErr) throw new Error(`city-render upload: ${upErr.message}`)
+
+  const { data: urlData } = supabase.storage.from(CITY_STORAGE_BUCKET).getPublicUrl(path)
+  const url = `${urlData.publicUrl}?v=${Date.now()}`
+
+  await markCityRenderDone(
+    supabase,
+    cityRow.id,
+    url,
+    meta.width ?? 0,
+    meta.height ?? 0,
+  )
+}
+
 // ─── Main-Loop ─────────────────────────────────────────────────────────────
 
 async function main() {
@@ -801,6 +1024,28 @@ async function main() {
             await markCompositionFailed(supabase, claimedComp.id, msg)
           }
           logErr(`✗ Composition "${claimedComp.name}": ${msg}`)
+        }
+        continue
+      }
+
+      // 3. PROJ-42: Stadt-Renders (city_renders-Tabelle)
+      let claimedCity: CityRenderRow | null = null
+      try {
+        claimedCity = await claimNextCityRender(supabase)
+      } catch (err) {
+        logErr(`City-Claim error: ${err instanceof Error ? err.message : err}`)
+      }
+
+      if (claimedCity) {
+        consecutiveEmptyPolls = 0
+        const t0 = Date.now()
+        try {
+          await renderCityEnd2End(supabase, context, claimedCity)
+          log(`✓ City "${claimedCity.city_name}/${claimedCity.style_id}" fertig in ${((Date.now() - t0) / 1000).toFixed(1)}s`)
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err)
+          await markCityRenderFailed(supabase, claimedCity.id, msg)
+          logErr(`✗ City "${claimedCity.city_name}/${claimedCity.style_id}": ${msg}`)
         }
         continue
       }

@@ -4,6 +4,7 @@ import { getTranslations } from 'next-intl/server'
 import { EditorShell } from '@/components/editor/EditorShell'
 import { LandingNav } from '@/components/landing/LandingNav'
 import { PresetUrlApplier } from '@/components/editor/PresetUrlApplier'
+import { CityUrlApplier } from '@/components/editor/CityUrlApplier'
 import { HeadlessEditorView } from '@/components/editor/HeadlessEditorView'
 import { EditorToolbar } from '@/components/editor/EditorToolbar'
 
@@ -27,6 +28,9 @@ export default async function MapPage({
       <LandingNav />
       <Suspense fallback={null}>
         <PresetUrlApplier posterType="map" />
+      </Suspense>
+      <Suspense fallback={null}>
+        <CityUrlApplier />
       </Suspense>
       <EditorToolbar posterType="map" />
       <div className="flex-1 min-h-0">
