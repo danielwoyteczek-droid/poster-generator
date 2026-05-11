@@ -54,24 +54,42 @@ export function LanguageSwitcher({ variant = 'compact' }: LanguageSwitcherProps)
     setActive(detectActiveLocale())
   }, [])
 
-  const handlePick = (next: Locale) => {
+  const handlePick = async (next: Locale) => {
     if (next === active) return
     writeCookie(LOCALE_COOKIE, next)
 
-    // If the URL already carries a locale segment, swap it in place —
-    // middleware will pick up the cookie + path and serve the new locale.
-    // Otherwise (current state, before route migration) just reload so
-    // the cookie takes effect on the next render cycle.
     const path = window.location.pathname
     const segs = path.split('/')
-    if ((locales as readonly string[]).includes(segs[1])) {
-      segs[1] = next
-      window.location.href = segs.join('/') + window.location.search + window.location.hash
-    } else {
-      // Pages still pre-migration — keep the cookie, reload so the
-      // browser-language detection updates server-side messages.
+    if (!(locales as readonly string[]).includes(segs[1])) {
+      // Pre-migration pages without /[locale]/ prefix — just reload so
+      // cookie + Accept-Language detection update server-side messages.
       window.location.reload()
+      return
     }
+
+    // Ask the server for the locale-equivalent path. Cities + Occasions
+    // have locale-specific URL segments (/de/stadtkarte/ ↔ /en/city-map/)
+    // and locale-specific slugs (stadtkarte-hamburg ↔ city-map-hamburg).
+    // Naive segs[1]-swap would 404 — the API resolves the right path via
+    // Sanity-Lookup for city/occasion pages, naive swap for generic URLs.
+    try {
+      const apiUrl = `/api/translate-url?path=${encodeURIComponent(path)}&target=${next}`
+      const res = await fetch(apiUrl, { cache: 'no-store' })
+      if (res.ok) {
+        const data = (await res.json()) as { targetPath?: string }
+        if (data.targetPath) {
+          window.location.href = data.targetPath + window.location.search + window.location.hash
+          return
+        }
+      }
+    } catch {
+      // Network/API error — fall through to naive swap as last resort
+    }
+
+    // Fallback: naive swap (works for /about, /faq, /blog/* — same path
+    // shape across locales).
+    segs[1] = next
+    window.location.href = segs.join('/') + window.location.search + window.location.hash
   }
 
   const triggerCompact = (
