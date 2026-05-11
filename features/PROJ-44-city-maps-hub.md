@@ -1,6 +1,6 @@
 # PROJ-44: Stadt-Karten-Hub (Topic-Authority-Übersichts-Seite)
 
-## Status: In Progress
+## Status: Deployed
 **Created:** 2026-05-11
 **Last Updated:** 2026-05-11
 
@@ -447,4 +447,38 @@ src/
 _To be added by /qa_
 
 ## Deployment
-_To be added by /deploy_
+
+**Deployed:** 2026-05-11
+**Production URL:** https://petite-moment.com/de/stadtkarte/ (+ 4 weitere Locale-Hubs)
+**Deploy-Commit:** `4f9f95c feat(PROJ-44): Stadt-Karten-Hub umbrella pages`
+**Deploy-Type:** Code-only (Vercel auto-deploy bei main-Push) — keine DB-Migration, kein Worker-Run, keine Sanity-Doc-Pflege.
+
+### Was wurde deployed
+
+**Code (Vercel via main-Push):**
+- 5 neue Hub-Routes pro Locale-Segment (`/de/stadtkarte/`, `/en/city-map/`, `/fr/carte-de-ville/`, `/it/mappa-citta/`, `/es/mapa-ciudad/`)
+- 5 neue React-Components (HubHero, HubIntro, HubCityGrid, HubCta, CityMapsHubPage)
+- 2 lib-Helper (city-maps-hub-route.ts, city-maps-hub-metadata.ts)
+- cityMapsHub-Namespace in allen 5 Locale-JSONs mit AI-generierten Intros
+- Sitemap-Erweiterung (5 Hub-URLs + Hreflang-Subelements)
+- LandingFooter-Erweiterung ("Alle Stadtkarten →"-Link im cityMaps-Block)
+- CityLandingPage-Erweiterung ("← Alle Stadtkarten ansehen"-Link nach RelatedCities)
+
+### Smoke-Test (2026-05-11)
+- ✅ User manual smoke-test passed
+- ✅ `tsc --noEmit` clean
+- ✅ `npm run build` Compiled successfully
+- ✅ Alle 10 Routes (5 Hub + 5 [slug]) im Build-Output registriert
+
+### Was offen ist (V2)
+
+- **EN/FR/IT/ES Hub-Inhalte real produktiv**: Aktuell zeigt der Hub in diesen Locales die "Coming soon"-Notiz, weil noch keine cityPage-Sanity-Docs in den jeweiligen Locales gepflegt sind. Sobald Phase-2-Stadt-LPs in diesen Locales angelegt werden (PROJ-42-Phase-3+), füllt sich der Locale-Hub automatisch.
+- **Pagination**: 10 Cards reichen für V1. Sobald >20-30 Städte (Phase-2-Skalierung), Pagination implementieren.
+- **FAQ-Sektion**: V2-Add-on. Ideal nach 4-6 Wochen Search-Console-Daten (welche Fragen User stellen).
+- **Sanity-Migration der Hub-Texte**: Aktuell hardcoded i18n. V2 falls Marketing eigenständigen Pflegezugriff braucht.
+
+### Operator-TODO nach Deploy
+
+1. ✅ Smoke-Test (done — User: "sieht soweit echt gut aus")
+2. **Google Search Console:** Sitemap re-submit (`/sitemap.xml`), die Hub-URL `/de/stadtkarte/` zur Indexierung einreichen
+3. Optional: Bei Anlass-Seiten + Blog-Posts manuell Internal-Links auf den Hub setzen (Topic-Authority-Boost)
