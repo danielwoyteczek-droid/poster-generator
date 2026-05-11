@@ -233,11 +233,12 @@ export const MAP_MASKS: Record<MapMaskKey, MapMaskDefinition> = {
       },
       bottomFraction: 0.6,
       // hearts-diagonal cross the midline at angles and have their tips
-      // close to the canvas top edge — a 1.15 scale clipped them visibly.
-      // Pulled back to 1.08 as a compromise: a touch more presence in
-      // landscape, still safely inside the canvas top.
-      landscapeScale: 1.08,
-      landscapeYOffset: 0.04,
+      // close to the canvas top edge. 1.15 clipped, 1.08 was fine but
+      // small. 1.18 with a stronger 0.08 y-offset trades top-clip risk
+      // for a roomier silhouette — the offset pushes the whole shape
+      // down enough that the upper tips stay inside.
+      landscapeScale: 1.18,
+      landscapeYOffset: 0.08,
     },
   },
 }
