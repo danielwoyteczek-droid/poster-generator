@@ -125,6 +125,22 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
       secondMarkerMigrationFiredRef.current = true
     }
   }, [isDualMap, secondMarker.enabled, setSecondMarker])
+
+  // Anchor freshly-enabled markers at the current map centre. Without this
+  // a toggled-on marker (no location search yet) sits at the safeArea-centre
+  // fallback and doesn't move when the user pans — Daniel: "ich muss erst
+  // mal einen Ort suchen". Seeding lat/lng with the live map centre makes
+  // the pin geographically anchored from frame one, so pans/zooms move it.
+  useEffect(() => {
+    if (marker.enabled && marker.lat == null && marker.lng == null) {
+      setMarker({ lat: viewState.lat, lng: viewState.lng })
+    }
+  }, [marker.enabled, marker.lat, marker.lng, viewState.lat, viewState.lng, setMarker])
+  useEffect(() => {
+    if (isDualMap && secondMarker.enabled && secondMarker.lat == null && secondMarker.lng == null) {
+      setSecondMarker({ lat: secondMap.viewState.lat, lng: secondMap.viewState.lng })
+    }
+  }, [isDualMap, secondMarker.enabled, secondMarker.lat, secondMarker.lng, secondMap.viewState.lat, secondMap.viewState.lng, setSecondMarker])
   // Zone 0 = left/first half, zone 1 = right/second half
   const photoIsRightZone = splitPhotoZone === 1
   // Orientation-aware split-half mask URLs. The static SVGs in /public are
