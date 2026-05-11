@@ -255,7 +255,23 @@
     "ctaSubline": "Customize format, style and text in just a few minutes.",
     "ctaButtonLabel": "Design your own city map",
     "relatedCitiesHeading": "More city maps",
-    "breadcrumbCityMaps": "City maps"
+    "breadcrumbCityMaps": "City maps",
+    "backToHubLink": "← View all city maps"
+  },
+  "cityMapsHub": {
+    "pageTitle": "Personalised City Maps as Posters — all cities | petite-moment",
+    "metaDescription": "Personalised city map posters — pick from 10 German cities or design your own. A4 to A2, premium print, free shipping within Germany.",
+    "h1": "Personalised City Maps",
+    "subline": "Your favourite city as a premium wall poster — curated designs for the ten most popular German cities.",
+    "introParagraph1": "One city, one moment, one poster. At petite-moment you can turn any city into a personalised map poster — from your favourite café in Hamburg to your home neighbourhood in Munich. Choose from three premium styles, adapt format and colour to your wall, and receive your city map poster on premium print paper.",
+    "introParagraph2": "Below you'll find a curated selection of the ten most popular cities. Click a city for the ready-made template — or jump straight into the editor and design any city yourself. Available as a digital download (PNG + PDF) or as a finished printed poster in A4, A3, or A2 — free shipping within Germany.",
+    "gridHeading": "Choose your city",
+    "ctaHeadline": "Don't see your city?",
+    "ctaSubline": "In the editor you can freely pick any city and design your own poster in minutes.",
+    "ctaButtonLabel": "Design in the editor",
+    "emptyHeadline": "City maps for this language are coming soon",
+    "emptySubline": "This locale doesn't have ready-made city maps yet. Jump into the editor anyway and start designing your own poster.",
+    "viewAllLink": "All city maps →"
   },
   "cart": {
     "pageTitle": "Cart | Poster Generator",

@@ -8,7 +8,8 @@ import { CityCta } from '@/components/landing/CityCta'
 import { RelatedCities, type RelatedCity } from '@/components/landing/RelatedCities'
 import { getCityPageBySlug, listCityPagesForLocale } from '@/sanity/queries'
 import { createAdminClient } from '@/lib/supabase-admin'
-import { buildCityPagePath } from '@/lib/city-routing'
+import { buildCityPagePath, CITY_URL_SEGMENT } from '@/lib/city-routing'
+import Link from 'next/link'
 import { buildCityPageJsonLd } from '@/lib/city-page-metadata'
 import {
   FEATURED_STYLES,
@@ -214,6 +215,14 @@ export async function CityLandingPage({ locale, slug, preview }: Props) {
           cities={relatedCities}
           heading={t('relatedCitiesHeading')}
         />
+        <div className="pb-12 sm:pb-16 text-center bg-background">
+          <Link
+            href={`/${locale}/${CITY_URL_SEGMENT[locale]}/`}
+            className="inline-block text-sm font-medium text-muted-foreground hover:text-foreground"
+          >
+            {t('backToHubLink')}
+          </Link>
+        </div>
       </main>
       <LandingFooter />
     </div>

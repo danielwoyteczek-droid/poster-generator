@@ -3,7 +3,7 @@ import { getLocale, getTranslations } from 'next-intl/server'
 import { getSiteSettings, listOccasionPagesForLocale, listCityPagesForLocale } from '@/sanity/queries'
 import { CookieSettingsLink } from '@/components/consent/CookieSettingsLink'
 import { buildOccasionPagePath } from '@/lib/occasion-routing'
-import { buildCityPagePath } from '@/lib/city-routing'
+import { buildCityPagePath, CITY_URL_SEGMENT } from '@/lib/city-routing'
 import { getOccasions } from '@/lib/occasions-server'
 import { createAdminClient } from '@/lib/supabase-admin'
 import { locales, type Locale } from '@/i18n/config'
@@ -15,8 +15,10 @@ function isLocale(value: string): value is Locale {
 export async function LandingFooter() {
   const t = await getTranslations('footer')
   const tNav = await getTranslations('nav')
+  const tHub = await getTranslations('cityMapsHub')
   const rawLocale = await getLocale().catch(() => 'de')
   const locale: Locale = isLocale(rawLocale) ? rawLocale : 'de'
+  const hubHref = `/${locale}/${CITY_URL_SEGMENT[locale]}/`
 
   const [settings, occasionRefs, occasionsList, cityRefs] = await Promise.all([
     getSiteSettings(),
@@ -145,6 +147,11 @@ export async function LandingFooter() {
                     </Link>
                   </li>
                 ))}
+                <li>
+                  <Link href={hubHref} className="text-sm font-medium text-muted-foreground hover:text-foreground">
+                    {tHub('viewAllLink')}
+                  </Link>
+                </li>
               </ul>
             </div>
           )}

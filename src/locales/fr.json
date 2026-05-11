@@ -255,7 +255,23 @@
     "ctaSubline": "Personnalise le format, le style et le texte en quelques minutes.",
     "ctaButtonLabel": "Crée ta propre carte de ville",
     "relatedCitiesHeading": "Autres cartes de ville",
-    "breadcrumbCityMaps": "Cartes de ville"
+    "breadcrumbCityMaps": "Cartes de ville",
+    "backToHubLink": "← Voir toutes les cartes de ville"
+  },
+  "cityMapsHub": {
+    "pageTitle": "Cartes de ville personnalisées en poster — toutes les villes | petite-moment",
+    "metaDescription": "Cartes de ville personnalisées en poster — choisis parmi 10 villes ou crée la tienne. A4 à A2, impression premium, livraison gratuite en Allemagne.",
+    "h1": "Cartes de ville personnalisées",
+    "subline": "Ta ville préférée comme poster mural de qualité — designs sélectionnés pour les dix plus belles villes allemandes.",
+    "introParagraph1": "Une ville, un moment, un poster. Chez petite-moment, tu peux transformer chaque ville en carte personnalisée — de ton café préféré à Hambourg jusqu'à ton quartier d'enfance à Munich. Choisis parmi trois styles premium, adapte le format et la couleur à ton mur, et reçois ton poster sur papier d'impression premium.",
+    "introParagraph2": "Tu trouveras ci-dessous une sélection des dix villes les plus populaires. Clique sur une ville pour voir le modèle prêt — ou va directement dans l'éditeur et crée la ville de ton choix. Disponible en téléchargement numérique (PNG + PDF) ou en poster imprimé fini en A4, A3 ou A2 — livraison gratuite en Allemagne.",
+    "gridHeading": "Choisis ta ville",
+    "ctaHeadline": "Ta ville n'est pas dans la liste ?",
+    "ctaSubline": "Dans l'éditeur, tu peux choisir librement n'importe quelle ville et créer ton propre poster en quelques minutes.",
+    "ctaButtonLabel": "Créer dans l'éditeur",
+    "emptyHeadline": "Les cartes de ville pour cette langue arrivent bientôt",
+    "emptySubline": "Cette locale n'a pas encore de cartes prêtes. Va dans l'éditeur et crée ton propre poster dès maintenant.",
+    "viewAllLink": "Toutes les cartes de ville →"
   },
   "cart": {
     "pageTitle": "Panier | Poster Generator",

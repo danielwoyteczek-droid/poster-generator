@@ -255,7 +255,23 @@
     "ctaSubline": "Personalizza formato, stile e testo in pochi minuti.",
     "ctaButtonLabel": "Crea la tua mappa città",
     "relatedCitiesHeading": "Altre mappe città",
-    "breadcrumbCityMaps": "Mappe città"
+    "breadcrumbCityMaps": "Mappe città",
+    "backToHubLink": "← Vedi tutte le mappe città"
+  },
+  "cityMapsHub": {
+    "pageTitle": "Mappe città personalizzate come poster — tutte le città | petite-moment",
+    "metaDescription": "Mappe città personalizzate come poster — scegli tra 10 città tedesche o crea la tua. A4 ad A2, stampa premium, spedizione gratuita in Germania.",
+    "h1": "Mappe città personalizzate",
+    "subline": "La tua città preferita come poster murale di alta qualità — design curati per le dieci città tedesche più amate.",
+    "introParagraph1": "Una città, un momento, un poster. Su petite-moment puoi trasformare ogni città in una mappa personalizzata — dal tuo caffè preferito ad Amburgo al quartiere d'infanzia a Monaco. Scegli tra tre stili premium, adatta formato e colore alla tua parete, e ricevi il tuo poster su carta di stampa premium.",
+    "introParagraph2": "Qui sotto trovi una selezione curata delle dieci città più popolari. Clicca su una città per il modello pronto — oppure vai direttamente all'editor e crea qualsiasi città tu voglia. Disponibile come download digitale (PNG + PDF) o come poster già stampato in A4, A3 o A2 — spedizione gratuita in Germania.",
+    "gridHeading": "Scegli la tua città",
+    "ctaHeadline": "La tua città non è qui?",
+    "ctaSubline": "Nell'editor puoi scegliere liberamente qualsiasi città e creare il tuo poster in pochi minuti.",
+    "ctaButtonLabel": "Crea nell'editor",
+    "emptyHeadline": "Le mappe città per questa lingua arrivano presto",
+    "emptySubline": "Questa lingua non ha ancora mappe pronte. Vai nell'editor e crea già il tuo poster.",
+    "viewAllLink": "Tutte le mappe città →"
   },
   "cart": {
     "pageTitle": "Carrello | Poster Generator",

@@ -57,7 +57,7 @@
 | PROJ-41 | Mask-Thumbnail-Polish (Labels weg, Couple-Fill konsistent) | Planned | [PROJ-41-mask-thumbnail-polish.md](PROJ-41-mask-thumbnail-polish.md) | 2026-05-10 |
 | PROJ-42 | Programmatic City Landing Pages (SEO-Stadtkarten-Hubs) | Deployed | [PROJ-42-programmatic-city-landing-pages.md](PROJ-42-programmatic-city-landing-pages.md) | 2026-05-10 |
 | PROJ-43 | Mobile Editor Tap-Sheet UX | Deployed | [PROJ-43-mobile-tap-sheet-ux.md](PROJ-43-mobile-tap-sheet-ux.md) | 2026-05-11 |
-| PROJ-44 | Stadt-Karten-Hub (Topic-Authority-Übersicht /de/stadtkarte/) | Planned | [PROJ-44-city-maps-hub.md](PROJ-44-city-maps-hub.md) | 2026-05-11 |
+| PROJ-44 | Stadt-Karten-Hub (Topic-Authority-Übersicht /de/stadtkarte/) | In Progress | [PROJ-44-city-maps-hub.md](PROJ-44-city-maps-hub.md) | 2026-05-11 |
 
 <!-- Add features above this line -->
 

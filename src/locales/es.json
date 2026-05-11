@@ -255,7 +255,23 @@
     "ctaSubline": "Personaliza formato, estilo y texto en pocos minutos.",
     "ctaButtonLabel": "Crea tu propio mapa de ciudad",
     "relatedCitiesHeading": "Más mapas de ciudad",
-    "breadcrumbCityMaps": "Mapas de ciudad"
+    "breadcrumbCityMaps": "Mapas de ciudad",
+    "backToHubLink": "← Ver todos los mapas de ciudad"
+  },
+  "cityMapsHub": {
+    "pageTitle": "Mapas de ciudad personalizados como póster — todas las ciudades | petite-moment",
+    "metaDescription": "Mapas de ciudad personalizados como póster — elige entre 10 ciudades alemanas o crea el tuyo. A4 a A2, impresión premium, envío gratis en Alemania.",
+    "h1": "Mapas de ciudad personalizados",
+    "subline": "Tu ciudad favorita como póster mural de alta calidad — diseños seleccionados para las diez ciudades alemanas más populares.",
+    "introParagraph1": "Una ciudad, un momento, un póster. En petite-moment puedes convertir cada ciudad en un mapa personalizado — desde tu café favorito en Hamburgo hasta tu barrio de infancia en Múnich. Elige entre tres estilos premium, adapta el formato y el color a tu pared, y recibe tu póster en papel de impresión premium.",
+    "introParagraph2": "Abajo encontrarás una selección curada de las diez ciudades más populares. Haz clic en una ciudad para ver la plantilla lista — o ve directamente al editor y crea cualquier ciudad tú mismo. Disponible como descarga digital (PNG + PDF) o como póster impreso terminado en A4, A3 o A2 — envío gratis en Alemania.",
+    "gridHeading": "Elige tu ciudad",
+    "ctaHeadline": "¿Tu ciudad no está aquí?",
+    "ctaSubline": "En el editor puedes elegir libremente cualquier ciudad y crear tu propio póster en pocos minutos.",
+    "ctaButtonLabel": "Crear en el editor",
+    "emptyHeadline": "Los mapas de ciudad para este idioma llegan pronto",
+    "emptySubline": "Esta localidad aún no tiene mapas listos. Ve al editor y crea ya tu propio póster.",
+    "viewAllLink": "Todos los mapas de ciudad →"
   },
   "cart": {
     "pageTitle": "Carrito | Poster Generator",

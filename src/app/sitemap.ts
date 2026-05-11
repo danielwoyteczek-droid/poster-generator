@@ -3,6 +3,21 @@ import { listBlogPosts, listAllCityPages, type CityPageRef } from '@/sanity/quer
 import { locales, type Locale } from '@/i18n/config'
 import { buildCityPagePath, CITY_URL_SEGMENT } from '@/lib/city-routing'
 
+/**
+ * PROJ-44: Builds an alternates.languages map for the Stadt-Karten-Hub.
+ * The hub exists at the same URL-segment per locale as the single city
+ * LPs (e.g. /de/stadtkarte/ vs /de/stadtkarte/<slug>), so we reuse the
+ * CITY_URL_SEGMENT mapping.
+ */
+function hubAlternatesFor(baseUrl: string) {
+  const languages: Record<string, string> = {}
+  for (const loc of locales) {
+    languages[loc] = `${baseUrl}/${loc}/${CITY_URL_SEGMENT[loc]}/`
+  }
+  languages['x-default'] = `${baseUrl}/de/${CITY_URL_SEGMENT.de}/`
+  return { languages }
+}
+
 export const revalidate = 3600
 
 const STATIC_PATHS: { path: string; freq: 'weekly' | 'monthly' | 'yearly'; priority: number }[] = [
@@ -111,5 +126,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }
   }
 
-  return [...staticRoutes, ...blogRoutes, ...cityRoutes]
+  // PROJ-44: City-Maps-Hub-Pages — eine Hub-URL pro Locale (/de/stadtkarte/
+  // etc.), die alle Stadt-LPs aggregiert. Hreflang verlinkt alle 5 Locale-
+  // Hubs untereinander; die Hub-URL bekommt höhere Priority als einzelne
+  // Stadt-LPs (parent-level in der Site-Hierarchie).
+  const hubRoutes: MetadataRoute.Sitemap = []
+  for (const loc of locales) {
+    hubRoutes.push({
+      url: `${baseUrl}/${loc}/${CITY_URL_SEGMENT[loc]}/`,
+      lastModified: now,
+      changeFrequency: 'weekly',
+      priority: 0.8,
+      alternates: hubAlternatesFor(baseUrl),
+    })
+  }
+
+  return [...staticRoutes, ...blogRoutes, ...hubRoutes, ...cityRoutes]
 }

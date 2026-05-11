@@ -255,7 +255,23 @@
     "ctaSubline": "Im Editor passt du Format, Stil und Text in wenigen Minuten an.",
     "ctaButtonLabel": "Eigene Stadtkarte gestalten",
     "relatedCitiesHeading": "Weitere Stadtkarten",
-    "breadcrumbCityMaps": "Stadtkarten"
+    "breadcrumbCityMaps": "Stadtkarten",
+    "backToHubLink": "← Alle Stadtkarten ansehen"
+  },
+  "cityMapsHub": {
+    "pageTitle": "Personalisierte Stadtkarten als Poster — alle Städte | petite-moment",
+    "metaDescription": "Personalisierte Stadtkarten als Poster — wähle aus 10 deutschen Städten oder gestalte deine eigene. A4 bis A2, Premiumdruck, versandkostenfrei.",
+    "h1": "Personalisierte Stadtkarten",
+    "subline": "Deine Lieblingsstadt als hochwertiges Wand-Poster — kuratierte Designs für die zehn schönsten deutschen Städte.",
+    "introParagraph1": "Eine Stadt, ein Moment, ein Poster. Bei petite-moment kannst du jede Stadt als personalisierte Stadtkarte gestalten — vom Lieblings-Café in Hamburg bis zum Heimatviertel in München. Wähle aus drei Premium-Stilen, passe Format und Farbe an deine Wand an, und erhalte dein Stadtkarten-Poster auf Premium-Druckpapier.",
+    "introParagraph2": "Unten findest du eine kuratierte Auswahl der zehn beliebtesten Städte. Klick auf eine Stadt für die fertige Vorlage — oder geh direkt in den Editor und gestalte jede beliebige Stadt selbst. Verfügbar als Digital-Download (PNG + PDF) oder als fertig gedrucktes Poster in A4, A3 oder A2 — versandkostenfrei innerhalb Deutschlands.",
+    "gridHeading": "Wähle deine Stadt",
+    "ctaHeadline": "Deine Stadt nicht dabei?",
+    "ctaSubline": "Im Editor kannst du jede Stadt frei wählen und dein eigenes Poster in wenigen Minuten gestalten.",
+    "ctaButtonLabel": "Im Editor selbst gestalten",
+    "emptyHeadline": "Stadt-Karten für diese Sprache kommen bald",
+    "emptySubline": "Diese Locale hat noch keine fertigen Stadt-Karten. Geh in den Editor und gestalte trotzdem schon dein eigenes Poster.",
+    "viewAllLink": "Alle Stadtkarten →"
   },
   "cart": {
     "pageTitle": "Warenkorb | Poster Generator",
