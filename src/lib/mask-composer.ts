@@ -73,6 +73,15 @@ export interface ShapeDefinition {
    * back to `markup` when not present.
    */
   splitMarkup?: { left: string; right: string }
+  /**
+   * Optional zoom factor applied on top of the uniform-fit scaling when
+   * the poster is in landscape orientation. Defaults to 1.0 (pure fit).
+   * Use values > 1 to make a forgiving silhouette (heart, circle) fill
+   * more of the wider landscape canvas at the cost of the top/bottom
+   * extents being clipped by the poster edges. Shapes with critical
+   * upper/lower detail (e.g. house roof) should stay at 1.0.
+   */
+  landscapeScale?: number
 }
 
 /**
@@ -169,7 +178,8 @@ export function composeMaskSvg(
     const bottom = shape.bottomFraction ?? 1
     const layoutScale = bottom > layoutMapHeight ? layoutMapHeight / bottom : 1
     const fitScale = Math.min(canvasW / shape.width, canvasH / shape.height)
-    const totalScale = layoutScale * fitScale
+    const landscapeScale = shape.landscapeScale ?? 1
+    const totalScale = layoutScale * fitScale * landscapeScale
     const scaledW = shape.width * totalScale
     const scaledH = shape.height * totalScale
     const tx = +((canvasW - scaledW) / 2).toFixed(2)
@@ -333,7 +343,8 @@ export function composeFrameSvg(
     const bottom = shape.bottomFraction ?? 1
     const layoutScale = bottom > layoutMapHeight ? layoutMapHeight / bottom : 1
     const fitScale = Math.min(canvasW / shape.width, canvasH / shape.height)
-    const totalScale = layoutScale * fitScale
+    const landscapeScale = shape.landscapeScale ?? 1
+    const totalScale = layoutScale * fitScale * landscapeScale
     const scaledW = shape.width * totalScale
     const scaledH = shape.height * totalScale
     const tx = +((canvasW - scaledW) / 2).toFixed(2)
@@ -479,11 +490,13 @@ export function composeSplitMaskHalfSvg(
   const canvasW = 841.9
   const canvasH = 595.3
   const fitScale = Math.min(canvasW / W, canvasH / H)
-  const fittedW = W * fitScale
-  const fittedH = H * fitScale
+  const landscapeScale = shape.landscapeScale ?? 1
+  const totalScale = fitScale * landscapeScale
+  const fittedW = W * totalScale
+  const fittedH = H * totalScale
   const tx = ((canvasW - fittedW) / 2).toFixed(2)
   const ty = ((canvasH - fittedH) / 2).toFixed(2)
-  const shapeTransform = `translate(${tx} ${ty}) scale(${fitScale.toFixed(4)})`
+  const shapeTransform = `translate(${tx} ${ty}) scale(${totalScale.toFixed(4)})`
 
   const halfCanvasX = canvasW / 2
   const clipX = half === 'left' ? 0 : halfCanvasX
