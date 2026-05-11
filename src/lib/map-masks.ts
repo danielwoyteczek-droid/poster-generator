@@ -233,12 +233,11 @@ export const MAP_MASKS: Record<MapMaskKey, MapMaskDefinition> = {
       },
       bottomFraction: 0.6,
       // hearts-diagonal cross the midline at angles and have their tips
-      // close to the canvas top edge. landscapeScale > 1 pushes those
-      // tips beyond the canvas top and gets them clipped (Daniel: "der
-      // obere rechte Zipfel fehlt"). Leave it at the uniform-fit default
-      // so the diagonal hearts stay inside the canvas in landscape.
-      landscapeScale: 1.0,
-      landscapeYOffset: 0,
+      // close to the canvas top edge — a 1.15 scale clipped them visibly.
+      // Pulled back to 1.08 as a compromise: a touch more presence in
+      // landscape, still safely inside the canvas top.
+      landscapeScale: 1.08,
+      landscapeYOffset: 0.04,
     },
   },
 }
