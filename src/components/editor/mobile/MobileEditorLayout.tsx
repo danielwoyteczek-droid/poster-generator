@@ -53,7 +53,7 @@ export function MobileEditorLayout() {
           is on the wrapper; pan/pinch/marker-drag leak through naturally
           via the 10px/300ms thresholds. */}
       <div className="flex-1 min-h-0 flex" {...canvasTapHandlers}>
-        <PosterCanvas padding={32} activeMobileTool={isOpen ? activeTab : 'preview'} />
+        <PosterCanvas padding={32} activeMobileTool={activeTab} />
       </div>
 
       {/* Tab bar — always visible, anchored above the sheet (z-40 > sheet z-30). */}

@@ -54,7 +54,6 @@ function makeMaskStyle(svgPath: string) {
 }
 
 export type MobileEditorTool =
-  | 'preview' // PROJ-43: sheet closed — no overlay interactive (look-only)
   | 'map'
   | 'layout'
   | 'text'
