@@ -13,7 +13,7 @@ export function CityBody({ sections }: Props) {
   if (!sections || sections.length === 0) return null
   return (
     <section className="py-12 sm:py-16">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 space-y-12">
+      <div className="max-w-3xl mx-auto px-6 sm:px-6 space-y-12">
         {sections.map((section, idx) => (
           <article key={idx}>
             <h2 className="text-2xl sm:text-3xl font-semibold text-foreground mb-4">

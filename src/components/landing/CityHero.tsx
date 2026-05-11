@@ -12,7 +12,7 @@ interface Props {
 export function CityHero({ pageTitle, pageSubline }: Props) {
   return (
     <section className="bg-muted py-12 sm:py-16">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
+      <div className="max-w-3xl mx-auto px-6 sm:px-6 text-center">
         <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-foreground">
           {pageTitle}
         </h1>

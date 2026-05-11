@@ -57,12 +57,22 @@ export function CityStylePicker({
 
   return (
     <section className="py-12 sm:py-16 bg-background">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6">
+      <div className="max-w-5xl mx-auto px-6 sm:px-6">
         <h2 className="text-xl sm:text-2xl font-semibold text-center text-foreground mb-8">
           {pickerHeading}
         </h2>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-10">
+        {/*
+         * Mobile: horizontal snap-scroll-Slider (1 Karte sichtbar, swipe zur
+         * naechsten). Pattern aus PROJ-18 Mobile-Editor: `-mx-6 px-6` zieht
+         * den Container an die Bildschirmraender (negativer outer-margin)
+         * waehrend das innere padding die erste Card mit der Body-Linke
+         * ausrichtet. `w-[85%]` zeigt einen Peek auf die naechste Karte als
+         * Swipe-Affordance.
+         *
+         * sm+ (≥640px): wieder als 3-col-Grid ohne Scroll.
+         */}
+        <div className="flex sm:grid sm:grid-cols-3 gap-4 sm:gap-6 mb-10 overflow-x-auto sm:overflow-visible snap-x snap-mandatory sm:snap-none -mx-6 px-6 sm:-mx-0 sm:px-0 pb-2 sm:pb-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {availableStyles.map((style, index) => {
             const isSelected = style.id === selectedId
             const imageUrl = renderByStyle.get(style.id)!
@@ -76,6 +86,7 @@ export function CityStylePicker({
                 className={cn(
                   'group flex flex-col rounded-xl border-2 bg-white overflow-hidden transition-all',
                   'focus:outline-none focus:ring-2 focus:ring-foreground/30 focus:ring-offset-2',
+                  'flex-shrink-0 w-[80%] snap-center sm:w-auto sm:flex-shrink',
                   isSelected
                     ? 'border-foreground shadow-md'
                     : 'border-border hover:border-foreground/40 hover:shadow-sm',
@@ -86,7 +97,7 @@ export function CityStylePicker({
                     src={imageUrl}
                     alt={`${getFeaturedStyleLabel(style, locale)} Stadtkarte ${cityName}`}
                     fill
-                    sizes="(max-width: 640px) 100vw, 33vw"
+                    sizes="(max-width: 640px) 80vw, 33vw"
                     loading={index === 0 ? 'eager' : 'lazy'}
                     priority={index === 0}
                     className="object-cover transition-transform group-hover:scale-[1.02]"

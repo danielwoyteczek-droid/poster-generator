@@ -35,7 +35,7 @@ export function RelatedCities({ locale, cities, heading }: Props) {
   if (!cities || cities.length === 0) return null
   return (
     <section className="py-12 sm:py-16 bg-background">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6">
+      <div className="max-w-5xl mx-auto px-6 sm:px-6">
         <h2 className="text-2xl sm:text-3xl font-semibold text-foreground text-center mb-8">
           {heading}
         </h2>
