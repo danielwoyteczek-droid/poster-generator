@@ -233,9 +233,23 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
   // stroke separately for each half so each heart's outline matches its
   // own filled mask. Otherwise fall back to innerFrameForSplit which
   // strokes the combined shape.
+  // PROJ-40: also override shapeLandscape.markup, otherwise the landscape
+  // branch of composeFrameSvg picks up the COMBINED landscape markup and
+  // strokes the full shape — bypassing the per-half override entirely.
+  const buildHalfShape = (half: 'left' | 'right') => {
+    const sm = mask.shape!.splitMarkup!
+    const landscape = mask.shape!.shapeLandscape
+    return {
+      ...mask.shape!,
+      markup: sm[half],
+      shapeLandscape: landscape && landscape.splitMarkup
+        ? { ...landscape, markup: landscape.splitMarkup[half] }
+        : landscape,
+    }
+  }
   const innerFrameLeft = splitInner && mask.shape?.splitMarkup
     ? svgToDataUrl(composeFrameSvg(
-        { ...mask.shape, markup: mask.shape.splitMarkup.left },
+        buildHalfShape('left'),
         { ...shapeConfig, outerFrame: { ...shapeConfig.outerFrame, enabled: false } },
         1,
         210,
@@ -244,7 +258,7 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
     : null
   const innerFrameRight = splitInner && mask.shape?.splitMarkup
     ? svgToDataUrl(composeFrameSvg(
-        { ...mask.shape, markup: mask.shape.splitMarkup.right },
+        buildHalfShape('right'),
         { ...shapeConfig, outerFrame: { ...shapeConfig.outerFrame, enabled: false } },
         1,
         210,

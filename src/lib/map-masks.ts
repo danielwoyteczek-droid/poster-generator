@@ -90,12 +90,25 @@ export const MAP_MASKS: Record<MapMaskKey, MapMaskDefinition> = {
     svgPath: '/masks/heart1.svg',
     applicableTo: ['map'],
     isSplit: true,
+    // Two clean half-hearts with a 2 mm centerline gap. Each half is a
+    // closed path whose V-dip and bottom-tip sit ~1 mm off the canvas
+    // midline — the Z then draws an implicit vertical seam line per half,
+    // and the gap between the two seam lines is what the customer sees as
+    // the parting between the two maps. Without this we relied on a CSS
+    // clipPath at 50% ± 1mm to split a single full-heart outline into two,
+    // which left visible "joins" at the V-dip and bottom-tip because the
+    // outline endpoints lay exactly on the midline.
+    noHalfClip: true,
     leftSvgPath: '/masks/heart1-left.svg',
     rightSvgPath: '/masks/heart1-right.svg',
     shape: {
       viewBox: '0 0 595.3 841.9',
       width: 595.3, height: 841.9,
       markup: '<path d="M298 543 C 298 543, 48 375, 48 228 C 48 108, 198 60, 298 178 C 398 60, 548 108, 548 228 C 548 375, 298 543, 298 543 Z"/>',
+      splitMarkup: {
+        left: '<path d="M 294.815 178 C 198 60, 48 108, 48 228 C 48 375, 294.815 543, 294.815 543 Z"/>',
+        right: '<path d="M 300.485 178 C 398 60, 548 108, 548 228 C 548 375, 300.485 543, 300.485 543 Z"/>',
+      },
       bottomFraction: 0.645,
       landscapeScale: 1.15,
       landscapeYOffset: 0.06,
@@ -105,10 +118,14 @@ export const MAP_MASKS: Record<MapMaskKey, MapMaskDefinition> = {
         height: 595.3,
         // The single-heart path wrapped in an outer translate so its
         // centerline (x=298 in the source) lands on the landscape canvas
-        // midline (x=420.95). Scale 1.05 keeps the heart at near-portrait
+        // midline (x=420.95). Scale 0.92 keeps the heart at near-portrait
         // size while a small upward translate gives a bit of breathing
         // room above the text area.
         markup: '<g transform="translate(147 -58) scale(0.92)"><path d="M298 543 C 298 543, 48 375, 48 228 C 48 108, 198 60, 298 178 C 398 60, 548 108, 548 228 C 548 375, 298 543, 298 543 Z"/></g>',
+        splitMarkup: {
+          left: '<g transform="translate(147 -58) scale(0.92)"><path d="M 294.815 178 C 198 60, 48 108, 48 228 C 48 375, 294.815 543, 294.815 543 Z"/></g>',
+          right: '<g transform="translate(147 -58) scale(0.92)"><path d="M 300.485 178 C 398 60, 548 108, 548 228 C 548 375, 300.485 543, 300.485 543 Z"/></g>',
+        },
         bottomFraction: 1,
       },
     },

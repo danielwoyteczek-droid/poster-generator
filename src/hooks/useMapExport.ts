@@ -784,7 +784,43 @@ export async function buildPosterCanvas(
       )
       const contourImg = await loadImage(svgToDataUrl(contourSvg))
       if (mask.noHalfClip) {
-        ctx.drawImage(contourImg, mapTargetX, mapTargetY, mapTargetW, mapTargetH)
+        // PROJ-40: when the shape provides splitMarkup, stroke each half
+        // independently — same as the live preview. Without this the
+        // exported file gets a SINGLE combined contour while the preview
+        // shows two separate half-outlines.
+        if (mask.shape.splitMarkup) {
+          const buildHalfShape = (half: 'left' | 'right') => {
+            const sm = mask.shape!.splitMarkup!
+            const landscape = mask.shape!.shapeLandscape
+            return {
+              ...mask.shape!,
+              markup: sm[half],
+              shapeLandscape: landscape && landscape.splitMarkup
+                ? { ...landscape, markup: landscape.splitMarkup[half] }
+                : landscape,
+            }
+          }
+          const leftSvg = composeFrameSvg(
+            buildHalfShape('left'),
+            { ...shapeConfig, outerFrame: { ...shapeConfig.outerFrame, enabled: false } },
+            1,
+            210,
+            store.orientation ?? 'portrait',
+          )
+          const rightSvg = composeFrameSvg(
+            buildHalfShape('right'),
+            { ...shapeConfig, outerFrame: { ...shapeConfig.outerFrame, enabled: false } },
+            1,
+            210,
+            store.orientation ?? 'portrait',
+          )
+          const leftImg = await loadImage(svgToDataUrl(leftSvg))
+          const rightImg = await loadImage(svgToDataUrl(rightSvg))
+          ctx.drawImage(leftImg, mapTargetX, mapTargetY, mapTargetW, mapTargetH)
+          ctx.drawImage(rightImg, mapTargetX, mapTargetY, mapTargetW, mapTargetH)
+        } else {
+          ctx.drawImage(contourImg, mapTargetX, mapTargetY, mapTargetW, mapTargetH)
+        }
       } else {
         const gapHalfPx = mmToPx * 1
         const midX = mapTargetX + mapTargetW / 2
