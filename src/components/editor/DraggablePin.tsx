@@ -46,15 +46,12 @@ interface Props {
    *  Marker. Defaults to true (Desktop behaviour unchanged). */
   interactive?: boolean
   /**
-   * Optional visible-mask half rect, in container fractions (0..1). When
-   * provided:
-   *  - default position (lat/lng null) sits at the rect's centre instead of
-   *    the fixed `defaultX` / 50%, so the pin lands inside the silhouette
-   *    even when the mask is letterboxed (e.g. landscape circle).
-   *  - projected positions (lat/lng set) get clamped to this rect, so a
-   *    panned map can't slide the pin into the empty area outside the
-   *    visible silhouette. The pin still represents the same geographic
-   *    point — only the visual position is clamped.
+   * Optional visible-mask (half) rect, in container fractions (0..1).
+   * Used ONLY for default placement when lat/lng are null — the pin lands
+   * at the rect's centre instead of the fixed `defaultX` / 50%, so it sits
+   * inside the silhouette even when the mask is letterboxed (e.g. landscape
+   * circle). Projected positions (lat/lng set) are NOT clamped; the pin
+   * tracks the map 1:1 so the geographic reference is never lost.
    */
   safeArea?: { left: number; right: number; top: number; bottom: number }
 }
@@ -85,21 +82,11 @@ export function DraggablePin({
       const containerEl = containerRef.current
       if (map && containerEl) {
         const pt = map.project([markerLng, markerLat])
-        // Clamp the projected position into the visible-mask rect so a
-        // panned map can't drag the pin into the empty letterbox area
-        // outside the silhouette. Acts on the rendered pixels only — the
-        // stored marker.lat/lng (and the geographic meaning) stay intact.
-        if (safeArea) {
-          const w = containerEl.clientWidth
-          const h = containerEl.clientHeight
-          const minX = safeArea.left * w
-          const maxX = safeArea.right * w
-          const minY = safeArea.top * h
-          const maxY = safeArea.bottom * h
-          const cx = Math.max(minX, Math.min(maxX, pt.x))
-          const cy = Math.max(minY, Math.min(maxY, pt.y))
-          return { left: `${cx}px`, top: `${cy}px` }
-        }
+        // Intentionally NOT clamping to safeArea: the customer's primary
+        // need is that the pin tracks the map 1:1 during pan, so they
+        // never lose the geographic reference. If the user pans the
+        // searched location out of the visible mask, the pin honestly
+        // moves with it (and can be dragged back inside if desired).
         return { left: `${pt.x}px`, top: `${pt.y}px` }
       }
     }
