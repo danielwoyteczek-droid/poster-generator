@@ -213,13 +213,13 @@ export const MAP_MASKS: Record<MapMaskKey, MapMaskDefinition> = {
       // outer margin and 2 mm centre gap, instead of the old narrow
       // strips with a big margin. Same approach in landscape via
       // shapeLandscape below.
-      markup: '<rect x="8.5" y="8.5" width="286.32" height="824.9" rx="29.77"/><rect x="300.49" y="8.5" width="286.32" height="824.9" rx="29.77"/>',
+      markup: '<rect x="8.5" y="8.5" width="286.32" height="824.9" rx="2.835"/><rect x="300.49" y="8.5" width="286.32" height="824.9" rx="2.835"/>',
       bottomFraction: 0.99,
       shapeLandscape: {
         viewBox: '0 0 841.9 595.3',
         width: 841.9,
         height: 595.3,
-        markup: '<rect x="8.5" y="8.5" width="409.62" height="578.3" rx="29.77"/><rect x="423.79" y="8.5" width="409.62" height="578.3" rx="29.77"/>',
+        markup: '<rect x="8.5" y="8.5" width="409.62" height="578.3" rx="2.835"/><rect x="423.79" y="8.5" width="409.62" height="578.3" rx="2.835"/>',
         bottomFraction: 1,
       },
     },
