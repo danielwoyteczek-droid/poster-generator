@@ -82,6 +82,15 @@ export interface ShapeDefinition {
    * upper/lower detail (e.g. house roof) should stay at 1.0.
    */
   landscapeScale?: number
+  /**
+   * Optional vertical offset applied in landscape orientation, expressed
+   * as a fraction of the landscape canvas height (positive = shift down).
+   * Defaults to 0 (centred). Useful for top-heavy silhouettes like the
+   * heart whose visual mass sits in the upper half — a small positive
+   * value (~0.05–0.1) keeps the bottom point inside the poster while
+   * leaving more breathing room at the top.
+   */
+  landscapeYOffset?: number
 }
 
 /**
@@ -183,7 +192,7 @@ export function composeMaskSvg(
     const scaledW = shape.width * totalScale
     const scaledH = shape.height * totalScale
     const tx = +((canvasW - scaledW) / 2).toFixed(2)
-    const ty = +((canvasH - scaledH) / 2).toFixed(2)
+    const ty = +((canvasH - scaledH) / 2 + canvasH * (shape.landscapeYOffset ?? 0)).toFixed(2)
     const shapeTransform = ` transform="translate(${tx} ${ty}) scale(${totalScale.toFixed(4)})"`
 
     if (outer.mode === 'opacity' || outer.mode === 'full') {
@@ -348,7 +357,7 @@ export function composeFrameSvg(
     const scaledW = shape.width * totalScale
     const scaledH = shape.height * totalScale
     const tx = +((canvasW - scaledW) / 2).toFixed(2)
-    const ty = +((canvasH - scaledH) / 2).toFixed(2)
+    const ty = +((canvasH - scaledH) / 2 + canvasH * (shape.landscapeYOffset ?? 0)).toFixed(2)
 
     const parts: string[] = []
     const { innerFrame, outerFrame } = config
@@ -491,11 +500,12 @@ export function composeSplitMaskHalfSvg(
   const canvasH = 595.3
   const fitScale = Math.min(canvasW / W, canvasH / H)
   const landscapeScale = shape.landscapeScale ?? 1
+  const landscapeYOffset = shape.landscapeYOffset ?? 0
   const totalScale = fitScale * landscapeScale
   const fittedW = W * totalScale
   const fittedH = H * totalScale
   const tx = ((canvasW - fittedW) / 2).toFixed(2)
-  const ty = ((canvasH - fittedH) / 2).toFixed(2)
+  const ty = ((canvasH - fittedH) / 2 + canvasH * landscapeYOffset).toFixed(2)
   const shapeTransform = `translate(${tx} ${ty}) scale(${totalScale.toFixed(4)})`
 
   const halfCanvasX = canvasW / 2

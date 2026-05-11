@@ -80,7 +80,8 @@ export const MAP_MASKS: Record<MapMaskKey, MapMaskDefinition> = {
       width: 595.3, height: 841.9,
       markup: '<circle cx="297.6" cy="297.6" r="266.5"/>',
       bottomFraction: 0.67,
-      landscapeScale: 1.3,
+      landscapeScale: 1.15,
+      landscapeYOffset: 0.06,
     },
   },
   heart: {
@@ -96,7 +97,8 @@ export const MAP_MASKS: Record<MapMaskKey, MapMaskDefinition> = {
       width: 595.3, height: 841.9,
       markup: '<path d="M298 543 C 298 543, 48 375, 48 228 C 48 108, 198 60, 298 178 C 398 60, 548 108, 548 228 C 548 375, 298 543, 298 543 Z"/>',
       bottomFraction: 0.645,
-      landscapeScale: 1.3,
+      landscapeScale: 1.15,
+      landscapeYOffset: 0.06,
     },
   },
   'heart-single': {
@@ -109,7 +111,8 @@ export const MAP_MASKS: Record<MapMaskKey, MapMaskDefinition> = {
       width: 595.3, height: 841.9,
       markup: '<path d="M298 543 C 298 543, 48 375, 48 228 C 48 108, 198 60, 298 178 C 398 60, 548 108, 548 228 C 548 375, 298 543, 298 543 Z"/>',
       bottomFraction: 0.645,
-      landscapeScale: 1.3,
+      landscapeScale: 1.15,
+      landscapeYOffset: 0.06,
     },
   },
   house: {
@@ -162,7 +165,8 @@ export const MAP_MASKS: Record<MapMaskKey, MapMaskDefinition> = {
       // so single/split versions sit at the same poster height.
       markup: '<circle cx="297.6" cy="297.6" r="266.5"/>',
       bottomFraction: 0.67,
-      landscapeScale: 1.3,
+      landscapeScale: 1.15,
+      landscapeYOffset: 0.06,
     },
   },
 'split-halves': {
@@ -203,7 +207,8 @@ export const MAP_MASKS: Record<MapMaskKey, MapMaskDefinition> = {
         right: '<g transform="translate(-12 -87) scale(1.52)"><path d="M364.1,183.38c-19.67-61.75-106.26-75.91-142.8-21.78-14.78,19.83,8.86,49.29.87,76.4-5.3,29.47-26.69,52.38-30.88,82.28-4.25,19.24,7.08,66.16,22.81,77.65l.14.07c19.1,6.07,50.24-22.98,66.44-33.72,50.73-42.97,103.78-110.65,83.42-180.9Z"/></g>',
       },
       bottomFraction: 0.61,
-      landscapeScale: 1.3,
+      landscapeScale: 1.15,
+      landscapeYOffset: 0.06,
     },
   },
   'hearts-diagonal': {
@@ -227,7 +232,8 @@ export const MAP_MASKS: Record<MapMaskKey, MapMaskDefinition> = {
         right: '<g transform="translate(46 130) scale(1.3)"><path d="M291.01,133.68c3.17-1.95,37.47-22.36,67.14-6.57,4.64,2.47,10.77,6.67,16.57,14,3.49,4.8,11.45,17.16,11.43,34.29-.01,10.3-2.91,19.15-6.78,26.37-6.29,11.72-16.35,20.97-28.33,26.73l-119.46,57.47-46-110.86c-2.77-5.15-11.25-22.53-6.86-44.57.32-1.6.69-3.16,1.11-4.65,5.23-18.81,19.37-34.07,37.95-40.06,6.49-2.09,14.05-3.26,22.35-2.3,24.4,2.84,45.26,22.97,50.87,50.15Z"/></g>',
       },
       bottomFraction: 0.6,
-      landscapeScale: 1.3,
+      landscapeScale: 1.15,
+      landscapeYOffset: 0.06,
     },
   },
 }
