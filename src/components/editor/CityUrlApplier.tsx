@@ -94,7 +94,12 @@ export function CityUrlApplier() {
           },
           textBlocks: state.textBlocks.map((tb) =>
             tb.id === 'block-title' || (!tb.isCoordinates && tb.id === state.textBlocks[0]?.id)
-              ? { ...tb, text: city.name.toUpperCase() }
+              ? {
+                  ...tb,
+                  text: city.name.toUpperCase(),
+                  fontFamily: 'Cormorant Garamond',
+                  bold: true,
+                }
               : tb,
           ),
         }))

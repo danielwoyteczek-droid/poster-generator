@@ -135,12 +135,22 @@ function BridgeImpl({
           // PROJ-42: bei city_render auch den Title-textBlock auf den
           // Stadtnamen setzen (sonst rendert das Poster "NEW YORK" als
           // Titel — der Default-Text aus EDITOR_INITIAL_STATE).
+          //
+          // 2026-05-11: Brand-Font-Wahl. Title wird auf Cormorant Garamond
+          // Bold ALL CAPS gesetzt — passt zur UI-Headline-Font des Brand
+          // Systems (siehe project_brand_fonts.md). Customer kann im Editor
+          // jederzeit ueberschreiben; das ist nur der Render-Default.
           const isCityRender = url.searchParams.get('city_render') === '1'
           const updatedTextBlocks =
             isCityRender && locationName
               ? state.textBlocks.map((tb) =>
                   tb.id === 'block-title' || (!tb.isCoordinates && tb.id === state.textBlocks[0]?.id)
-                    ? { ...tb, text: locationName.toUpperCase() }
+                    ? {
+                        ...tb,
+                        text: locationName.toUpperCase(),
+                        fontFamily: 'Cormorant Garamond',
+                        bold: true,
+                      }
                     : tb,
                 )
               : state.textBlocks
