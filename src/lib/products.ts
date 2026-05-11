@@ -40,7 +40,7 @@ export const PRODUCTS: Product[] = [
     description: 'Poster im schwarzen Holzrahmen, fertig zum Aufhängen. Digitaler Download inklusive.',
     stripePriceIds: {
       a4: 'price_1TVqsO36Wy7c8yXhoPvyx4yp',
-      a3: 'price_1TOdjH36Wy7c8yXhumnPN5ed',
+      a3: 'price_1TVr4I36Wy7c8yXhbVUp8RHS',
     },
   },
 ]
