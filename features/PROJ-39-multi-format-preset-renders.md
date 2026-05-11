@@ -303,4 +303,14 @@ No Critical, High, or PROJ-39-introduced Medium/Low bugs found.
 ✅ **READY** — All acceptance criteria pass; security audit clean; no Critical/High bugs introduced by this feature; one pre-existing Medium bug flagged (independent of PROJ-39 scope). Recommended next step: deploy + run the admin Backfill button to populate A3 + A2 across all 27 published presets.
 
 ## Deployment
-_To be added by /deploy_
+
+**Deployed:** 2026-05-11 · **Production URL:** https://petite-moment.com
+
+- Code: shipped via commits `b9d3189` → `f8eb2df` on `main`; Vercel auto-deploy picked up the push.
+- Verified live: gallery cards render with `?preset=<id>&format=<fmt>` deep-link query params (A4 default until backfill runs).
+- DB migration `20260509000000_proj39_per_format_preset_renders.sql` applied on the Supabase production project; 18 new columns confirmed on `presets`.
+- Storage bucket `preset-renders` accepts the new `<id>/format-<fmt>.jpg` path layout (existing public-read policy unchanged).
+- **Post-deploy follow-up:** admin must click "Backfill A3+A2" in `/private/admin/presets` so the worker renders the missing A3 + A2 previews for the 27 existing presets. Until then, the format-switcher pills show only A4 (graceful fallback via `getAvailableFormats`).
+- Pre-existing `nav.gallery` MISSING_MESSAGE bug remains open (PROJ-11 origin) — flagged separately, not blocking PROJ-39.
+
+Git tag: `v1.0-PROJ-39`
