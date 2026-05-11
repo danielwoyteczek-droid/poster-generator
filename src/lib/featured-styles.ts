@@ -16,9 +16,19 @@ import { type Locale } from '@/i18n/config'
  * geaenderten IDs werden bestehende city_renders.style_id-Eintraege
  * verwaist und sollten via Admin-Tool re-rendert werden):
  *
- *   original  →  klassisch + sand   (warmer Klassiker)
- *   navy      →  klassisch + navy   (klassisch-maritim)
- *   dark      →  tusche + forest    (dunkles Etching)
+ *   original  →  tusche + 'original'      (Tusche-Rohfarben, B&W-Etching)
+ *   navy      →  klassisch + navy         (klassisch-maritim, dunkelblau)
+ *   dark      →  tusche + black-white     (reines Schwarz, weisses Wasser/Strasse)
+ *
+ * Hinweis: `paletteId: 'original'` ist ein Spezial-Wert, der resolvePalette
+ * in src/lib/petite-style-loader.ts dazu bringt, KEINE Palette aufzulegen
+ * — der Renderer nutzt die rohen Layout-Farben aus der jeweiligen
+ * map-styles/*.json.
+ *
+ * `paletteId: 'black-white'` referenziert die admin-gepflegte Palette
+ * (id=black-white, label="Dark") und ist auch im hardcoded MAP_PALETTES
+ * verfuegbar, damit der Worker (der nur die Hardcoded-Liste sieht) sie
+ * findet.
  */
 
 export interface FeaturedStyle {
@@ -35,8 +45,8 @@ export interface FeaturedStyle {
 export const FEATURED_STYLES: readonly FeaturedStyle[] = [
   {
     id: 'original',
-    layoutId: 'klassisch',
-    paletteId: 'sand',
+    layoutId: 'tusche',
+    paletteId: 'original',
     label: {
       de: 'Original',
       en: 'Original',
@@ -60,7 +70,7 @@ export const FEATURED_STYLES: readonly FeaturedStyle[] = [
   {
     id: 'dark',
     layoutId: 'tusche',
-    paletteId: 'forest',
+    paletteId: 'black-white',
     label: {
       de: 'Dark',
       en: 'Dark',

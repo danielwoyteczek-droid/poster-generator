@@ -31,9 +31,14 @@ describe('FEATURED_STYLES (PROJ-42)', () => {
     }
   })
 
-  it('every paletteId references an existing entry in MAP_PALETTES', () => {
+  it('every paletteId references an existing MAP_PALETTES entry OR the special "original" value', () => {
+    // The string 'original' is a special-case paletteId that tells
+    // resolvePalette() in src/lib/petite-style-loader.ts to skip the
+    // palette overlay and render the layout's raw colours. It is not
+    // listed in MAP_PALETTES itself and that's intentional.
     const paletteIds = new Set(MAP_PALETTES.map((p) => p.id))
     for (const style of FEATURED_STYLES) {
+      if (style.paletteId === 'original') continue
       expect(
         paletteIds.has(style.paletteId),
         `paletteId "${style.paletteId}" of featured-style "${style.id}" not found in MAP_PALETTES`,

@@ -107,6 +107,21 @@ export const MAP_PALETTES: MapPalette[] = [
       labelHalo: '#2b3d2e',
     },
   },
+  {
+    id: 'black-white',
+    label: 'Dark',
+    description: 'Reines Schwarz und Weiß, maximaler Kontrast',
+    colors: {
+      background: '#000000',
+      land: '#eeeeee',
+      water: '#ffffff',
+      road: '#ffffff',
+      building: '#d5d5d5',
+      border: '#808080',
+      label: '#2a2a2a',
+      labelHalo: '#ffffff',
+    },
+  },
 ]
 
 /**
