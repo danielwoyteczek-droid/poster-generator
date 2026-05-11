@@ -30,7 +30,7 @@ interface Props {
   markerType: 'classic' | 'heart'
   markerColor: string
   viewState: ViewState  // triggers re-render on map pan
-  defaultX: string // CSS percentage, e.g. '50%' or '25%'
+  defaultX: string // CSS percentage fallback when no safeArea is provided
   onMove: (lat: number, lng: number) => void
   /** Logical canvas width (PROJ-37). Used to size the pin SVG so it stays
    *  visually proportional to the poster across A4/A3/A2 — without this
@@ -41,6 +41,18 @@ interface Props {
    *  Used on Mobile to keep the pin non-draggable from tabs other than
    *  Marker. Defaults to true (Desktop behaviour unchanged). */
   interactive?: boolean
+  /**
+   * Optional visible-mask half rect, in container fractions (0..1). When
+   * provided:
+   *  - default position (lat/lng null) sits at the rect's centre instead of
+   *    the fixed `defaultX` / 50%, so the pin lands inside the silhouette
+   *    even when the mask is letterboxed (e.g. landscape circle).
+   *  - projected positions (lat/lng set) get clamped to this rect, so a
+   *    panned map can't slide the pin into the empty area outside the
+   *    visible silhouette. The pin still represents the same geographic
+   *    point — only the visual position is clamped.
+   */
+  safeArea?: { left: number; right: number; top: number; bottom: number }
 }
 
 /**
@@ -49,7 +61,7 @@ interface Props {
  */
 export function DraggablePin({
   slice, containerRef, markerLat, markerLng, markerType, markerColor,
-  viewState, defaultX, onMove, canvasWidth, interactive = true,
+  viewState, defaultX, onMove, canvasWidth, interactive = true, safeArea,
 }: Props) {
   const pinSize = resolvePinSizePx(markerType, canvasWidth)
   const [dragging, setDragging] = useState(false)
@@ -58,7 +70,7 @@ export function DraggablePin({
 
   // Compute the pin's pixel position within the container. Either:
   //  - from marker.lat/lng (via map.project) when explicitly placed
-  //  - from defaultX/50% when not placed (follows map center)
+  //  - from safeArea centre / defaultX / 50% when not placed
   //  - from dragPos during an active drag
   const computePosition = useCallback((): { left: string; top: string } => {
     if (dragPos) {
@@ -69,13 +81,33 @@ export function DraggablePin({
       const containerEl = containerRef.current
       if (map && containerEl) {
         const pt = map.project([markerLng, markerLat])
-        // MapTiler's container is the map viewport; our containerRef is the poster.
-        // Map container dimensions === poster container dimensions (they share size in our layout).
+        // Clamp the projected position into the visible-mask rect so a
+        // panned map can't drag the pin into the empty letterbox area
+        // outside the silhouette. Acts on the rendered pixels only — the
+        // stored marker.lat/lng (and the geographic meaning) stay intact.
+        if (safeArea) {
+          const w = containerEl.clientWidth
+          const h = containerEl.clientHeight
+          const minX = safeArea.left * w
+          const maxX = safeArea.right * w
+          const minY = safeArea.top * h
+          const maxY = safeArea.bottom * h
+          const cx = Math.max(minX, Math.min(maxX, pt.x))
+          const cy = Math.max(minY, Math.min(maxY, pt.y))
+          return { left: `${cx}px`, top: `${cy}px` }
+        }
         return { left: `${pt.x}px`, top: `${pt.y}px` }
       }
     }
+    if (safeArea) {
+      // Default: centre of the half-mask rect, so the pin sits comfortably
+      // inside the visible silhouette regardless of orientation/aspect.
+      const cxPct = ((safeArea.left + safeArea.right) / 2) * 100
+      const cyPct = ((safeArea.top + safeArea.bottom) / 2) * 100
+      return { left: `${cxPct}%`, top: `${cyPct}%` }
+    }
     return { left: defaultX, top: '50%' }
-  }, [dragPos, markerLat, markerLng, slice, containerRef, defaultX, viewState])
+  }, [dragPos, markerLat, markerLng, slice, containerRef, defaultX, viewState, safeArea])
   // `viewState` intentionally in deps so the pin re-projects after pan/zoom
 
   const [pos, setPos] = useState(computePosition)

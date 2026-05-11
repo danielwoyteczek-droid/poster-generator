@@ -6,7 +6,7 @@ import { useEditorStore, LAYOUT_MAP_HEIGHT } from '@/hooks/useEditorStore'
 import { useCustomMasks } from '@/hooks/useCustomMasks'
 import { MAP_MASKS } from '@/lib/map-masks'
 import { getPalette } from '@/lib/map-palettes'
-import { composeMaskSvg, composeFrameSvg, composeFullbleedMaskSvg, composeSplitSeamSvg, composeSplitMaskHalfSvg, svgToDataUrl, hasAnyFrame } from '@/lib/mask-composer'
+import { composeMaskSvg, composeFrameSvg, composeFullbleedMaskSvg, composeSplitSeamSvg, composeSplitMaskHalfSvg, svgToDataUrl, hasAnyFrame, shapeBoundsFraction } from '@/lib/mask-composer'
 import { useRasterizedMaskUrl } from '@/hooks/useRasterizedMaskUrl'
 import { useColoredDecoration } from '@/hooks/useColoredDecoration'
 import { PRINT_FORMATS, effectiveDimensions, effectiveLogicalCanvas } from '@/lib/print-formats'
@@ -268,6 +268,19 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
   const innerSeamForSplit = splitInner && mask.shape && !mask.noHalfClip
     ? svgToDataUrl(composeSplitSeamSvg(mask.shape, shapeConfig.innerFrame))
     : null
+
+  // Visible-silhouette rect (fractions of mapAreaRef). DraggablePin uses
+  // this for default placement and for clamping a projected pin so it
+  // never lands in the empty letterbox area outside the mask — most
+  // visible on landscape split-circle/heart where the shape spans only
+  // ~70 % of the wide canvas width.
+  const maskBoundsFrac = shapeBoundsFraction(mask.shape, orientation)
+  const primarySafeArea = isDualMap
+    ? { left: maskBoundsFrac.left, right: 0.5, top: maskBoundsFrac.top, bottom: maskBoundsFrac.bottom }
+    : maskBoundsFrac
+  const secondarySafeArea = isDualMap
+    ? { left: 0.5, right: maskBoundsFrac.right, top: maskBoundsFrac.top, bottom: maskBoundsFrac.bottom }
+    : undefined
 
   useEffect(() => {
     if (!wrapperRef.current) return
@@ -591,6 +604,7 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
                 onMove={(lat, lng) => setMarker({ lat, lng })}
                 canvasWidth={logicalCanvas.width}
                 interactive={markerInteractive}
+                safeArea={primarySafeArea}
               />
             )}
 
@@ -608,6 +622,7 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
                 onMove={(lat, lng) => setSecondMarker({ lat, lng })}
                 canvasWidth={logicalCanvas.width}
                 interactive={markerInteractive}
+                safeArea={secondarySafeArea}
               />
             )}
             </div>

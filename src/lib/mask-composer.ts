@@ -588,6 +588,42 @@ export function hasAnyFrame(config: ShapeConfigState): boolean {
 }
 
 /**
+ * Visible bounding box of a mask shape, as fractions of the rendered
+ * container (0..1 on each axis). Mirrors the geometry that
+ * `composeSplitMaskHalfSvg` and `composeMaskSvg` apply, so callers (e.g.
+ * marker-pin placement / clamping) can position UI inside the actual
+ * visible silhouette extent — not the full container bounds.
+ *
+ * Returns the full container (0..1) when no shape is provided.
+ */
+export function shapeBoundsFraction(
+  shape: ShapeDefinition | null | undefined,
+  orientation: 'portrait' | 'landscape',
+): { left: number; right: number; top: number; bottom: number } {
+  if (!shape) return { left: 0, right: 1, top: 0, bottom: 1 }
+
+  if (orientation === 'portrait') {
+    return { left: 0, right: 1, top: 0, bottom: 1 }
+  }
+
+  const activeShape = shape.shapeLandscape ?? shape
+  const canvasW = 841.9
+  const canvasH = 595.3
+  const fitScale = Math.min(canvasW / activeShape.width, canvasH / activeShape.height)
+  const totalScale = fitScale * (activeShape.landscapeScale ?? 1)
+  const fittedW = activeShape.width * totalScale
+  const fittedH = activeShape.height * totalScale
+  const tx = (canvasW - fittedW) / 2
+  const ty = (canvasH - fittedH) / 2 + canvasH * (activeShape.landscapeYOffset ?? 0)
+  return {
+    left: tx / canvasW,
+    right: (tx + fittedW) / canvasW,
+    top: ty / canvasH,
+    bottom: (ty + fittedH) / canvasH,
+  }
+}
+
+/**
  * Build a fullbleed mask SVG (inset-rect only) for the case where there's no
  * shape silhouette but the user wants a margin around the map. Used for
  * fullbleed posters with `outer.mode === 'full'` (or 'opacity', if reachable):
