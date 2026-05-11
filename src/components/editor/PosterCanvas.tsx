@@ -54,6 +54,7 @@ function makeMaskStyle(svgPath: string) {
 }
 
 export type MobileEditorTool =
+  | 'preview' // PROJ-43: sheet closed — no overlay interactive (look-only)
   | 'map'
   | 'layout'
   | 'text'
@@ -631,7 +632,12 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
           </div>
           {/* End of visual wrapper (PROJ-37) */}
 
-          {isDualMap ? (
+          {/* Map controls (zoom / locate) — only render when the map is
+              interactive. On mobile this hides them unless the customer is
+              actively in the Karte tab with sheet open; they sit just
+              outside the poster and would otherwise overflow the viewport
+              and trigger iOS horizontal rubber-band. (PROJ-43) */}
+          {mapInteractive && (isDualMap ? (
             <>
               {/* Left map controls — left of poster */}
               <div
@@ -729,7 +735,7 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
                 <Minus className="w-4 h-4 text-foreground/70" />
               </button>
             </div>
-          )}
+          ))}
         </>
         )
       })()}
