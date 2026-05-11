@@ -412,8 +412,12 @@ export const useEditorStore = create<EditorStore>((set) => ({
 
   setViewState: (viewState) => set({ viewState }),
   flyToLocation: (lng, lat, zoom = 13) =>
-    // Reset pin to map-center when the user picks a new location
-    set((s) => ({ pendingCenter: { lng, lat, zoom }, marker: { ...s.marker, lat: null, lng: null } })),
+    // Pin the marker AT the searched location so DraggablePin projects it
+    // via map.project() — i.e. the pin moves WITH the map when the user
+    // pans afterwards. Previously we nulled lat/lng, which left the pin
+    // glued to the viewport center; panning then desynced the pin from the
+    // actual searched street and the user lost their reference point.
+    set((s) => ({ pendingCenter: { lng, lat, zoom }, marker: { ...s.marker, lat, lng } })),
   clearPendingCenter: () => set({ pendingCenter: null }),
   zoomIn: () => set({ pendingZoomDelta: 1 }),
   zoomOut: () => set({ pendingZoomDelta: -1 }),
@@ -506,7 +510,12 @@ export const useEditorStore = create<EditorStore>((set) => ({
       },
     })),
   flyToSecondLocation: (lng, lat, zoom = 13) =>
-    set((s) => ({ secondMap: { ...s.secondMap, pendingCenter: { lng, lat, zoom } } })),
+    // Mirror flyToLocation: anchor the secondary marker at the searched
+    // coords so it pans with the map, not with the viewport.
+    set((s) => ({
+      secondMap: { ...s.secondMap, pendingCenter: { lng, lat, zoom } },
+      secondMarker: { ...s.secondMarker, lat, lng },
+    })),
   clearSecondPendingCenter: () => set((s) => ({ secondMap: { ...s.secondMap, pendingCenter: null } })),
   zoomInSecond: () => set((s) => ({ secondMap: { ...s.secondMap, pendingZoomDelta: 1 } })),
   zoomOutSecond: () => set((s) => ({ secondMap: { ...s.secondMap, pendingZoomDelta: -1 } })),
