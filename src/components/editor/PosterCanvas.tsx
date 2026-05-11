@@ -452,18 +452,28 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
                 )}
               </>
               )
-            })() : isSplitPhoto && mapHalfSvg && photoHalfSvg ? (
+            })() : isSplitPhoto && mapHalfSvg && photoHalfSvg ? (() => {
+              // PROJ-40: same 1 mm centre-gap that isDualMap uses, so the
+              // split-photo preview matches both the dual-map preview and
+              // the export (useMapExport also applies a 1 mm gap). Without
+              // this, switching from "zweite Karte" to "Foto" visually
+              // changed the form and size of the masks at the seam.
+              const gapHalfPx = mmToPx * 1
+              const leftEdge = `calc(50% - ${gapHalfPx}px)`
+              const rightEdge = `calc(50% + ${gapHalfPx}px)`
+              const mapClip = mask.noHalfClip
+                ? null
+                : photoIsRightZone
+                  ? `polygon(0 0, ${leftEdge} 0, ${leftEdge} 100%, 0 100%)`
+                  : `polygon(${rightEdge} 0, 100% 0, 100% 100%, ${rightEdge} 100%)`
+              return (
               <>
                 {/* Primary map — clipped to its half unless the mask spans both halves */}
                 <div
                   className="absolute inset-0"
                   style={{
                     ...makeMaskStyle(mapHalfSvg),
-                    ...(mask.noHalfClip
-                      ? {}
-                      : { clipPath: photoIsRightZone
-                          ? 'polygon(0 0, 50% 0, 50% 100%, 0 100%)'
-                          : 'polygon(50% 0, 100% 0, 100% 100%, 50% 100%)' }),
+                    ...(mapClip ? { clipPath: mapClip } : {}),
                   }}
                 >
                   <MapPreview storeSlice="primary" />
@@ -473,10 +483,12 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
                   svgPath={photoHalfSvg}
                   side={photoIsRightZone ? 'right' : 'left'}
                   noHalfClip={mask.noHalfClip}
+                  gapHalfPx={gapHalfPx}
                   interactive={photoInteractive}
                 />
               </>
-            ) : (
+              )
+            })() : (
               <div
                 className="absolute inset-0"
                 style={

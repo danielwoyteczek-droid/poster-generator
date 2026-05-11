@@ -12,6 +12,10 @@ interface Props {
   /** When true, the photo overlay covers the whole poster (used when the
    *  mask extends across the midline and the half-clip would cut it). */
   noHalfClip?: boolean
+  /** Pixel offset on each side of the canvas midline that the half-clip
+   *  should leave empty, so the photo and the opposite-side map have a
+   *  visible parting gap. Defaults to 0 (hard at 50%). */
+  gapHalfPx?: number
   /** When false, photo is rendered but cannot be dragged/scaled. Used on
    *  Mobile so that only the Photo tab grants interaction. Defaults true. */
   interactive?: boolean
@@ -22,17 +26,21 @@ interface Props {
  * assigned. The SVG mask defines the visible shape; the photo itself
  * can be panned (cropX/cropY) and zoomed (cropScale) within that shape.
  */
-export function SplitPhotoOverlay({ svgPath, side, noHalfClip, interactive = true }: Props) {
+export function SplitPhotoOverlay({ svgPath, side, noHalfClip, gapHalfPx = 0, interactive = true }: Props) {
   const { splitPhoto, updateSplitPhoto } = useEditorStore()
   if (!splitPhoto) return null
 
   // Restrict pointer events to the half this photo occupies, so the map
-  // on the opposite half keeps working for drag + zoom.
+  // on the opposite half keeps working for drag + zoom. The half ends
+  // gapHalfPx short of the centerline so a visible parting gap matches
+  // both the dual-map preview and the export pipeline.
+  const leftEdge = `calc(50% - ${gapHalfPx}px)`
+  const rightEdge = `calc(50% + ${gapHalfPx}px)`
   const halfClip = noHalfClip
     ? undefined
     : side === 'left'
-      ? 'polygon(0 0, 50% 0, 50% 100%, 0 100%)'
-      : 'polygon(50% 0, 100% 0, 100% 100%, 50% 100%)'
+      ? `polygon(0 0, ${leftEdge} 0, ${leftEdge} 100%, 0 100%)`
+      : `polygon(${rightEdge} 0, 100% 0, 100% 100%, ${rightEdge} 100%)`
 
   const maskStyle: React.CSSProperties = {
     maskImage: `url(${svgPath})`,
