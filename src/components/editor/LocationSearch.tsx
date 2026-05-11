@@ -24,6 +24,7 @@ export function LocationSearch({
   const [results, setResults] = useState<GeoResult[]>([])
   const [showResults, setShowResults] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const inputRef = useRef<HTMLInputElement>(null)
 
   const handleSearch = (q: string) => {
     setQuery(q)
@@ -46,6 +47,10 @@ export function LocationSearch({
   }
 
   const handleSelect = (result: GeoResult) => {
+    // PROJ-43: blur the input BEFORE the flyToLocation fires so the iOS
+    // keyboard dismisses cleanly without Safari trying to scroll the
+    // page horizontally to keep the focused input in view.
+    inputRef.current?.blur()
     onSelect(result.center[0], result.center[1], result.place_name)
     setQuery(result.place_name)
     setResults([])
@@ -56,6 +61,7 @@ export function LocationSearch({
     <div className="relative">
       <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/70 pointer-events-none" />
       <Input
+        ref={inputRef}
         className="pl-8 h-9 text-sm"
         placeholder={effectivePlaceholder}
         value={query}

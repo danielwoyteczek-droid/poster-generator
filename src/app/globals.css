@@ -4,16 +4,20 @@
 
 html {
   scroll-behavior: smooth;
-  /* PROJ-43: prevent iOS Safari from horizontally rubber-banding the
-   * editor pages (no element is wider than the viewport, but Safari
-   * still allows a small horizontal pull-and-release). */
+  /* PROJ-43: iOS Safari can still rubber-band the body horizontally
+   * even with overflow-x: hidden when layout fluctuates (e.g. keyboard
+   * dismissal + MapLibre fly-to + sheet resize firing together).
+   * `touch-action: pan-y` declares horizontal pan a non-thing at the
+   * document level; MapLibre's own canvas overrides this with
+   * `touch-action: none` so map pan still works inside the canvas. */
   overflow-x: hidden;
-  overscroll-behavior-x: contain;
+  overscroll-behavior: none;
 }
 
 body {
   overflow-x: hidden;
-  overscroll-behavior-x: contain;
+  overscroll-behavior: none;
+  touch-action: pan-y;
 }
 
 @font-face {
