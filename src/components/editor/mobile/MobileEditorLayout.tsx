@@ -1,7 +1,6 @@
 'use client'
 
 import '@maptiler/sdk/dist/maptiler-sdk.css'
-import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { Map, Droplet, Type, MapPin, Camera, ShoppingBag } from 'lucide-react'
 import { PosterCanvas } from '@/components/editor/PosterCanvas'
@@ -12,25 +11,21 @@ import { MobileMarkerTab } from '@/components/sidebar/mobile/MobileMarkerTab'
 import { MobilePhotoTab } from '@/components/sidebar/mobile/MobilePhotoTab'
 import { MobileExportTab } from '@/components/sidebar/mobile/MobileExportTab'
 import { useProjectSync } from '@/hooks/useProjectSync'
-import { useCanvasResize } from '@/hooks/useCanvasResize'
+import { useMobileSheet } from '@/hooks/useMobileSheet'
 import { cn } from '@/lib/utils'
 import { EditorViewProvider } from '@/components/editor/EditorViewContext'
-import { EditorAnpassenFooter } from '@/components/editor/EditorAnpassenFooter'
-import { EditorAnpassenSheet } from '@/components/editor/EditorAnpassenSheet'
-import { CanvasResizeHandle } from './CanvasResizeHandle'
+import { MobileBottomSheet } from './MobileBottomSheet'
 
 type MobileTab = 'map' | 'layout' | 'text' | 'marker' | 'photo' | 'export'
+
+const SHEET_ID = 'mobile-editor-sheet'
 
 export function MobileEditorLayout() {
   const t = useTranslations('editorTabs')
   useProjectSync()
-  const [activeTab, setActiveTab] = useState<MobileTab>('map')
-  const [anpassenOpen, setAnpassenOpen] = useState(false)
-  const { canvasStyle, handleProps } = useCanvasResize()
+  const { isOpen, sheetState, activeTab, openTab, canvasTapHandlers } =
+    useMobileSheet<MobileTab>({ initialTab: 'map' })
 
-  // Render the same tab content node for the active tab — used by both the
-  // main customer view and the Anpassen-Sheet (the latter wraps it in
-  // EditorViewProvider value="anpassen" to flip the visibility filter).
   const renderActiveTab = () => {
     switch (activeTab) {
       case 'map': return <MobileMapTab />
@@ -52,30 +47,30 @@ export function MobileEditorLayout() {
   ]
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
-      {/* Preview — height is user-controlled via the drag-handle below.
-          `activeMobileTool` routes touch interactivity to exactly one overlay
-          at a time (map / text / photo / marker), matched to the active tab —
-          so fingers don't fight each other on a small screen. */}
-      <div className="shrink-0 flex min-h-0 border-b border-border relative" style={canvasStyle}>
+    <div className="relative flex flex-col h-full overflow-hidden">
+      {/* Canvas — always fills the viewport minus the tab-bar. The sheet
+          slides up over the lower half when open. Tap-to-close detection
+          is on the wrapper; pan/pinch/marker-drag leak through naturally
+          via the 10px/300ms thresholds. */}
+      <div className="flex-1 min-h-0 flex" {...canvasTapHandlers}>
         <PosterCanvas padding={16} activeMobileTool={activeTab} />
       </div>
 
-      <CanvasResizeHandle {...handleProps} />
-
-      {/* Tab bar — fixed under handle */}
+      {/* Tab bar — always visible, anchored above the sheet (z-40 > sheet z-30). */}
       <nav
-        className="h-14 shrink-0 grid grid-cols-6 bg-white border-b border-border"
+        className="h-14 shrink-0 grid grid-cols-6 bg-white border-t border-border relative z-40"
         role="tablist"
       >
         {TABS.map(({ id, label, Icon }) => {
-          const active = activeTab === id
+          const active = activeTab === id && isOpen
           return (
             <button
               key={id}
               role="tab"
               aria-selected={active}
-              onClick={() => setActiveTab(id)}
+              aria-expanded={active}
+              aria-controls={SHEET_ID}
+              onClick={() => openTab(id)}
               className={cn(
                 'flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-colors',
                 'min-h-[44px] touch-manipulation',
@@ -91,22 +86,11 @@ export function MobileEditorLayout() {
         })}
       </nav>
 
-      {/* Tool content — own scroll container.
-          overflow-x-hidden clamps inner snap-strip bleed (-mx-4 px-4)
-          so horizontal scroll stays inside the strip, not the body. */}
-      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden bg-white">
+      <MobileBottomSheet state={sheetState} id={SHEET_ID}>
         <EditorViewProvider value="customer">
           {renderActiveTab()}
         </EditorViewProvider>
-      </div>
-
-      {/* Anpassen-Footer — sticky button between content and bottom edge */}
-      <EditorAnpassenFooter onClick={() => setAnpassenOpen(true)} />
-
-      {/* Anpassen-Sheet — opens from bottom on mobile */}
-      <EditorAnpassenSheet open={anpassenOpen} onOpenChange={setAnpassenOpen}>
-        {renderActiveTab()}
-      </EditorAnpassenSheet>
+      </MobileBottomSheet>
     </div>
   )
 }

@@ -13,30 +13,19 @@ import { useEditorStore } from '@/hooks/useEditorStore'
 import { useStarMapStore } from '@/hooks/useStarMapStore'
 import { useStarMapExport } from '@/hooks/useStarMapExport'
 import { useProjectSync } from '@/hooks/useProjectSync'
-import { useCanvasResize } from '@/hooks/useCanvasResize'
+import { useMobileSheet } from '@/hooks/useMobileSheet'
 import type { PrintFormat } from '@/lib/print-formats'
 import { cn } from '@/lib/utils'
-import { CanvasResizeHandle } from '@/components/editor/mobile/CanvasResizeHandle'
-
-/**
- * Mobile-Pendant zu `StarMapLayout` — fixe Vorschau oben, fixe Tab-Bar,
- * scrollbarer Tool-Container darunter. Spiegelt das Pattern aus PROJ-18
- * (`MobileEditorLayout`) mit den vier Star-Map-Tabs:
- *
- *   stars  → Datum, Ort, Sternfarben (StarMapTab)
- *   sky    → Konstellationen, Milchstraße etc. (HimmelTab)
- *   text   → geteilte Textblock-Liste mit Sheet-Editor
- *   export → Format, Produkt, Checkout
- *
- * Der Eye-Button öffnet die Zimmeransicht aus jedem Tab. Textblock-Dragging
- * ist nur im Text-Tab aktiv (Touch-Isolation analog Karten-Editor).
- */
+import { MobileBottomSheet } from '@/components/editor/mobile/MobileBottomSheet'
 
 type MobileStarMapTab = 'stars' | 'sky' | 'text' | 'export'
 
+const SHEET_ID = 'mobile-starmap-sheet'
+
 export function MobileStarMapLayout() {
   const t = useTranslations('editorTabs')
-  const [activeTab, setActiveTab] = useState<MobileStarMapTab>('stars')
+  const { isOpen, sheetState, activeTab, openTab, canvasTapHandlers } =
+    useMobileSheet<MobileStarMapTab>({ initialTab: 'stars' })
 
   const { printFormat } = useEditorStore()
   const { lat, lng, locationName } = useStarMapStore()
@@ -46,7 +35,6 @@ export function MobileStarMapLayout() {
   const [zimmerImage, setZimmerImage] = useState<string | null>(null)
   const [zimmerLoading, setZimmerLoading] = useState(false)
   const [zimmerError, setZimmerError] = useState<string | null>(null)
-  const { canvasStyle, handleProps } = useCanvasResize()
 
   const handleOpenZimmer = async () => {
     setZimmerOpen(true)
@@ -71,37 +59,34 @@ export function MobileStarMapLayout() {
   ]
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
-      {/* Preview — height user-controlled via the drag-handle below.
-          Auf Star-Map gibt es keine Map-Pan/Zoom-Geste, daher einzige
-          interaktive Zone: Textblöcke im Text-Tab. */}
-      <div className="shrink-0 flex min-h-0 border-b border-border relative" style={canvasStyle}>
-        <StarMapCanvas padding={16} textInteractive={activeTab === 'text'} />
+    <div className="relative flex flex-col h-full overflow-hidden">
+      <div className="flex-1 min-h-0 flex relative" {...canvasTapHandlers}>
+        <StarMapCanvas padding={16} textInteractive={activeTab === 'text' && isOpen} />
         <button
           type="button"
           onClick={handleOpenZimmer}
           aria-label="Zimmeransicht öffnen"
+          data-canvas-interactive
           className="absolute top-3 left-3 w-11 h-11 rounded-full bg-white shadow-lg border border-border flex items-center justify-center text-foreground active:bg-muted z-50 touch-manipulation"
         >
           <Eye className="w-5 h-5" />
         </button>
       </div>
 
-      <CanvasResizeHandle {...handleProps} />
-
-      {/* Tab-Bar */}
       <nav
-        className="h-14 shrink-0 grid grid-cols-4 bg-white border-b border-border"
+        className="h-14 shrink-0 grid grid-cols-4 bg-white border-t border-border relative z-40"
         role="tablist"
       >
         {TABS.map(({ id, label, Icon }) => {
-          const active = activeTab === id
+          const active = activeTab === id && isOpen
           return (
             <button
               key={id}
               role="tab"
               aria-selected={active}
-              onClick={() => setActiveTab(id)}
+              aria-expanded={active}
+              aria-controls={SHEET_ID}
+              onClick={() => openTab(id)}
               className={cn(
                 'flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-colors',
                 'min-h-[44px] touch-manipulation',
@@ -117,14 +102,12 @@ export function MobileStarMapLayout() {
         })}
       </nav>
 
-      {/* Tool-Container — overflow-x-hidden clamps the horizontal bleed of
-          inner snap-strips (`-mx-4 px-4`) so they don't leak into body scroll. */}
-      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden bg-white">
+      <MobileBottomSheet state={sheetState} id={SHEET_ID}>
         {activeTab === 'stars' && <MobileStarMapTab />}
         {activeTab === 'sky' && <MobileHimmelTab />}
         {activeTab === 'text' && <MobileTextTab coordinatesSource={{ lat, lng, locationName }} />}
         {activeTab === 'export' && <MobileStarMapExportTab />}
-      </div>
+      </MobileBottomSheet>
 
       <PosterFrameModal
         open={zimmerOpen}

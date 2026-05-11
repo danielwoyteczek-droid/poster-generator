@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { Type, ImageIcon, Layers, Download } from 'lucide-react'
 import { LetterMaskTab } from '../sidebar/LetterMaskTab'
@@ -12,10 +11,10 @@ import { MobileTextTab } from '@/components/sidebar/mobile/MobileTextTab'
 import { PhotoPosterCanvas } from '../PhotoPosterCanvas'
 import { useProjectSync } from '@/hooks/useProjectSync'
 import { usePhotoEditorStore } from '@/hooks/usePhotoEditorStore'
-import { useCanvasResize } from '@/hooks/useCanvasResize'
+import { useMobileSheet } from '@/hooks/useMobileSheet'
 import type { MobileEditorTool } from '@/components/editor/PosterCanvas'
 import { cn } from '@/lib/utils'
-import { CanvasResizeHandle } from '@/components/editor/mobile/CanvasResizeHandle'
+import { MobileBottomSheet } from '@/components/editor/mobile/MobileBottomSheet'
 
 type MobilePhotoTab = 'word' | 'slots' | 'text' | 'export'
 
@@ -26,14 +25,14 @@ const TAB_TO_TOOL: Record<MobilePhotoTab, MobileEditorTool> = {
   export: 'photo',
 }
 
+const SHEET_ID = 'mobile-photo-sheet'
+
 /**
- * Mobile-Pendant zu `PhotoEditorLayout` — fixe Vorschau oben, fixe Tab-Bar,
- * scrollbarer Tool-Container darunter. Spiegelt das Pattern aus PROJ-18 /
- * PROJ-27 (Karten-Editor + Mobile Star-Map).
- *
- * Touch-Isolation: Im Word-/Slots-Tab sind die Letter-Mask-Slots
- * interaktiv (Pan-Crop), im Text-Tab sind Textblöcke interaktiv. Das
- * verhindert versehentliches Zugreifen aus angrenzenden Tabs.
+ * PROJ-43 mobile photo editor: same tap-sheet pattern as map + star-map.
+ * Touch-Isolation: word-/slots-Tab → letter-mask slots are interactive,
+ * text-Tab → text-block dragging is interactive. The sheet's open state
+ * keys the tool routing too — when the sheet is closed the canvas is in
+ * "preview only" mode.
  */
 export function MobilePhotoEditorLayout() {
   const t = useTranslations('photoEditor')
@@ -42,12 +41,11 @@ export function MobilePhotoEditorLayout() {
   const isLetterMask = layoutMode === 'letter-mask'
   const isPhotoGrid = layoutMode === 'photo-grid'
   // Default to the slots tab in single-photo mode (no word to type) so the
-  // customer lands directly on the upload UI.
-  const [activeTab, setActiveTab] = useState<MobilePhotoTab>(
-    isLetterMask ? 'word' : 'slots',
-  )
+  // customer lands directly on the upload UI when they open the sheet.
+  const initialTab: MobilePhotoTab = isLetterMask ? 'word' : 'slots'
+  const { isOpen, sheetState, activeTab, openTab, canvasTapHandlers } =
+    useMobileSheet<MobilePhotoTab>({ initialTab })
   useProjectSync('photo')
-  const { canvasStyle, handleProps } = useCanvasResize()
 
   const allTabs: { id: MobilePhotoTab; label: string; Icon: typeof Type }[] = [
     { id: 'word', label: t('tabWord'), Icon: Layers },
@@ -63,36 +61,34 @@ export function MobilePhotoEditorLayout() {
     { id: 'text', label: t('tabText'), Icon: Type },
     { id: 'export', label: tEditor('downloadHeading'), Icon: Download },
   ]
-  // Word tab is meaningless without a letter-mask wort — hide it in
-  // single-photo mode so the tab bar collapses to 3 columns.
   const TABS = isLetterMask ? allTabs : allTabs.filter((t) => t.id !== 'word')
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
-      <div className="shrink-0 flex min-h-0 border-b border-border relative" style={canvasStyle}>
+    <div className="relative flex flex-col h-full overflow-hidden">
+      <div className="flex-1 min-h-0 flex" {...canvasTapHandlers}>
         <PhotoPosterCanvas
           padding={16}
           activeMobileTool={TAB_TO_TOOL[activeTab]}
         />
       </div>
 
-      <CanvasResizeHandle {...handleProps} />
-
       <nav
         className={cn(
-          'h-14 shrink-0 grid bg-white border-b border-border',
+          'h-14 shrink-0 grid bg-white border-t border-border relative z-40',
           TABS.length === 4 ? 'grid-cols-4' : 'grid-cols-3',
         )}
         role="tablist"
       >
         {TABS.map(({ id, label, Icon }) => {
-          const active = activeTab === id
+          const active = activeTab === id && isOpen
           return (
             <button
               key={id}
               role="tab"
               aria-selected={active}
-              onClick={() => setActiveTab(id)}
+              aria-expanded={active}
+              aria-controls={SHEET_ID}
+              onClick={() => openTab(id)}
               className={cn(
                 'flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-colors min-h-[44px] touch-manipulation',
                 active
@@ -107,7 +103,7 @@ export function MobilePhotoEditorLayout() {
         })}
       </nav>
 
-      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden bg-white">
+      <MobileBottomSheet state={sheetState} id={SHEET_ID}>
         {activeTab === 'word' && isLetterMask && <LetterMaskTab />}
         {activeTab === 'slots' &&
           (isLetterMask ? (
@@ -119,7 +115,7 @@ export function MobilePhotoEditorLayout() {
           ))}
         {activeTab === 'text' && <MobileTextTab hideCoordinates />}
         {activeTab === 'export' && <PhotoExportTab />}
-      </div>
+      </MobileBottomSheet>
     </div>
   )
 }

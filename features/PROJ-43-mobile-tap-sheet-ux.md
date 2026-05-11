@@ -1,6 +1,6 @@
 # PROJ-43: Mobile Editor Tap-Sheet UX
 
-## Status: Architected
+## Status: In Progress
 **Created:** 2026-05-11
 **Last Updated:** 2026-05-11
 
@@ -210,6 +210,27 @@ Das vereinfacht den Mobile-Code spürbar — drei Komponenten weniger plus eine 
 - **Foto-Editor mit nativem iOS-Picker:** Wenn der Customer "Bild hochladen" tappt, öffnet der native Picker. Beim Schließen sollte das Sheet im gleichen Zustand bleiben — das fällt aus dem React-State raus, sollte aber out-of-the-box korrekt sein. /qa muss das prüfen.
 - **Landscape unterhalb 1024 px:** Ein iPhone-Landscape (375×812 → 812×375) hat ~187 px Sheet-Höhe — mehrere Tabs werden eng. Frontend kann optional einen Breakpoint bei ~600 px Breite einbauen, wo das Pattern auf "Sheet 70% statt 50%" wechselt. Ist ein Implementierungs-Detail, kein Spec-Block.
 - **Customer mit gelerntem alten Pattern:** Spec hat das bewusst nicht als Onboarding aufgenommen. Nach Deploy beobachten wir die Editor-First-Action-Rate; wenn ein Coach-Mark nötig wird, ist das ein eigenes Folgefeature.
+
+## Implementation Notes (Frontend)
+
+**New files:**
+
+- `src/hooks/useMobileSheet.ts` — central state machine. Returns `isOpen`, `sheetState` (`closed` / `open` / `open-keyboard`), `activeTab`, `openTab(tab)`, `close()`, and `canvasTapHandlers` (Pointer-Event handlers to spread on the canvas wrapper). Tap detector uses 10 px movement + 300 ms duration thresholds and bails on targets matching `[data-canvas-interactive]`. Keyboard branch listens to `visualViewport.resize` and flips to `open-keyboard` when the visible viewport shrinks by > 150 px (proxy for soft-keyboard appearing).
+- `src/components/editor/mobile/MobileBottomSheet.tsx` — lightweight presentational sheet. Absolutely positioned with `bottom-14` (above the 56 px tab bar), height `50%` or `90%` of the editor area depending on state. `translate-y-full` when closed; CSS transition 250 ms ease-out; `motion-reduce:transition-none` for accessibility. No backdrop, no drag-handle, no header — just content with `overflow-y-auto overscroll-contain`.
+
+**Refactored layouts:**
+
+- `src/components/editor/mobile/MobileEditorLayout.tsx` (Map editor) — flex column collapsed to two slots: `flex-1` canvas wrapper (with `canvasTapHandlers`) and `h-14` tab bar (`z-40` so it stays above the sheet). All six tabs (`map`, `layout`, `text`, `marker`, `photo`, `export`) render their existing `Mobile*Tab` components inside the new sheet. `EditorAnpassenFooter` + `EditorAnpassenSheet` removed per the doctrine flip (all settings now visible directly in the 50% sheet on mobile).
+- `src/components/star-map/mobile/MobileStarMapLayout.tsx` — same pattern with 4 tabs (`stars` / `sky` / `text` / `export`). Eye-Button for the Zimmer-Ansicht gets `data-canvas-interactive` so the canvas-tap detector doesn't close the sheet when the customer taps it.
+- `src/components/photo-editor/mobile/MobilePhotoEditorLayout.tsx` — same pattern with 3-or-4 tabs (`word` shown only in letter-mask mode). Touch-tool routing (`TAB_TO_TOOL`) preserved as-is.
+
+**Deleted:**
+
+- `src/hooks/useCanvasResize.ts` (the 12 / 30 / 58 vh snap-resize hook).
+- `src/components/editor/mobile/CanvasResizeHandle.tsx` (the visual drag-handle).
+- Mobile-side usage of `EditorAnpassenFooter` + `EditorAnpassenSheet` (Desktop usage stays untouched in `EditorLayout.tsx`).
+
+**Smoke-tested via Playwright** (`tests/PROJ-43-mobile-tap-sheet.spec.ts`): all three editor URLs load with the sheet closed, drag-handle gone, tab bar visible. Map editor opens on tab-tap, swaps content on second tab-tap (aria-expanded follows correctly), and closes when the visible canvas area is tapped.
 
 ## QA Test Results
 _To be added by /qa_
