@@ -30,6 +30,7 @@ export const PRODUCTS: Product[] = [
     stripePriceIds: {
       a4: 'price_1TOhUz36Wy7c8yXhJ7FkDl0y',
       a3: 'price_1TOhSU36Wy7c8yXhRbpJiZaU',
+      a2: 'price_1TVqvf36Wy7c8yXhYZlw9JmR',
     },
   },
   {
