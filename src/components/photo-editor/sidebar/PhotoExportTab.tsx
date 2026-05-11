@@ -20,7 +20,7 @@ import { usePhotoEditorStore } from '@/hooks/usePhotoEditorStore'
 import { usePhotoExport } from '@/hooks/usePhotoExport'
 import { useAuth } from '@/hooks/useAuth'
 import { useCartStore } from '@/hooks/useCartStore'
-import { PRINT_FORMAT_OPTIONS, type PrintFormat } from '@/lib/print-formats'
+import { type PrintFormat } from '@/lib/print-formats'
 import { PRODUCTS, formatPrice, type ProductId } from '@/lib/products'
 import { cn } from '@/lib/utils'
 import { downsizeDataURL } from '@/lib/image-utils'
@@ -34,55 +34,9 @@ const PRODUCT_ICONS: Record<string, React.ReactNode> = {
   frame: <Frame className="w-5 h-5" />,
 }
 
-// ─── Format selector ──────────────────────────────────────────────────────────
-
-function FormatSelector({
-  printFormat,
-  setPrintFormat,
-}: {
-  printFormat: string
-  setPrintFormat: (id: PrintFormat) => void
-}) {
-  const t = useTranslations('editor')
-  const fmt = PRINT_FORMAT_OPTIONS.find((f) => f.id === printFormat)!
-  return (
-    <>
-      <div className="space-y-1.5">
-        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
-          {t('paperFormat')}
-        </Label>
-        <div className="grid grid-cols-3 gap-1.5">
-          {PRINT_FORMAT_OPTIONS.map((f) => (
-            <button
-              key={f.id}
-              type="button"
-              onClick={() => setPrintFormat(f.id)}
-              className={cn(
-                'h-9 rounded-md border-2 text-sm font-medium transition-colors',
-                printFormat === f.id
-                  ? 'border-primary bg-primary text-primary-foreground'
-                  : 'border-border text-foreground/70 hover:border-muted-foreground',
-              )}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
-      </div>
-      <div className="rounded-md bg-muted border border-border px-3 py-2.5 space-y-0.5">
-        <p className="text-xs font-medium text-foreground/70">
-          {t('paperFormatPixels', {
-            w: fmt.widthPx.toLocaleString(),
-            h: fmt.heightPx.toLocaleString(),
-          })}
-        </p>
-        <p className="text-xs text-muted-foreground/70">
-          {t('paperFormatPrintHint', { w: fmt.widthMm, h: fmt.heightMm })}
-        </p>
-      </div>
-    </>
-  )
-}
+// PROJ-37: Format selector moved to the sidebar header above the tabs so the
+// customer locks in the canvas shape before designing. This tab now only
+// handles preview + product selection + download.
 
 // ─── Admin: direct PNG/PDF download ───────────────────────────────────────────
 
@@ -312,13 +266,11 @@ function CustomerProductView({ printFormat }: { printFormat: string }) {
 // ─── Tab entry ────────────────────────────────────────────────────────────────
 
 export function PhotoExportTab() {
-  const { printFormat, setPrintFormat } = useEditorStore()
+  const { printFormat } = useEditorStore()
   const { isAdmin, loading } = useAuth()
 
   return (
     <div className="space-y-5 p-4">
-      <FormatSelector printFormat={printFormat} setPrintFormat={setPrintFormat} />
-
       <Separator />
 
       {loading ? (

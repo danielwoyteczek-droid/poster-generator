@@ -1,6 +1,7 @@
 'use client'
 
 import { useTranslations } from 'next-intl'
+import { Label } from '@/components/ui/label'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { TextTab } from '@/components/sidebar/TextTab'
@@ -14,6 +15,9 @@ import { PhotoExportTab } from './sidebar/PhotoExportTab'
 import { PhotoPosterCanvas } from './PhotoPosterCanvas'
 import { useProjectSync } from '@/hooks/useProjectSync'
 import { usePhotoEditorStore } from '@/hooks/usePhotoEditorStore'
+import { useEditorStore } from '@/hooks/useEditorStore'
+import { PRINT_FORMAT_OPTIONS } from '@/lib/print-formats'
+import { cn } from '@/lib/utils'
 
 const TAB_TRIGGER_CN =
   'flex-1 h-full rounded-none text-xs font-medium data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-white'
@@ -23,6 +27,7 @@ export function PhotoEditorLayout() {
   const tEditor = useTranslations('editor')
   const layoutMode = usePhotoEditorStore((s) => s.layoutMode)
   const { isAdmin } = useAuth()
+  const { printFormat, setPrintFormat } = useEditorStore()
   useProjectSync('photo')
 
   // The "photos" tab is mode-aware: letter-mask shows the per-letter slot
@@ -36,9 +41,34 @@ export function PhotoEditorLayout() {
   return (
     <div className="flex h-full overflow-hidden">
       <div className="w-72 shrink-0 border-r border-border bg-white flex flex-col">
+        {/* PROJ-37: Paper format sits above the tabs so the customer picks
+            the canvas shape before designing — same pattern as the map and
+            star-map editors. */}
+        <div className="p-4 border-b border-border space-y-1.5">
+          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
+            Papierformat
+          </Label>
+          <div className="grid grid-cols-3 gap-1.5">
+            {PRINT_FORMAT_OPTIONS.map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                onClick={() => setPrintFormat(f.id)}
+                className={cn(
+                  'h-9 rounded-md border-2 text-sm font-medium transition-colors',
+                  printFormat === f.id
+                    ? 'border-primary bg-primary text-primary-foreground'
+                    : 'border-border text-foreground/70 hover:border-muted-foreground',
+                )}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+        </div>
         <Tabs
           defaultValue={isLetterMask ? 'word' : 'slots'}
-          className="flex flex-col h-full"
+          className="flex flex-col h-full min-h-0"
         >
           <TabsList className="w-full rounded-none border-b border-border bg-white h-10 p-0 gap-0">
             {isLetterMask && (

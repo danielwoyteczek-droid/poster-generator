@@ -44,11 +44,12 @@ export const MASK_FONTS: Record<MaskFontKey, MaskFontDefinition> = {
   anton: {
     key: 'anton',
     cssFamily: "var(--font-mask-anton), 'Anton', 'Impact', sans-serif",
-    // Anton uppercase glyphs: cap height ≈ 0.72 em, average glyph width ≈
-    // 0.55 em. To make a slot of width W roughly match the visual glyph
-    // bounding box, we want font-size ≈ 1.65 × W (so glyph width ≈ W) and
-    // slot height ≈ 1.2 × W (so glyph height ≈ slot height).
-    heightOverWidth: 1.2,
+    // Slot height equals the CSS line-box of the rendered glyph (= font-size
+    // when line-height is 1). Setting heightOverWidth < fontSizeOverSlotWidth
+    // makes the span overflow the slot and `overflow:hidden` clips the top
+    // and bottom of the glyph (Daniel's "PAPA top cut off" bug). Keep them
+    // identical so the glyph fits exactly in the slot regardless of font.
+    heightOverWidth: 1.65,
     fontSizeOverSlotWidth: 1.65,
     label: 'Anton',
   },

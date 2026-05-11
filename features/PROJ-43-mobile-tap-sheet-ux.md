@@ -1,6 +1,6 @@
 # PROJ-43: Mobile Editor Tap-Sheet UX
 
-## Status: Planned
+## Status: Architected
 **Created:** 2026-05-11
 **Last Updated:** 2026-05-11
 
@@ -107,7 +107,109 @@ Mobile-Conversion stagniert. Aktuell muss der Customer das Editor-Bottom-Sheet (
 <!-- Sections below are added by subsequent skills -->
 
 ## Tech Design (Solution Architect)
-_To be added by /architecture_
+
+### A) Was wird gebaut — Bildaufbau
+
+```
+Mobile Editor (alle drei Editoren — Map / Star-Map / Foto)
+│
+├── Canvas-Bereich       ◄── nimmt fast den ganzen Bildschirm ein
+│   │                        wenn das Sheet geschlossen ist
+│   ├── PosterCanvas / Star-Map / Foto-Vorschau
+│   └── (Marker, Text-Blöcke, interaktive Layer wie heute)
+│       ▼ Tap auf leeren Canvas (kurz + still) → Sheet schließt
+│       ▼ Marker-Drag / Pan / Pinch → Sheet bleibt offen
+│
+├── Tab-Leiste           ◄── IMMER sichtbar am unteren Rand,
+│   ├── Karte                 auch wenn Sheet geschlossen ist
+│   ├── Text
+│   ├── Design / Layout
+│   ├── (editor-spezifisch …)
+│   └── Export
+│       ▼ Tap → Sheet öffnet sich auf 50% mit Inhalt dieses Tabs
+│       ▼ Tap auf anderen Tab bei offenem Sheet → Inhalt swappt direkt
+│
+└── Bottom-Sheet         ◄── liegt visuell über dem Canvas;
+    │                        translate-Y-Animation 250 ms
+    └── Aktiver Tab-Inhalt
+        ├── Geschlossen → komplett unterhalb des Bildschirms (off-screen)
+        ├── Offen        → 50% der Höhe (Standard)
+        └── Tastatur an  → wächst auf ~90% (damit Eingabefeld sichtbar)
+```
+
+**Was sich ändert gegenüber heute:**
+
+- Der **Drag-Handle** zwischen Canvas und Tab-Leiste wird **entfernt**. Es gibt keine manuelle Höhen-Anpassung mehr.
+- Die **drei Snap-Höhen** (12/30/58 vh) sind weg. Es gibt nur zwei Zustände: geschlossen (Canvas voll) und offen (50%, mit Sonderfall 90% bei Tastatur).
+- Das **separate "Anpassen"-Sheet** (PROJ-36) und der **"Anpassen"-Footer-Button** werden im Mobile-Layout **entfernt**. Sämtliche Settings — auch die früher als "Profi" klassifizierten — sind jetzt im normalen 50%-Sheet sichtbar und scrollen bei Bedarf. Auf Desktop bleibt PROJ-36 unverändert; nur Mobile wird vereinfacht.
+
+### B) Datenmodell
+
+Es gibt **keine Datenbank-Änderungen** und keine neuen Tabellen. Das Feature ist rein visuell/interaktiv. Alle bestehenden Editor-States (aktives Tool, ausgewähltes Preset, Marker, Text usw.) bleiben unverändert.
+
+**Neuer kurzlebiger State (nur im Browser, geht beim Reload verloren):**
+
+- "Ist das Sheet aktuell offen?" — ja/nein.
+- "Welcher Tab ist aktuell aktiv?" — der bestehende `activeTab`-State der drei Layout-Komponenten wird wiederverwendet, nur die Bedeutung erweitert ("aktiv" heißt jetzt auch "wird im offenen Sheet angezeigt").
+- "Ist die iOS-Tastatur sichtbar?" — abgeleitet aus dem Browser-API `visualViewport` (Stand bei jeder Sheet-Render-Phase neu gemessen). Dieser Zustand entscheidet ob das Sheet 50% oder 90% hoch ist.
+
+### C) Tech-Entscheidungen — was und warum
+
+**1. Eigenes Lightweight-Bottom-Sheet statt shadcn-Sheet oder Vaul.**
+
+Begründung: Das shadcn-Sheet (das wir für `EditorAnpassenSheet` schon nutzen) ist für Modal-Dialoge gebaut — es bringt einen abdunkelnden Backdrop mit, hat eingebaute Close-Buttons und eine feste Höhe. Wir brauchen aber: keinen Backdrop (Canvas muss sichtbar bleiben), kein Close-Button (Tap auf Canvas schließt), und zwei Höhen (50% / 90%) mit Tastatur-Reaktion. Eine externe Library (Vaul) würde diese Verhalten mitbringen, aber für drei Zustände und eine Slide-Animation lohnt sich die zusätzliche Dependency nicht. Wir bauen das Sheet als kleine, dedizierte Komponente — komplette Kontrolle, weniger Wartungsoberfläche, kein neuer Abhängigkeits-Pfeil im Projekt.
+
+**2. Tap-vs-Drag-Erkennung am Canvas mit einem zentralen Hook.**
+
+Der Canvas erkennt selbst, ob eine Berührung ein kurzer Tap (Sheet schließen) oder eine Pan/Pinch-Geste (durchreichen an MapLibre / Drag-Handler der Marker) ist. Schwellwerte gemäß Spec: ≤ 10 px Bewegung UND < 300 ms Dauer = Tap. Alles andere = nicht-Tap und wird ignoriert. Diese Logik lebt zentral in einem Hook, der von allen drei Editor-Layouts genutzt wird — keine Duplikation.
+
+Wichtig für die Verlässlichkeit: Wenn der Finger auf einem **interaktiven Canvas-Element** landet (Marker, Text-Block, Custom-Mask-Decoration), zählt das **nicht** als Canvas-Tap. Das wird über die `target`-Information des Touch-Events gelöst: die interaktiven Elemente werden anhand eines CSS-Marker-Klassen-Tags erkannt.
+
+**3. Tastatur-Erkennung über das `visualViewport`-Browser-API.**
+
+iOS Safari blendet die Tastatur ein und reduziert dadurch die sichtbare Viewport-Höhe. Statt diese Höhe selbst zu raten oder einen Focus-Listener pro Eingabefeld zu setzen, hört das Sheet zentral auf das `visualViewport.resize`-Event. Wenn die Höhe unter einen Schwellwert fällt, expandiert das Sheet auf 90%. Wenn die Höhe wieder normal wird, fährt es auf 50% zurück. Dieser Ansatz funktioniert unabhängig davon, welches Eingabefeld im Sheet fokussiert ist — wir müssen keine `focus`/`blur`-Listener verteilen.
+
+**4. Sheet als Overlay über dem Canvas, nicht als Flex-Slot daneben.**
+
+Heute teilt sich der Bildschirm vertikal in Canvas + Drag-Handle + Tab-Inhalt (Flex-Layout). Das Canvas-Größe ändert sich beim Sliden, MapLibre muss `triggerRepaint()` aufrufen. Im neuen Pattern bleibt der Canvas **immer gleich groß** (volle Höhe minus Tab-Leiste); das Sheet liegt visuell **über** dem unteren Canvas-Drittel. Das hat zwei Vorteile: (a) keine MapLibre-Repaints mehr nötig wenn Sheet auf-/zugeht; (b) der Customer sieht **immer** den voll-fokussierten Canvas und nur eine kleine "Klappe" die hoch- oder runterfährt — visuell ruhiger.
+
+**5. Tab-Leiste bleibt strukturell wo sie ist — bekommt nur neuen Z-Index und aria-Annotation.**
+
+Sie liegt nicht "in" dem Sheet sondern oberhalb (oder, technisch: mit höherem Z-Index). So bleibt sie auch bei offenem Sheet anklickbar und der Tab-Wechsel ist einfach ein State-Change ohne Animation. `aria-expanded` zeigt Screenreadern an, ob das Sheet offen ist; `aria-controls` verlinkt auf das Sheet-Panel.
+
+**6. `prefers-reduced-motion`-Respekt.**
+
+Customer mit aktivierter Bewegungs-Reduktion bekommen das Sheet ohne Slide-Animation (es springt sofort in den neuen Zustand). Standard-Webaccessibility-Pflicht, keine zusätzliche Arbeit — nur eine CSS-Media-Query.
+
+**7. iOS-Address-Bar-Quirk: 100dvh statt 100vh.**
+
+Mobile Safari zeigt die Adressleiste ein und aus, das ändert `100vh`. Wir nutzen `100dvh` (dynamic viewport height) für Sheet-Höhe und Canvas-Höhe — die App fühlt sich konsistent an, egal ob die Adressleiste gerade sichtbar ist oder nicht.
+
+**8. Komponenten-Wiederverwendung.**
+
+Die existierenden Mobile-Tab-Komponenten (`MobileMapTab`, `MobileTextTab`, `MobileLayoutTab`, `MobileMarkerTab`, `MobilePhotoTab`, `MobileExportTab` — und ihre Pendants in Star-Map / Foto) werden **unverändert wiederverwendet**. Sie rendern jetzt einfach innerhalb des neuen Sheets statt innerhalb eines flex-Slots. Das macht den Umbau lokal und risikoarm: kein Tab-Inhalt muss neu geschrieben werden. Wir tauschen nur die "Hülle" (Layout + Drag-Handle) gegen die neue "Hülle" (Sheet + Tap-Logik) aus.
+
+### D) Was wird gelöscht
+
+Das Pattern ist eine echte Ersetzung, kein Parallel-Mode. Folgende Bausteine verschwinden im Mobile-Kontext:
+
+- Der `useCanvasResize`-Hook (war für die 12/30/58-vh-Snap-Logik zuständig).
+- Die `CanvasResizeHandle`-Komponente (visueller Drag-Handle).
+- Der `EditorAnpassenFooter`-Button im Mobile-Layout (auf Desktop bleibt er, falls dort genutzt).
+- Die Mobile-Variante des `EditorAnpassenSheet`-Aufrufs (auf Desktop bleibt das Sheet erhalten).
+
+Das vereinfacht den Mobile-Code spürbar — drei Komponenten weniger plus eine Hook-Datei weniger.
+
+### E) Dependencies
+
+**Keine neuen Pakete nötig.** Alles wird mit den vorhandenen Bausteinen gebaut: React + Tailwind + Browser-APIs (`visualViewport`, Pointer-Events). Keine Bottom-Sheet-Library, keine Animations-Library — eine CSS-Transition auf `transform: translateY(...)` reicht.
+
+### F) Risiken & offene Punkte für die Implementierung
+
+- **MapLibre / Star-Map-Renderer:** Da der Canvas seine Größe nicht mehr ändert, entfällt die bisherige `triggerRepaint`-Sorge. Aber: das Sheet überlagert den unteren Canvas-Bereich; wenn ein Marker dort liegt, ist er zwar gerendert aber für den Customer nicht sichtbar. Frontend-Implementierung muss prüfen, ob der Customer "Pan-to-Marker"-Logik nutzt um wichtige Inhalte aus dem unteren Bereich nach oben zu schieben, oder ob das im normalen Editor-Flow nicht relevant ist (vermutlich nicht — Customer kann die Karte selbst panen, oder das Sheet kurz schließen).
+- **Foto-Editor mit nativem iOS-Picker:** Wenn der Customer "Bild hochladen" tappt, öffnet der native Picker. Beim Schließen sollte das Sheet im gleichen Zustand bleiben — das fällt aus dem React-State raus, sollte aber out-of-the-box korrekt sein. /qa muss das prüfen.
+- **Landscape unterhalb 1024 px:** Ein iPhone-Landscape (375×812 → 812×375) hat ~187 px Sheet-Höhe — mehrere Tabs werden eng. Frontend kann optional einen Breakpoint bei ~600 px Breite einbauen, wo das Pattern auf "Sheet 70% statt 50%" wechselt. Ist ein Implementierungs-Detail, kein Spec-Block.
+- **Customer mit gelerntem alten Pattern:** Spec hat das bewusst nicht als Onboarding aufgenommen. Nach Deploy beobachten wir die Editor-First-Action-Rate; wenn ein Coach-Mark nötig wird, ist das ein eigenes Folgefeature.
 
 ## QA Test Results
 _To be added by /qa_
