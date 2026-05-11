@@ -39,6 +39,7 @@ Ein webbasierter Karten-Poster-Generator, mit dem Nutzer ohne Designkenntnisse p
 | P1 | Format-gekoppelter Editor-Viewport (A4/A3/A2 zeigt entsprechend mehr/weniger Karte bei gleichem Zoom) | Planned |
 | P1 | Multi-Format Preset-Renders (Customer sieht in Inspiration A4/A3/A2-Switcher) | Planned |
 | P1 | Programmatic City Landing Pages (SEO-Stadtkarten-Hubs pro Stadt × Locale) | Planned |
+| P0 (MVP) | Mobile Editor Tap-Sheet UX (Conversion-kritisch — Apple-Maps-Pattern statt Drag-Handle, alle 3 Editoren) | Planned |
 
 ## Success Metrics
 - Conversion Rate: >5% der anonymen Nutzer erstellen ein Konto

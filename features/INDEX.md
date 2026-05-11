@@ -56,10 +56,11 @@
 | PROJ-40 | Masks (Form-Picker) für Sternenposter-Editor | In Review | [PROJ-40-star-map-masks.md](PROJ-40-star-map-masks.md) | 2026-05-10 |
 | PROJ-41 | Mask-Thumbnail-Polish (Labels weg, Couple-Fill konsistent) | Planned | [PROJ-41-mask-thumbnail-polish.md](PROJ-41-mask-thumbnail-polish.md) | 2026-05-10 |
 | PROJ-42 | Programmatic City Landing Pages (SEO-Stadtkarten-Hubs) | Deployed | [PROJ-42-programmatic-city-landing-pages.md](PROJ-42-programmatic-city-landing-pages.md) | 2026-05-10 |
+| PROJ-43 | Mobile Editor Tap-Sheet UX | Planned | [PROJ-43-mobile-tap-sheet-ux.md](PROJ-43-mobile-tap-sheet-ux.md) | 2026-05-11 |
 
 <!-- Add features above this line -->
 
-## Next Available ID: PROJ-43
+## Next Available ID: PROJ-44
 
 ## Recommended Build Order
 1. **PROJ-1** — Karten-Editor Core (Fundament der App)
