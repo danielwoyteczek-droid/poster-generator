@@ -859,7 +859,7 @@ export async function buildPosterCanvas(
   const toTargetY = (y: number) => mapTargetY + y * scaleY
   if (marker.enabled) {
     const pinImg = await loadImage(makePinSVGUrl(marker.type, marker.color))
-    const { width: pw, height: ph } = resolvePinSizePx(marker.type, W)
+    const { width: pw, height: ph } = resolvePinSizePx(marker.type, W, H)
     let cx = (isDualMap ? 0.25 : 0.5) * W
     let cy = 0.5 * H
     // Bevorzuge die tatsächlich gerenderten Bounds (aus Offscreen-Map),
@@ -873,7 +873,7 @@ export async function buildPosterCanvas(
   }
   if (isDualMap && secondMarker.enabled) {
     const pinImg = await loadImage(makePinSVGUrl(secondMarker.type, secondMarker.color))
-    const { width: pw, height: ph } = resolvePinSizePx(secondMarker.type, W)
+    const { width: pw, height: ph } = resolvePinSizePx(secondMarker.type, W, H)
     let cx = 0.75 * W
     let cy = 0.5 * H
     const sVS = secondMap.viewState

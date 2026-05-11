@@ -6,6 +6,12 @@
  * actual px on demand. Without this, switching A4 → A3 → A2 keeps the
  * SVG attributes constant and the pin shrinks proportionally to the
  * poster — same bug as the format-invariant font size fix.
+ *
+ * Scaling uses `min(canvasWidth, canvasHeight)` — i.e. the poster's SHORT
+ * edge — so the pin stays the same size when the user only flips between
+ * portrait and landscape (same paper, just rotated). Sizing by width alone
+ * would make landscape A4 a ~41 % larger pin than portrait A4, since the
+ * landscape canvas width IS the long edge.
  */
 export type PinType = 'classic' | 'heart'
 
@@ -19,8 +25,10 @@ const PIN_BASE_PX: Record<PinType, { width: number; height: number }> = {
 export function resolvePinSizePx(
   type: PinType,
   canvasWidth: number,
+  canvasHeight?: number,
 ): { width: number; height: number } {
   const base = PIN_BASE_PX[type]
-  const ratio = canvasWidth / PIN_REF_WIDTH
+  const refEdge = canvasHeight != null ? Math.min(canvasWidth, canvasHeight) : canvasWidth
+  const ratio = refEdge / PIN_REF_WIDTH
   return { width: base.width * ratio, height: base.height * ratio }
 }

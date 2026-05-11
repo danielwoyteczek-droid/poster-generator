@@ -32,11 +32,15 @@ interface Props {
   viewState: ViewState  // triggers re-render on map pan
   defaultX: string // CSS percentage fallback when no safeArea is provided
   onMove: (lat: number, lng: number) => void
-  /** Logical canvas width (PROJ-37). Used to size the pin SVG so it stays
-   *  visually proportional to the poster across A4/A3/A2 — without this
-   *  the pin's hardcoded 28×40 / 32×32 px shrinks relative to a larger
-   *  canvas. */
+  /** Logical canvas width (PROJ-37). Used together with `canvasHeight` to
+   *  size the pin SVG so it stays visually proportional to the poster
+   *  across A4/A3/A2 — without this the pin's hardcoded 28×40 / 32×32 px
+   *  shrinks relative to a larger canvas. */
   canvasWidth: number
+  /** Logical canvas height. Pin size resolves against `min(width, height)`
+   *  so flipping orientation (portrait↔landscape) doesn't change the pin
+   *  size for the same paper format. */
+  canvasHeight: number
   /** When false, disables pointer interaction so the pin is only visible.
    *  Used on Mobile to keep the pin non-draggable from tabs other than
    *  Marker. Defaults to true (Desktop behaviour unchanged). */
@@ -61,9 +65,9 @@ interface Props {
  */
 export function DraggablePin({
   slice, containerRef, markerLat, markerLng, markerType, markerColor,
-  viewState, defaultX, onMove, canvasWidth, interactive = true, safeArea,
+  viewState, defaultX, onMove, canvasWidth, canvasHeight, interactive = true, safeArea,
 }: Props) {
-  const pinSize = resolvePinSizePx(markerType, canvasWidth)
+  const pinSize = resolvePinSizePx(markerType, canvasWidth, canvasHeight)
   const [dragging, setDragging] = useState(false)
   const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(null)
   const pinRef = useRef<HTMLDivElement>(null)
