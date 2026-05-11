@@ -40,6 +40,7 @@ Ein webbasierter Karten-Poster-Generator, mit dem Nutzer ohne Designkenntnisse p
 | P1 | Multi-Format Preset-Renders (Customer sieht in Inspiration A4/A3/A2-Switcher) | Planned |
 | P1 | Programmatic City Landing Pages (SEO-Stadtkarten-Hubs pro Stadt × Locale) | Planned |
 | P0 (MVP) | Mobile Editor Tap-Sheet UX (Conversion-kritisch — Apple-Maps-Pattern statt Drag-Handle, alle 3 Editoren) | Planned |
+| P1 | Stadt-Karten-Hub (Topic-Authority-Übersicht /de/stadtkarte/, baut auf PROJ-42 auf) | Planned |
 
 ## Success Metrics
 - Conversion Rate: >5% der anonymen Nutzer erstellen ein Konto
