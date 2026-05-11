@@ -91,6 +91,17 @@ export interface ShapeDefinition {
    * leaving more breathing room at the top.
    */
   landscapeYOffset?: number
+  /**
+   * Optional pre-baked landscape geometry. When provided AND the poster
+   * is in landscape orientation, every composer uses this shape directly
+   * (no uniform-fit, no landscapeScale, no landscapeYOffset). Lets a
+   * silhouette that doesn't translate well via auto-fit (e.g. hearts-
+   * diagonal whose tips sit too close to the canvas top edge after
+   * scaling) ship a hand-tuned landscape variant. The variant should
+   * use a landscape viewBox (e.g. `0 0 841.9 595.3`) and place its
+   * markup directly in canvas coords.
+   */
+  shapeLandscape?: ShapeDefinition
 }
 
 /**
@@ -180,19 +191,23 @@ export function composeMaskSvg(
   // stretching, shape stays a circle/heart/etc. instead of becoming an
   // ellipse pulled across the wide axis.
   if (orientation === 'landscape') {
+    // PROJ-37 Stufe 1: prefer a pre-baked landscape variant when the
+    // shape provides one. The variant ships its own canvas-fit geometry
+    // (no further scale/offset needed).
+    const activeShape = shape.shapeLandscape ?? shape
     const canvasW = 841.9
     const canvasH = 595.3
     const mmCorrection = 210 / 297
 
-    const bottom = shape.bottomFraction ?? 1
+    const bottom = activeShape.bottomFraction ?? 1
     const layoutScale = bottom > layoutMapHeight ? layoutMapHeight / bottom : 1
-    const fitScale = Math.min(canvasW / shape.width, canvasH / shape.height)
-    const landscapeScale = shape.landscapeScale ?? 1
+    const fitScale = Math.min(canvasW / activeShape.width, canvasH / activeShape.height)
+    const landscapeScale = activeShape.landscapeScale ?? 1
     const totalScale = layoutScale * fitScale * landscapeScale
-    const scaledW = shape.width * totalScale
-    const scaledH = shape.height * totalScale
+    const scaledW = activeShape.width * totalScale
+    const scaledH = activeShape.height * totalScale
     const tx = +((canvasW - scaledW) / 2).toFixed(2)
-    const ty = +((canvasH - scaledH) / 2 + canvasH * (shape.landscapeYOffset ?? 0)).toFixed(2)
+    const ty = +((canvasH - scaledH) / 2 + canvasH * (activeShape.landscapeYOffset ?? 0)).toFixed(2)
     const shapeTransform = ` transform="translate(${tx} ${ty}) scale(${totalScale.toFixed(4)})"`
 
     if (outer.mode === 'opacity' || outer.mode === 'full') {
@@ -216,8 +231,8 @@ export function composeMaskSvg(
       const r = (mmToUnits(radiusMm, canvasW) * mmCorrection).toFixed(2)
       const visibleBottom = Math.min(bottom, layoutMapHeight)
       // Centre on the shape's transformed visual midpoint (in canvas coords).
-      const cx = (tx + (shape.width / 2) * totalScale).toFixed(2)
-      const cy = (ty + ((shape.height * visibleBottom) / 2) * totalScale).toFixed(2)
+      const cx = (tx + (activeShape.width / 2) * totalScale).toFixed(2)
+      const cy = (ty + ((activeShape.height * visibleBottom) / 2) * totalScale).toFixed(2)
       // Margin inset rect: clips the glow so the user-set "Abstand zum
       // Posterrand" works in glow mode too (was opacity/full-only before).
       const sides = resolveSideMarginsMm(config)
@@ -238,7 +253,7 @@ export function composeMaskSvg(
       parts.push(hasMargin ? `<g clip-path="url(#m-glow-clip)">${circle}</g>` : circle)
     }
 
-    parts.push(`<g fill="#fff" fill-opacity="1"${shapeTransform}>${shape.markup}</g>`)
+    parts.push(`<g fill="#fff" fill-opacity="1"${shapeTransform}>${activeShape.markup}</g>`)
 
     return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${canvasW} ${canvasH}" width="${canvasW}" height="${canvasH}">${defs}${parts.join('')}</svg>`
   }
@@ -344,20 +359,23 @@ export function composeFrameSvg(
   // the INNER frame contour follows the same uniform-fit + centred shape
   // transform that composeMaskSvg uses, so the two layers stay in lockstep.
   if (orientation === 'landscape') {
+    // PROJ-37 Stufe 1: prefer pre-baked landscape geometry when shape
+    // ships one — keeps the frame contour in lockstep with the mask.
+    const activeShape = shape.shapeLandscape ?? shape
     const canvasW = 841.9
     const canvasH = 595.3
     const mmCorrectionLand = 210 / 297
     const toUnitsLand = (mm: number) => mmToUnits(mm, canvasW) * mmCorrectionLand
 
-    const bottom = shape.bottomFraction ?? 1
+    const bottom = activeShape.bottomFraction ?? 1
     const layoutScale = bottom > layoutMapHeight ? layoutMapHeight / bottom : 1
-    const fitScale = Math.min(canvasW / shape.width, canvasH / shape.height)
-    const landscapeScale = shape.landscapeScale ?? 1
+    const fitScale = Math.min(canvasW / activeShape.width, canvasH / activeShape.height)
+    const landscapeScale = activeShape.landscapeScale ?? 1
     const totalScale = layoutScale * fitScale * landscapeScale
-    const scaledW = shape.width * totalScale
-    const scaledH = shape.height * totalScale
+    const scaledW = activeShape.width * totalScale
+    const scaledH = activeShape.height * totalScale
     const tx = +((canvasW - scaledW) / 2).toFixed(2)
-    const ty = +((canvasH - scaledH) / 2 + canvasH * (shape.landscapeYOffset ?? 0)).toFixed(2)
+    const ty = +((canvasH - scaledH) / 2 + canvasH * (activeShape.landscapeYOffset ?? 0)).toFixed(2)
 
     const parts: string[] = []
     const { innerFrame, outerFrame } = config
@@ -393,7 +411,7 @@ export function composeFrameSvg(
       const scaledThickness = thickness / (totalScale || 1)
       const innerTransform = ` transform="translate(${tx} ${ty}) scale(${totalScale.toFixed(4)})"`
       parts.push(
-        `<g fill="none" stroke="${innerFrame.color}" stroke-width="${scaledThickness}" stroke-linejoin="round"${innerTransform}>${shape.markup}</g>`,
+        `<g fill="none" stroke="${innerFrame.color}" stroke-width="${scaledThickness}" stroke-linejoin="round"${innerTransform}>${activeShape.markup}</g>`,
       )
     }
 
@@ -504,14 +522,20 @@ export function composeSplitMaskHalfSvg(
   // Landscape: A4-landscape canvas (841.9 × 595.3), uniform-fit + centre
   // the shape (same approach as composeMaskSvg). Half-clip references the
   // landscape canvas's midline so each map slot gets its proper side.
+  // PROJ-37 Stufe 1: shape.shapeLandscape overrides if present.
+  const activeShape = shape.shapeLandscape ?? shape
+  const activeMarkup = activeShape.markup
+  const activeHalfMarkup = activeShape.splitMarkup?.[half]
+  const activeW = activeShape.width
+  const activeH = activeShape.height
   const canvasW = 841.9
   const canvasH = 595.3
-  const fitScale = Math.min(canvasW / W, canvasH / H)
-  const landscapeScale = shape.landscapeScale ?? 1
-  const landscapeYOffset = shape.landscapeYOffset ?? 0
+  const fitScale = Math.min(canvasW / activeW, canvasH / activeH)
+  const landscapeScale = activeShape.landscapeScale ?? 1
+  const landscapeYOffset = activeShape.landscapeYOffset ?? 0
   const totalScale = fitScale * landscapeScale
-  const fittedW = W * totalScale
-  const fittedH = H * totalScale
+  const fittedW = activeW * totalScale
+  const fittedH = activeH * totalScale
   const tx = ((canvasW - fittedW) / 2).toFixed(2)
   const ty = ((canvasH - fittedH) / 2 + canvasH * landscapeYOffset).toFixed(2)
   const shapeTransform = `translate(${tx} ${ty}) scale(${totalScale.toFixed(4)})`
@@ -521,11 +545,11 @@ export function composeSplitMaskHalfSvg(
   const clipX = half === 'left' ? 0 : halfCanvasX - OVERLAP_LAND
   const clipW = halfCanvasX + OVERLAP_LAND
 
-  if (halfMarkup) {
-    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${canvasW} ${canvasH}"><g transform="${shapeTransform}" fill="black">${halfMarkup}</g></svg>`
+  if (activeHalfMarkup) {
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${canvasW} ${canvasH}"><g transform="${shapeTransform}" fill="black">${activeHalfMarkup}</g></svg>`
   }
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${canvasW} ${canvasH}"><defs><clipPath id="h"><rect x="${clipX}" y="0" width="${clipW}" height="${canvasH}"/></clipPath></defs><g clip-path="url(#h)"><g transform="${shapeTransform}" fill="black">${markup}</g></g></svg>`
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${canvasW} ${canvasH}"><defs><clipPath id="h"><rect x="${clipX}" y="0" width="${clipW}" height="${canvasH}"/></clipPath></defs><g clip-path="url(#h)"><g transform="${shapeTransform}" fill="black">${activeMarkup}</g></g></svg>`
 }
 
 /**
