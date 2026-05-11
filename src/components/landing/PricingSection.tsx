@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils'
 const FORMATS: Array<{ id: PrintFormat; label: string }> = [
   { id: 'a4', label: 'A4' },
   { id: 'a3', label: 'A3' },
+  { id: 'a2', label: 'A2' },
 ]
 
 const PRODUCT_ICONS = {
