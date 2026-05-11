@@ -19,8 +19,9 @@ export const PRODUCTS: Product[] = [
     label: 'Digitaler Download',
     description: 'PNG + PDF in Druckqualität, sofort verfügbar',
     stripePriceIds: {
-      a4: 'price_1TOhVm36Wy7c8yXhQaZ09Je2',
-      a3: 'price_1TOhVm36Wy7c8yXhQaZ09Je2',
+      a4: 'price_1TVqmH36Wy7c8yXh6FITJb0R',
+      a3: 'price_1TVqmH36Wy7c8yXh6FITJb0R',
+      a2: 'price_1TVqmH36Wy7c8yXh6FITJb0R',
     },
   },
   {
