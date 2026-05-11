@@ -108,7 +108,7 @@ export const MAP_MASKS: Record<MapMaskKey, MapMaskDefinition> = {
         // midline (x=420.95). Scale 1.05 keeps the heart at near-portrait
         // size while a small upward translate gives a bit of breathing
         // room above the text area.
-        markup: '<g transform="translate(108 -30) scale(1.05)"><path d="M298 543 C 298 543, 48 375, 48 228 C 48 108, 198 60, 298 178 C 398 60, 548 108, 548 228 C 548 375, 298 543, 298 543 Z"/></g>',
+        markup: '<g transform="translate(129 -58) scale(0.98)"><path d="M298 543 C 298 543, 48 375, 48 228 C 48 108, 198 60, 298 178 C 398 60, 548 108, 548 228 C 548 375, 298 543, 298 543 Z"/></g>',
         bottomFraction: 1,
       },
     },
