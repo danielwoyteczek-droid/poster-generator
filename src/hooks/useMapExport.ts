@@ -560,12 +560,23 @@ export async function buildPosterCanvas(
     let leftCanvas = leftRender.canvas
     renderedBounds = leftRender.bounds
     if (leftHalfMaskUrl) leftCanvas = await applyMask(leftCanvas, leftHalfMaskUrl)
-    ctx.save()
-    ctx.beginPath()
-    ctx.rect(mapTargetX, mapTargetY, leftClipW, mapTargetH)
-    ctx.clip()
-    ctx.drawImage(leftCanvas, 0, 0, W, H, mapTargetX, mapTargetY, mapTargetW, mapTargetH)
-    ctx.restore()
+    // PROJ-1: noHalfClip masks (hearts-curved, hearts-diagonal) extend
+    // across the canvas midline by design — the half-masks themselves
+    // already restrict visibility per side. Applying the rect-clip here
+    // would cut the parts of each heart that cross the midline,
+    // resulting in Daniel's "linke Karte wird nicht voll gerendert" bug.
+    // For non-noHalfClip masks the rect-clip is the safety net that
+    // enforces the seam gap between halves.
+    if (mask.noHalfClip) {
+      ctx.drawImage(leftCanvas, 0, 0, W, H, mapTargetX, mapTargetY, mapTargetW, mapTargetH)
+    } else {
+      ctx.save()
+      ctx.beginPath()
+      ctx.rect(mapTargetX, mapTargetY, leftClipW, mapTargetH)
+      ctx.clip()
+      ctx.drawImage(leftCanvas, 0, 0, W, H, mapTargetX, mapTargetY, mapTargetW, mapTargetH)
+      ctx.restore()
+    }
 
     // Right map (secondary)
     const secVS = secondMap.viewState
@@ -575,12 +586,16 @@ export async function buildPosterCanvas(
     let rightCanvas = rightRender.canvas
     secondRenderedBounds = rightRender.bounds
     if (rightHalfMaskUrl) rightCanvas = await applyMask(rightCanvas, rightHalfMaskUrl)
-    ctx.save()
-    ctx.beginPath()
-    ctx.rect(rightClipX, mapTargetY, rightClipW, mapTargetH)
-    ctx.clip()
-    ctx.drawImage(rightCanvas, 0, 0, W, H, mapTargetX, mapTargetY, mapTargetW, mapTargetH)
-    ctx.restore()
+    if (mask.noHalfClip) {
+      ctx.drawImage(rightCanvas, 0, 0, W, H, mapTargetX, mapTargetY, mapTargetW, mapTargetH)
+    } else {
+      ctx.save()
+      ctx.beginPath()
+      ctx.rect(rightClipX, mapTargetY, rightClipW, mapTargetH)
+      ctx.clip()
+      ctx.drawImage(rightCanvas, 0, 0, W, H, mapTargetX, mapTargetY, mapTargetW, mapTargetH)
+      ctx.restore()
+    }
   } else if (isSplitPhoto && splitPhoto && (mask.shape || (mask.leftSvgPath && mask.rightSvgPath))) {
     const photoIsRightZone = splitPhotoZone === 1
     // Same orientation-aware composition as dual-map above so split-photo
