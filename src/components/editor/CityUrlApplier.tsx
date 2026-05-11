@@ -64,6 +64,10 @@ export function CityUrlApplier() {
         }
 
         // Apply layout + palette + map-center + marker in one batch update.
+        // Title-textBlock auf Stadtnamen setzen, damit der Customer im Editor
+        // sofort die Stadt im Title sieht (statt 'NEW YORK' aus dem
+        // EDITOR_INITIAL_STATE). Der Customer kann den Title danach noch
+        // editieren — wir setzen nur den Initial-Wert, nichts wird gelocked.
         useEditorStore.setState((state) => ({
           ...state,
           styleId: style.layoutId,
@@ -88,6 +92,11 @@ export function CityUrlApplier() {
             lat: city.latitude,
             lng: city.longitude,
           },
+          textBlocks: state.textBlocks.map((tb) =>
+            tb.id === 'block-title' || (!tb.isCoordinates && tb.id === state.textBlocks[0]?.id)
+              ? { ...tb, text: city.name.toUpperCase() }
+              : tb,
+          ),
         }))
 
         toast.success(`${city.name} geladen`, { duration: 4000 })

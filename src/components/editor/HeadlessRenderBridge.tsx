@@ -132,6 +132,18 @@ function BridgeImpl({
           console.log('[hl-debug] HeadlessBridge: applying location', {
             lat, lng, targetZoom, presetZoom, urlZoom: Number.isFinite(urlZoom) ? urlZoom : null,
           })
+          // PROJ-42: bei city_render auch den Title-textBlock auf den
+          // Stadtnamen setzen (sonst rendert das Poster "NEW YORK" als
+          // Titel — der Default-Text aus EDITOR_INITIAL_STATE).
+          const isCityRender = url.searchParams.get('city_render') === '1'
+          const updatedTextBlocks =
+            isCityRender && locationName
+              ? state.textBlocks.map((tb) =>
+                  tb.id === 'block-title' || (!tb.isCoordinates && tb.id === state.textBlocks[0]?.id)
+                    ? { ...tb, text: locationName.toUpperCase() }
+                    : tb,
+                )
+              : state.textBlocks
           return {
             ...state,
             viewState: {
@@ -146,6 +158,7 @@ function BridgeImpl({
               lng,
             },
             locationName: locationName ?? state.locationName,
+            textBlocks: updatedTextBlocks,
             pendingCenter: null,
           }
         })
