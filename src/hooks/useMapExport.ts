@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useEditorStore, type TextBlock, type ViewState, type MarkerState, type SecondMapState, type ShapeConfigState } from '@/hooks/useEditorStore'
-import { composeMaskSvg, composeFrameSvg, composeFullbleedMaskSvg, composeSplitSeamSvg, parseShapeSvg, svgToDataUrl, hasAnyFrame } from '@/lib/mask-composer'
+import { composeMaskSvg, composeFrameSvg, composeFullbleedMaskSvg, composeSplitSeamSvg, composeSplitMaskHalfSvg, parseShapeSvg, svgToDataUrl, hasAnyFrame } from '@/lib/mask-composer'
 import { PRINT_FORMATS, effectiveDimensions, type PrintFormat } from '@/lib/print-formats'
 import { MAP_MASKS, type MapMaskKey } from '@/lib/map-masks'
 import { resolveMask } from '@/hooks/useCustomMasks'
@@ -541,11 +541,25 @@ export async function buildPosterCanvas(
     const rightClipX = midlineX + splitGapHalfPx
     const rightClipW = mapTargetX + mapTargetW - rightClipX
 
+    // PROJ-1: orientation-aware split-half mask URLs. The static SVGs in
+    // /public/masks are portrait — `applyMask` would stretch them to the
+    // landscape print canvas and turn circles into ovals. Compose on the
+    // fly when the mask has a shape (every built-in split mask does).
+    const orientationForSplit = store.orientation ?? 'portrait'
+    const composedLeftHalfUrl = mask.shape
+      ? svgToDataUrl(composeSplitMaskHalfSvg(mask.shape, 'left', orientationForSplit))
+      : null
+    const composedRightHalfUrl = mask.shape
+      ? svgToDataUrl(composeSplitMaskHalfSvg(mask.shape, 'right', orientationForSplit))
+      : null
+    const leftHalfMaskUrl = composedLeftHalfUrl ?? mask.leftSvgPath ?? null
+    const rightHalfMaskUrl = composedRightHalfUrl ?? mask.rightSvgPath ?? null
+
     // Left map (primary)
     const leftRender = await renderMapOffscreen({ styleId, vs: viewState, previewW, previewH, outputW: W, outputH: H, paletteId: store.paletteId, customPaletteBase: store.customPaletteBase, customPalette: store.customPalette, streetLabelsVisible: store.streetLabelsVisible })
     let leftCanvas = leftRender.canvas
     renderedBounds = leftRender.bounds
-    if (mask.leftSvgPath) leftCanvas = await applyMask(leftCanvas, mask.leftSvgPath)
+    if (leftHalfMaskUrl) leftCanvas = await applyMask(leftCanvas, leftHalfMaskUrl)
     ctx.save()
     ctx.beginPath()
     ctx.rect(mapTargetX, mapTargetY, leftClipW, mapTargetH)
@@ -560,17 +574,26 @@ export async function buildPosterCanvas(
     const rightRender = await renderMapOffscreen({ styleId: secondMap.styleId, vs: secVS, previewW: secPreviewW, previewH: secPreviewH, outputW: W, outputH: H, paletteId: secondMap.paletteId, customPaletteBase: secondMap.customPaletteBase, customPalette: secondMap.customPalette, streetLabelsVisible: store.streetLabelsVisible })
     let rightCanvas = rightRender.canvas
     secondRenderedBounds = rightRender.bounds
-    if (mask.rightSvgPath) rightCanvas = await applyMask(rightCanvas, mask.rightSvgPath)
+    if (rightHalfMaskUrl) rightCanvas = await applyMask(rightCanvas, rightHalfMaskUrl)
     ctx.save()
     ctx.beginPath()
     ctx.rect(rightClipX, mapTargetY, rightClipW, mapTargetH)
     ctx.clip()
     ctx.drawImage(rightCanvas, 0, 0, W, H, mapTargetX, mapTargetY, mapTargetW, mapTargetH)
     ctx.restore()
-  } else if (isSplitPhoto && splitPhoto && mask.leftSvgPath && mask.rightSvgPath) {
+  } else if (isSplitPhoto && splitPhoto && (mask.shape || (mask.leftSvgPath && mask.rightSvgPath))) {
     const photoIsRightZone = splitPhotoZone === 1
-    const mapSideSvg = photoIsRightZone ? mask.leftSvgPath : mask.rightSvgPath
-    const photoSideSvg = photoIsRightZone ? mask.rightSvgPath : mask.leftSvgPath
+    // Same orientation-aware composition as dual-map above so split-photo
+    // half-masks don't stretch in landscape.
+    const orientationForSplit = store.orientation ?? 'portrait'
+    const composedLeftHalfUrl = mask.shape
+      ? svgToDataUrl(composeSplitMaskHalfSvg(mask.shape, 'left', orientationForSplit))
+      : mask.leftSvgPath!
+    const composedRightHalfUrl = mask.shape
+      ? svgToDataUrl(composeSplitMaskHalfSvg(mask.shape, 'right', orientationForSplit))
+      : mask.rightSvgPath!
+    const mapSideSvg = photoIsRightZone ? composedLeftHalfUrl : composedRightHalfUrl
+    const photoSideSvg = photoIsRightZone ? composedRightHalfUrl : composedLeftHalfUrl
 
     // Without an explicit poster-middle rect-clip, the SVG-internal
     // <clipPath> in the half-mask SVGs is not always honoured when loaded

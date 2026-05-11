@@ -441,6 +441,61 @@ export function composeFrameSvg(
 }
 
 /**
+ * Build a left- or right-half alpha-mask SVG for a split mask. Used in
+ * dual-map and split-photo modes. The static SVGs in /public/masks/ are
+ * authored at the canonical portrait viewBox (e.g. 100×141, 595×842) and
+ * served as-is. When the poster is in landscape orientation the canvas
+ * aspect flips to 1.41:1 — `mask-size: 100% 100%` would stretch the
+ * portrait SVG horizontally and turn circles into ovals, hearts into
+ * lemons. This helper generates an orientation-aware SVG that fits the
+ * shape uniformly into the current canvas and clips to the requested
+ * half — analogous to `composeMaskSvg` for non-split masks.
+ *
+ * Portrait orientation just emits the shape in its native viewBox with
+ * a rect-clip on the requested half (or uses pre-baked `splitMarkup`
+ * when the mask provides it, e.g. hearts-curved / hearts-diagonal).
+ */
+export function composeSplitMaskHalfSvg(
+  shape: ShapeDefinition,
+  half: 'left' | 'right',
+  orientation: 'portrait' | 'landscape' = 'portrait',
+): string {
+  const { width: W, height: H, splitMarkup, markup } = shape
+  const halfMarkup = splitMarkup?.[half]
+
+  if (orientation === 'portrait') {
+    const viewBox = `0 0 ${W} ${H}`
+    if (halfMarkup) {
+      return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox}"><g fill="black">${halfMarkup}</g></svg>`
+    }
+    const halfX = W / 2
+    const clipX = half === 'left' ? 0 : halfX
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox}"><defs><clipPath id="h"><rect x="${clipX}" y="0" width="${halfX}" height="${H}"/></clipPath></defs><g fill="black" clip-path="url(#h)">${markup}</g></svg>`
+  }
+
+  // Landscape: A4-landscape canvas (841.9 × 595.3), uniform-fit + centre
+  // the shape (same approach as composeMaskSvg). Half-clip references the
+  // landscape canvas's midline so each map slot gets its proper side.
+  const canvasW = 841.9
+  const canvasH = 595.3
+  const fitScale = Math.min(canvasW / W, canvasH / H)
+  const fittedW = W * fitScale
+  const fittedH = H * fitScale
+  const tx = ((canvasW - fittedW) / 2).toFixed(2)
+  const ty = ((canvasH - fittedH) / 2).toFixed(2)
+  const shapeTransform = `translate(${tx} ${ty}) scale(${fitScale.toFixed(4)})`
+
+  const halfCanvasX = canvasW / 2
+  const clipX = half === 'left' ? 0 : halfCanvasX
+
+  if (halfMarkup) {
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${canvasW} ${canvasH}"><g transform="${shapeTransform}" fill="black">${halfMarkup}</g></svg>`
+  }
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${canvasW} ${canvasH}"><defs><clipPath id="h"><rect x="${clipX}" y="0" width="${halfCanvasX}" height="${canvasH}"/></clipPath></defs><g clip-path="url(#h)"><g transform="${shapeTransform}" fill="black">${markup}</g></g></svg>`
+}
+
+/**
  * Seam lines for split modes — two vertical strokes at x = midline ±
  * splitGapMm, clipped to the shape's interior so they only appear inside
  * the silhouette. Rendered as a separate layer (without the per-half CSS

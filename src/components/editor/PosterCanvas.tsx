@@ -6,7 +6,7 @@ import { useEditorStore, LAYOUT_MAP_HEIGHT } from '@/hooks/useEditorStore'
 import { useCustomMasks } from '@/hooks/useCustomMasks'
 import { MAP_MASKS } from '@/lib/map-masks'
 import { getPalette } from '@/lib/map-palettes'
-import { composeMaskSvg, composeFrameSvg, composeFullbleedMaskSvg, composeSplitSeamSvg, svgToDataUrl, hasAnyFrame } from '@/lib/mask-composer'
+import { composeMaskSvg, composeFrameSvg, composeFullbleedMaskSvg, composeSplitSeamSvg, composeSplitMaskHalfSvg, svgToDataUrl, hasAnyFrame } from '@/lib/mask-composer'
 import { useRasterizedMaskUrl } from '@/hooks/useRasterizedMaskUrl'
 import { useColoredDecoration } from '@/hooks/useColoredDecoration'
 import { PRINT_FORMATS, effectiveDimensions, effectiveLogicalCanvas } from '@/lib/print-formats'
@@ -128,11 +128,23 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
   }, [isDualMap, secondMarker.enabled, setSecondMarker])
   // Zone 0 = left/first half, zone 1 = right/second half
   const photoIsRightZone = splitPhotoZone === 1
+  // Orientation-aware split-half mask URLs. The static SVGs in /public are
+  // authored as portrait — composing them on the fly with the right viewBox
+  // keeps circles round and hearts heart-shaped in landscape. Falls back to
+  // the static asset when the mask has no shape definition.
+  const composedSplitLeft = (isDualMap || isSplitPhoto) && mask.shape
+    ? svgToDataUrl(composeSplitMaskHalfSvg(mask.shape, 'left', orientation))
+    : null
+  const composedSplitRight = (isDualMap || isSplitPhoto) && mask.shape
+    ? svgToDataUrl(composeSplitMaskHalfSvg(mask.shape, 'right', orientation))
+    : null
+  const leftMaskUrl = composedSplitLeft ?? mask.leftSvgPath ?? null
+  const rightMaskUrl = composedSplitRight ?? mask.rightSvgPath ?? null
   const mapHalfSvg = isSplitPhoto
-    ? (photoIsRightZone ? mask.leftSvgPath : mask.rightSvgPath)
+    ? (photoIsRightZone ? leftMaskUrl : rightMaskUrl)
     : null
   const photoHalfSvg = isSplitPhoto
-    ? (photoIsRightZone ? mask.rightSvgPath : mask.leftSvgPath)
+    ? (photoIsRightZone ? rightMaskUrl : leftMaskUrl)
     : null
   const useComposedMask = !!mask.shape && !isDualMap && !isSplitPhoto
   const layoutMapHeight = LAYOUT_MAP_HEIGHT[layoutId]
@@ -351,7 +363,7 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
                 <div
                   className="absolute inset-0"
                   style={{
-                    ...(mask.leftSvgPath ? makeMaskStyle(mask.leftSvgPath) : {}),
+                    ...(leftMaskUrl ? makeMaskStyle(leftMaskUrl) : {}),
                     ...(leftClip ? { clipPath: leftClip } : {}),
                     ...(primaryInteractive ? {} : { pointerEvents: 'none' as const }),
                   }}
@@ -362,7 +374,7 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
                 <div
                   className="absolute inset-0"
                   style={{
-                    ...(mask.rightSvgPath ? makeMaskStyle(mask.rightSvgPath) : {}),
+                    ...(rightMaskUrl ? makeMaskStyle(rightMaskUrl) : {}),
                     ...(rightClip ? { clipPath: rightClip } : {}),
                     ...(secondaryInteractive ? {} : { pointerEvents: 'none' as const }),
                   }}
