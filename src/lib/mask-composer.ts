@@ -483,14 +483,22 @@ export function composeSplitMaskHalfSvg(
   const { width: W, height: H, splitMarkup, markup } = shape
   const halfMarkup = splitMarkup?.[half]
 
+  // Small overlap past the centerline so paths whose centre point lies
+  // marginally off the viewBox midline (e.g. heart's top dip at x=298 in
+  // a 595.3-wide viewBox where centre is 297.65) still appear in the
+  // clipped half. The PosterCanvas application-clip enforces the visible
+  // seam-gap, so a few units of overlap here are invisible to the user.
+  const OVERLAP_PT = 2
+
   if (orientation === 'portrait') {
     const viewBox = `0 0 ${W} ${H}`
     if (halfMarkup) {
       return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox}"><g fill="black">${halfMarkup}</g></svg>`
     }
     const halfX = W / 2
-    const clipX = half === 'left' ? 0 : halfX
-    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox}"><defs><clipPath id="h"><rect x="${clipX}" y="0" width="${halfX}" height="${H}"/></clipPath></defs><g fill="black" clip-path="url(#h)">${markup}</g></svg>`
+    const clipX = half === 'left' ? 0 : halfX - OVERLAP_PT
+    const clipW = halfX + OVERLAP_PT
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox}"><defs><clipPath id="h"><rect x="${clipX}" y="0" width="${clipW}" height="${H}"/></clipPath></defs><g fill="black" clip-path="url(#h)">${markup}</g></svg>`
   }
 
   // Landscape: A4-landscape canvas (841.9 × 595.3), uniform-fit + centre
@@ -508,14 +516,16 @@ export function composeSplitMaskHalfSvg(
   const ty = ((canvasH - fittedH) / 2 + canvasH * landscapeYOffset).toFixed(2)
   const shapeTransform = `translate(${tx} ${ty}) scale(${totalScale.toFixed(4)})`
 
+  const OVERLAP_LAND = 3
   const halfCanvasX = canvasW / 2
-  const clipX = half === 'left' ? 0 : halfCanvasX
+  const clipX = half === 'left' ? 0 : halfCanvasX - OVERLAP_LAND
+  const clipW = halfCanvasX + OVERLAP_LAND
 
   if (halfMarkup) {
     return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${canvasW} ${canvasH}"><g transform="${shapeTransform}" fill="black">${halfMarkup}</g></svg>`
   }
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${canvasW} ${canvasH}"><defs><clipPath id="h"><rect x="${clipX}" y="0" width="${halfCanvasX}" height="${canvasH}"/></clipPath></defs><g clip-path="url(#h)"><g transform="${shapeTransform}" fill="black">${markup}</g></g></svg>`
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${canvasW} ${canvasH}"><defs><clipPath id="h"><rect x="${clipX}" y="0" width="${clipW}" height="${canvasH}"/></clipPath></defs><g clip-path="url(#h)"><g transform="${shapeTransform}" fill="black">${markup}</g></g></svg>`
 }
 
 /**
