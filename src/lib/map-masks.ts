@@ -232,13 +232,12 @@ export const MAP_MASKS: Record<MapMaskKey, MapMaskDefinition> = {
         right: '<g transform="translate(46 130) scale(1.3)"><path d="M291.01,133.68c3.17-1.95,37.47-22.36,67.14-6.57,4.64,2.47,10.77,6.67,16.57,14,3.49,4.8,11.45,17.16,11.43,34.29-.01,10.3-2.91,19.15-6.78,26.37-6.29,11.72-16.35,20.97-28.33,26.73l-119.46,57.47-46-110.86c-2.77-5.15-11.25-22.53-6.86-44.57.32-1.6.69-3.16,1.11-4.65,5.23-18.81,19.37-34.07,37.95-40.06,6.49-2.09,14.05-3.26,22.35-2.3,24.4,2.84,45.26,22.97,50.87,50.15Z"/></g>',
       },
       bottomFraction: 0.6,
-      // hearts-diagonal cross the midline at angles and have their tips
-      // close to the canvas top edge. 1.15 clipped, 1.08 was fine but
-      // small. 1.18 with a stronger 0.08 y-offset trades top-clip risk
-      // for a roomier silhouette — the offset pushes the whole shape
-      // down enough that the upper tips stay inside.
-      landscapeScale: 1.18,
-      landscapeYOffset: 0.08,
+      // hearts-diagonal calibration trail: 1.15 clipped, 1.08 fit but
+      // looked small, 1.18 still clipped a touch of the left half.
+      // 1.13 + 0.06 offset is the next step down — keeps the tips inside
+      // while giving slightly more presence than the safe 1.08.
+      landscapeScale: 1.13,
+      landscapeYOffset: 0.06,
     },
   },
 }
