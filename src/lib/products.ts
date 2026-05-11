@@ -38,7 +38,7 @@ export const PRODUCTS: Product[] = [
     label: 'Gerahmtes Poster (schwarz)',
     description: 'Poster im schwarzen Holzrahmen, fertig zum Aufhängen. Digitaler Download inklusive.',
     stripePriceIds: {
-      a4: 'price_1TOhUA36Wy7c8yXhqM6ZwmMp',
+      a4: 'price_1TVqsO36Wy7c8yXhoPvyx4yp',
       a3: 'price_1TOdjH36Wy7c8yXhumnPN5ed',
     },
   },
