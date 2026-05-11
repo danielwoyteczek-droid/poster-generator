@@ -363,7 +363,12 @@ export const EDITOR_INITIAL_STATE = {
   maskKey: 'none',
   printFormat: 'a4' as const,
   orientation: 'portrait' as const,
-  marker: { enabled: false, type: 'classic' as const, color: '#e63946' },
+  // Primary marker on by default so a fresh editor immediately shows the
+  // location pin — the customer can disable it from the Marker tab but
+  // shouldn't have to flip a toggle just to see where the search lands.
+  // Secondary stays off; the split-map auto-enable path turns it on when
+  // dual-map mode activates (PROJ-1 migration in PosterCanvas).
+  marker: { enabled: true, type: 'classic' as const, color: '#e63946' },
   secondMarker: { enabled: false, type: 'classic' as const, color: '#e63946' },
   shapeConfig: DEFAULT_SHAPE_CONFIG,
   layoutId: 'text-15' as const,
