@@ -91,17 +91,46 @@ Antworte AUSSCHLIESSLICH mit einem JSON-Objekt im folgenden Format (keine Erklae
   ]
 }`
 
+/**
+ * Locale-specific name overrides for cities whose name is spelled
+ * differently across locales (z.B. Tokyo / Tokio). Slugs that aren't
+ * in this map use city.name for all locales — e.g. New York stays
+ * "New York" in DE/EN/FR/IT, only ES uses "Nueva York".
+ *
+ * Add entries here when seeding cities with locale-variant names so
+ * the AI-Drafts use the locale-correct spelling in pageTitle/body/H2.
+ */
+const LOCALE_CITY_NAME_OVERRIDES: Record<string, Partial<Record<Locale, string>>> = {
+  tokyo: { de: 'Tokio', es: 'Tokio' },
+  london: { fr: 'Londres', it: 'Londra', es: 'Londres' },
+  rome: { de: 'Rom', it: 'Roma', es: 'Roma' },
+  'cape-town': {
+    de: 'Kapstadt',
+    fr: 'Le Cap',
+    it: 'Città del Capo',
+    es: 'Ciudad del Cabo',
+  },
+  singapore: { de: 'Singapur', fr: 'Singapour', es: 'Singapur' },
+  'new-york': { es: 'Nueva York' },
+  marrakech: { de: 'Marrakesch' },
+}
+
+function localeCityName(city: CitySeed, locale: Locale): string {
+  return LOCALE_CITY_NAME_OVERRIDES[city.slug_base]?.[locale] ?? city.name
+}
+
 function buildUserPrompt(city: CitySeed, locale: Locale): string {
   const populationStr =
     city.population && city.population > 0
       ? `~${city.population.toLocaleString('de-DE')} Einwohner`
       : 'unbekannte Einwohnerzahl'
   const regionStr = city.region ? `, ${city.region}` : ''
-  return `Schreibe die Inhalte fuer eine Stadt-Landingpage zu ${city.name} (${city.country_code}${regionStr}, ${populationStr}) in der Sprache: ${LOCALE_NAMES[locale]}.
+  const displayName = localeCityName(city, locale)
+  return `Schreibe die Inhalte fuer eine Stadt-Landingpage zu ${displayName} (${city.country_code}${regionStr}, ${populationStr}) in der Sprache: ${LOCALE_NAMES[locale]}.
 
-Kontext: Die Seite bewirbt personalisierte Stadtkarten-Poster fuer ${city.name}. Nutzer sehen 3 Style-Varianten der Karte und einen CTA in den Editor. Body soll emotional abholen, konkrete Stadt-Spezifika nennen (Wahrzeichen, Stadtviertel, lokale Identitaet) und 200-300 Woerter total umfassen.
+Kontext: Die Seite bewirbt personalisierte Stadtkarten-Poster fuer ${displayName}. Nutzer sehen 3 Style-Varianten der Karte und einen CTA in den Editor. Body soll emotional abholen, konkrete Stadt-Spezifika nennen (Wahrzeichen, Stadtviertel, lokale Identitaet) und 200-300 Woerter total umfassen.
 
-Pflicht: Faktisch korrekte Wahrzeichen-/Stadtteile-Namen. Keine generischen Stadt-Phrasen. Keyword "Stadtkarte ${city.name}" (DE) bzw. die jeweilige Locale-Variante muss in pageTitle und metaTitle vorkommen.`
+Pflicht: Faktisch korrekte Wahrzeichen-/Stadtteile-Namen. Keine generischen Stadt-Phrasen. Verwende "${displayName}" durchgaengig als Stadtnamen (NICHT den internationalen Namen, falls in dieser Locale anders). Das Keyword fuer Stadt-Karten muss in pageTitle und metaTitle vorkommen — auf Deutsch "Stadtkarte ${displayName}", auf Englisch "${displayName} city map" / "Map of ${displayName}", auf Franzoesisch "Carte de ${displayName}", auf Italienisch "Mappa di ${displayName}", auf Spanisch "Mapa de ${displayName}".`
 }
 
 function extractJson(text: string): unknown {
