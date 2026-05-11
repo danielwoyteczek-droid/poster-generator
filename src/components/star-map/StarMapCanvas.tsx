@@ -3,7 +3,7 @@
 import { useRef, useEffect, useState, useCallback } from 'react'
 import { useStarMapStore } from '@/hooks/useStarMapStore'
 import { useEditorStore } from '@/hooks/useEditorStore'
-import { PRINT_FORMATS } from '@/lib/print-formats'
+import { PRINT_FORMATS, effectiveLogicalCanvas } from '@/lib/print-formats'
 import { renderStarMap, type StarEntry, type GeoFeature } from '@/lib/star-map-renderer'
 import { getStarTexture } from '@/lib/star-textures'
 import { TextBlockOverlay } from '@/components/editor/TextBlockOverlay'
@@ -25,7 +25,10 @@ interface StarMapCanvasProps {
 export function StarMapCanvas({ padding = 64, textInteractive }: StarMapCanvasProps = {}) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const wrapperRef = useRef<HTMLDivElement>(null)
-  const [posterSize, setPosterSize] = useState({ width: 0, height: 0 })
+  // PROJ-37: visualSize = on-screen poster size (fitted into wrapper).
+  // logicalCanvas = the virtual pixel canvas the renderer draws on; the
+  // visual is derived via CSS-transform-scale. Same pattern as PosterCanvas.
+  const [visualSize, setVisualSize] = useState({ width: 0, height: 0 })
   const [starData, setStarData] = useState<StarEntry[]>([])
   const [constellationData, setConstellationData] = useState<GeoFeature[]>([])
   const [milkyWayData, setMilkyWayData] = useState<GeoFeature[]>([])
@@ -42,10 +45,13 @@ export function StarMapCanvas({ padding = 64, textInteractive }: StarMapCanvasPr
     frameConfig,
     setPreviewSize,
   } = useStarMapStore()
-  const { printFormat, setSelectedBlockId } = useEditorStore()
+  const { printFormat, orientation, setSelectedBlockId } = useEditorStore()
   const { renderPreview } = useStarMapExport()
   const format = PRINT_FORMATS[printFormat]
-  const ratio = format.widthMm / format.heightMm
+  const baseRatio = format.widthMm / format.heightMm
+  const ratio = orientation === 'landscape' ? 1 / baseRatio : baseRatio
+  const logicalCanvas = effectiveLogicalCanvas(printFormat, orientation)
+  const visualScale = visualSize.width > 0 ? visualSize.width / logicalCanvas.width : 1
 
   useEffect(() => {
     fetch('/bright-stars.json')
@@ -106,29 +112,32 @@ export function StarMapCanvas({ padding = 64, textInteractive }: StarMapCanvasPr
       const size = availW / ratio <= availH
         ? { width: availW, height: availW / ratio }
         : { width: availH * ratio, height: availH }
-      setPosterSize(size)
+      setVisualSize(size)
       setPreviewSize(size.width, size.height)
     }
     const obs = new ResizeObserver(([e]) => compute(e.contentRect.width, e.contentRect.height))
     obs.observe(wrapperRef.current)
     compute(wrapperRef.current.clientWidth, wrapperRef.current.clientHeight)
     return () => obs.disconnect()
-  }, [ratio, padding])
+  }, [ratio, padding, setPreviewSize])
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current
-    if (!canvas || posterSize.width === 0 || starData.length === 0) return
+    if (!canvas || logicalCanvas.width === 0 || starData.length === 0) return
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
+    // PROJ-37: render on the logical canvas size (A4=800, A3=1131, A2=1600 wide).
+    // The visual size is achieved via CSS-transform-scale on the parent div.
+    // DPR is folded into the bitmap so retina screens stay sharp.
     const dpr = window.devicePixelRatio || 1
-    canvas.width = posterSize.width * dpr
-    canvas.height = posterSize.height * dpr
+    canvas.width = logicalCanvas.width * dpr
+    canvas.height = logicalCanvas.height * dpr
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
 
     renderStarMap(ctx, {
-      width: posterSize.width,
-      height: posterSize.height,
+      width: logicalCanvas.width,
+      height: logicalCanvas.height,
       lat, lng,
       date: new Date(datetime),
       posterBgColor, skyBgColor, starColor,
@@ -145,7 +154,7 @@ export function StarMapCanvas({ padding = 64, textInteractive }: StarMapCanvasPr
     lat, lng, datetime, posterBgColor, skyBgColor, starColor,
     showConstellations, showMilkyWay, showSun, showMoon, showPlanets,
     showCompass, showGrid, gridOpacity, starDensity,
-    frameConfig, posterSize, skyTextureImage, textureOpacity, skyMaskImage,
+    frameConfig, logicalCanvas.width, logicalCanvas.height, skyTextureImage, textureOpacity, skyMaskImage,
   ])
 
   useEffect(() => { draw() }, [draw])
@@ -156,21 +165,34 @@ export function StarMapCanvas({ padding = 64, textInteractive }: StarMapCanvasPr
       className="flex-1 relative bg-muted min-h-0 overflow-hidden flex items-center justify-center"
     >
       <PreviewTriggerButton renderPreview={renderPreview} />
-      {posterSize.width > 0 && (
+      {visualSize.width > 0 && (
+        // PROJ-37: Visual wrapper reserves the on-screen space; the logical
+        // poster div lives inside at A4/A3/A2 logical size and gets CSS-
+        // transform-scaled to fit. Mirrors PosterCanvas exactly.
         <div
-          className="relative shadow-2xl flex-none overflow-hidden"
-          style={{ width: posterSize.width, height: posterSize.height }}
-          onPointerDown={() => setSelectedBlockId(null)}
+          className="flex-none relative"
+          style={{ width: visualSize.width, height: visualSize.height }}
         >
-          <canvas
-            ref={canvasRef}
-            style={{ width: posterSize.width, height: posterSize.height, display: 'block' }}
-          />
-          <TextBlockOverlay
-            coordinatesSource={{ lat, lng, locationName }}
-            canvasWidth={posterSize.width}
-            interactive={textInteractive}
-          />
+          <div
+            className="relative shadow-2xl overflow-hidden"
+            style={{
+              width: logicalCanvas.width,
+              height: logicalCanvas.height,
+              transform: `scale(${visualScale})`,
+              transformOrigin: 'top left',
+            }}
+            onPointerDown={() => setSelectedBlockId(null)}
+          >
+            <canvas
+              ref={canvasRef}
+              style={{ width: logicalCanvas.width, height: logicalCanvas.height, display: 'block' }}
+            />
+            <TextBlockOverlay
+              coordinatesSource={{ lat, lng, locationName }}
+              canvasWidth={logicalCanvas.width}
+              interactive={textInteractive}
+            />
+          </div>
         </div>
       )}
 

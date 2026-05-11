@@ -8,10 +8,12 @@ import { Switch } from '@/components/ui/switch'
 import { LocationSearch } from '@/components/editor/LocationSearch'
 import { PresetPicker } from '@/components/editor/PresetPicker'
 import { useStarMapStore } from '@/hooks/useStarMapStore'
+import { useEditorStore } from '@/hooks/useEditorStore'
 import { useAuth } from '@/hooks/useAuth'
 import { useIsMobileEditor } from '@/hooks/useIsMobileEditor'
 import { useCustomMasks } from '@/hooks/useCustomMasks'
 import { MAP_MASKS } from '@/lib/map-masks'
+import { PRINT_FORMAT_OPTIONS } from '@/lib/print-formats'
 import { cn } from '@/lib/utils'
 import { STAR_TEXTURES } from '@/lib/star-textures'
 
@@ -27,6 +29,7 @@ export function StarMapTab() {
     setTextureKey, setTextureOpacity,
     setMaskKey,
   } = useStarMapStore()
+  const { printFormat, setPrintFormat } = useEditorStore()
   const { isAdmin } = useAuth()
   const isMobile = useIsMobileEditor()
   // PROJ-40: only built-in masks marked star-map-applicable + custom masks
@@ -40,6 +43,33 @@ export function StarMapTab() {
 
   return (
     <div className="space-y-5 p-4">
+      {/* PROJ-37: Paper format — lives at the top so the customer locks in
+          the canvas shape before designing. Mirrors MapTab. */}
+      <div className="space-y-1.5">
+        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
+          Papierformat
+        </Label>
+        <div className="grid grid-cols-3 gap-1.5">
+          {PRINT_FORMAT_OPTIONS.map((f) => (
+            <button
+              key={f.id}
+              type="button"
+              onClick={() => setPrintFormat(f.id)}
+              className={cn(
+                'h-9 rounded-md border-2 text-sm font-medium transition-colors',
+                printFormat === f.id
+                  ? 'border-primary bg-primary text-primary-foreground'
+                  : 'border-border text-foreground/70 hover:border-muted-foreground',
+              )}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <Separator />
+
       {/* Location */}
       <div className="space-y-1.5">
         <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">{t('locationLabel')}</Label>
