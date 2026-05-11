@@ -29,10 +29,6 @@ async function fetchPresetsForOccasion(
   // Variante A: kuratierte Liste aus Sanity → genau diese Presets in
   // gepflegter Reihenfolge laden. Variante B (Fallback): Auto-Match per
   // Locale + Anlass-Tag, sortiert nach display_order.
-  // PROJ-39: also pull per-format preview URLs + statuses so the gallery card
-  // can offer the customer the format-switcher and load the matching image.
-  // The legacy `preview_image_url` is kept for backwards-compat fallback in
-  // `getPreviewUrl()`.
   const baseQuery = admin
     .from('presets')
     .select('id, name, poster_type, preview_image_url, preview_image_url_a4, preview_image_url_a3, preview_image_url_a2, render_status_a4, render_status_a3, render_status_a2')
@@ -58,24 +54,65 @@ async function fetchPresetsForOccasion(
       .filter((p): p is typeof data[number] => Boolean(p)) as GalleryPreset[]
   }
 
-  // PROJ-39: drop the mockup-composite preference for inspiration cards —
-  // customers want to see how each FORMAT looks (different map content
-  // visible at A4 vs A2), which the bare-poster-per-format renders show
-  // properly. The mockup-composite (PROJ-30) stays unchanged for other
-  // surfaces (admin, marketing emails) but isn't useful here because it
-  // can't represent format differences in a single image.
+  // PROJ-29 Iteration: Mockup-Composites bevorzugt anzeigen statt der nackten
+  // Poster. Anlass-Seiten sind SEO-Landing-Pages — Mockups (Poster an der Wand
+  // im Wohnraum-Kontext) verkaufen im Suchergebnis-Thumbnail besser als das
+  // nackte Poster. Memory-Doktrin: Inspiration/Galerie zeigt nackte Renders,
+  // Anlass-Seiten zeigen Mockup-Composites.
   //
-  // Filter out presets that have no `done` format render at all — per spec
-  // "wenn ein Preset für kein Format `done` hat → Karte wird gar nicht
-  // angezeigt (für Customer)". The legacy `preview_image_url` fallback in
-  // getPreviewUrl handles pre-PROJ-39 presets that have only the old
-  // single column populated.
-  return (ordered as GalleryPreset[]).filter((p) =>
-    p.render_status_a4 === 'done'
-      || p.render_status_a3 === 'done'
-      || p.render_status_a2 === 'done'
-      || Boolean(p.preview_image_url),
-  )
+  // Implementation: nach den Presets die Desktop-Mockup-Renders aus
+  // preset_renders ziehen und in preview_image_url einsetzen. Die per-Format-
+  // Felder werden gleichzeitig auf null gesetzt, damit getPreviewUrl() im
+  // GalleryPresetCard naturgemäss auf preview_image_url zurueckfaellt. Der
+  // Format-Switcher wird in OccasionPresetGrid via hideFormatSwitcher
+  // ausgeblendet (Mockups haben keine Format-Variation).
+  //
+  // (PROJ-39 hatte diesen Mockup-Lookup versehentlich entfernt; 2026-05-11
+  // restauriert nach User-Report.)
+  const presetIds = ordered.map((p) => p.id)
+  const { data: renderRows } = await admin
+    .from('preset_renders')
+    .select('preset_id, image_url, rendered_at')
+    .in('preset_id', presetIds)
+    .eq('variant', 'desktop')
+    .order('rendered_at', { ascending: false })
+
+  const mockupByPreset: Record<string, string> = {}
+  for (const r of renderRows ?? []) {
+    if (!mockupByPreset[r.preset_id]) mockupByPreset[r.preset_id] = r.image_url
+  }
+
+  // Filter out presets that have NEITHER a mockup NOR any other usable
+  // preview (per spec: "wenn ein Preset keine renderbare Vorschau hat →
+  // Karte wird gar nicht angezeigt"). Then override preview_image_url with
+  // the mockup if available, and null the per-format columns so the card
+  // falls back to the mockup-image.
+  return ordered
+    .filter((p) =>
+      Boolean(mockupByPreset[p.id])
+        || p.render_status_a4 === 'done'
+        || p.render_status_a3 === 'done'
+        || p.render_status_a2 === 'done'
+        || Boolean(p.preview_image_url),
+    )
+    .map((p) => {
+      const mockup = mockupByPreset[p.id]
+      if (!mockup) return p
+      return {
+        ...p,
+        preview_image_url: mockup,
+        // Null per-format URLs+statuses so getPreviewUrl() falls back to
+        // preview_image_url (= mockup). Without this, the format-fallback
+        // chain in preset-previews.ts would return the bare poster URL
+        // first because A3 has done-status.
+        preview_image_url_a4: null,
+        preview_image_url_a3: null,
+        preview_image_url_a2: null,
+        render_status_a4: null,
+        render_status_a3: null,
+        render_status_a2: null,
+      } as GalleryPreset
+    })
 }
 
 /**

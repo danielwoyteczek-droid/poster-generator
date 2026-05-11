@@ -39,6 +39,11 @@ interface Props {
    *  mobile keeps a snug 2:3 fit but desktop letterboxes the 2:3 poster
    *  inside the 1:1 frame). */
   objectFitClassName?: string
+  /** When true, hide the format-switcher pills AND drop `?format=` from
+   *  the editor link. Used by PROJ-29 occasion-pages where the card shows
+   *  a mockup-composite (one image, no per-format variants). The gallery
+   *  page (PROJ-11) keeps the default `false` so the switcher stays. */
+  hideFormatSwitcher?: boolean
 }
 
 /**
@@ -56,6 +61,7 @@ export function GalleryPresetCard({
   aspectRatio = '2/3',
   aspectClassName,
   objectFitClassName = 'object-cover',
+  hideFormatSwitcher = false,
 }: Props) {
   const availableFormats = getAvailableFormats(preset)
   const initialFormat: PrintFormat = availableFormats.includes(DEFAULT_PREVIEW_FORMAT)
@@ -65,8 +71,13 @@ export function GalleryPresetCard({
 
   const editorPath = preset.poster_type === 'star-map' ? '/star-map' : '/map'
   // PROJ-39: format carry-over so the editor opens with the customer's
-  // chosen format pre-selected.
-  const href = `${editorPath}?preset=${preset.id}&format=${format}`
+  // chosen format pre-selected. When `hideFormatSwitcher` is true (PROJ-29
+  // Anlass-Seiten with mockup-composites), no format choice was made by
+  // the user — leave `?format=` out so the editor opens at the preset's
+  // saved default.
+  const href = hideFormatSwitcher
+    ? `${editorPath}?preset=${preset.id}`
+    : `${editorPath}?preset=${preset.id}&format=${format}`
   const typeLabel =
     preset.poster_type === 'star-map' ? posterTypeStarMapLabel : posterTypeMapLabel
 
@@ -105,11 +116,13 @@ export function GalleryPresetCard({
           {preset.name}
         </h3>
       </Link>
-      <PresetFormatSwitcher
-        formats={availableFormats}
-        active={format}
-        onChange={setFormat}
-      />
+      {!hideFormatSwitcher && (
+        <PresetFormatSwitcher
+          formats={availableFormats}
+          active={format}
+          onChange={setFormat}
+        />
+      )}
     </div>
   )
 }
