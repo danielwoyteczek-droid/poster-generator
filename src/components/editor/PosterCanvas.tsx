@@ -216,11 +216,18 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
   //     interior. Keeping the seams out of the half-clip preserves their
   //     full stroke thickness on both sides of the gap.
   const splitInner = (isDualMap || isSplitPhoto) && mask.shape && shapeConfig.innerFrame.enabled
+  // PROJ-37 fix: orientation MUST be passed; composeFrameSvg defaults to
+  // 'portrait' when omitted, which made the inner-frame stroke render with
+  // portrait geometry while the map mask was correctly landscape. Result:
+  // outline misaligned with the masked silhouette (Daniel: "Kontur passt
+  // nicht mehr auf die Masks").
   const innerFrameForSplit = splitInner && mask.shape
     ? svgToDataUrl(composeFrameSvg(
         mask.shape,
         { ...shapeConfig, outerFrame: { ...shapeConfig.outerFrame, enabled: false } },
         1,
+        210,
+        orientation,
       ))
     : null
   // PROJ-1: when the shape provides splitMarkup, render the inner-frame
@@ -232,6 +239,8 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
         { ...mask.shape, markup: mask.shape.splitMarkup.left },
         { ...shapeConfig, outerFrame: { ...shapeConfig.outerFrame, enabled: false } },
         1,
+        210,
+        orientation,
       ))
     : null
   const innerFrameRight = splitInner && mask.shape?.splitMarkup
@@ -239,6 +248,8 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
         { ...mask.shape, markup: mask.shape.splitMarkup.right },
         { ...shapeConfig, outerFrame: { ...shapeConfig.outerFrame, enabled: false } },
         1,
+        210,
+        orientation,
       ))
     : null
   const innerSeamForSplit = splitInner && mask.shape && !mask.noHalfClip

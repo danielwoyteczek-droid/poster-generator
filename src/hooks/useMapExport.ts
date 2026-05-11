@@ -764,6 +764,8 @@ export async function buildPosterCanvas(
         mask.shape,
         { ...shapeConfig, outerFrame: { ...shapeConfig.outerFrame, enabled: false } },
         1,
+        210,
+        store.orientation ?? 'portrait',
       )
       const contourImg = await loadImage(svgToDataUrl(contourSvg))
       if (mask.noHalfClip) {
