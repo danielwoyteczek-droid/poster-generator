@@ -135,6 +135,7 @@ export function useStarMapExport() {
       skyTextureImage,
       skyTextureOpacity: textureOpacity,
       skyMaskImage,
+      printFormat: format,
     })
 
     const displayTexts: Record<string, string> = {}

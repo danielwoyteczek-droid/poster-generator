@@ -148,6 +148,7 @@ export function StarMapCanvas({ padding = 64, textInteractive }: StarMapCanvasPr
       skyTextureImage,
       skyTextureOpacity: textureOpacity,
       skyMaskImage,
+      printFormat,
     })
   }, [
     starData, constellationData, milkyWayData,
@@ -155,6 +156,7 @@ export function StarMapCanvas({ padding = 64, textInteractive }: StarMapCanvasPr
     showConstellations, showMilkyWay, showSun, showMoon, showPlanets,
     showCompass, showGrid, gridOpacity, starDensity,
     frameConfig, logicalCanvas.width, logicalCanvas.height, skyTextureImage, textureOpacity, skyMaskImage,
+    printFormat,
   ])
 
   useEffect(() => { draw() }, [draw])

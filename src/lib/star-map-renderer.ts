@@ -1,6 +1,21 @@
 import { equatorialToHorizontal, horizontalToCanvas, horizontalToCanvasUnclipped, hexToRgba } from './star-projection'
 import { getSunCoords, getMoonCoords, getPlanetCoords } from './celestial'
 import type { StarMapFrameConfig } from '@/hooks/useStarMapStore'
+import type { PrintFormat } from './print-formats'
+
+/**
+ * PROJ-37 follow-up: per-format magnitude-cutoff boost. Star-map editor's
+ * "more content on a bigger canvas" analogue to the map editor's logical-
+ * canvas expansion — bigger formats reveal more catalogue stars (fainter
+ * magnitudes) so the customer feels the format difference. Calibrated to
+ * roughly match the area ratio: A3 ≈ 1.4× area, A2 ≈ 2× area, each
+ * magnitude step ≈ 2× stars.
+ */
+const MAGNITUDE_BOOST_BY_FORMAT: Record<PrintFormat, number> = {
+  a4: 0,
+  a3: 0.3,
+  a2: 0.6,
+}
 
 export interface StarEntry { ra: number; dec: number; mag: number }
 export interface GeoFeature { geometry: { type: string; coordinates: unknown } }
@@ -52,6 +67,13 @@ export interface StarMapRenderOptions {
    * within the circle ∩ mask intersection; the rest stays poster-background.
    */
   skyMaskImage?: HTMLImageElement | null
+  /**
+   * PROJ-37 follow-up: paper format used to apply the per-format magnitude-
+   * cutoff boost (A3 reveals ~40% more catalogue stars, A2 ~80%, matching
+   * the area ratio). Optional for back-compat with callers that haven't
+   * been wired yet — defaults to no boost.
+   */
+  printFormat?: PrintFormat
 }
 
 const DEG = Math.PI / 180
@@ -80,6 +102,7 @@ export function renderStarMap(ctx: CanvasRenderingContext2D, opts: StarMapRender
     skyTextureImage,
     skyTextureOpacity = 0.9,
     skyMaskImage,
+    printFormat,
   } = opts
 
   // Magnitude cutoff derived from starDensity. Shifted upward in PROJ-40
@@ -90,7 +113,10 @@ export function renderStarMap(ctx: CanvasRenderingContext2D, opts: StarMapRender
   //   density 0.85 → 7.05 (~6500 stars — new default, dense but not maxed)
   //   density 0.5  → 6.0 (~1500 stars)
   //   density 0.05 → 4.65 (~250 stars)
-  const magCutoff = 4.5 + starDensity * 3
+  // PROJ-37 follow-up: bigger formats reveal more catalogue stars so the
+  // customer sees the size difference. A3 +0.3, A2 +0.6 ≈ area ratios.
+  const formatBoost = printFormat ? MAGNITUDE_BOOST_BY_FORMAT[printFormat] : 0
+  const magCutoff = Math.min(7.5, 4.5 + starDensity * 3 + formatBoost)
 
   // PROJ-40: when a custom silhouette mask is active, expand the sky
   // geometry to cover the whole poster and re-centre on the poster middle —
