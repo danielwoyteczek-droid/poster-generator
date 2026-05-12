@@ -8,6 +8,8 @@ import { renderStarMap, type StarEntry, type GeoFeature } from '@/lib/star-map-r
 import { getStarTexture } from '@/lib/star-textures'
 import { TextBlockOverlay } from '@/components/editor/TextBlockOverlay'
 import { PreviewTriggerButton } from '@/components/editor/PreviewTriggerButton'
+import { GridToggleButton } from '@/components/editor/GridToggleButton'
+import { GridOverlay } from '@/components/editor/GridOverlay'
 import { useStarMapExport } from '@/hooks/useStarMapExport'
 import { loadSkyMaskImage } from '@/lib/load-mask-image'
 
@@ -45,7 +47,7 @@ export function StarMapCanvas({ padding = 64, textInteractive }: StarMapCanvasPr
     frameConfig,
     setPreviewSize,
   } = useStarMapStore()
-  const { printFormat, orientation, setSelectedBlockId } = useEditorStore()
+  const { printFormat, orientation, setSelectedBlockId, gridVisible } = useEditorStore()
   const { renderPreview } = useStarMapExport()
   const format = PRINT_FORMATS[printFormat]
   const baseRatio = format.widthMm / format.heightMm
@@ -167,6 +169,7 @@ export function StarMapCanvas({ padding = 64, textInteractive }: StarMapCanvasPr
       className="flex-1 relative bg-muted min-h-0 overflow-hidden flex items-center justify-center"
     >
       <PreviewTriggerButton renderPreview={renderPreview} />
+      <GridToggleButton />
       {visualSize.width > 0 && (
         // PROJ-37: Visual wrapper reserves the on-screen space; the logical
         // poster div lives inside at A4/A3/A2 logical size and gets CSS-
@@ -189,6 +192,7 @@ export function StarMapCanvas({ padding = 64, textInteractive }: StarMapCanvasPr
               ref={canvasRef}
               style={{ width: logicalCanvas.width, height: logicalCanvas.height, display: 'block' }}
             />
+            <GridOverlay visible={gridVisible} />
             <TextBlockOverlay
               coordinatesSource={{ lat, lng, locationName }}
               canvasWidth={logicalCanvas.width}

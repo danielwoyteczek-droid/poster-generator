@@ -10,6 +10,8 @@ import { LetterMaskOverlay } from './LetterMaskOverlay'
 import { SinglePhotoOverlay } from './SinglePhotoOverlay'
 import { PhotoGridOverlay } from './PhotoGridOverlay'
 import { PreviewTriggerButton } from '@/components/editor/PreviewTriggerButton'
+import { GridToggleButton } from '@/components/editor/GridToggleButton'
+import { GridOverlay } from '@/components/editor/GridOverlay'
 import type { MobileEditorTool } from '@/components/editor/PosterCanvas'
 
 interface PhotoPosterCanvasProps {
@@ -35,7 +37,7 @@ export function PhotoPosterCanvas({
   const posterRef = useRef<HTMLDivElement>(null)
   const [posterSize, setPosterSize] = useState({ width: 0, height: 0 })
 
-  const { printFormat } = useEditorStore()
+  const { printFormat, gridVisible } = useEditorStore()
   const { layoutMode, orientation, wordX, wordY, setWordPosition, selectedSlotIndex } =
     usePhotoEditorStore()
   const { renderPreview } = usePhotoExport()
@@ -110,6 +112,7 @@ export function PhotoPosterCanvas({
       className="flex-1 min-h-0 relative flex items-center justify-center bg-muted"
     >
       <PreviewTriggerButton renderPreview={renderPreview} />
+      <GridToggleButton />
 
       <div
         ref={posterRef}
@@ -141,6 +144,7 @@ export function PhotoPosterCanvas({
           />
         )}
 
+        <GridOverlay visible={gridVisible} />
         <TextBlockOverlay
           canvasWidth={posterSize.width}
           interactive={textInteractive}
