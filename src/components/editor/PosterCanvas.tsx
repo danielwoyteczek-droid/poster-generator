@@ -16,6 +16,8 @@ import { DraggablePin } from './DraggablePin'
 import { PhotoOverlay } from './PhotoOverlay'
 import { SplitPhotoOverlay } from './SplitPhotoOverlay'
 import { PreviewTriggerButton } from './PreviewTriggerButton'
+import { GridToggleButton } from './GridToggleButton'
+import { GridOverlay } from './GridOverlay'
 import { MapAttribution } from './MapAttribution'
 import { cn } from '@/lib/utils'
 
@@ -93,7 +95,7 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
   const photoInteractive = activeMobileTool === undefined || activeMobileTool === 'photo'
   const markerInteractive = activeMobileTool === undefined || activeMobileTool === 'marker'
 
-  const { maskKey, printFormat, orientation, zoomIn, zoomOut, flyToLocation, zoomInSecond, zoomOutSecond, secondMap, marker, secondMarker, shapeConfig, viewState, setMarker, setSecondMarker, setSelectedBlockId, splitMode, splitPhoto, splitPhotoZone, layoutId, innerMarginMm, paletteId, customPalette, posterDarkMode, decorationSvgUrl, decorationVisible, activeSplitMap, setActiveSplitMap } = useEditorStore()
+  const { maskKey, printFormat, orientation, zoomIn, zoomOut, flyToLocation, zoomInSecond, zoomOutSecond, secondMap, marker, secondMarker, shapeConfig, viewState, setMarker, setSecondMarker, setSelectedBlockId, splitMode, splitPhoto, splitPhotoZone, layoutId, innerMarginMm, paletteId, customPalette, posterDarkMode, decorationSvgUrl, decorationVisible, gridVisible, activeSplitMap, setActiveSplitMap } = useEditorStore()
   const mapAreaRef = useRef<HTMLDivElement>(null)
   const { masks: customMasks } = useCustomMasks()
   const mask =
@@ -334,6 +336,7 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
   return (
     <div ref={wrapperRef} className="flex-1 relative bg-muted min-h-0 overflow-hidden flex items-center justify-center">
       <PreviewTriggerButton />
+      <GridToggleButton />
       {/* OSM/MapTiler attribution — outside the poster card, in the editor
           chrome. ODbL-compliant placement, doesn't pollute the canvas. */}
       <MapAttribution className="absolute bottom-1 right-2" />
@@ -706,6 +709,11 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
 
             {/* Photo overlay */}
             <PhotoOverlay posterRef={posterRef} interactive={photoInteractive} />
+
+            {/* Design-aid grid (centre cross + rule of thirds) — toggled
+                via the floating GridToggleButton. pointer-events: none, so
+                it never interferes with map / text interaction. */}
+            <GridOverlay visible={gridVisible} />
 
             {/* Text blocks overlay */}
             <TextBlockOverlay canvasWidth={logicalCanvas.width} interactive={textInteractive} />

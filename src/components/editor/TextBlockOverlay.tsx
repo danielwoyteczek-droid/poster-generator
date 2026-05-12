@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Lock } from 'lucide-react'
 import { useEditorStore, type TextBlock } from '@/hooks/useEditorStore'
 import { useIsMobileEditor } from '@/hooks/useIsMobileEditor'
@@ -30,9 +30,13 @@ interface BlockItemProps {
    *  is computed as `fontSizeFraction × canvasWidth` so it scales with the
    *  poster format instead of staying at a fixed pixel value. */
   canvasWidth: number
+  /** PROJ-25: report whether the dragged block's centre is near the canvas
+   *  centerline (horizontally / vertically). Parent renders a guide line.
+   *  Called with (false, false) on pointer-up so the lines disappear. */
+  onDragGuide?: (nearHorizontalCentre: boolean, nearVerticalCentre: boolean) => void
 }
 
-function BlockItem({ block, isSelected, overlayRef, displayText, interactive, canvasWidth }: BlockItemProps) {
+function BlockItem({ block, isSelected, overlayRef, displayText, interactive, canvasWidth, onDragGuide }: BlockItemProps) {
   const { updateTextBlock, setSelectedBlockId } = useEditorStore()
   const fontPx = resolveFontSizePx(block, canvasWidth)
 
@@ -74,11 +78,23 @@ function BlockItem({ block, isSelected, overlayRef, displayText, interactive, ca
       const clampedY = Math.max(0, Math.min(maxY, snapY))
 
       updateTextBlock(block.id, { x: clampedX, y: clampedY })
+
+      // PROJ-25: visual "exact centre" hint. 6 px tolerance — same order
+      // of magnitude as the 10 px snap grid, so it's actually reachable.
+      if (onDragGuide) {
+        const centreX = clampedX + blockWidthPx / rect.width / 2
+        const centreY = clampedY + blockHeightPx / rect.height / 2
+        onDragGuide(
+          Math.abs(centreY - 0.5) < 6 / rect.height,
+          Math.abs(centreX - 0.5) < 6 / rect.width,
+        )
+      }
     }
 
     const handleUp = () => {
       window.removeEventListener('pointermove', handleMove)
       window.removeEventListener('pointerup', handleUp)
+      if (onDragGuide) onDragGuide(false, false)
     }
 
     window.addEventListener('pointermove', handleMove)
@@ -279,6 +295,10 @@ export function TextBlockOverlay({ coordinatesSource, canvasWidth, interactive: 
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [selectedBlockId, textBlocks, updateTextBlock, deleteTextBlock])
 
+  // PROJ-25: "exact centre" hint during text-block drag. Lives on the
+  // parent so a single guide line covers whichever block is dragged.
+  const [dragGuide, setDragGuide] = useState<{ h: boolean; v: boolean }>({ h: false, v: false })
+
   return (
     <div
       ref={overlayRef}
@@ -299,9 +319,25 @@ export function TextBlockOverlay({ coordinatesSource, canvasWidth, interactive: 
             displayText={displayText}
             interactive={interactive}
             canvasWidth={canvasWidth}
+            onDragGuide={(h, v) => setDragGuide((prev) => (prev.h === h && prev.v === v ? prev : { h, v }))}
           />
         )
       })}
+      {(dragGuide.h || dragGuide.v) && (
+        <svg
+          className="absolute inset-0 w-full h-full pointer-events-none"
+          viewBox="0 0 100 100"
+          preserveAspectRatio="none"
+          aria-hidden
+        >
+          {dragGuide.v && (
+            <line x1="50" y1="0" x2="50" y2="100" stroke="rgba(236, 72, 153, 0.85)" strokeWidth="0.25" />
+          )}
+          {dragGuide.h && (
+            <line x1="0" y1="50" x2="100" y2="50" stroke="rgba(236, 72, 153, 0.85)" strokeWidth="0.25" />
+          )}
+        </svg>
+      )}
     </div>
   )
 }

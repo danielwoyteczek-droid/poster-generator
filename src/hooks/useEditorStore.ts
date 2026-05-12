@@ -180,6 +180,12 @@ export interface EditorStore {
    * while a decoration is active. Not persisted across sessions/presets.
    */
   decorationVisible: boolean
+  /**
+   * PROJ-25: editor-only design aid. When true, a centre-cross + rule-of-
+   * thirds grid is overlaid on the live canvas so the user can see where
+   * the centre is. Never persisted or exported — purely a working view.
+   */
+  gridVisible: boolean
   locationName: string
   textBlocks: TextBlock[]
   selectedBlockId: string | null
@@ -190,7 +196,7 @@ export interface EditorStore {
    * current editor — otherwise the user has switched editors and we POST a
    * new project instead of overwriting an unrelated one.
    */
-  projectPosterType: 'map' | 'star-map' | 'photo' | null
+  projectPosterType: 'map' | 'star-map' | 'photo' | 'wedding' | null
   /**
    * Set when an admin loads an existing preset via "Bearbeiten" in the Admin
    * list. Lets SaveAsPresetButton offer "update existing" alongside "save as
@@ -228,6 +234,7 @@ export interface EditorStore {
   setMaskKey: (key: MapMaskKey) => void
   setDecorationSvgUrl: (url: string | null) => void
   setDecorationVisible: (visible: boolean) => void
+  setGridVisible: (visible: boolean) => void
   setPrintFormat: (format: PrintFormat) => void
   setOrientation: (orientation: PosterOrientation) => void
   setMarker: (updates: Partial<MarkerState>) => void
@@ -258,7 +265,7 @@ export interface EditorStore {
   deleteTextBlock: (id: string) => void
   setSelectedBlockId: (id: string | null) => void
   setProjectId: (id: string | null) => void
-  setSavedProject: (id: string, posterType: 'map' | 'star-map' | 'photo') => void
+  setSavedProject: (id: string, posterType: 'map' | 'star-map' | 'photo' | 'wedding') => void
   clearProjectBinding: () => void
   setEditingPreset: (preset: EditorStore['editingPreset']) => void
   addPhoto: (photo: Omit<PhotoItem, 'id' | 'uploadedAt'>) => void
@@ -375,6 +382,7 @@ export const EDITOR_INITIAL_STATE = {
   innerMarginMm: 0,
   decorationSvgUrl: null,
   decorationVisible: true,
+  gridVisible: false,
   secondMap: {
     enabled: false,
     styleId: 'klassisch',
@@ -447,6 +455,7 @@ export const useEditorStore = create<EditorStore>((set) => ({
   setMaskKey: (maskKey) => set({ maskKey }),
   setDecorationSvgUrl: (decorationSvgUrl) => set({ decorationSvgUrl }),
   setDecorationVisible: (decorationVisible) => set({ decorationVisible }),
+  setGridVisible: (gridVisible) => set({ gridVisible }),
   setPrintFormat: (printFormat) =>
     // PROJ-37: Format-Wechsel re-zentriert die Map auf den Marker (Zoom
     // bleibt). Ohne dies würde der Marker beim Verkleinern (z.B. A2 → A4)
