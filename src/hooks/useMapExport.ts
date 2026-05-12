@@ -879,10 +879,22 @@ export async function buildPosterCanvas(
     const sVS = secondMap.viewState
     const secProjBounds = secondRenderedBounds ?? sVS?.bounds
     if (secondMarker.lat != null && secondMarker.lng != null && secProjBounds) {
-      // Offscreen the right map is also rendered at full width — project using its bounds
-      // then shift into the right half of the poster.
       const pt = projectLngLat(secondMarker.lng, secondMarker.lat, secProjBounds, W, H)
-      cx = 0.5 * W + pt.x * 0.5  // right map lives in the 0.5..1.0 x-range
+      if (mask.noHalfClip) {
+        // PROJ-40: noHalfClip masks (hearts-curved, hearts-diagonal, heart)
+        // draw the right map across the full poster width — the half-mask
+        // SVG itself confines visibility. The pin must therefore sit at
+        // its true projected x, not be compressed into the right half.
+        // Without this the secondary pin ends up far right of the heart
+        // silhouette in preview/print while staying correct in the editor
+        // canvas (Daniel: "herz der karte geht auf einmal raus").
+        cx = pt.x
+      } else {
+        // For classic split masks the right map is offscreen-rendered at
+        // full width but drawn into the right half only, so the pin gets
+        // compressed to match.
+        cx = 0.5 * W + pt.x * 0.5
+      }
       cy = pt.y
     }
     ctx.drawImage(pinImg, toTargetX(cx) - pw / 2, toTargetY(cy) - ph, pw, ph)
