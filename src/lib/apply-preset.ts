@@ -381,7 +381,7 @@ export function applyPreset(preset: PresetLike, options: ApplyPresetOptions = {}
       marker: c.marker ?? state.marker,
       secondMarker: c.secondMarker ?? state.secondMarker,
       secondMap: secondZoom != null
-        ? { ...newSecondMap, pendingCenter: { lng: state.secondMap.viewState.lng, lat: state.secondMap.viewState.lat, zoom: secondZoom } }
+        ? { ...newSecondMap, pendingCenter: { lng: newSecondMap.viewState.lng, lat: newSecondMap.viewState.lat, zoom: secondZoom } }
         : newSecondMap,
       textBlocks: c.textBlocks ?? state.textBlocks,
       splitMode: c.splitMode ?? state.splitMode,

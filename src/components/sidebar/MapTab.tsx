@@ -456,118 +456,6 @@ export function MapTab() {
           </div>
         )}
 
-        {splitMode === 'second-map' && (
-          <div className="space-y-3 pl-1">
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">{t('mapSecondLocation')}</Label>
-              <LocationSearch onSelect={(lng, lat) => flyToSecondLocation(lng, lat)} />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">{t('mapSecondStyle')}</Label>
-              <div className="grid grid-cols-2 gap-1.5">
-                {MAP_LAYOUTS.map((layout) => (
-                  <button
-                    key={layout.id}
-                    onClick={() => setSecondMapStyleId(layout.id)}
-                    title={layoutLabel(`${layout.id}Description`, layout.description)}
-                    className={cn(
-                      'rounded-md border-2 px-2 py-2 text-left text-xs font-medium transition-all',
-                      secondMap.styleId === layout.id
-                        ? 'border-primary bg-primary text-primary-foreground'
-                        : 'border-border text-foreground/70 hover:border-muted-foreground'
-                    )}
-                  >
-                    {layoutLabel(`${layout.id}Label`, layout.label)}
-                  </button>
-                ))}
-              </div>
-              {true && (
-                <div className="space-y-1.5 pt-2">
-                  <Label className="text-xs text-muted-foreground">{t('mapSecondPalette')}</Label>
-                  <div className="grid grid-cols-3 gap-1.5">
-                    <button
-                      onClick={() => setSecondMapPaletteId('original')}
-                      className={cn(
-                        'rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
-                        secondMap.paletteId === 'original'
-                          ? 'border-primary'
-                          : 'border-border hover:border-muted-foreground',
-                      )}
-                      title={t('mapPaletteOriginalTitle')}
-                    >
-                      <div className="w-3 h-3 rounded-full border border-black/10 bg-gradient-to-br from-gray-200 via-gray-400 to-gray-600" />
-                      <span className="text-[10px] leading-tight text-foreground/70">{t('mapPaletteOriginal')}</span>
-                    </button>
-                    {availablePalettes.map((p) => {
-                      const c = p.colors
-                      return (
-                        <button
-                          key={p.id}
-                          onClick={() => setSecondMapPaletteId(p.id)}
-                          className={cn(
-                            'rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
-                            secondMap.paletteId === p.id
-                              ? 'border-primary'
-                              : 'border-border hover:border-muted-foreground',
-                          )}
-                          title={p.description}
-                        >
-                          <div className="flex gap-0.5">
-                            <span className="w-3 h-3 rounded-full border border-black/10" style={{ background: c.land }} />
-                            <span className="w-3 h-3 rounded-full border border-black/10" style={{ background: c.water }} />
-                            <span className="w-3 h-3 rounded-full border border-black/10" style={{ background: c.road }} />
-                            <span className="w-3 h-3 rounded-full border border-black/10" style={{ background: c.label }} />
-                          </div>
-                          <span className="text-[10px] leading-tight text-foreground/70">{p.label}</span>
-                        </button>
-                      )
-                    })}
-                    <button
-                      onClick={async () => {
-                        if (secondMap.paletteId === 'custom') return
-                        let seed: MapPaletteColors
-                        if (secondMap.paletteId === 'original') {
-                          try {
-                            seed = await extractPaletteFromLayout(secondMap.styleId)
-                          } catch {
-                            seed = (availablePalettes[0] ?? MAP_PALETTES[0]).colors
-                          }
-                        } else {
-                          seed = (availablePalettes.find((p) => p.id === secondMap.paletteId) ?? availablePalettes[0] ?? MAP_PALETTES[0]).colors
-                        }
-                        setSecondMapCustomPalette({ ...seed })
-                        setSecondMapCustomPaletteBase(seed.water)
-                        setSecondMapPaletteId('custom')
-                      }}
-                      className={cn(
-                        'rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
-                        secondMap.paletteId === 'custom'
-                          ? 'border-primary'
-                          : 'border-border hover:border-muted-foreground',
-                      )}
-                    >
-                      <div
-                        className="w-3 h-3 rounded-full border border-black/10"
-                        style={{ background: secondMap.customPalette?.water ?? secondMap.customPaletteBase ?? '#84c5a6' }}
-                      />
-                      <span className="text-[10px] leading-tight text-foreground/70">{t('mapPaletteCustom')}</span>
-                    </button>
-                  </div>
-                  {secondMap.paletteId === 'custom' && (
-                    <CustomPaletteEditor
-                      colors={secondMap.customPalette}
-                      onColorChange={updateSecondMapCustomPaletteColor}
-                      onReset={() => setSecondMapCustomPalette({ ...defaultColors })}
-                      onSaveAsPalette={isAdmin ? openSavePaletteDialog : undefined}
-                    />
-                  )}
-                </div>
-              )}
-            </div>
-
-          </div>
-        )}
       </div>
 
       <Separator />
@@ -680,6 +568,121 @@ export function MapTab() {
               onSaveAsPalette={isAdmin ? openSavePaletteDialog : undefined}
             />
           )}
+        </div>
+      )}
+
+      {/* Second map block — shown only when split-second-map is active.
+          Placed AFTER the primary map style/palette so the natural left-to-
+          right reading order matches the visual left-to-right layout of the
+          two maps on the poster (Daniel: "Kartenstil links vor Kartenstil
+          rechts, genauso die Farbpalette"). */}
+      {splitMode === 'second-map' && (
+        <div className="space-y-3 pl-1">
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">{t('mapSecondLocation')}</Label>
+            <LocationSearch onSelect={(lng, lat) => flyToSecondLocation(lng, lat)} />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">{t('mapSecondStyle')}</Label>
+            <div className="grid grid-cols-2 gap-1.5">
+              {MAP_LAYOUTS.map((layout) => (
+                <button
+                  key={layout.id}
+                  onClick={() => setSecondMapStyleId(layout.id)}
+                  title={layoutLabel(`${layout.id}Description`, layout.description)}
+                  className={cn(
+                    'rounded-md border-2 px-2 py-2 text-left text-xs font-medium transition-all',
+                    secondMap.styleId === layout.id
+                      ? 'border-primary bg-primary text-primary-foreground'
+                      : 'border-border text-foreground/70 hover:border-muted-foreground'
+                  )}
+                >
+                  {layoutLabel(`${layout.id}Label`, layout.label)}
+                </button>
+              ))}
+            </div>
+            <div className="space-y-1.5 pt-2">
+              <Label className="text-xs text-muted-foreground">{t('mapSecondPalette')}</Label>
+              <div className="grid grid-cols-3 gap-1.5">
+                <button
+                  onClick={() => setSecondMapPaletteId('original')}
+                  className={cn(
+                    'rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
+                    secondMap.paletteId === 'original'
+                      ? 'border-primary'
+                      : 'border-border hover:border-muted-foreground',
+                  )}
+                  title={t('mapPaletteOriginalTitle')}
+                >
+                  <div className="w-3 h-3 rounded-full border border-black/10 bg-gradient-to-br from-gray-200 via-gray-400 to-gray-600" />
+                  <span className="text-[10px] leading-tight text-foreground/70">{t('mapPaletteOriginal')}</span>
+                </button>
+                {availablePalettes.map((p) => {
+                  const c = p.colors
+                  return (
+                    <button
+                      key={p.id}
+                      onClick={() => setSecondMapPaletteId(p.id)}
+                      className={cn(
+                        'rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
+                        secondMap.paletteId === p.id
+                          ? 'border-primary'
+                          : 'border-border hover:border-muted-foreground',
+                      )}
+                      title={p.description}
+                    >
+                      <div className="flex gap-0.5">
+                        <span className="w-3 h-3 rounded-full border border-black/10" style={{ background: c.land }} />
+                        <span className="w-3 h-3 rounded-full border border-black/10" style={{ background: c.water }} />
+                        <span className="w-3 h-3 rounded-full border border-black/10" style={{ background: c.road }} />
+                        <span className="w-3 h-3 rounded-full border border-black/10" style={{ background: c.label }} />
+                      </div>
+                      <span className="text-[10px] leading-tight text-foreground/70">{p.label}</span>
+                    </button>
+                  )
+                })}
+                <button
+                  onClick={async () => {
+                    if (secondMap.paletteId === 'custom') return
+                    let seed: MapPaletteColors
+                    if (secondMap.paletteId === 'original') {
+                      try {
+                        seed = await extractPaletteFromLayout(secondMap.styleId)
+                      } catch {
+                        seed = (availablePalettes[0] ?? MAP_PALETTES[0]).colors
+                      }
+                    } else {
+                      seed = (availablePalettes.find((p) => p.id === secondMap.paletteId) ?? availablePalettes[0] ?? MAP_PALETTES[0]).colors
+                    }
+                    setSecondMapCustomPalette({ ...seed })
+                    setSecondMapCustomPaletteBase(seed.water)
+                    setSecondMapPaletteId('custom')
+                  }}
+                  className={cn(
+                    'rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
+                    secondMap.paletteId === 'custom'
+                      ? 'border-primary'
+                      : 'border-border hover:border-muted-foreground',
+                  )}
+                >
+                  <div
+                    className="w-3 h-3 rounded-full border border-black/10"
+                    style={{ background: secondMap.customPalette?.water ?? secondMap.customPaletteBase ?? '#84c5a6' }}
+                  />
+                  <span className="text-[10px] leading-tight text-foreground/70">{t('mapPaletteCustom')}</span>
+                </button>
+              </div>
+              {secondMap.paletteId === 'custom' && (
+                <CustomPaletteEditor
+                  colors={secondMap.customPalette}
+                  onColorChange={updateSecondMapCustomPaletteColor}
+                  onReset={() => setSecondMapCustomPalette({ ...defaultColors })}
+                  onSaveAsPalette={isAdmin ? openSavePaletteDialog : undefined}
+                />
+              )}
+            </div>
+          </div>
         </div>
       )}
 
