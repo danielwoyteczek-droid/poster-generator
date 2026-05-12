@@ -29,6 +29,7 @@ import {
 } from '@/components/ui/dialog'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Switch } from '@/components/ui/switch'
 import { useEditorStore } from '@/hooks/useEditorStore'
 import { applyPreset } from '@/lib/apply-preset'
 import { LocaleMultiSelect } from '@/components/admin/LocaleMultiSelect'
@@ -1060,24 +1061,20 @@ export function AdminPresetsList() {
                       <p className="text-[10px] text-muted-foreground leading-relaxed">
                         Wird sofort gespeichert. Leer = nicht in der Galerie sichtbar.
                       </p>
-                      <div className="pt-2 mt-1 border-t border-border">
-                        <label className="flex items-start gap-2 cursor-pointer text-xs text-foreground">
-                          <Checkbox
-                            checked={preset.show_in_editor}
-                            onCheckedChange={(checked) => updateShowInEditor(preset, checked === true)}
-                            className="mt-0.5"
-                          />
-                          <span className="flex-1">
-                            <span className="font-medium">Auch im Editor anzeigen</span>
-                            <span className="block text-[10px] text-muted-foreground leading-relaxed mt-0.5">
-                              Aus = Preset erscheint nur in der Galerie, nicht im „Von Vorlage starten"-Picker.
-                            </span>
-                          </span>
-                        </label>
-                      </div>
                     </PopoverContent>
                   </Popover>
                 </div>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <LayoutTemplate className="w-3.5 h-3.5 text-muted-foreground/70 shrink-0" />
+                  <span className="text-xs text-foreground flex-1">
+                    Im Editor-Picker sichtbar
+                  </span>
+                  <Switch
+                    checked={preset.show_in_editor}
+                    onCheckedChange={(checked) => updateShowInEditor(preset, checked)}
+                    aria-label="Im Editor-Picker sichtbar"
+                  />
+                </label>
                 <div className="flex gap-1.5 flex-wrap">
                   <Button
                     variant="outline"
@@ -1278,14 +1275,18 @@ export function AdminPresetsList() {
                 <span className="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-medium bg-muted text-foreground/70 hidden md:inline">
                   {TYPE_LABELS[preset.poster_type] ?? preset.poster_type}
                 </span>
-                {!preset.show_in_editor && (
-                  <span
-                    className="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-medium bg-purple-100 text-purple-800 hidden md:inline"
-                    title="Nur in Galerie sichtbar"
-                  >
-                    Nur Galerie
-                  </span>
-                )}
+                <label
+                  className="shrink-0 hidden md:flex items-center gap-1.5 cursor-pointer"
+                  title={preset.show_in_editor ? 'Im Editor-Picker sichtbar — klicken zum Ausblenden' : 'Nur in Galerie — klicken um auch im Editor zu zeigen'}
+                >
+                  <LayoutTemplate className="w-3.5 h-3.5 text-muted-foreground/70" />
+                  <Switch
+                    checked={preset.show_in_editor}
+                    onCheckedChange={(checked) => updateShowInEditor(preset, checked)}
+                    aria-label="Im Editor-Picker sichtbar"
+                    className="scale-75"
+                  />
+                </label>
                 <div className="shrink-0 flex items-center gap-1">
                   <Globe className="w-3.5 h-3.5 text-muted-foreground/70" />
                   {preset.target_locales.length === 0 ? (
@@ -1335,21 +1336,6 @@ export function AdminPresetsList() {
                     <PopoverContent align="end" className="w-72 p-3 space-y-2">
                       <div className="text-xs font-medium text-foreground">Anlass-Tags für Galerie</div>
                       <OccasionMultiSelect value={preset.occasions} onChange={(next) => updateOccasions(preset, next)} />
-                      <div className="pt-2 mt-1 border-t border-border">
-                        <label className="flex items-start gap-2 cursor-pointer text-xs text-foreground">
-                          <Checkbox
-                            checked={preset.show_in_editor}
-                            onCheckedChange={(checked) => updateShowInEditor(preset, checked === true)}
-                            className="mt-0.5"
-                          />
-                          <span className="flex-1">
-                            <span className="font-medium">Auch im Editor anzeigen</span>
-                            <span className="block text-[10px] text-muted-foreground leading-relaxed mt-0.5">
-                              Aus = nur in Galerie sichtbar.
-                            </span>
-                          </span>
-                        </label>
-                      </div>
                     </PopoverContent>
                   </Popover>
                 </div>
