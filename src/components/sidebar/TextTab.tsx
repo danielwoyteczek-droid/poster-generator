@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import {
   Plus,
@@ -235,20 +236,11 @@ export function TextTab({ coordinatesSource, hideCoordinates = false }: TextTabP
                 }
                 className="flex-1"
               />
-              <Input
-                type="number"
-                min={8}
-                max={220}
-                value={selectedBlock.fontSize}
-                onChange={(e) => {
-                  const val = Number(e.target.value)
-                  if (!Number.isNaN(val)) {
-                    updateTextBlock(selectedBlock.id, {
-                      fontSize: Math.max(8, Math.min(220, val)),
-                    })
-                  }
-                }}
-                className="w-14 h-8 text-sm"
+              <FontSizeInput
+                fontSize={selectedBlock.fontSize}
+                onCommit={(val) =>
+                  updateTextBlock(selectedBlock.id, { fontSize: val })
+                }
               />
             </div>
           </div>
@@ -350,5 +342,51 @@ export function TextTab({ coordinatesSource, hideCoordinates = false }: TextTabP
         </>
       )}
     </div>
+  )
+}
+
+/**
+ * Decoupled font-size number input — uses a local string state so typing
+ * intermediate values (e.g. "1" on the way to "15") doesn't clamp to the
+ * minimum 8 mid-keystroke. Commits only on blur and on Enter.
+ */
+function FontSizeInput({
+  fontSize,
+  onCommit,
+}: {
+  fontSize: number
+  onCommit: (val: number) => void
+}) {
+  const [draft, setDraft] = useState(String(fontSize))
+  useEffect(() => {
+    setDraft(String(fontSize))
+  }, [fontSize])
+  const commit = () => {
+    const n = Number(draft)
+    if (!Number.isFinite(n)) {
+      setDraft(String(fontSize))
+      return
+    }
+    const clamped = Math.max(8, Math.min(220, n))
+    setDraft(String(clamped))
+    if (clamped !== fontSize) onCommit(clamped)
+  }
+  return (
+    <Input
+      type="number"
+      min={8}
+      max={220}
+      value={draft}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault()
+          commit()
+          ;(e.currentTarget as HTMLInputElement).blur()
+        }
+      }}
+      className="w-14 h-8 text-sm"
+    />
   )
 }
