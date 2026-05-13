@@ -8,7 +8,7 @@ import { ResetEditorButton } from './ResetEditorButton'
 import { PhotoModeAdminToggle } from '@/components/photo-editor/PhotoModeAdminToggle'
 
 interface Props {
-  posterType: 'map' | 'star-map' | 'photo'
+  posterType: 'map' | 'star-map' | 'photo' | 'wedding' | 'typography'
 }
 
 /**
@@ -28,6 +28,10 @@ export function EditorToolbar({ posterType }: Props) {
 
   // Mobile-/User-View: nur die Save-Funktion (logged in) ohne extra Toolbar
   if (!user) return null
+
+  // PROJ-46: Save/Preset/Reset für Typografie-Editor noch nicht verdrahtet
+  // (kommt mit Chunk 2 + PROJ-5-Integration). Toolbar bleibt vorerst leer.
+  if (posterType === 'typography') return null
 
   return (
     <div className="hidden md:flex items-center justify-end gap-3 px-4 sm:px-6 py-2 bg-muted/40 border-b border-border/60">

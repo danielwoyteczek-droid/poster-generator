@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 600" preserveAspectRatio="xMidYMid meet">
+  <!--
+    PROJ-46: Hand-crafted SVG-Annäherung an die Lena-&-Marc-"ja"-Kalligraphie.
+    Eine einzige durchgehende Linie:
+      Links → durch das "j" (langer descender mit unterem Loop) → "a" → rechts.
+    `currentColor` macht den Stroke aus dem Caller-CSS einfärbbar (Palette.ink).
+    Stroke ist sehr dünn (1.6 % der viewBox-Höhe) — Etsy-Bestseller-Pattern.
+  -->
+  <g fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+    <!--
+      Durchgehende Linie:
+       (10,310)  → linke Flourish-Start
+       (300,310) → kurz vor dem "j" (Linie endet am Wort)
+       Dann das "j":
+         Oben rechts: Punkt drauf (separate Glyph)
+         Stem geht von ~(350,180) runter, schwingt bei (380,420) nach links,
+         macht den großen Loop unten, geht ~(290,500) raus, schwingt nach rechts hoch
+         zurück zur Baseline bei (400,310)
+       Dann "a":
+         Kreis-Bogen (440,310) → (520,250) → (560,310) → (520,370) → (440,310)
+         + Stem rechts vom a, geht bis ~(580,400)
+       Dann nahtloser Übergang zurück zur horizontalen Linie:
+         (580,310) → (990,310) — rechte Flourish-Tail
+    -->
+
+    <!-- Linke Flourish-Linie -->
+    <path d="M 10 310 Q 150 308, 300 310" />
+
+    <!-- "j" Stem + langer Loop -->
+    <path d="M 340 200
+             C 340 240, 358 280, 378 320
+             C 396 360, 410 405, 388 450
+             C 360 510, 290 520, 250 490
+             C 220 465, 230 425, 280 420
+             C 360 415, 405 360, 410 310" />
+
+    <!-- "j" Tüpfelchen (Dot) -->
+    <circle cx="358" cy="172" r="9" fill="currentColor" stroke="none" />
+
+    <!-- "a" Bauch (Oval) + Stem -->
+    <path d="M 430 310
+             C 430 270, 470 250, 510 260
+             C 555 270, 575 305, 568 340
+             C 560 380, 510 395, 470 380
+             C 440 370, 430 345, 430 310 Z" />
+    <path d="M 568 280
+             C 575 320, 575 360, 580 395" />
+
+    <!-- Rechte Flourish-Linie (vom "a"-Stem-Ende weiter nach rechts) -->
+    <path d="M 580 320 Q 750 308, 990 310" />
+  </g>
+</svg>
