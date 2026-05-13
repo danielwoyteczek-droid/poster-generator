@@ -154,6 +154,10 @@ export interface EditorStore {
   customPaletteBase: string | null
   customPalette: MapPaletteColors | null
   streetLabelsVisible: boolean
+  /** Place names (cities, towns, neighborhoods) on the map — separate
+   *  toggle from streetLabelsVisible. Defaults to true so a fresh editor
+   *  shows the location's name without manual flipping. */
+  placeLabelsVisible: boolean
   /** When true, the poster background follows the active palette's
    *  `background` colour (so the area outside the shape blends with the
    *  map's land colour). When false, the poster bg stays white. */
@@ -230,6 +234,7 @@ export interface EditorStore {
   setCustomPalette: (colors: MapPaletteColors | null) => void
   updateCustomPaletteColor: (key: keyof MapPaletteColors, hex: string) => void
   setStreetLabelsVisible: (visible: boolean) => void
+  setPlaceLabelsVisible: (visible: boolean) => void
   setPosterDarkMode: (value: boolean) => void
   setMaskKey: (key: MapMaskKey) => void
   setDecorationSvgUrl: (url: string | null) => void
@@ -286,6 +291,7 @@ export interface EditorConfig {
   customPaletteBase: string | null
   customPalette: MapPaletteColors | null
   streetLabelsVisible: boolean
+  placeLabelsVisible: boolean
   posterDarkMode: boolean
   maskKey: MapMaskKey
   printFormat: PrintFormat
@@ -366,6 +372,7 @@ export const EDITOR_INITIAL_STATE = {
     background: '#ffffff',
   },
   streetLabelsVisible: false,
+  placeLabelsVisible: true,
   posterDarkMode: false,
   maskKey: 'none',
   printFormat: 'a4' as const,
@@ -451,6 +458,7 @@ export const useEditorStore = create<EditorStore>((set) => ({
       customPalette: { ...(s.customPalette ?? ({} as MapPaletteColors)), [key]: hex },
     })),
   setStreetLabelsVisible: (streetLabelsVisible) => set({ streetLabelsVisible }),
+  setPlaceLabelsVisible: (placeLabelsVisible) => set({ placeLabelsVisible }),
   setPosterDarkMode: (posterDarkMode) => set({ posterDarkMode }),
   setMaskKey: (maskKey) => set({ maskKey }),
   setDecorationSvgUrl: (decorationSvgUrl) => set({ decorationSvgUrl }),
@@ -649,6 +657,7 @@ export const useEditorStore = create<EditorStore>((set) => ({
     customPaletteBase: config.customPaletteBase ?? s.customPaletteBase,
     customPalette: config.customPalette ?? s.customPalette,
     streetLabelsVisible: config.streetLabelsVisible ?? s.streetLabelsVisible,
+    placeLabelsVisible: config.placeLabelsVisible ?? s.placeLabelsVisible,
     posterDarkMode: config.posterDarkMode ?? s.posterDarkMode,
     maskKey: config.maskKey ?? s.maskKey,
     printFormat: config.printFormat ?? s.printFormat,

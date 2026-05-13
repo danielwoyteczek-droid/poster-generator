@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useLocale } from 'next-intl'
 import { useEditorStore, type TextBlock, type ViewState, type MarkerState, type SecondMapState, type ShapeConfigState } from '@/hooks/useEditorStore'
 import { composeMaskSvg, composeFrameSvg, composeFullbleedMaskSvg, composeSplitSeamSvg, composeSplitMaskHalfSvg, parseShapeSvg, svgToDataUrl, hasAnyFrame } from '@/lib/mask-composer'
 import { PRINT_FORMATS, effectiveDimensions, type PrintFormat } from '@/lib/print-formats'
@@ -26,6 +27,10 @@ export interface ExportSnapshot {
   customPaletteBase?: string | null
   customPalette?: MapPaletteColors | null
   streetLabelsVisible?: boolean
+  /** Defaults to true (visible) when omitted. */
+  placeLabelsVisible?: boolean
+  /** UI locale (de/en/fr/es/it) used to pick `name:<locale>` from MapTiler. */
+  locale?: string
   posterDarkMode?: boolean
   maskKey: MapMaskKey
   marker: MarkerState
@@ -257,6 +262,8 @@ async function renderMapOffscreen({
   customPaletteBase,
   customPalette,
   streetLabelsVisible,
+  placeLabelsVisible,
+  locale,
 }: {
   styleId: string
   vs: ViewState
@@ -268,6 +275,8 @@ async function renderMapOffscreen({
   customPaletteBase?: string | null
   customPalette?: MapPaletteColors | null
   streetLabelsVisible?: boolean
+  placeLabelsVisible?: boolean
+  locale?: string
 }): Promise<{ canvas: HTMLCanvasElement; bounds: ViewState['bounds'] }> {
   const maptilersdk = await import('@maptiler/sdk')
   const apiKey = process.env.NEXT_PUBLIC_MAPTILER_API_KEY!
@@ -286,6 +295,8 @@ async function renderMapOffscreen({
     customPaletteBase: customPaletteBase ?? null,
     customPalette: customPalette ?? null,
     streetLabelsVisible: streetLabelsVisible ?? false,
+    placeLabelsVisible: placeLabelsVisible ?? true,
+    locale,
     apiKey,
   })
 
@@ -556,7 +567,7 @@ export async function buildPosterCanvas(
     const rightHalfMaskUrl = composedRightHalfUrl ?? mask.rightSvgPath ?? null
 
     // Left map (primary)
-    const leftRender = await renderMapOffscreen({ styleId, vs: viewState, previewW, previewH, outputW: W, outputH: H, paletteId: store.paletteId, customPaletteBase: store.customPaletteBase, customPalette: store.customPalette, streetLabelsVisible: store.streetLabelsVisible })
+    const leftRender = await renderMapOffscreen({ styleId, vs: viewState, previewW, previewH, outputW: W, outputH: H, paletteId: store.paletteId, customPaletteBase: store.customPaletteBase, customPalette: store.customPalette, streetLabelsVisible: store.streetLabelsVisible, placeLabelsVisible: store.placeLabelsVisible, locale: store.locale })
     let leftCanvas = leftRender.canvas
     renderedBounds = leftRender.bounds
     if (leftHalfMaskUrl) leftCanvas = await applyMask(leftCanvas, leftHalfMaskUrl)
@@ -582,7 +593,7 @@ export async function buildPosterCanvas(
     const secVS = secondMap.viewState
     const secPreviewW = secVS.viewportWidth > 0 ? secVS.viewportWidth : previewW
     const secPreviewH = secVS.viewportHeight > 0 ? secVS.viewportHeight : previewH
-    const rightRender = await renderMapOffscreen({ styleId: secondMap.styleId, vs: secVS, previewW: secPreviewW, previewH: secPreviewH, outputW: W, outputH: H, paletteId: secondMap.paletteId, customPaletteBase: secondMap.customPaletteBase, customPalette: secondMap.customPalette, streetLabelsVisible: store.streetLabelsVisible })
+    const rightRender = await renderMapOffscreen({ styleId: secondMap.styleId, vs: secVS, previewW: secPreviewW, previewH: secPreviewH, outputW: W, outputH: H, paletteId: secondMap.paletteId, customPaletteBase: secondMap.customPaletteBase, customPalette: secondMap.customPalette, streetLabelsVisible: store.streetLabelsVisible, placeLabelsVisible: store.placeLabelsVisible, locale: store.locale })
     let rightCanvas = rightRender.canvas
     secondRenderedBounds = rightRender.bounds
     if (rightHalfMaskUrl) rightCanvas = await applyMask(rightCanvas, rightHalfMaskUrl)
@@ -640,7 +651,7 @@ export async function buildPosterCanvas(
       ctx.restore()
     }
 
-    const splitRender = await renderMapOffscreen({ styleId, vs: viewState, previewW, previewH, outputW: W, outputH: H, paletteId: store.paletteId, customPaletteBase: store.customPaletteBase, customPalette: store.customPalette, streetLabelsVisible: store.streetLabelsVisible })
+    const splitRender = await renderMapOffscreen({ styleId, vs: viewState, previewW, previewH, outputW: W, outputH: H, paletteId: store.paletteId, customPaletteBase: store.customPaletteBase, customPalette: store.customPalette, streetLabelsVisible: store.streetLabelsVisible, placeLabelsVisible: store.placeLabelsVisible, locale: store.locale })
     let mapCanvas = splitRender.canvas
     renderedBounds = splitRender.bounds
     mapCanvas = await applyMask(mapCanvas, mapSideSvg)
@@ -655,7 +666,7 @@ export async function buildPosterCanvas(
     await drawSplitPhoto(photoCtx, splitPhoto, photoSideSvg, W, H)
     drawHalf(photoCanvas, photoHalfRect)
   } else {
-    const mainRender = await renderMapOffscreen({ styleId, vs: viewState, previewW, previewH, outputW: W, outputH: H, paletteId: store.paletteId, customPaletteBase: store.customPaletteBase, customPalette: store.customPalette, streetLabelsVisible: store.streetLabelsVisible })
+    const mainRender = await renderMapOffscreen({ styleId, vs: viewState, previewW, previewH, outputW: W, outputH: H, paletteId: store.paletteId, customPaletteBase: store.customPaletteBase, customPalette: store.customPalette, streetLabelsVisible: store.streetLabelsVisible, placeLabelsVisible: store.placeLabelsVisible, locale: store.locale })
     let mapCanvas = mainRender.canvas
     renderedBounds = mainRender.bounds
     if (mask.shape) {
@@ -926,7 +937,8 @@ function slugify(name: string): string {
 export function useMapExport() {
   const [isExporting, setIsExporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const { viewState, styleId, paletteId, customPaletteBase, customPalette, streetLabelsVisible, posterDarkMode, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos, splitMode, splitPhoto, splitPhotoZone, layoutId, innerMarginMm, decorationSvgUrl, decorationVisible, orientation } =
+  const locale = useLocale()
+  const { viewState, styleId, paletteId, customPaletteBase, customPalette, streetLabelsVisible, placeLabelsVisible, posterDarkMode, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos, splitMode, splitPhoto, splitPhotoZone, layoutId, innerMarginMm, decorationSvgUrl, decorationVisible, orientation } =
     useEditorStore()
 
   const run = async (format: PrintFormat, type: 'png' | 'pdf') => {
@@ -934,7 +946,7 @@ export function useMapExport() {
     setError(null)
     try {
       const snapshot: ExportSnapshot = {
-        viewState, styleId, paletteId, customPaletteBase, customPalette, streetLabelsVisible, posterDarkMode, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos, splitMode, splitPhoto, splitPhotoZone, layoutId, innerMarginMm, decorationSvgUrl, decorationVisible, orientation,
+        viewState, styleId, paletteId, customPaletteBase, customPalette, streetLabelsVisible, placeLabelsVisible, locale, posterDarkMode, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos, splitMode, splitPhoto, splitPhotoZone, layoutId, innerMarginMm, decorationSvgUrl, decorationVisible, orientation,
       }
       const canvas = await buildPosterCanvas(format, snapshot)
       const pngBlob = await canvasToBlob(canvas)

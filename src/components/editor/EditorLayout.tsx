@@ -11,19 +11,18 @@ import { PhotoTab } from '@/components/sidebar/PhotoTab'
 import { ExportTab } from '@/components/sidebar/ExportTab'
 import { PosterCanvas } from './PosterCanvas'
 import { useProjectSync } from '@/hooks/useProjectSync'
-import { EditorViewProvider } from './EditorViewContext'
-import { EditorAnpassenFooter } from './EditorAnpassenFooter'
-import { EditorAnpassenSheet } from './EditorAnpassenSheet'
+import { EditorViewProvider, type EditorView } from './EditorViewContext'
+import { EditorViewToggle } from './EditorViewToggle'
 
 export function EditorLayout() {
   const t = useTranslations('editorTabs')
   useProjectSync()
-  const [anpassenOpen, setAnpassenOpen] = useState(false)
+  // PROJ-36 (2026-05-13 pivot): view-mode toggle replaces the previous
+  // Sheet/Drawer. Customer-Min and Anpassen views both live inside the
+  // sidebar — no modal overlay greys out the canvas while editing.
+  const [view, setView] = useState<EditorView>('customer')
   const [activeTab, setActiveTab] = useState<'map' | 'text' | 'photo' | 'export'>('map')
 
-  // PROJ-36: Customer-Min view in main sidebar; Anpassen-controls live in
-  // the Sheet. Admin bypasses the gate (sees everything flat in the sidebar)
-  // — see shouldRenderControl in EditorViewContext.
   return (
     <div className="flex h-full overflow-hidden">
       {/* Sidebar */}
@@ -57,7 +56,7 @@ export function EditorLayout() {
           </TabsList>
 
           <ScrollArea className="flex-1 min-h-0">
-            <EditorViewProvider value="customer">
+            <EditorViewProvider value={view}>
               <TabsContent value="map" className="mt-0">
                 <MapTab />
               </TabsContent>
@@ -73,17 +72,13 @@ export function EditorLayout() {
             </EditorViewProvider>
           </ScrollArea>
 
-          <EditorAnpassenFooter onClick={() => setAnpassenOpen(true)} />
+          {/* „Erweiterte Optionen"-Switch unten — reveals the anpassen-
+              classified sections additively. Hidden for admin. */}
+          <div className="p-2 shrink-0 border-t border-border">
+            <EditorViewToggle view={view} onChange={setView} />
+          </div>
         </Tabs>
       </div>
-
-      {/* Anpassen-Sheet — mirrors the active tab's Anpassen-classified controls */}
-      <EditorAnpassenSheet open={anpassenOpen} onOpenChange={setAnpassenOpen}>
-        {activeTab === 'map' && <MapTab />}
-        {activeTab === 'text' && <TextTab />}
-        {activeTab === 'photo' && <PhotoTab />}
-        {activeTab === 'export' && <ExportTab />}
-      </EditorAnpassenSheet>
 
       {/* Map preview area */}
       <PosterCanvas />

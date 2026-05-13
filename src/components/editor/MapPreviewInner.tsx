@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
+import { useLocale } from 'next-intl'
 import * as maptilersdk from '@maptiler/sdk'
 import '@maptiler/sdk/dist/maptiler-sdk.css'
 import { useEditorStore } from '@/hooks/useEditorStore'
@@ -24,6 +25,8 @@ export default function MapPreviewInner({ storeSlice = 'primary' }: MapPreviewIn
   const customPaletteBase = storeSlice === 'primary' ? store.customPaletteBase : store.secondMap.customPaletteBase
   const customPalette = storeSlice === 'primary' ? store.customPalette : store.secondMap.customPalette
   const streetLabelsVisible = store.streetLabelsVisible
+  const placeLabelsVisible = store.placeLabelsVisible
+  const locale = useLocale()
   const pendingCenter = storeSlice === 'primary' ? store.pendingCenter : store.secondMap.pendingCenter
   const pendingZoomDelta = storeSlice === 'primary' ? store.pendingZoomDelta : store.secondMap.pendingZoomDelta
   const viewState = storeSlice === 'primary' ? store.viewState : store.secondMap.viewState
@@ -138,7 +141,7 @@ export default function MapPreviewInner({ storeSlice = 'primary' }: MapPreviewIn
     let cancelled = false
 
     ;(async () => {
-      const key = `${layoutId}|${paletteId}|${customPaletteBase ?? ''}|${JSON.stringify(customPalette ?? null)}|${streetLabelsVisible}`
+      const key = `${layoutId}|${paletteId}|${customPaletteBase ?? ''}|${JSON.stringify(customPalette ?? null)}|${streetLabelsVisible}|${placeLabelsVisible}|${locale}`
       if (lastStyleKeyRef.current === key) return
       try {
         console.log('[MapPreview] loading layout:', layoutId, 'palette:', paletteId)
@@ -148,6 +151,8 @@ export default function MapPreviewInner({ storeSlice = 'primary' }: MapPreviewIn
           customPaletteBase,
           customPalette,
           streetLabelsVisible,
+          placeLabelsVisible,
+          locale,
           apiKey,
         })
         if (cancelled) return
@@ -173,9 +178,11 @@ export default function MapPreviewInner({ storeSlice = 'primary' }: MapPreviewIn
     })()
 
     return () => { cancelled = true }
-  }, [layoutId, paletteId, customPaletteBase, customPalette, streetLabelsVisible])
+  }, [layoutId, paletteId, customPaletteBase, customPalette, streetLabelsVisible, placeLabelsVisible, locale])
 
-  // Toggle street labels on style changes
+  // Toggle street labels on style changes — fast path that doesn't rebuild
+  // the whole style. Layers with source-layer transportation_name carry the
+  // street-name symbols.
   useEffect(() => {
     const map = mapRef.current
     if (!map) return
@@ -194,6 +201,29 @@ export default function MapPreviewInner({ storeSlice = 'primary' }: MapPreviewIn
       }
     }
   }, [streetLabelsVisible])
+
+  // Toggle place labels (city/town/country/park/water names) — same fast
+  // path as street labels. Covers source-layer 'place', 'park',
+  // 'water_name', and waterway symbol layers.
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+    const style = map.getStyle()
+    if (!style?.layers) return
+    const placeSrcLayers = new Set(['place', 'park', 'water_name', 'waterway'])
+    for (const layer of style.layers) {
+      const sl = (layer as { 'source-layer'?: string })['source-layer']
+      if (layer.type === 'symbol' && sl && placeSrcLayers.has(sl)) {
+        try {
+          map.setLayoutProperty(
+            layer.id,
+            'visibility',
+            placeLabelsVisible ? 'visible' : 'none',
+          )
+        } catch { /* layer may be gone during style swap */ }
+      }
+    }
+  }, [placeLabelsVisible])
 
   // Apply pending camera. Default path is jumpTo — applyPreset() fires a
   // parallel style swap and setStyle() would cancel an in-flight flyTo

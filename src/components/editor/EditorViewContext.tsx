@@ -27,7 +27,13 @@ export function useEditorView(): EditorView {
 /**
  * Decide whether a control with the given classification should render in the
  * current view. Admin bypasses the gate and sees every control regardless of
- * classification or view — the Sheet UI isn't used by admin.
+ * classification or view.
+ *
+ * View semantics (additive, 2026-05-13 pivot):
+ * - `customer`: only customer-min controls (default — „Erweiterte Optionen" off)
+ * - `anpassen`: customer-min + anpassen controls visible (Switch flipped on)
+ *   The switch reveals MORE sections inline rather than swapping to a different
+ *   view. Admin-only controls always stay hidden for non-admins regardless.
  */
 export function shouldRenderControl(opts: {
   view: EditorView
@@ -37,7 +43,7 @@ export function shouldRenderControl(opts: {
   const { view, isAdmin, classification } = opts
   if (isAdmin) return true
   if (classification === 'admin-only') return false
-  if (view === 'customer') return classification === 'customer-min'
-  if (view === 'anpassen') return classification === 'anpassen'
+  if (classification === 'customer-min') return true
+  if (classification === 'anpassen') return view === 'anpassen'
   return false
 }

@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef, useState } from 'react'
+import Image from 'next/image'
 import { useTranslations } from 'next-intl'
 import { useTranslatedLabel } from '@/lib/i18n-catalog'
 import { ChevronDown, ChevronUp, Loader2, Upload, Trash2, ChevronLeft, ChevronRight, RectangleVertical, RectangleHorizontal } from 'lucide-react'
@@ -72,7 +73,7 @@ export function MapTab() {
 
   const {
     styleId, maskKey, marker, secondMarker, shapeConfig,
-    paletteId, customPaletteBase, customPalette, streetLabelsVisible, posterDarkMode,
+    paletteId, customPaletteBase, customPalette, streetLabelsVisible, placeLabelsVisible, posterDarkMode,
     layoutId,
     printFormat, orientation,
     decorationSvgUrl, decorationVisible,
@@ -80,7 +81,7 @@ export function MapTab() {
     setShapeOuter, setInnerFrame, setOuterFrame,
     setLayoutId,
     setPrintFormat, setOrientation,
-    setPaletteId, setCustomPaletteBase, setCustomPalette, updateCustomPaletteColor, setStreetLabelsVisible, setPosterDarkMode,
+    setPaletteId, setCustomPaletteBase, setCustomPalette, updateCustomPaletteColor, setStreetLabelsVisible, setPlaceLabelsVisible, setPosterDarkMode,
     flyToLocation, setLocationName,
     secondMap, setSecondMapStyleId, setSecondMapPaletteId, setSecondMapCustomPaletteBase, setSecondMapCustomPalette, updateSecondMapCustomPaletteColor, flyToSecondLocation,
     splitMode, setSplitMode,
@@ -97,6 +98,12 @@ export function MapTab() {
   const splitPhotoInputRef = useRef<HTMLInputElement>(null)
   const [splitUploading, setSplitUploading] = useState(false)
   const [splitProgress, setSplitProgress] = useState(0)
+
+  // Custom palette editor expand/collapse — collapsed by default, even if
+  // the loaded project has `paletteId === 'custom'`. Click the "Eigene Farbe"
+  // tile to toggle open/closed; clicking any other palette tile resets to
+  // collapsed so re-entering custom starts collapsed again.
+  const [customPaletteEditorOpen, setCustomPaletteEditorOpen] = useState(false)
 
   // Save-as-palette dialog state (admin-only, triggered from CustomPaletteEditor)
   const [saveDialogOpen, setSaveDialogOpen] = useState(false)
@@ -469,20 +476,31 @@ export function MapTab() {
       {/* Map layout — choose detail level / what's shown at which zoom */}
       <div className="space-y-1.5">
         <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">{t('mapStyleLabel')}</Label>
-        <div className="grid grid-cols-2 gap-1.5">
+        <div className="grid grid-cols-3 gap-1.5">
           {MAP_LAYOUTS.map((layout) => (
             <button
               key={layout.id}
               onClick={() => setStyleId(layout.id)}
               title={layoutLabel(`${layout.id}Description`, layout.description)}
               className={cn(
-                'rounded-md border-2 px-2 py-2 text-left text-xs font-medium transition-all',
+                'rounded-md border-2 p-1 text-left flex flex-col gap-1 transition-all',
                 styleId === layout.id
-                  ? 'border-primary bg-primary text-primary-foreground'
-                  : 'border-border text-foreground/70 hover:border-muted-foreground'
+                  ? 'border-primary'
+                  : 'border-border hover:border-muted-foreground',
               )}
             >
-              {layoutLabel(`${layout.id}Label`, layout.label)}
+              <div className="aspect-[5/7] w-full overflow-hidden rounded-sm bg-muted">
+                <Image
+                  src={`/map-style-thumbnails/${layout.id}.png`}
+                  alt=""
+                  width={160}
+                  height={224}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <span className="text-[10px] leading-tight text-foreground/70 text-center">
+                {layoutLabel(`${layout.id}Label`, layout.label)}
+              </span>
             </button>
           ))}
         </div>
@@ -493,7 +511,10 @@ export function MapTab() {
           <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">{t('mapPalette')}</Label>
           <div className="grid grid-cols-3 gap-1.5">
             <button
-              onClick={() => setPaletteId('original')}
+              onClick={() => {
+                setPaletteId('original')
+                setCustomPaletteEditorOpen(false)
+              }}
               className={cn(
                 'rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
                 paletteId === 'original'
@@ -510,7 +531,10 @@ export function MapTab() {
               return (
                 <button
                   key={p.id}
-                  onClick={() => setPaletteId(p.id)}
+                  onClick={() => {
+                    setPaletteId(p.id)
+                    setCustomPaletteEditorOpen(false)
+                  }}
                   className={cn(
                     'rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
                     paletteId === p.id
@@ -531,7 +555,10 @@ export function MapTab() {
             })}
             <button
               onClick={async () => {
-                if (paletteId === 'custom') return
+                if (paletteId === 'custom') {
+                  setCustomPaletteEditorOpen((prev) => !prev)
+                  return
+                }
                 let seed: MapPaletteColors
                 if (paletteId === 'original') {
                   try {
@@ -545,6 +572,7 @@ export function MapTab() {
                 setCustomPalette({ ...seed })
                 setCustomPaletteBase(seed.water)
                 setPaletteId('custom')
+                setCustomPaletteEditorOpen(true)
               }}
               className={cn(
                 'rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
@@ -560,7 +588,7 @@ export function MapTab() {
               <span className="text-[10px] leading-tight text-foreground/70">{t('mapPaletteCustom')}</span>
             </button>
           </div>
-          {paletteId === 'custom' && (
+          {paletteId === 'custom' && customPaletteEditorOpen && (
             <CustomPaletteEditor
               colors={customPalette}
               onColorChange={updateCustomPaletteColor}
@@ -692,6 +720,16 @@ export function MapTab() {
         <Switch
           checked={streetLabelsVisible}
           onCheckedChange={setStreetLabelsVisible}
+        />
+      </div>
+      {/* Place labels — separate axis from street labels. Cities, towns,
+          parks, water features. Defaults to visible so customers see their
+          location's name without flipping anything. */}
+      <div className="flex items-center justify-between">
+        <Label className="text-xs text-foreground/70">{t('mapShowPlaces')}</Label>
+        <Switch
+          checked={placeLabelsVisible}
+          onCheckedChange={setPlaceLabelsVisible}
         />
       </div>
 

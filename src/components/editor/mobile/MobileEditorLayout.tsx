@@ -1,6 +1,7 @@
 'use client'
 
 import '@maptiler/sdk/dist/maptiler-sdk.css'
+import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { Map, Droplet, Type, MapPin, Camera, ShoppingBag } from 'lucide-react'
 import { PosterCanvas } from '@/components/editor/PosterCanvas'
@@ -13,7 +14,8 @@ import { MobileExportTab } from '@/components/sidebar/mobile/MobileExportTab'
 import { useProjectSync } from '@/hooks/useProjectSync'
 import { useMobileSheet } from '@/hooks/useMobileSheet'
 import { cn } from '@/lib/utils'
-import { EditorViewProvider } from '@/components/editor/EditorViewContext'
+import { EditorViewProvider, type EditorView } from '@/components/editor/EditorViewContext'
+import { EditorViewToggle } from '@/components/editor/EditorViewToggle'
 import { MobileBottomSheet } from './MobileBottomSheet'
 
 type MobileTab = 'map' | 'layout' | 'text' | 'marker' | 'photo' | 'export'
@@ -25,6 +27,10 @@ export function MobileEditorLayout() {
   useProjectSync()
   const { isOpen, sheetState, activeTab, openTab, canvasTapHandlers } =
     useMobileSheet<MobileTab>({ initialTab: 'map' })
+  // PROJ-36 (2026-05-13 pivot): same view-mode toggle as Desktop, lives at
+  // the top of the bottom-sheet content so the customer sees it as soon as
+  // they open any tab.
+  const [view, setView] = useState<EditorView>('customer')
 
   const renderActiveTab = () => {
     switch (activeTab) {
@@ -87,9 +93,12 @@ export function MobileEditorLayout() {
       </nav>
 
       <MobileBottomSheet state={sheetState} id={SHEET_ID}>
-        <EditorViewProvider value="customer">
+        <EditorViewProvider value={view}>
           {renderActiveTab()}
         </EditorViewProvider>
+        <div className="px-4 pt-2 pb-3 border-t border-border">
+          <EditorViewToggle view={view} onChange={setView} />
+        </div>
       </MobileBottomSheet>
     </div>
   )

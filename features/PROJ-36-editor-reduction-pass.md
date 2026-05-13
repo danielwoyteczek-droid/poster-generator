@@ -2,7 +2,31 @@
 
 ## Status: In Progress
 **Created:** 2026-05-04
-**Last Updated:** 2026-05-04
+**Last Updated:** 2026-05-13
+
+## Design Pivot 2026-05-13 — Sheet → „Erweiterte Optionen"-Switch
+
+The original Phase 2 design used a Sheet/Drawer (right on Desktop, bottom on Mobile) to host the Anpassen-classified controls. Live user testing (2026-05-13) revealed two problems with this approach:
+
+1. **Duplication**: until the Phase-2 classification propagation is finished, every non-gated control renders in BOTH the main sidebar AND the Sheet, so the customer sees „the same controls twice plus the one gated section".
+2. **Modal backdrop kills live editing**: shadcn's Sheet ships a dimmed backdrop over the canvas, so the customer cannot watch the poster update while adjusting controls — which is the entire point of a poster editor.
+
+**Iteration 1** replaced the Sheet with a segmented two-button toggle „Standard ↔ Anpassen" at the top of the sidebar. Labels turned out to be unclear in user-testing (Operator-Feedback: „Standard / Anpassen versteht keiner") — pivoted again.
+
+**Iteration 2 (current)** uses a **single Switch labelled „Erweiterte Optionen"** at the *bottom* of the sidebar. Default off. When flipped on, the Anpassen-classified sections are revealed *additively* below the customer-min controls — not a mode swap, but a reveal-pattern (analog zu Windows-Einstellungen / Google-Forms). Customer mental model: „mehr Sektionen werden sichtbar", nicht „ich wechsle in einen anderen Editor-Modus".
+
+Same `EditorViewContext` mechanism remains; `shouldRenderControl()` semantics changed: in `view='anpassen'`, BOTH customer-min and anpassen controls render (previously: only anpassen). Customer-min controls are always visible — the switch only reveals or hides the additional anpassen sections.
+
+**Implementation status (Map editor):**
+- ✅ `EditorViewToggle` component — single Switch (shadcn) with i18n label „Erweiterte Optionen", admin-hidden
+- ✅ `shouldRenderControl()` made additive (`customer-min` always renders for non-admin; `anpassen` renders only if switch on)
+- ✅ `EditorLayout.tsx` (Map-Desktop) — Switch mounted at sidebar bottom (`border-t` separator)
+- ✅ `MobileEditorLayout.tsx` (Map-Mobile) — Switch mounted at bottom of MobileBottomSheet content
+- ✅ `EditorAnpassenFooter.tsx` + `EditorAnpassenSheet.tsx` files deleted
+- ✅ i18n string `editor.advancedOptions` added in DE/EN/FR/IT/ES (replaces previous `viewStandard`/`viewAnpassen`)
+- ✅ Smoke test `scripts/smoke-test-anpassen-toggle.ts` — 6/6 passing on Desktop + Mobile viewports (verifies switch presence, default-off state, click flips, canvas stays unobscured)
+- ⏳ **Pending**: Phase-2 classification propagation to all ~20 Anpassen-controls (Map-Style, Palette, Layout-Mode, Frame, Marker-Typ, Text-Styling). Without this, the switch is wired up correctly but only the one gated section (Außenbereich-Block) responds to it.
+- ⏳ **Pending**: same Switch pattern in Star-Map and Foto-Editor layouts (those layouts never had Sheet+Footer — Switch is purely additive when their classification propagation is ready).
 
 ## Dependencies
 - Voraussetzt: PROJ-1 (Karten-Editor Core), PROJ-7 (Star-Map), PROJ-32 (Foto-Editor) — die drei Editor-Modi, deren Sidebars hier reduziert werden
@@ -329,7 +353,7 @@ Spaltenlogik:
 
 | Entscheidung | Begründung |
 |-------------|-----------|
-| **Sheet/Drawer als Anpassen-Container**, nicht Akkordeon oder eingeblendete Sektionen | Klarer visueller Modus-Wechsel: Customer-View bleibt aufgeräumt, Anpassen ist ein „eigener Bereich". Auf Mobile als Bottom-Sheet, auf Desktop als Right-Drawer — eine `<Sheet>`-Komponente (shadcn ist bereits installiert) deckt beides ab. Kein Bundle-Wachstum. |
+| ~~**Sheet/Drawer als Anpassen-Container**~~ **[Verworfen 2026-05-13 — siehe „Design Pivot" oben. Aktuelle Lösung: segmentierter Toggle im Sidebar, kein Overlay.]** Klarer visueller Modus-Wechsel: Customer-View bleibt aufgeräumt, Anpassen ist ein „eigener Bereich". Auf Mobile als Bottom-Sheet, auf Desktop als Right-Drawer — eine `<Sheet>`-Komponente (shadcn ist bereits installiert) deckt beides ab. Kein Bundle-Wachstum. |
 | **Bestehende Tab-Struktur behalten**, nicht alles in linearen Flow refactoren | Minimaler Refactor — bestehende Tab-Komponenten (`MapTab`, `MarkerTab`, etc.) werden nur um einen `view`-Prop erweitert, statt sie wegzuwerfen. Mobile-Tab-Bar funktioniert weiter wie gewohnt. Customer-Min vs. Anpassen ist eine Sichtbarkeits-Variante derselben Komponente, kein paralleler Code-Zweig. |
 | **Sticky-Footer als Anpassen-Trigger**, kein Floating Action Button | Footer-Pattern ist im Cart-/Checkout-Kontext bekannt (CTA unten). Klare Bedeutung: „Das ist alles, was du brauchst — willst du tiefer? Klick hier." Konkurriert nicht mit dem Editor-Canvas. Auf Mobile besser positioniert als ein FAB, der mit der Mobile-Tab-Bar konkurrieren würde. |
 | **Pro-Control Render-Bedingung** statt Config-Datei | Jedes Control entscheidet selbst, ob es rendert (`if (view === 'customer' && isCustomerMin) ...`). Konkrete, lokal lesbare Regel direkt am Control statt einer entfernten Klassifikations-Tabelle. Audit-Tabelle aus Phase 1 dient als Referenz für die Implementation. |
@@ -373,13 +397,14 @@ Reihenfolge der Editor-Modi: empfohlen **Map zuerst** (komplexester, lernt am me
 
 **Infrastruktur fertig:**
 - [src/components/editor/EditorViewContext.tsx](src/components/editor/EditorViewContext.tsx) — Context + `useEditorView()` Hook + `shouldRenderControl()` Helper. Admin bypassed den Filter immer.
-- [src/components/editor/EditorAnpassenFooter.tsx](src/components/editor/EditorAnpassenFooter.tsx) — sticky Footer-Button, nur sichtbar für Non-Admin, Icon `Sliders`, i18n-Label.
-- [src/components/editor/EditorAnpassenSheet.tsx](src/components/editor/EditorAnpassenSheet.tsx) — Sheet-Wrapper. Side `bottom` auf Mobile (via `useIsMobileEditor`), `right` auf Desktop. Children werden in `EditorViewProvider value="anpassen"` gewickelt.
-- 10 i18n-Strings (`editor.anpassen` + `editor.anpassenSheetTitle`) in DE/EN/FR/IT/ES.
+- ~~[src/components/editor/EditorAnpassenFooter.tsx]~~ **gelöscht 2026-05-13 im Sheet→Toggle-Pivot.**
+- ~~[src/components/editor/EditorAnpassenSheet.tsx]~~ **gelöscht 2026-05-13 im Sheet→Toggle-Pivot.**
+- 10 i18n-Strings (`editor.anpassen` + `editor.anpassenSheetTitle`) in DE/EN/FR/IT/ES. **Ergänzt 2026-05-13:** `editor.viewStandard` + `editor.viewAnpassen` für den neuen Toggle (auch in 5 Sprachen).
 
-**Editor-Layouts verdrahtet:**
-- [EditorLayout.tsx](src/components/editor/EditorLayout.tsx) (Desktop Map-Editor) — Footer im Sidebar-Bottom, Sheet rendert dieselbe aktive Tab-Komponente. Tab-Wechsel wird jetzt kontrolliert via `useState`.
-- [mobile/MobileEditorLayout.tsx](src/components/editor/mobile/MobileEditorLayout.tsx) (Mobile Map-Editor) — Footer zwischen Tab-Content und Bottom, Sheet öffnet als Bottom-Sheet.
+**Editor-Layouts verdrahtet (2026-05-13 nach Pivot):**
+- [EditorLayout.tsx](src/components/editor/EditorLayout.tsx) (Desktop Map-Editor) — `EditorViewToggle` im Sidebar-Header (über der Tab-Bar). View-State (`'customer' | 'anpassen'`) per `useState` lokal im Layout. `EditorViewProvider` bekommt `value={view}` statt hartkodiertem `"customer"`.
+- [mobile/MobileEditorLayout.tsx](src/components/editor/mobile/MobileEditorLayout.tsx) (Mobile Map-Editor) — gleicher Toggle, mounted oben im Bottom-Sheet-Content. Sheet-Architektur (`MobileBottomSheet`) bleibt unverändert — der Toggle lebt darin.
+- [EditorViewToggle.tsx](src/components/editor/EditorViewToggle.tsx) — neue zwei-Tasten-Segment-Komponente. Admin sieht sie nicht (returns null bei `isAdmin`). Verwendet i18n `editor.viewStandard` + `editor.viewAnpassen`.
 
 **Demo-Sektion gated** (Pattern-Validierung):
 - Außenbereich-Modus-Block in [MapTab.tsx:1006-1163](src/components/sidebar/MapTab.tsx#L1006) jetzt mit `showAnpassen`-Guard. Customer sieht den Block nicht im Main-Sidebar; nach Klick auf Footer-Trigger erscheint er im Anpassen-Sheet. Admin sieht ihn weiterhin überall.

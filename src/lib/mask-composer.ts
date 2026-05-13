@@ -44,11 +44,13 @@ export interface ShapeConfigState {
 }
 
 export const DEFAULT_SHAPE_CONFIG: ShapeConfigState = {
-  // Opt-in-Defaults: Toggle auf "Fade" zeigt zunächst KEIN sichtbares Fade
-  // (opacity=1 = volle Deckkraft am Rand). Operator dreht den Slider runter,
-  // um Fade-Stärke zu setzen. Verhindert Überraschungen, wenn jemand "Fade"/
-  // "Glow" toggelt und plötzlich einen unerwarteten Effekt bekommt.
-  outer: { mode: 'none', opacity: 1, margin: 0, marginLocked: true, glowRadius: 0, glowIntensity: 0 },
+  // Sinnvolle Defaults pro Außenbereich-Modus (Daniel 2026-05-13). Customer
+  // soll beim Umschalten gleich ein Ergebnis sehen statt einen unsichtbaren
+  // Effekt:
+  // - Verblassen (mode='opacity'): 25 % Deckkraft
+  // - Leuchten (mode='glow'): 250 mm Radius, 40 % Intensität
+  // - Poster-Rand (mode='full'): 5 mm Abstand zum Poster-Rand
+  outer: { mode: 'none', opacity: 0.25, margin: 5, marginLocked: true, glowRadius: 250, glowIntensity: 0.4 },
   innerFrame: { enabled: false, color: '#1a1a1a', thickness: 0.7 },
   outerFrame: { enabled: false, color: '#1a1a1a', thickness: 0.7, style: 'single', gap: 1.5, offset: 10 },
 }
@@ -279,12 +281,14 @@ export function composeMaskSvg(
   const layoutScale = effectiveBottom > layoutMapHeight ? layoutMapHeight / effectiveBottom : 1
   const totalScale = layoutScale * fitScale
   const scaledW = shape.width * totalScale
-  const scaledH = shape.height * totalScale
   const tx = +((canvasW - scaledW) / 2).toFixed(2)
-  // Anchor at the top when the layout has a text area below; centre when
-  // the layout grants the full canvas (mapHeight=1) so symmetric figures
-  // don't hug one edge.
-  const ty = layoutMapHeight < 1 ? 0 : +((canvasH - scaledH) / 2).toFixed(2)
+  // Always anchor at the top — matches the admin MaskTransformEditor's
+  // `object-position: top center` so the position the admin sets in the
+  // preview matches what renders on the customer's canvas. Built-in shapes
+  // with A4 viewBox have scaledH ≈ canvasH so this is a no-op for them;
+  // custom masks (smaller viewBox) used to get an extra centring offset
+  // here that pushed them visibly downward in `full` layouts.
+  const ty = 0
   const scaleStr = totalScale.toFixed(4)
   const shapeTransform = ` transform="translate(${tx} ${ty}) scale(${scaleStr})"`
 
@@ -431,9 +435,10 @@ export function composeFrameSvg(
   const layoutScale = effectiveBottom > layoutMapHeight ? layoutMapHeight / effectiveBottom : 1
   const totalScale = layoutScale * fitScale
   const scaledW = shape.width * totalScale
-  const scaledH = shape.height * totalScale
   const tx = +((canvasW - scaledW) / 2).toFixed(2)
-  const ty = layoutMapHeight < 1 ? 0 : +((canvasH - scaledH) / 2).toFixed(2)
+  // Mirrors the ty=0 anchoring in composeMaskSvg so frame contour and
+  // mask silhouette stay in lockstep for non-A4 viewBox shapes.
+  const ty = 0
   const frameTransform = ` transform="translate(${tx} ${ty}) scale(${totalScale.toFixed(4)})"`
   const parts: string[] = []
   const { innerFrame, outerFrame } = config

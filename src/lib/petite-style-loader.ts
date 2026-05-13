@@ -2,6 +2,28 @@ import { MAP_PALETTES, paletteFromBaseColor, type MapPalette, type MapPaletteCol
 import { getLayout } from './map-layouts'
 import { transformStyle, extractPaletteFromStyle } from './map-style-transformer'
 
+// "Original" used to mean "no transformer — use the JSON's bundled colours",
+// which made every style look colour-different even when the customer hadn't
+// touched the palette. As of 2026-05-13 it's defined as a fixed Tusche-derived
+// neutral palette (white bg, near-black water + roads, mid-grey borders) so
+// switching style under Original keeps colours stable — only structural
+// differences remain visible.
+const ORIGINAL_PALETTE: MapPalette = {
+  id: 'original',
+  label: 'Original',
+  description: 'Tusche-inspirierte Neutral-Palette — weißer Hintergrund, fast-schwarzes Wasser, dunkle Straßen.',
+  colors: {
+    background: '#ffffff',
+    land: '#ffffff',
+    water: '#111111',
+    road: '#1a1a1a',
+    building: '#cccccc',
+    border: '#bdbdbd',
+    label: '#111111',
+    labelHalo: '#ffffff',
+  },
+}
+
 const cachedBases = new Map<string, unknown>()
 const pendingBases = new Map<string, Promise<unknown>>()
 
@@ -50,7 +72,7 @@ export function resolvePalette(
   customBase: string | null,
   customPalette?: MapPaletteColors | null,
 ): MapPalette | null {
-  if (paletteId === 'original') return null
+  if (paletteId === 'original') return ORIGINAL_PALETTE
   if (paletteId === 'custom') {
     const basis = paletteFromBaseColor(customBase ?? '#84c5a6')
     if (customPalette) {
@@ -80,6 +102,13 @@ export interface PetiteStyleOptions {
   customPaletteBase: string | null
   customPalette?: MapPaletteColors | null
   streetLabelsVisible: boolean
+  /** Defaults to true if omitted (place labels visible). Set to false to
+   *  hide city/town/country/place names entirely. */
+  placeLabelsVisible?: boolean
+  /** Two-letter locale code (de, en, fr, es, it). MapTiler tiles ship per-
+   *  locale name fields; the transformer rewrites every label's text-field
+   *  to prefer `name:<locale>` over the original style's hardcoded fallback. */
+  locale?: string
   apiKey: string
 }
 
@@ -101,5 +130,7 @@ export async function buildPetiteStyle(opts: PetiteStyleOptions): Promise<unknow
   return transformStyle(withKey as Parameters<typeof transformStyle>[0], {
     palette,
     streetLabelsVisible: opts.streetLabelsVisible,
+    placeLabelsVisible: opts.placeLabelsVisible ?? true,
+    locale: opts.locale,
   })
 }

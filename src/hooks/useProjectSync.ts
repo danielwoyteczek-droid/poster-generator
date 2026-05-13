@@ -4,11 +4,17 @@ import { useEffect, useRef, useState } from 'react'
 import { useEditorStore, type EditorConfig } from '@/hooks/useEditorStore'
 import { useStarMapStore } from '@/hooks/useStarMapStore'
 import { usePhotoEditorStore } from '@/hooks/usePhotoEditorStore'
+import {
+  useWeddingEditorStore,
+  getWeddingInitialState,
+  type WeddingSlot,
+  type SlotIndex,
+} from '@/hooks/useWeddingEditorStore'
 import { useAuth } from '@/hooks/useAuth'
 
 export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 
-export type PosterType = 'map' | 'star-map' | 'photo'
+export type PosterType = 'map' | 'star-map' | 'photo' | 'wedding'
 
 /** Per-poster-type localStorage keys for guest drafts. The map key is kept as
  *  the original `poster-generator-draft` so existing browsers don't lose any
@@ -17,6 +23,7 @@ const LS_KEYS: Record<PosterType, string> = {
   'map': 'poster-generator-draft',
   'star-map': 'poster-generator-draft-starmap',
   'photo': 'poster-generator-draft-photo',
+  'wedding': 'poster-generator-draft-wedding',
 }
 
 /**
@@ -54,6 +61,22 @@ function getConfig(posterType: PosterType): Record<string, unknown> {
       textBlocks: editor.textBlocks,
     }
   }
+  if (posterType === 'wedding') {
+    const we = useWeddingEditorStore.getState()
+    return {
+      slots: we.slots,
+      activeSlotIndex: we.activeSlotIndex,
+      coupleNames: we.coupleNames,
+      weddingDate: we.weddingDate,
+      posterDarkMode: we.posterDarkMode,
+      // printFormat + orientation drive slot layout deterministically
+      // (see `slotLayoutFromOrientation`) — no separate `slotLayout` field
+      // in the wedding schema. Stored on the shared editor store.
+      printFormat: editor.printFormat,
+      orientation: editor.orientation,
+      textBlocks: editor.textBlocks,
+    }
+  }
   if (posterType === 'photo') {
     const ph = usePhotoEditorStore.getState()
     return {
@@ -87,6 +110,7 @@ function getConfig(posterType: PosterType): Record<string, unknown> {
     customPaletteBase: editor.customPaletteBase,
     customPalette: editor.customPalette,
     streetLabelsVisible: editor.streetLabelsVisible,
+    placeLabelsVisible: editor.placeLabelsVisible,
     posterDarkMode: editor.posterDarkMode,
     maskKey: editor.maskKey,
     printFormat: editor.printFormat,
@@ -215,6 +239,47 @@ function applyConfig(posterType: PosterType, config: Record<string, unknown>): v
     if (c.textBlocks) useEditorStore.setState({ textBlocks: c.textBlocks })
     return
   }
+  if (posterType === 'wedding') {
+    const c = config as Partial<{
+      slots: WeddingSlot[]
+      activeSlotIndex: SlotIndex
+      coupleNames: string
+      weddingDate: string
+      // `slotLayout` was a stored field in pre-release configs; silently
+      // ignored now that the renderer derives it from orientation.
+      slotLayout: string
+      posterDarkMode: boolean
+      printFormat: EditorConfig['printFormat']
+      orientation: EditorConfig['orientation']
+      textBlocks: EditorConfig['textBlocks']
+    }>
+    // Normalise the slots array — saved configs may have <3 entries from a
+    // pre-release schema or be missing entirely. We always restore exactly
+    // 3 slots, padding from the initial state when needed so renderers can
+    // assume a fixed length.
+    const initial = getWeddingInitialState()
+    const incoming = Array.isArray(c.slots) ? c.slots : []
+    const slots = [0, 1, 2].map((i) => incoming[i] ?? initial.slots[i]) as [
+      WeddingSlot,
+      WeddingSlot,
+      WeddingSlot,
+    ]
+    useWeddingEditorStore.setState({
+      slots,
+      activeSlotIndex:
+        typeof c.activeSlotIndex === 'number' && c.activeSlotIndex >= 0 && c.activeSlotIndex < 3
+          ? (c.activeSlotIndex as SlotIndex)
+          : 0,
+      coupleNames: typeof c.coupleNames === 'string' ? c.coupleNames : initial.coupleNames,
+      weddingDate: typeof c.weddingDate === 'string' ? c.weddingDate : initial.weddingDate,
+      posterDarkMode:
+        typeof c.posterDarkMode === 'boolean' ? c.posterDarkMode : initial.posterDarkMode,
+    })
+    if (c.printFormat) useEditorStore.setState({ printFormat: c.printFormat })
+    if (c.orientation) useEditorStore.setState({ orientation: c.orientation })
+    if (c.textBlocks) useEditorStore.setState({ textBlocks: c.textBlocks })
+    return
+  }
   useEditorStore.getState().loadFromConfig(config as Partial<EditorConfig>)
 }
 
@@ -228,6 +293,10 @@ function getDefaultTitle(posterType: PosterType): string {
   if (posterType === 'photo') {
     const word = usePhotoEditorStore.getState().word
     return word ? `Foto-Poster „${word}"` : 'Mein Foto-Poster'
+  }
+  if (posterType === 'wedding') {
+    const we = useWeddingEditorStore.getState()
+    return we.coupleNames || 'Mein Hochzeitsposter'
   }
   return useEditorStore.getState().locationName || 'Mein Poster'
 }
@@ -248,6 +317,8 @@ export function useProjectSync(posterType: PosterType = 'map') {
       subs.push(useStarMapStore.subscribe(() => { dirtyRef.current = true }))
     } else if (posterType === 'photo') {
       subs.push(usePhotoEditorStore.subscribe(() => { dirtyRef.current = true }))
+    } else if (posterType === 'wedding') {
+      subs.push(useWeddingEditorStore.subscribe(() => { dirtyRef.current = true }))
     }
     return () => { subs.forEach((u) => u()) }
   }, [posterType])
@@ -281,6 +352,8 @@ export function useProjectSync(posterType: PosterType = 'map') {
       subs.push(useStarMapStore.subscribe(writeDraft))
     } else if (posterType === 'photo') {
       subs.push(usePhotoEditorStore.subscribe(writeDraft))
+    } else if (posterType === 'wedding') {
+      subs.push(useWeddingEditorStore.subscribe(writeDraft))
     }
     return () => {
       subs.forEach((u) => u())

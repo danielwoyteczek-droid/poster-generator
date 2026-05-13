@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef, useState } from 'react'
+import Image from 'next/image'
 import { useTranslations } from 'next-intl'
 import { useTranslatedLabel } from '@/lib/i18n-catalog'
 import { Loader2, Upload, Trash2, ChevronLeft, ChevronRight, RectangleVertical, RectangleHorizontal } from 'lucide-react'
@@ -39,10 +40,10 @@ export function MobileMapTab() {
   const ZONE_LABELS = [t('mapZoneLeft'), t('mapZoneRight'), t('mapZoneTop'), t('mapZoneBottom'), t('mapZoneCenter')]
 
   const {
-    maskKey, paletteId, customPaletteBase, customPalette, streetLabelsVisible,
+    maskKey, paletteId, customPaletteBase, customPalette, streetLabelsVisible, placeLabelsVisible,
     printFormat, orientation,
     setMaskKey, setDecorationSvgUrl,
-    setPaletteId, setCustomPaletteBase, setCustomPalette, updateCustomPaletteColor, setStreetLabelsVisible,
+    setPaletteId, setCustomPaletteBase, setCustomPalette, updateCustomPaletteColor, setStreetLabelsVisible, setPlaceLabelsVisible,
     setStyleId, styleId,
     setPrintFormat, setOrientation,
     flyToLocation, setLocationName,
@@ -58,6 +59,9 @@ export function MobileMapTab() {
   const splitPhotoInputRef = useRef<HTMLInputElement>(null)
   const [splitUploading, setSplitUploading] = useState(false)
   const [splitProgress, setSplitProgress] = useState(0)
+
+  // Custom palette editor expand/collapse — see MapTab.tsx for full rationale.
+  const [customPaletteEditorOpen, setCustomPaletteEditorOpen] = useState(false)
 
   type SplitMode = 'none' | 'second-map' | 'photo'
 
@@ -448,23 +452,36 @@ export function MobileMapTab() {
 
       <Separator />
 
-      {/* Kartenstil */}
+      {/* Kartenstil — horizontal scroll thumbnail strip so all 5 styles fit
+          on a 375px viewport without an "expand" toggle (analog to the
+          palette strip below). */}
       <div className="space-y-1.5">
         <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">{t('mapStyleLabel')}</Label>
-        <div className="grid grid-cols-2 gap-1.5">
+        <div className="flex gap-1.5 overflow-x-auto snap-x snap-mandatory -mx-4 px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {MAP_LAYOUTS.map((layout) => (
             <button
               key={layout.id}
               onClick={() => setStyleId(layout.id)}
               title={layoutLabel(`${layout.id}Description`, layout.description)}
               className={cn(
-                'rounded-md border-2 px-2 py-3 text-left text-sm font-medium transition-all',
+                'shrink-0 w-20 snap-start rounded-md border-2 p-1 text-left flex flex-col gap-1 transition-all',
                 styleId === layout.id
-                  ? 'border-primary bg-primary text-primary-foreground'
-                  : 'border-border text-foreground/70 hover:border-muted-foreground'
+                  ? 'border-primary'
+                  : 'border-border',
               )}
             >
-              {layoutLabel(`${layout.id}Label`, layout.label)}
+              <div className="aspect-[5/7] w-full overflow-hidden rounded-sm bg-muted">
+                <Image
+                  src={`/map-style-thumbnails/${layout.id}.png`}
+                  alt=""
+                  width={160}
+                  height={224}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <span className="text-[11px] leading-tight text-foreground/70 text-center">
+                {layoutLabel(`${layout.id}Label`, layout.label)}
+              </span>
             </button>
           ))}
         </div>
@@ -477,7 +494,10 @@ export function MobileMapTab() {
         <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">{t('mapPalette')}</Label>
         <div className="flex gap-1.5 overflow-x-auto snap-x snap-mandatory -mx-4 px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <button
-            onClick={() => setPaletteId('original')}
+            onClick={() => {
+              setPaletteId('original')
+              setCustomPaletteEditorOpen(false)
+            }}
             className={cn(
               'shrink-0 w-20 snap-start rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
               paletteId === 'original'
@@ -494,7 +514,10 @@ export function MobileMapTab() {
             return (
               <button
                 key={p.id}
-                onClick={() => setPaletteId(p.id)}
+                onClick={() => {
+                  setPaletteId(p.id)
+                  setCustomPaletteEditorOpen(false)
+                }}
                 className={cn(
                   'shrink-0 w-20 snap-start rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
                   paletteId === p.id
@@ -514,7 +537,10 @@ export function MobileMapTab() {
           })}
           <button
             onClick={async () => {
-              if (paletteId === 'custom') return
+              if (paletteId === 'custom') {
+                setCustomPaletteEditorOpen((prev) => !prev)
+                return
+              }
               let seed: MapPaletteColors
               if (paletteId === 'original') {
                 try {
@@ -528,6 +554,7 @@ export function MobileMapTab() {
               setCustomPalette({ ...seed })
               setCustomPaletteBase(seed.water)
               setPaletteId('custom')
+              setCustomPaletteEditorOpen(true)
             }}
             className={cn(
               'shrink-0 w-20 snap-start rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
@@ -543,7 +570,7 @@ export function MobileMapTab() {
             <span className="text-[11px] leading-tight text-foreground/70">{t('mapPaletteCustom')}</span>
           </button>
         </div>
-        {paletteId === 'custom' && (
+        {paletteId === 'custom' && customPaletteEditorOpen && (
           <MobileCustomPaletteEditor
             colors={customPalette}
             onColorChange={updateCustomPaletteColor}
@@ -558,6 +585,14 @@ export function MobileMapTab() {
         <Switch
           checked={streetLabelsVisible}
           onCheckedChange={setStreetLabelsVisible}
+        />
+      </div>
+      {/* Ortsnamen — eigene Achse, default an */}
+      <div className="flex items-center justify-between">
+        <Label className="text-sm text-foreground/70">{t('mapShowPlaces')}</Label>
+        <Switch
+          checked={placeLabelsVisible}
+          onCheckedChange={setPlaceLabelsVisible}
         />
       </div>
     </div>
