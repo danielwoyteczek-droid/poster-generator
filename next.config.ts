@@ -25,6 +25,16 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async headers() {
+    return [
+      {
+        source: '/:locale(de|en|fr|it|es)/:legal(datenschutz|impressum|agb|widerrufsbelehrung|cookie-richtlinie)',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=3600, s-maxage=86400, must-revalidate' },
+        ],
+      },
+    ]
+  },
 };
 
 // Wrap with next-intl first (closer to Next), then with Sentry on the outside

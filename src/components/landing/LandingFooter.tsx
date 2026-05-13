@@ -84,17 +84,17 @@ export async function LandingFooter() {
       : 'grid grid-cols-2 md:grid-cols-4 gap-8 mb-8'
 
   const legalLinks = [
-    { label: t('imprint'), href: '/impressum' },
-    { label: t('privacy'), href: '/datenschutz' },
-    { label: t('terms'), href: '/agb' },
-    { label: t('withdrawal'), href: '/widerrufsbelehrung' },
-    { label: t('cookies'), href: '/cookie-richtlinie' },
+    { label: t('imprint'), href: `/${locale}/impressum` },
+    { label: t('privacy'), href: `/${locale}/datenschutz` },
+    { label: t('terms'), href: `/${locale}/agb` },
+    { label: t('withdrawal'), href: `/${locale}/widerrufsbelehrung` },
+    { label: t('cookies'), href: `/${locale}/cookie-richtlinie` },
   ]
 
   const navLinks = [
-    { label: t('about'), href: '/about' },
-    { label: t('blog'), href: '/blog' },
-    { label: t('faq'), href: '/faq' },
+    { label: t('about'), href: `/${locale}/about` },
+    { label: t('blog'), href: `/${locale}/blog` },
+    { label: t('faq'), href: `/${locale}/faq` },
   ]
 
   return (
