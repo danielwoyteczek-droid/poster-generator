@@ -17,7 +17,7 @@
 | PROJ-1 | Karten-Editor Core | Approved | [PROJ-1-map-editor-core.md](PROJ-1-map-editor-core.md) | 2026-04-19 |
 | PROJ-2 | Textblock-Editor | Architected | [PROJ-2-text-block-editor.md](PROJ-2-text-block-editor.md) | 2026-04-19 |
 | PROJ-3 | Poster-Export (PNG & PDF) | Approved | [PROJ-3-poster-export.md](PROJ-3-poster-export.md) | 2026-04-19 |
-| PROJ-4 | User Authentication | In Review | [PROJ-4-user-authentication.md](PROJ-4-user-authentication.md) | 2026-04-19 |
+| PROJ-4 | User Authentication | Approved | [PROJ-4-user-authentication.md](PROJ-4-user-authentication.md) | 2026-04-19 |
 | PROJ-5 | Projekt-Verwaltung | Approved | [PROJ-5-project-management.md](PROJ-5-project-management.md) | 2026-04-19 |
 | PROJ-6 | Stripe-Bezahlsystem | In Review | [PROJ-6-stripe-payments.md](PROJ-6-stripe-payments.md) | 2026-04-19 |
 | PROJ-7 | Stern-Karten-Generator | In Review | [PROJ-7-star-map-generator.md](PROJ-7-star-map-generator.md) | 2026-04-19 |
@@ -58,11 +58,12 @@
 | PROJ-42 | Programmatic City Landing Pages (SEO-Stadtkarten-Hubs) | Deployed | [PROJ-42-programmatic-city-landing-pages.md](PROJ-42-programmatic-city-landing-pages.md) | 2026-05-10 |
 | PROJ-43 | Mobile Editor Tap-Sheet UX | Deployed | [PROJ-43-mobile-tap-sheet-ux.md](PROJ-43-mobile-tap-sheet-ux.md) | 2026-05-11 |
 | PROJ-44 | Stadt-Karten-Hub (Topic-Authority-Übersicht /de/stadtkarte/) | Deployed | [PROJ-44-city-maps-hub.md](PROJ-44-city-maps-hub.md) | 2026-05-11 |
-| PROJ-45 | Multi-Map-Hochzeitsposter-Editor | Architected | [PROJ-45-multi-map-wedding-poster.md](PROJ-45-multi-map-wedding-poster.md) | 2026-05-11 |
+| PROJ-45 | Multi-Map-Hochzeitsposter-Editor | In Progress | [PROJ-45-multi-map-wedding-poster.md](PROJ-45-multi-map-wedding-poster.md) | 2026-05-11 |
+| PROJ-46 | Typografie-Hochzeitsposter-Editor ("Liebespapier") | Architected (Paused) | [PROJ-46-typography-wedding-poster-editor.md](PROJ-46-typography-wedding-poster-editor.md) | 2026-05-12 |
 
 <!-- Add features above this line -->
 
-## Next Available ID: PROJ-46
+## Next Available ID: PROJ-47
 
 ## Recommended Build Order
 1. **PROJ-1** — Karten-Editor Core (Fundament der App)

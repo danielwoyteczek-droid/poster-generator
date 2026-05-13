@@ -1,8 +1,8 @@
 # PROJ-4: User Authentication
 
-## Status: In Progress
+## Status: Approved
 **Created:** 2026-04-19
-**Last Updated:** 2026-04-19
+**Last Updated:** 2026-05-13
 
 ## Dependencies
 - None (unabhängig, aber Voraussetzung für PROJ-5 und PROJ-6)
@@ -135,7 +135,14 @@ Middleware (läuft auf jeder Seite)
 - `react-hook-form` — Formular-State
 
 ## QA Test Results
-_To be added by /qa_
+
+**2026-05-13 — Google OAuth aktiviert + Cookie-Bug gefixt**
+- Google Cloud OAuth-Client konfiguriert (JS-Origin: localhost:3000 + petite-moment.com; Redirect: `https://statqcmffemzxcerydgw.supabase.co/auth/v1/callback`)
+- Supabase Google Provider aktiviert, Client-ID + Secret hinterlegt
+- Supabase Redirect URLs: `http://localhost:3000/**` + `https://petite-moment.com/**` (Wildcard nötig wegen `?next=…` im redirectTo)
+- **Bugfix in `src/app/auth/callback/route.ts`:** Cookies wurden via `cookies()` aus `next/headers` auf die auto-generierte Response geschrieben, die beim Return eines eigenen `NextResponse.redirect(...)` verworfen wird → Session-Cookie kam nie beim Browser an, Proxy sah keinen User und schickte zu `/login` zurück. Fix: Response zuerst erzeugen, Supabase schreibt Cookies direkt auf das Redirect-Response-Objekt.
+- Google-Login End-to-End verifiziert (localhost): Consent-Screen → Callback → Session-Cookie → `/private` erreichbar
+- `next=`-Parameter funktioniert wie spezifiziert: Login aus Home-Navi (`next=/de`) führt zurück nach `/de`, direkter Aufruf von `/login` führt zu `/private`
 
 ## Deployment
 _To be added by /deploy_
