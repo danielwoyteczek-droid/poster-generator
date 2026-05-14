@@ -54,3 +54,9 @@ scripts/blog-automation/.budget.json
 
 # render pipeline test artifacts (PROJ-30)
 /tmp/
+
+# Google Search Console credentials + cached token (gsc-report script)
+/.gsc/
+
+# GSC weekly reports (generated, not source)
+/reports/
