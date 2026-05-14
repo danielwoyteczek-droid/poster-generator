@@ -280,7 +280,7 @@ function renderMarkdown(d: ReportData): string {
   lines.push('')
 
   // Summary totals
-  const totals = queries.reduce(
+  const totals = queries.reduce<{ clicks: number; impressions: number }>(
     (acc, r) => ({
       clicks: acc.clicks + (r.clicks ?? 0),
       impressions: acc.impressions + (r.impressions ?? 0),
