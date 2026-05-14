@@ -33,12 +33,9 @@ interface LandingNavClientProps {
   /** Vom Server-Wrapper geladene, lokalisierte Anlass-Links für das
    *  Dropdown. Leeres Array → kein Dropdown rendern. */
   occasionLinks?: OccasionNavLink[]
-  /** Locale-aware Hub-URL (z.B. /de/stadtkarte/, /en/city-map/), vom
-   *  Server gebaut weil das URL-Segment pro Locale variiert. */
-  cityMapsHref?: string
 }
 
-export function LandingNavClient({ occasionLinks = [], cityMapsHref }: LandingNavClientProps) {
+export function LandingNavClient({ occasionLinks = [] }: LandingNavClientProps) {
   const t = useTranslations('nav')
   const tAria = useTranslations('navAria')
   const { user, loading, isAdmin } = useAuth()
@@ -79,7 +76,6 @@ export function LandingNavClient({ occasionLinks = [], cityMapsHref }: LandingNa
     { label: t('starPoster'), href: '/star-map' },
     { label: t('photoPoster'), href: '/photo' },
     { label: t('inspiration'), href: '/gallery' },
-    ...(cityMapsHref ? [{ label: t('cityMaps'), href: cityMapsHref }] : []),
     { label: t('pricing'), href: '/#pricing' },
   ]
 
