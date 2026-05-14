@@ -21,6 +21,9 @@ interface Props {
   /** Editor this button lives in. The hook needs to know which store to read
    *  from + which `poster_type` to write to `projects.config_json`. */
   posterType?: PosterType
+  /** When true, the idle label switches to "Als Projekt sichern" so admins
+   *  editing a preset can clearly distinguish this from "Preset speichern". */
+  relabelAsProject?: boolean
 }
 
 function StatusIcon({ status }: { status: SaveStatus }) {
@@ -30,7 +33,7 @@ function StatusIcon({ status }: { status: SaveStatus }) {
   return <Save className="w-3.5 h-3.5" />
 }
 
-export function SaveButton({ posterType = 'map' }: Props) {
+export function SaveButton({ posterType = 'map', relabelAsProject = false }: Props) {
   const t = useTranslations('editor')
   const tCommon = useTranslations('common')
   const { user } = useAuth()
@@ -45,7 +48,7 @@ export function SaveButton({ posterType = 'map' }: Props) {
     if (status === 'saving') return t('saveStatusSaving')
     if (status === 'saved') return t('saveStatusSaved')
     if (status === 'error') return t('saveStatusError')
-    return t('saveStatusIdle')
+    return relabelAsProject ? t('saveAsProjectIdle') : t('saveStatusIdle')
   }
 
   const handleClick = () => {

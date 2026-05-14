@@ -366,6 +366,7 @@
     "saveStatusSaved": "Enregistré",
     "saveStatusError": "Erreur",
     "saveStatusIdle": "Enregistrer",
+    "saveAsProjectIdle": "Enregistrer comme projet",
     "savePosterDialogTitle": "Enregistrer l'affiche",
     "savePosterNameLabel": "Nom",
     "savePosterDefaultName": "Mon affiche",

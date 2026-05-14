@@ -366,6 +366,7 @@
     "saveStatusSaved": "Salvato",
     "saveStatusError": "Errore",
     "saveStatusIdle": "Salva",
+    "saveAsProjectIdle": "Salva come progetto",
     "savePosterDialogTitle": "Salva poster",
     "savePosterNameLabel": "Nome",
     "savePosterDefaultName": "Il mio poster",

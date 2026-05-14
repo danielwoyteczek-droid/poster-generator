@@ -276,7 +276,7 @@ export function SaveAsPresetButton() {
   return (
     <>
       <Button
-        variant="outline"
+        variant={canUpdate ? 'default' : 'outline'}
         size="sm"
         className="h-8 text-xs"
         onClick={handleToolbarClick}

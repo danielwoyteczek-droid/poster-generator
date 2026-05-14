@@ -16,9 +16,9 @@ interface Props {
  * Enthält Save/Preset/Reset-Buttons. Auf /map und /star-map sichtbar.
  *
  * Wenn der Admin gerade ein Preset bearbeitet (editingPreset gesetzt),
- * blenden wir den normalen "Speichern"-Button (Projekt-Save) aus, damit
- * der Admin nicht versehentlich ein neues Projekt anlegt statt das
- * Preset zu aktualisieren. Nur "Preset speichern" bleibt sichtbar.
+ * relabeln wir den Projekt-Save zu "Als Projekt sichern", damit klar
+ * ist: dieser Button legt ein eigenes Projekt an, "Preset speichern"
+ * daneben aktualisiert das Preset.
  */
 export function EditorToolbar({ posterType }: Props) {
   const { user, isAdmin } = useAuth()
@@ -37,8 +37,7 @@ export function EditorToolbar({ posterType }: Props) {
     <div className="hidden md:flex items-center justify-end gap-3 px-4 sm:px-6 py-2 bg-muted/40 border-b border-border/60">
       {/* Admin-only Photo-Mode-Switcher — Customer wechselt Mode via Preset */}
       {isAdmin && posterType === 'photo' && <PhotoModeAdminToggle />}
-      {/* Projekt-Save nur wenn KEIN Preset bearbeitet wird (sonst missverständlich) */}
-      {!isEditingMatchingPreset && <SaveButton posterType={posterType} />}
+      <SaveButton posterType={posterType} relabelAsProject={isEditingMatchingPreset} />
       {isAdmin && <SaveAsPresetButton />}
       {isAdmin && <ResetEditorButton />}
     </div>
