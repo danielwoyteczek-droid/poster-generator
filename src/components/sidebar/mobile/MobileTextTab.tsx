@@ -31,18 +31,12 @@ import {
 } from '@/components/ui/sheet'
 import { useEditorStore, type TextBlock } from '@/hooks/useEditorStore'
 import { getCoordinatesText } from '@/components/editor/TextBlockOverlay'
+import { useFonts } from '@/hooks/useFonts'
 import { cn } from '@/lib/utils'
 
-const FONT_OPTIONS: { value: string; label: string }[] = [
-  { value: 'Playfair Display', label: 'Playfair Display' },
-  { value: 'Montserrat', label: 'Montserrat' },
-  { value: 'Cormorant Garamond', label: 'Cormorant Garamond' },
-  { value: 'Amsterdam', label: 'Amsterdam' },
-  { value: 'Cathalia', label: 'Cathalia' },
-  { value: 'Lindsey Signature', label: 'Lindsey Signature' },
-  { value: 'Brittany Signature', label: 'Brittany Signature' },
-  { value: 'Welcome', label: 'Welcome' },
-  { value: 'CaviarDreams', label: 'Caviar Dreams' },
+// System font appended after the dynamic catalogue. Arial is always
+// available cross-platform, no @font-face needed.
+const SYSTEM_FONT_OPTIONS: { value: string; label: string }[] = [
   { value: 'Arial', label: 'Arial' },
 ]
 
@@ -66,6 +60,11 @@ export function MobileTextTab({ coordinatesSource, hideCoordinates = false }: Mo
     viewState,
     locationName,
   } = useEditorStore()
+  const { fonts } = useFonts()
+  const fontOptions = [
+    ...fonts.map((f) => ({ value: f.family_name, label: f.family_name })),
+    ...SYSTEM_FONT_OPTIONS,
+  ]
 
   const [editingId, setEditingId] = useState<string | null>(null)
   const coords = coordinatesSource ?? { lat: viewState.lat, lng: viewState.lng, locationName }
@@ -209,8 +208,8 @@ export function MobileTextTab({ coordinatesSource, hideCoordinates = false }: Mo
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {FONT_OPTIONS.map((opt) => (
-                        <SelectItem key={opt.value} value={opt.value}>
+                      {fontOptions.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value} style={{ fontFamily: `"${opt.value}", system-ui, sans-serif` }}>
                           {opt.label}
                         </SelectItem>
                       ))}

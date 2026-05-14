@@ -4,7 +4,7 @@ import { useState, useEffect, Fragment } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { Menu, X, LogOut, Settings, Package, FolderOpen, Star, Map, ShoppingCart, LayoutTemplate, Palette, LineChart, ChevronDown, ImageIcon } from 'lucide-react'
+import { Menu, X, LogOut, Settings, Package, FolderOpen, Star, Map, ShoppingCart, LayoutTemplate, Palette, LineChart, ChevronDown, ImageIcon, Type } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -258,6 +258,12 @@ export function LandingNavClient({ occasionLinks = [] }: LandingNavClientProps) 
                       <Link href="/private/admin/palettes" className="cursor-pointer">
                         <Palette className="w-4 h-4 mr-2" />
                         {t('adminPalettes')}
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/private/admin/fonts" className="cursor-pointer">
+                        <Type className="w-4 h-4 mr-2" />
+                        {t('adminFonts')}
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>

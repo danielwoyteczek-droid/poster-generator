@@ -43,6 +43,7 @@ Ein webbasierter Karten-Poster-Generator, mit dem Nutzer ohne Designkenntnisse p
 | P1 | Stadt-Karten-Hub (Topic-Authority-Übersicht /de/stadtkarte/, baut auf PROJ-42 auf) | Planned |
 | P1 | Multi-Map-Hochzeitsposter-Editor (3-Slot-Variante, eigene Hochzeits-Kategorie mit SEO-Trichter) | Planned |
 | P1 | Typografie-Hochzeitsposter-Editor (Liebespapier — reine Typo-Designs ohne Karten, eigene Kategorie) | Planned |
+| P1 | Admin-Font-Verwaltung (Fonts ohne Code-Deploy hochladen, analog PROJ-22 Paletten) | Planned |
 
 ## Success Metrics
 - Conversion Rate: >5% der anonymen Nutzer erstellen ein Konto
