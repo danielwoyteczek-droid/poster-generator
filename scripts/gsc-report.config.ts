@@ -19,10 +19,15 @@ export const INSPECT_URLS: string[] = [
   'https://petite-moment.com/de/typography',
 
   // Stadt-Karten-Hub (PROJ-44) + Top-Cities (PROJ-42)
-  'https://petite-moment.com/de/stadtkarte',
-  'https://petite-moment.com/de/stadtkarte/berlin',
-  'https://petite-moment.com/de/stadtkarte/hamburg',
-  'https://petite-moment.com/de/stadtkarte/muenchen',
+  // Wichtig: Stadt-Slugs haben Locale-Präfix — siehe src/lib/city-routing.ts
+  //   DE: /de/stadtkarte/stadtkarte-<stadt>
+  //   EN: /en/city-map/city-map-<stadt>
+  'https://petite-moment.com/de/stadtkarte/',
+  'https://petite-moment.com/de/stadtkarte/stadtkarte-berlin',
+  'https://petite-moment.com/de/stadtkarte/stadtkarte-hamburg',
+  'https://petite-moment.com/de/stadtkarte/stadtkarte-muenchen',
+  'https://petite-moment.com/en/city-map/',
+  'https://petite-moment.com/en/city-map/city-map-berlin',
 
   // Inspiration / Gallery
   'https://petite-moment.com/de/gallery',
