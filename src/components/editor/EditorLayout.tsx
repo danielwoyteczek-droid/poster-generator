@@ -73,10 +73,14 @@ export function EditorLayout() {
           </ScrollArea>
 
           {/* „Erweiterte Optionen"-Switch unten — reveals the anpassen-
-              classified sections additively. Hidden for admin. */}
-          <div className="p-2 shrink-0 border-t border-border">
-            <EditorViewToggle view={view} onChange={setView} />
-          </div>
+              classified sections additively. Hidden for admin. Only the Map
+              tab actually has anpassen-gated controls, so the switch is
+              suppressed on the other tabs to avoid a no-op control. */}
+          {activeTab === 'map' && (
+            <div className="p-2 shrink-0 border-t border-border">
+              <EditorViewToggle view={view} onChange={setView} />
+            </div>
+          )}
         </Tabs>
       </div>
 

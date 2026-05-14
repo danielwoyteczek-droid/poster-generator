@@ -96,9 +96,11 @@ export function MobileEditorLayout() {
         <EditorViewProvider value={view}>
           {renderActiveTab()}
         </EditorViewProvider>
-        <div className="px-4 pt-2 pb-3 border-t border-border">
-          <EditorViewToggle view={view} onChange={setView} />
-        </div>
+        {activeTab === 'map' && (
+          <div className="px-4 pt-2 pb-3 border-t border-border">
+            <EditorViewToggle view={view} onChange={setView} />
+          </div>
+        )}
       </MobileBottomSheet>
     </div>
   )
