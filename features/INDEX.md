@@ -61,10 +61,13 @@
 | PROJ-45 | Multi-Map-Hochzeitsposter-Editor | In Progress | [PROJ-45-multi-map-wedding-poster.md](PROJ-45-multi-map-wedding-poster.md) | 2026-05-11 |
 | PROJ-46 | Typografie-Hochzeitsposter-Editor ("Liebespapier") | Architected (Paused) | [PROJ-46-typography-wedding-poster-editor.md](PROJ-46-typography-wedding-poster-editor.md) | 2026-05-12 |
 | PROJ-47 | Admin-Font-Verwaltung | Deployed | [PROJ-47-admin-font-management.md](PROJ-47-admin-font-management.md) | 2026-05-14 |
+| PROJ-48 | Tier-Pricing & Voucher-Readiness | In Progress | [PROJ-48-tier-pricing-voucher-readiness.md](PROJ-48-tier-pricing-voucher-readiness.md) | 2026-05-14 |
+| PROJ-49 | Etsy-Integration (Listing-Sync + Bestellungs-Importer) | In Progress | [PROJ-49-etsy-integration.md](PROJ-49-etsy-integration.md) | 2026-05-14 |
+| PROJ-50 | B2B Credits-Abo (Subscription mit Usage-Overage) | In Progress | [PROJ-50-b2b-credits-subscription.md](PROJ-50-b2b-credits-subscription.md) | 2026-05-14 |
 
 <!-- Add features above this line -->
 
-## Next Available ID: PROJ-48
+## Next Available ID: PROJ-51
 
 ## Recommended Build Order
 1. **PROJ-1** — Karten-Editor Core (Fundament der App)

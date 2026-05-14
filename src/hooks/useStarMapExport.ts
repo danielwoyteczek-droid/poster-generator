@@ -10,6 +10,7 @@ import { getCoordinatesText } from '@/components/editor/TextBlockOverlay'
 import { resolveFontSizePx } from '@/lib/font-scale'
 import { wrapTextToWidth } from '@/lib/text-wrap'
 import { loadSkyMaskImage } from '@/lib/load-mask-image'
+import { applyWatermark, type WatermarkOptions } from '@/lib/watermark'
 
 // ─── Text helpers (mirror of useMapExport) ─────────────────────────────────
 
@@ -183,8 +184,14 @@ export function useStarMapExport() {
     }
   }
 
-  const renderPreview = async (format: PrintFormat): Promise<string> => {
+  const renderPreview = async (
+    format: PrintFormat,
+    options?: WatermarkOptions,
+  ): Promise<string> => {
     const canvas = await buildCanvas(format)
+    if (options?.watermark) {
+      applyWatermark(canvas)
+    }
     return canvas.toDataURL('image/png')
   }
 

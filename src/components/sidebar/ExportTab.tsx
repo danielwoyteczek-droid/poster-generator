@@ -2,8 +2,7 @@
 
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { useTranslatedLabel } from '@/lib/i18n-catalog'
-import { Loader2, FileImage, FileText, Download, Image, Frame, ShoppingCart } from 'lucide-react'
+import { Loader2, FileImage, FileText } from 'lucide-react'
 import { toast } from 'sonner'
 import { Label } from '@/components/ui/label'
 import { useEditorStore } from '@/hooks/useEditorStore'
@@ -11,19 +10,10 @@ import { useMapExport } from '@/hooks/useMapExport'
 import { useAuth } from '@/hooks/useAuth'
 import { useCartStore } from '@/hooks/useCartStore'
 import { type PrintFormat } from '@/lib/print-formats'
-import { PRODUCTS, formatPrice, type ProductId } from '@/lib/products'
-import { cn } from '@/lib/utils'
 import { trackAddToCart } from '@/lib/analytics'
-import { priceFromCatalog, useProductCatalog } from '@/hooks/useProductCatalog'
-import { DiscountBadge } from '@/components/ui/discount-badge'
 import { downsizeDataURL } from '@/lib/image-utils'
-
-// ExportTab adds icons on top of the shared product catalogue
-const PRODUCT_ICONS: Record<string, React.ReactNode> = {
-  download: <Download className="w-5 h-5" />,
-  poster: <Image className="w-5 h-5" />,
-  frame: <Frame className="w-5 h-5" />,
-}
+import { ProductTierPicker, type TierSelection } from '@/components/cart/ProductTierPicker'
+import { B2BExportSection } from '@/components/business/B2BExportSection'
 
 // Page-Setup (Format + Ausrichtung) lebt jetzt im Karte-Tab — Customer
 // trifft diese Entscheidung am Anfang, nicht beim Export. Hier nur noch
@@ -83,34 +73,37 @@ function AdminExportView({ printFormat }: { printFormat: string }) {
 
 // ─── Customer product selection ───────────────────────────────────────────────
 
-function CustomerProductView({ printFormat }: { printFormat: string }) {
+function CustomerProductView({ printFormat }: { printFormat: PrintFormat }) {
   const t = useTranslations('editor')
-  const productLabel = useTranslatedLabel('products')
-  const [selectedProduct, setSelectedProduct] = useState<ProductId | null>(null)
   const [isAdding, setIsAdding] = useState(false)
   const { renderPreview } = useMapExport()
   const addItem = useCartStore((s) => s.addItem)
   const editor = useEditorStore()
-  const { products: catalog, loading: catalogLoading } = useProductCatalog()
+  // PROJ-50: B2B-Direct-Download-Section oben dran — Subscribers + Free-User
+  // exportieren ueber Credits, Visitor sieht nur den klassischen Cart-Flow.
+  const b2bSection = (
+    <B2BExportSection
+      posterType="map"
+      format={printFormat}
+      projectId={editor.projectId ?? null}
+      renderPreview={renderPreview}
+      title={editor.locationName}
+    />
+  )
 
-  const catalogPrice = selectedProduct
-    ? priceFromCatalog(catalog, selectedProduct, printFormat as PrintFormat)
-    : null
-  const priceCents = catalogPrice?.unitAmount ?? null
-
-  const handleAddToCart = async () => {
-    if (!selectedProduct || priceCents == null) return
+  const handleAddToCart = async (selection: TierSelection) => {
     setIsAdding(true)
     try {
-      const fullDataUrl = await renderPreview(printFormat as PrintFormat)
+      const fullDataUrl = await renderPreview(printFormat)
       const previewDataUrl = await downsizeDataURL(fullDataUrl, 600)
       const title = editor.locationName || t('exportDefaultPosterTitle')
       addItem({
-        productId: selectedProduct,
-        format: printFormat as PrintFormat,
+        productId: selection.productId,
+        withFrame: selection.withFrame,
+        format: printFormat,
         posterType: 'map',
         title,
-        priceCents,
+        priceCents: selection.priceCents,
         previewDataUrl,
         projectId: editor.projectId ?? null,
         snapshot: {
@@ -135,11 +128,11 @@ function CustomerProductView({ printFormat }: { printFormat: string }) {
         },
       })
       trackAddToCart({
-        id: `${selectedProduct}-${printFormat}-${Date.now()}`,
+        id: `${selection.productId}-${printFormat}-${Date.now()}`,
         title,
-        productId: selectedProduct,
+        productId: selection.productId,
         format: printFormat,
-        priceCents,
+        priceCents: selection.priceCents,
         posterType: 'map',
       })
       toast.success(t('exportAddedToCart'))
@@ -151,78 +144,21 @@ function CustomerProductView({ printFormat }: { printFormat: string }) {
   }
 
   return (
-    <div className="space-y-2">
-      <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
-        {t('exportProductLabel')}
-      </Label>
-
-      <div className="space-y-2">
-        {PRODUCTS.map((product) => {
-          const rowPrice = priceFromCatalog(catalog, product.id, printFormat as PrintFormat)
-          return (
-            <button
-              key={product.id}
-              type="button"
-              onClick={() => setSelectedProduct(product.id)}
-              disabled={!rowPrice}
-              className={cn(
-                'w-full text-left rounded-lg border-2 px-3 py-2.5 transition-colors',
-                selectedProduct === product.id
-                  ? 'border-primary bg-primary/5'
-                  : 'border-border hover:border-muted-foreground bg-background',
-                !rowPrice && 'opacity-50 cursor-not-allowed',
-              )}
-            >
-              <div className="flex items-start gap-2.5">
-                <span className={cn(
-                  'mt-0.5 shrink-0',
-                  selectedProduct === product.id ? 'text-foreground' : 'text-muted-foreground/70',
-                )}>
-                  {PRODUCT_ICONS[product.id]}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-sm font-medium text-foreground">{productLabel(`${product.id}Label`, product.label)}</span>
-                    <span className="flex items-center gap-1.5 shrink-0">
-                      {rowPrice && (
-                        <DiscountBadge unitAmount={rowPrice.unitAmount} compareAtCents={rowPrice.compareAtCents} />
-                      )}
-                      {rowPrice?.compareAtCents && rowPrice.compareAtCents > rowPrice.unitAmount && (
-                        <span className="text-xs text-muted-foreground/70 line-through">
-                          {formatPrice(rowPrice.compareAtCents)}
-                        </span>
-                      )}
-                      <span className={cn(
-                        'text-sm font-semibold',
-                        selectedProduct === product.id ? 'text-foreground' : 'text-muted-foreground',
-                      )}>
-                        {rowPrice ? formatPrice(rowPrice.unitAmount) : catalogLoading ? '…' : '–'}
-                      </span>
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground/70 mt-0.5 leading-snug">{productLabel(`${product.id}Description`, product.description)}</p>
-                </div>
-              </div>
-            </button>
-          )
-        })}
+    <div className="space-y-4">
+      {b2bSection}
+      <div className="relative">
+        <div className="absolute inset-x-0 top-1/2 h-px bg-border" />
+        <div className="relative flex justify-center">
+          <span className="bg-background px-2 text-xs uppercase tracking-wider text-muted-foreground">
+            Oder Einzelkauf
+          </span>
+        </div>
       </div>
-
-      <button
-        type="button"
-        disabled={!selectedProduct || priceCents == null || isAdding}
-        onClick={handleAddToCart}
-        className="w-full h-10 flex items-center justify-center gap-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed mt-1"
-      >
-        {isAdding ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShoppingCart className="w-4 h-4" />}
-        {isAdding
-          ? t('exportAddingToCart')
-          : priceCents != null ? t('exportInCart', { price: formatPrice(priceCents) }) : t('exportSelectProduct')}
-      </button>
-
-      <p className="text-xs text-muted-foreground/70 leading-relaxed">
-        {t('exportSecureNote')}
-      </p>
+      <ProductTierPicker
+        printFormat={printFormat}
+        isAdding={isAdding}
+        onAddToCart={handleAddToCart}
+      />
     </div>
   )
 }
@@ -248,7 +184,7 @@ export function ExportTab() {
       ) : isAdmin ? (
         <AdminExportView printFormat={printFormat} />
       ) : (
-        <CustomerProductView printFormat={printFormat} />
+        <CustomerProductView printFormat={printFormat as PrintFormat} />
       )}
     </div>
   )

@@ -44,6 +44,8 @@ Ein webbasierter Karten-Poster-Generator, mit dem Nutzer ohne Designkenntnisse p
 | P1 | Multi-Map-Hochzeitsposter-Editor (3-Slot-Variante, eigene Hochzeits-Kategorie mit SEO-Trichter) | Planned |
 | P1 | Typografie-Hochzeitsposter-Editor (Liebespapier — reine Typo-Designs ohne Karten, eigene Kategorie) | Planned |
 | P1 | Admin-Font-Verwaltung (Fonts ohne Code-Deploy hochladen, analog PROJ-22 Paletten) | Planned |
+| P1 | Tier-Pricing & Voucher-Readiness (Editor-Tier-Auswahl + Stripe-Coupon-fähiges Produktmodell, ermöglicht „Gratis Rahmen"-Promos) | Planned |
+| P1 | B2B Credits-Abo (Monatliches Abo für Druckereien/Etsy-Kreatoren, 3 Tiers, Credits=PNG/PDF-Export-only, Stripe Metered-Billing-Overage, Commercial License) | Planned |
 
 ## Success Metrics
 - Conversion Rate: >5% der anonymen Nutzer erstellen ein Konto

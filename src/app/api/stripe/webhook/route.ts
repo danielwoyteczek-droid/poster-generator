@@ -3,6 +3,7 @@ import type Stripe from 'stripe'
 import { stripe } from '@/lib/stripe'
 import { createAdminClient } from '@/lib/supabase-admin'
 import { sendOrderConfirmation, sendAdminNewOrderNotification } from '@/lib/email'
+import { dispatchB2BWebhookEvent, isB2BCheckoutSession } from '@/lib/b2b-webhook-handlers'
 
 export async function POST(req: NextRequest) {
   try {
@@ -27,11 +28,67 @@ export async function POST(req: NextRequest) {
     console.log('[webhook] event:', event.type, event.id)
     const admin = createAdminClient()
 
+    // PROJ-50: Idempotency via stripe_event_log. Stripe re-sends webhooks bei
+    // Timeout — wir verarbeiten jedes Event nur einmal. Insert-Conflict =
+    // bereits gesehen, fruehzeitig 200 zurueck.
+    const { error: idempErr } = await admin
+      .from('stripe_event_log')
+      .insert({
+        event_id: event.id,
+        event_type: event.type,
+        payload: event.data.object as unknown as Record<string, unknown>,
+      })
+
+    if (idempErr) {
+      // 23505 = unique_violation -> Event bereits gesehen
+      const isDuplicate = 'code' in idempErr && idempErr.code === '23505'
+      if (isDuplicate) {
+        console.log('[webhook] duplicate event ignored:', event.id)
+        return NextResponse.json({ received: true, duplicate: true })
+      }
+      console.error('[webhook] event log insert failed (non-duplicate):', idempErr)
+      // Continue anyway — event_log ist Best-Effort, kein Hard-Block.
+    }
+
+    // PROJ-50: B2B-Subscription-Events vor dem bestehenden B2C-Handler
+    // dispatchen. dispatchB2BWebhookEvent liefert true wenn es das Event
+    // konsumiert hat — dann ueberspringen wir die B2C-Logik unten.
+    const wasB2B = await dispatchB2BWebhookEvent(admin, event)
+    if (wasB2B) {
+      return NextResponse.json({ received: true })
+    }
+
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object as Stripe.Checkout.Session
+
+      // PROJ-50: B2B-Subscription-Checkouts gehen NICHT durch den Order-Handler.
+      // Subscription-State wird via subscription.created-Event verwaltet (s.o.).
+      if (isB2BCheckoutSession(session)) {
+        return NextResponse.json({ received: true })
+      }
       const shipping = (session as Stripe.Checkout.Session & {
         shipping_details?: { address?: Stripe.Address; name?: string } | null
       }).shipping_details
+
+      // PROJ-48: extract authoritative discount from Stripe.
+      // total_details.amount_discount is the actual amount Stripe deducted —
+      // this is the source of truth, not anything the client may have stored.
+      // We also resolve the promotion-code ID back to its human name so the
+      // order record stays readable in admin/marketing reporting.
+      const discountCents = session.total_details?.amount_discount ?? 0
+      let resolvedDiscountCode: string | null = null
+      const sessionWithDiscounts = session as Stripe.Checkout.Session & {
+        discounts?: Array<{ promotion_code?: string | null }>
+      }
+      const promoId = sessionWithDiscounts.discounts?.[0]?.promotion_code
+      if (promoId && discountCents > 0) {
+        try {
+          const promo = await stripe.promotionCodes.retrieve(promoId)
+          resolvedDiscountCode = promo.code
+        } catch (err) {
+          console.warn('[webhook] could not resolve promotion code', promoId, err)
+        }
+      }
 
       const { data: updated, error: updateErr } = await admin
         .from('orders')
@@ -42,6 +99,10 @@ export async function POST(req: NextRequest) {
           shipping_address: shipping?.address
             ? { ...shipping.address, name: shipping.name ?? null }
             : null,
+          discount_cents: discountCents,
+          // Only overwrite discount_code if Stripe resolved one — otherwise
+          // keep whatever the checkout route stored when it created the order.
+          ...(resolvedDiscountCode ? { discount_code: resolvedDiscountCode } : {}),
         })
         .eq('stripe_session_id', session.id)
         .select('id, access_token, total_cents, items, email, shipping_address')

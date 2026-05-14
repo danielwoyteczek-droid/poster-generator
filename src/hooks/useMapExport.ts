@@ -13,6 +13,7 @@ import { filterCss } from '@/lib/photo-filters'
 import { buildPetiteStyle } from '@/lib/petite-style-loader'
 import { resolveFontSizePx } from '@/lib/font-scale'
 import { resolvePinSizePx } from '@/lib/pin-scale'
+import { applyWatermark, type WatermarkOptions } from '@/lib/watermark'
 import { getPalette, type MapPaletteColors } from '@/lib/map-palettes'
 import { fetchDecorationSvgText, recolorSvg, svgTextToDataUrl } from '@/lib/decoration-color'
 import { wrapTextToWidth } from '@/lib/text-wrap'
@@ -983,11 +984,17 @@ export function useMapExport() {
     }
   }
 
-  const renderPreview = async (format: PrintFormat): Promise<string> => {
+  const renderPreview = async (
+    format: PrintFormat,
+    options?: WatermarkOptions,
+  ): Promise<string> => {
     const snapshot: ExportSnapshot = {
       viewState, styleId, paletteId, customPaletteBase, customPalette, streetLabelsVisible, posterDarkMode, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos, splitMode, splitPhoto, splitPhotoZone, layoutId, innerMarginMm, decorationSvgUrl, decorationVisible, orientation,
     }
     const canvas = await buildPosterCanvas(format, snapshot)
+    if (options?.watermark) {
+      applyWatermark(canvas)
+    }
     return canvas.toDataURL('image/png')
   }
 

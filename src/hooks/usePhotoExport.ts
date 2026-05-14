@@ -15,6 +15,7 @@ import { drawLetterMask, resolveFontFamily, ensureMaskFontLoaded } from '@/lib/p
 import { drawSinglePhoto } from '@/lib/photo-single-render'
 import { drawPhotoGrid } from '@/lib/photo-grid-render'
 import { wrapTextToWidth } from '@/lib/text-wrap'
+import { applyWatermark, type WatermarkOptions } from '@/lib/watermark'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
@@ -164,8 +165,14 @@ export function usePhotoExport() {
     return canvas
   }
 
-  const renderPreview = async (format: PrintFormat): Promise<string> => {
+  const renderPreview = async (
+    format: PrintFormat,
+    options?: WatermarkOptions,
+  ): Promise<string> => {
     const canvas = await buildCanvas(format)
+    if (options?.watermark) {
+      applyWatermark(canvas)
+    }
     return canvas.toDataURL('image/png')
   }
 
