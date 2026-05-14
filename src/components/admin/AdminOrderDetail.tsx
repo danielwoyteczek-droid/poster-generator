@@ -6,7 +6,7 @@ import { ArrowLeft, Loader2, Download as DownloadIcon, Truck, CheckCircle2 } fro
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { formatPrice, PRODUCTS } from '@/lib/products'
+import { formatPrice, getItemFallbackLabel } from '@/lib/products'
 import { PRINT_FORMAT_OPTIONS, type PrintFormat } from '@/lib/print-formats'
 import {
   renderPosterFromSnapshot,
@@ -27,7 +27,9 @@ interface OrderDetail {
   currency: string
   items: Array<{
     productId: 'download' | 'poster' | 'frame'
-    format: 'a4' | 'a3'
+    /** PROJ-48: poster + frame addon shape. Legacy orders use productId='frame'. */
+    withFrame?: boolean
+    format: 'a4' | 'a3' | 'a2'
     posterType: PosterType
     title: string
     priceCents: number
@@ -54,8 +56,8 @@ const STATUS_LABELS: Record<FulfillmentStatus, string> = {
   completed: 'Abgeschlossen',
 }
 
-function productLabel(id: string) {
-  return PRODUCTS.find((p) => p.id === id)?.label ?? id
+function productLabel(item: { productId: 'download' | 'poster' | 'frame'; withFrame?: boolean }) {
+  return getItemFallbackLabel(item)
 }
 function formatLabel(id: string) {
   return PRINT_FORMAT_OPTIONS.find((f) => f.id === id)?.label ?? id.toUpperCase()
@@ -284,7 +286,7 @@ export function AdminOrderDetail({ orderId }: { orderId: string }) {
                   </div>
                   <div className="text-sm font-semibold text-foreground mt-0.5 truncate">{item.title}</div>
                   <div className="text-xs text-muted-foreground mt-1">
-                    {productLabel(item.productId)} · {formatLabel(item.format)} · {formatPrice(item.priceCents)}
+                    {productLabel(item)} · {formatLabel(item.format)} · {formatPrice(item.priceCents)}
                   </div>
                 </div>
                 <div className="flex gap-2 shrink-0">

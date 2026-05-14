@@ -50,7 +50,7 @@ function TermsDE() {
       <ul>
         <li><strong>Digitaler Download</strong> — PNG- und PDF-Datei in Druckqualität</li>
         <li><strong>Poster</strong> — physischer Druck auf Fotopapier</li>
-        <li><strong>Gerahmtes Poster</strong> — physischer Druck im Holzrahmen</li>
+        <li><strong>Gerahmtes Poster</strong> — physischer Druck im Aluminiumrahmen</li>
       </ul>
       <p>
         (2) Die angebotenen Produkte werden vom Kunden über unseren Editor individuell gestaltet.
@@ -260,7 +260,7 @@ function TermsEN() {
       <ul>
         <li><strong>Digital download</strong> — PNG and PDF file in print quality</li>
         <li><strong>Poster</strong> — physical print on photo paper</li>
-        <li><strong>Framed poster</strong> — physical print in a wooden frame</li>
+        <li><strong>Framed poster</strong> — physical print in an aluminum frame</li>
       </ul>
       <p>
         (2) The products on offer are individually configured by the customer using our editor.
@@ -471,7 +471,7 @@ function TermsFR() {
       <ul>
         <li><strong>Téléchargement numérique</strong> — fichier PNG et PDF en qualité d'impression</li>
         <li><strong>Affiche</strong> — impression physique sur papier photo</li>
-        <li><strong>Affiche encadrée</strong> — impression physique avec cadre en bois</li>
+        <li><strong>Affiche encadrée</strong> — impression physique avec cadre aluminium</li>
       </ul>
       <p>
         (2) Les produits proposés sont configurés individuellement par le client via notre
@@ -687,7 +687,7 @@ function TermsIT() {
       <ul>
         <li><strong>Download digitale</strong> — file PNG e PDF in qualità di stampa</li>
         <li><strong>Poster</strong> — stampa fisica su carta fotografica</li>
-        <li><strong>Poster incorniciato</strong> — stampa fisica con cornice in legno</li>
+        <li><strong>Poster incorniciato</strong> — stampa fisica con cornice di alluminio</li>
       </ul>
       <p>
         (2) I prodotti offerti vengono configurati individualmente dal cliente tramite il
@@ -903,7 +903,7 @@ function TermsES() {
       <ul>
         <li><strong>Descarga digital</strong> — archivo PNG y PDF en calidad de impresión</li>
         <li><strong>Póster</strong> — impresión física en papel fotográfico</li>
-        <li><strong>Póster enmarcado</strong> — impresión física con marco de madera</li>
+        <li><strong>Póster enmarcado</strong> — impresión física con marco de aluminio</li>
       </ul>
       <p>
         (2) Los productos ofertados son configurados individualmente por el cliente a

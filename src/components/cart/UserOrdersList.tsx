@@ -6,12 +6,14 @@ import { useLocale, useTranslations } from 'next-intl'
 import { useTranslatedLabel } from '@/lib/i18n-catalog'
 import { Loader2, Package, FileImage, FileText, ChevronRight, ShoppingBag } from 'lucide-react'
 import { toast } from 'sonner'
-import { formatPrice, PRODUCTS } from '@/lib/products'
+import { formatPrice, getItemFallbackLabel, getItemLabelKey } from '@/lib/products'
 import { PRINT_FORMAT_OPTIONS } from '@/lib/print-formats'
 import { Button } from '@/components/ui/button'
 
 interface OrderItem {
   productId: 'download' | 'poster' | 'frame'
+  /** PROJ-48: new orders carry this on the poster tier when the customer picked the frame addon. */
+  withFrame?: boolean
   format: string
   posterType: 'map' | 'star-map'
   title: string
@@ -54,8 +56,8 @@ export function UserOrdersList() {
   const locale = useLocale()
   const dateLocale = DATE_LOCALES[locale] ?? 'de-DE'
   const productI18n = useTranslatedLabel('products')
-  const productLabel = (id: string) =>
-    productI18n(`${id}Label`, PRODUCTS.find((p) => p.id === id)?.label ?? id)
+  const productLabel = (item: OrderItem) =>
+    productI18n(getItemLabelKey(item), getItemFallbackLabel(item))
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -140,7 +142,7 @@ export function UserOrdersList() {
                       </p>
                       <h3 className="text-sm font-semibold text-foreground truncate mt-0.5">{item.title}</h3>
                       <p className="text-xs text-muted-foreground mt-1">
-                        {productLabel(item.productId)} · {formatLabel(item.format)}
+                        {productLabel(item)} · {formatLabel(item.format)}
                       </p>
                     </div>
                     <div className="flex gap-2 shrink-0">

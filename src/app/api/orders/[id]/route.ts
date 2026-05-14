@@ -12,7 +12,7 @@ export async function GET(
   const admin = createAdminClient()
   const { data: order, error } = await admin
     .from('orders')
-    .select('id, status, total_cents, currency, items, email, shipping_address, created_at, paid_at')
+    .select('id, status, total_cents, currency, items, email, shipping_address, created_at, paid_at, discount_code, discount_cents')
     .eq('id', id)
     .eq('access_token', token)
     .single()

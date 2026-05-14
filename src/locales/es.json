@@ -284,6 +284,7 @@
     "cityPoster": "Póster de ciudad",
     "removeAria": "Eliminar",
     "downloadIncluded": "+ Descarga digital (PNG y PDF) incluida",
+    "frameAddonLineLabel": "Marco negro",
     "summaryTitle": "Resumen",
     "items": "Artículos",
     "subtotal": "Subtotal",
@@ -295,7 +296,20 @@
     "checkoutCta": "Pagar",
     "checkoutRedirecting": "Redirigiendo…",
     "checkoutFailed": "Error en el pago",
-    "secureNote": "Pago seguro vía Stripe. No se requiere registro."
+    "secureNote": "Pago seguro vía Stripe. No se requiere registro.",
+    "voucherPlaceholder": "Introducir código de descuento",
+    "voucherApply": "Aplicar",
+    "voucherRemoveAria": "Quitar código",
+    "voucherDiscountApplied": "Descuento: −{amount}",
+    "discountLabel": "Descuento ({code})",
+    "voucherErrorNotFound": "Código no válido.",
+    "voucherErrorExpired": "El código ha caducado.",
+    "voucherErrorMaxReached": "El código se ha usado demasiadas veces.",
+    "voucherErrorMinNotMet": "Importe mínimo de pedido para este código no alcanzado.",
+    "voucherErrorNotApplicable": "Este código no se aplica a los artículos de tu carrito.",
+    "voucherErrorCurrencyMismatch": "El código no está disponible en la moneda correspondiente.",
+    "voucherRateLimited": "Demasiados intentos. Vuelve a intentarlo más tarde.",
+    "voucherGenericError": "No se pudo verificar el código. Inténtalo de nuevo."
   },
   "editor": {
     "anpassen": "Personalizar",
@@ -352,6 +366,10 @@
     "previewTooltip": "Vista previa",
     "previewAriaLabel": "Abrir vista previa de impresión",
     "exportProductLabel": "Elegir producto",
+    "exportTierPosterLabel": "Póster (descarga incluida)",
+    "exportTierPosterDescription": "Impresión de alta calidad en papel fotográfico, enviada por correo.",
+    "exportTierFrameAddonLabel": "Con marco negro",
+    "exportTierFrameAddonDescription": "En marco de aluminio de alta calidad, listo para colgar.",
     "exportAddedToCart": "Añadido al carrito",
     "exportAddFailed": "No se pudo añadir al carrito",
     "exportAddingToCart": "Añadiendo…",
@@ -521,7 +539,9 @@
     "posterLabel": "Póster",
     "posterDescription": "Impresión de alta calidad en papel fotográfico, enviada por correo. Descarga digital incluida.",
     "frameLabel": "Póster enmarcado (negro)",
-    "frameDescription": "Póster en marco de madera negro, listo para colgar. Descarga digital incluida."
+    "frameDescription": "Póster en marco de aluminio negro de alta calidad, listo para colgar. Descarga digital incluida.",
+    "posterFramedLabel": "Póster enmarcado (negro)",
+    "posterFramedDescription": "Póster en marco de aluminio negro de alta calidad, listo para colgar. Descarga digital incluida."
   },
   "mapLayouts": {
     "klassischLabel": "Clásico",

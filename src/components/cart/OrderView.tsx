@@ -7,8 +7,9 @@ import { CheckCircle2, Loader2, FileImage, FileText, Package, AlertTriangle } fr
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { useCartStore } from '@/hooks/useCartStore'
+import { useVoucherStore } from '@/hooks/useVoucherStore'
 import { trackPurchase } from '@/lib/analytics'
-import { PRODUCTS, formatPrice } from '@/lib/products'
+import { formatPrice, getItemFallbackLabel, getItemLabelKey } from '@/lib/products'
 import { PRINT_FORMAT_OPTIONS, type PrintFormat } from '@/lib/print-formats'
 import {
   renderPosterFromSnapshot,
@@ -19,6 +20,8 @@ import {
 
 interface OrderItem {
   productId: 'download' | 'poster' | 'frame'
+  /** PROJ-48: present on new orders (productId='poster' + withFrame). Legacy orders use productId='frame'. */
+  withFrame?: boolean
   format: PrintFormat
   posterType: PosterType
   title: string
@@ -41,6 +44,9 @@ interface OrderData {
   items: OrderItem[]
   created_at: string
   paid_at: string | null
+  /** PROJ-48: present on orders paid after 2026-05-14, null/0 on older orders. */
+  discount_code?: string | null
+  discount_cents?: number | null
 }
 
 interface Props {
@@ -56,18 +62,24 @@ function formatLabel(id: string) {
 export function OrderView({ orderId, token, showSuccessBanner }: Props) {
   const t = useTranslations('order')
   const productI18n = useTranslatedLabel('products')
-  const productLabel = (id: string) =>
-    productI18n(`${id}Label`, PRODUCTS.find((p) => p.id === id)?.label ?? id)
+  const productLabel = (item: OrderItem) =>
+    productI18n(getItemLabelKey(item), getItemFallbackLabel(item))
   const [order, setOrder] = useState<OrderData | null>(null)
   const [exports, setExports] = useState<OrderExport[]>([])
   const [loadError, setLoadError] = useState<string | null>(null)
   const [preparing, setPreparing] = useState<Record<number, boolean>>({})
   const clearCart = useCartStore((s) => s.clearCart)
+  const clearVoucher = useVoucherStore((s) => s.remove)
   const purchaseTrackedRef = useRef(false)
 
   useEffect(() => {
-    if (showSuccessBanner) clearCart()
-  }, [showSuccessBanner, clearCart])
+    if (showSuccessBanner) {
+      clearCart()
+      // PROJ-48: voucher lives in sessionStorage, clear it on success so a
+      // subsequent purchase starts fresh.
+      clearVoucher()
+    }
+  }, [showSuccessBanner, clearCart, clearVoucher])
 
   useEffect(() => {
     if (!showSuccessBanner || !order || purchaseTrackedRef.current) return
@@ -247,13 +259,31 @@ export function OrderView({ orderId, token, showSuccessBanner }: Props) {
       )}
 
       <div className="rounded-xl bg-white border border-border">
-        <div className="p-5 border-b border-border flex items-center justify-between">
+        <div className="p-5 border-b border-border flex items-start justify-between gap-4">
           <div>
             <h2 className="text-sm font-semibold text-foreground">{t('orderHeading')}</h2>
             <p className="text-xs text-muted-foreground mt-0.5">{t('orderId', { id: order.id.slice(0, 8) })}</p>
           </div>
-          <div className="text-sm font-semibold text-foreground">
-            {formatPrice(order.total_cents)}
+          <div className="text-right">
+            {order.discount_cents && order.discount_cents > 0 ? (
+              <>
+                <div className="text-xs text-muted-foreground line-through">
+                  {formatPrice(order.total_cents)}
+                </div>
+                {order.discount_code && (
+                  <div className="text-xs text-green-700 font-medium mt-0.5">
+                    −{formatPrice(order.discount_cents)} ({order.discount_code})
+                  </div>
+                )}
+                <div className="text-sm font-semibold text-foreground mt-0.5">
+                  {formatPrice(Math.max(0, order.total_cents - order.discount_cents))}
+                </div>
+              </>
+            ) : (
+              <div className="text-sm font-semibold text-foreground">
+                {formatPrice(order.total_cents)}
+              </div>
+            )}
           </div>
         </div>
 
@@ -276,7 +306,7 @@ export function OrderView({ orderId, token, showSuccessBanner }: Props) {
                     </p>
                     <h3 className="text-sm font-semibold text-foreground truncate mt-0.5">{item.title}</h3>
                     <p className="text-xs text-muted-foreground mt-1">
-                      {productLabel(item.productId)} · {formatLabel(item.format)} · {formatPrice(item.priceCents)}
+                      {productLabel(item)} · {formatLabel(item.format)} · {formatPrice(item.priceCents)}
                     </p>
                   </div>
 

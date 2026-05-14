@@ -1,6 +1,6 @@
 import { unstable_cache } from 'next/cache'
 import { stripe } from './stripe'
-import { PRODUCTS, type ProductId } from './products'
+import { PRODUCTS, FRAME_MARKUP_PRICE_IDS, type ProductId } from './products'
 import type { PrintFormat } from './print-formats'
 
 export interface CatalogPrice {
@@ -10,7 +10,18 @@ export interface CatalogPrice {
   compareAtCents?: number
 }
 
-export type ProductCatalog = Record<ProductId, Partial<Record<PrintFormat, CatalogPrice>>>
+export type ProductPriceTable = Partial<Record<PrintFormat, CatalogPrice>>
+
+export interface ProductCatalog {
+  products: Record<ProductId, ProductPriceTable>
+  /**
+   * Frame-Markup-Aufpreise pro Format. Werden zusätzlich zum Poster-Price
+   * berechnet, wenn der Customer `Mit schwarzem Rahmen` aktiviert.
+   * Solange Marketing die Stripe-Prices nicht angelegt hat, ist dieses
+   * Objekt leer und das Frontend blendet die Frame-Option aus.
+   */
+  frameMarkup: ProductPriceTable
+}
 
 async function fetchPrice(priceId: string): Promise<CatalogPrice> {
   const price = await stripe.prices.retrieve(priceId)
@@ -30,6 +41,9 @@ async function buildCatalog(): Promise<ProductCatalog> {
     for (const id of Object.values(product.stripePriceIds)) {
       if (id) ids.add(id)
     }
+  }
+  for (const id of Object.values(FRAME_MARKUP_PRICE_IDS)) {
+    if (id) ids.add(id)
   }
 
   // allSettled instead of all: a single stale/deleted Stripe price ID must
@@ -55,22 +69,32 @@ async function buildCatalog(): Promise<ProductCatalog> {
     }
   }
 
-  const catalog: ProductCatalog = { download: {}, poster: {}, frame: {} }
+  const products: Record<ProductId, ProductPriceTable> = { download: {}, poster: {} }
   for (const product of PRODUCTS) {
     for (const [format, priceId] of Object.entries(product.stripePriceIds)) {
       if (!priceId) continue
       const fetched = byId[priceId]
       if (fetched) {
-        catalog[product.id][format as PrintFormat] = fetched
+        products[product.id][format as PrintFormat] = fetched
       }
     }
   }
-  return catalog
+
+  const frameMarkup: ProductPriceTable = {}
+  for (const [format, priceId] of Object.entries(FRAME_MARKUP_PRICE_IDS)) {
+    if (!priceId) continue
+    const fetched = byId[priceId]
+    if (fetched) {
+      frameMarkup[format as PrintFormat] = fetched
+    }
+  }
+
+  return { products, frameMarkup }
 }
 
 // Cache for 5 minutes, revalidate tag allows manual purge later.
 export const getProductCatalog = unstable_cache(
   buildCatalog,
-  ['stripe-product-catalog'],
+  ['stripe-product-catalog-v3'],
   { revalidate: 300, tags: ['stripe-catalog'] },
 )

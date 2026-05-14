@@ -284,6 +284,7 @@
     "cityPoster": "Stadtposter",
     "removeAria": "Entfernen",
     "downloadIncluded": "+ Digitaler Download (PNG & PDF) inklusive",
+    "frameAddonLineLabel": "Schwarzer Rahmen",
     "summaryTitle": "Zusammenfassung",
     "items": "Artikel",
     "subtotal": "Zwischensumme",
@@ -295,7 +296,20 @@
     "checkoutCta": "Zur Kasse",
     "checkoutRedirecting": "Weiterleitung…",
     "checkoutFailed": "Checkout fehlgeschlagen",
-    "secureNote": "Sichere Zahlung über Stripe. Keine Registrierung nötig."
+    "secureNote": "Sichere Zahlung über Stripe. Keine Registrierung nötig.",
+    "voucherPlaceholder": "Rabattcode eingeben",
+    "voucherApply": "Anwenden",
+    "voucherRemoveAria": "Code entfernen",
+    "voucherDiscountApplied": "Rabatt: −{amount}",
+    "discountLabel": "Rabatt ({code})",
+    "voucherErrorNotFound": "Code ungültig.",
+    "voucherErrorExpired": "Code ist abgelaufen.",
+    "voucherErrorMaxReached": "Code wurde bereits zu oft eingelöst.",
+    "voucherErrorMinNotMet": "Mindestbestellwert für diesen Code nicht erreicht.",
+    "voucherErrorNotApplicable": "Dieser Code gilt nicht für die Artikel in deinem Warenkorb.",
+    "voucherErrorCurrencyMismatch": "Code ist nicht in der passenden Währung verfügbar.",
+    "voucherRateLimited": "Zu viele Versuche. Bitte später erneut versuchen.",
+    "voucherGenericError": "Code konnte nicht geprüft werden. Bitte erneut versuchen."
   },
   "editor": {
     "anpassen": "Anpassen",
@@ -352,6 +366,10 @@
     "exporting": "Wird erstellt…",
     "exportHintPrintRes": "Der Export rendert das Poster in voller Druckauflösung. Dies kann einige Sekunden dauern.",
     "exportProductLabel": "Produkt wählen",
+    "exportTierPosterLabel": "Poster (Download inklusive)",
+    "exportTierPosterDescription": "Hochwertiger Druck auf Fotopapier, geliefert per Post.",
+    "exportTierFrameAddonLabel": "Mit schwarzem Rahmen",
+    "exportTierFrameAddonDescription": "Im hochwertigen Aluminiumrahmen, fertig zum Aufhängen.",
     "exportAddedToCart": "Zum Warenkorb hinzugefügt",
     "exportAddFailed": "Hinzufügen fehlgeschlagen",
     "exportAddingToCart": "Wird hinzugefügt…",
@@ -521,7 +539,9 @@
     "posterLabel": "Poster",
     "posterDescription": "Hochwertiger Druck auf Fotopapier, geliefert per Post. Digitaler Download inklusive.",
     "frameLabel": "Gerahmtes Poster (schwarz)",
-    "frameDescription": "Poster im schwarzen Holzrahmen, fertig zum Aufhängen. Digitaler Download inklusive."
+    "frameDescription": "Poster im hochwertigen schwarzen Aluminiumrahmen, fertig zum Aufhängen. Digitaler Download inklusive.",
+    "posterFramedLabel": "Gerahmtes Poster (schwarz)",
+    "posterFramedDescription": "Poster im hochwertigen schwarzen Aluminiumrahmen, fertig zum Aufhängen. Digitaler Download inklusive."
   },
   "mapLayouts": {
     "klassischLabel": "Klassisch",

@@ -284,6 +284,7 @@
     "cityPoster": "Poster cartografico",
     "removeAria": "Rimuovi",
     "downloadIncluded": "+ Download digitale (PNG e PDF) incluso",
+    "frameAddonLineLabel": "Cornice nera",
     "summaryTitle": "Riepilogo",
     "items": "Articoli",
     "subtotal": "Subtotale",
@@ -295,7 +296,20 @@
     "checkoutCta": "Procedi al pagamento",
     "checkoutRedirecting": "Reindirizzamento…",
     "checkoutFailed": "Checkout non riuscito",
-    "secureNote": "Pagamento sicuro tramite Stripe. Nessuna registrazione necessaria."
+    "secureNote": "Pagamento sicuro tramite Stripe. Nessuna registrazione necessaria.",
+    "voucherPlaceholder": "Inserisci codice sconto",
+    "voucherApply": "Applica",
+    "voucherRemoveAria": "Rimuovi codice",
+    "voucherDiscountApplied": "Sconto: −{amount}",
+    "discountLabel": "Sconto ({code})",
+    "voucherErrorNotFound": "Codice non valido.",
+    "voucherErrorExpired": "Il codice è scaduto.",
+    "voucherErrorMaxReached": "Il codice è stato utilizzato troppe volte.",
+    "voucherErrorMinNotMet": "Importo minimo dell'ordine per questo codice non raggiunto.",
+    "voucherErrorNotApplicable": "Questo codice non si applica agli articoli nel tuo carrello.",
+    "voucherErrorCurrencyMismatch": "Il codice non è disponibile nella valuta corrispondente.",
+    "voucherRateLimited": "Troppi tentativi. Riprova più tardi.",
+    "voucherGenericError": "Impossibile verificare il codice. Riprova."
   },
   "editor": {
     "anpassen": "Personalizza",
@@ -352,6 +366,10 @@
     "previewTooltip": "Anteprima",
     "previewAriaLabel": "Apri l'anteprima di stampa",
     "exportProductLabel": "Scegli prodotto",
+    "exportTierPosterLabel": "Poster (download incluso)",
+    "exportTierPosterDescription": "Stampa di alta qualità su carta fotografica, consegnata per posta.",
+    "exportTierFrameAddonLabel": "Con cornice nera",
+    "exportTierFrameAddonDescription": "In una cornice di alluminio di alta qualità, pronto da appendere.",
     "exportAddedToCart": "Aggiunto al carrello",
     "exportAddFailed": "Aggiunta al carrello non riuscita",
     "exportAddingToCart": "Aggiunta in corso…",
@@ -521,7 +539,9 @@
     "posterLabel": "Poster",
     "posterDescription": "Stampa di alta qualità su carta fotografica, consegnata per posta. Download digitale incluso.",
     "frameLabel": "Poster incorniciato (nero)",
-    "frameDescription": "Poster con cornice in legno nero, pronto da appendere. Download digitale incluso."
+    "frameDescription": "Poster con cornice di alluminio nero di alta qualità, pronto da appendere. Download digitale incluso.",
+    "posterFramedLabel": "Poster incorniciato (nero)",
+    "posterFramedDescription": "Poster con cornice di alluminio nero di alta qualità, pronto da appendere. Download digitale incluso."
   },
   "mapLayouts": {
     "klassischLabel": "Classico",

@@ -284,6 +284,7 @@
     "cityPoster": "Affiche de ville",
     "removeAria": "Supprimer",
     "downloadIncluded": "+ Téléchargement numérique (PNG & PDF) inclus",
+    "frameAddonLineLabel": "Cadre noir",
     "summaryTitle": "Récapitulatif",
     "items": "Articles",
     "subtotal": "Sous-total",
@@ -295,7 +296,20 @@
     "checkoutCta": "Commander",
     "checkoutRedirecting": "Redirection…",
     "checkoutFailed": "Échec de la commande",
-    "secureNote": "Paiement sécurisé via Stripe. Aucune inscription requise."
+    "secureNote": "Paiement sécurisé via Stripe. Aucune inscription requise.",
+    "voucherPlaceholder": "Saisir un code promo",
+    "voucherApply": "Appliquer",
+    "voucherRemoveAria": "Retirer le code",
+    "voucherDiscountApplied": "Remise : −{amount}",
+    "discountLabel": "Remise ({code})",
+    "voucherErrorNotFound": "Code invalide.",
+    "voucherErrorExpired": "Le code a expiré.",
+    "voucherErrorMaxReached": "Le code a déjà été utilisé trop de fois.",
+    "voucherErrorMinNotMet": "Montant minimum de commande pour ce code non atteint.",
+    "voucherErrorNotApplicable": "Ce code ne s'applique pas aux articles de votre panier.",
+    "voucherErrorCurrencyMismatch": "Le code n'est pas disponible dans la devise correspondante.",
+    "voucherRateLimited": "Trop d'essais. Veuillez réessayer plus tard.",
+    "voucherGenericError": "Impossible de vérifier le code. Veuillez réessayer."
   },
   "editor": {
     "anpassen": "Personnaliser",
@@ -352,6 +366,10 @@
     "previewTooltip": "Aperçu",
     "previewAriaLabel": "Ouvrir l'aperçu d'impression",
     "exportProductLabel": "Choisir un produit",
+    "exportTierPosterLabel": "Affiche (téléchargement inclus)",
+    "exportTierPosterDescription": "Impression de haute qualité sur papier photo, livrée par la poste.",
+    "exportTierFrameAddonLabel": "Avec cadre noir",
+    "exportTierFrameAddonDescription": "Dans un cadre aluminium haut de gamme, prête à accrocher.",
     "exportAddedToCart": "Ajouté au panier",
     "exportAddFailed": "Impossible d'ajouter au panier",
     "exportAddingToCart": "Ajout en cours…",
@@ -521,7 +539,9 @@
     "posterLabel": "Affiche",
     "posterDescription": "Impression de haute qualité sur papier photo, livrée par la poste. Téléchargement numérique inclus.",
     "frameLabel": "Affiche encadrée (noir)",
-    "frameDescription": "Affiche dans un cadre en bois noir, prête à accrocher. Téléchargement numérique inclus."
+    "frameDescription": "Affiche dans un cadre aluminium noir haut de gamme, prête à accrocher. Téléchargement numérique inclus.",
+    "posterFramedLabel": "Affiche encadrée (noir)",
+    "posterFramedDescription": "Affiche dans un cadre aluminium noir haut de gamme, prête à accrocher. Téléchargement numérique inclus."
   },
   "mapLayouts": {
     "klassischLabel": "Classique",

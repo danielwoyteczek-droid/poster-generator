@@ -1,6 +1,6 @@
 import { Resend } from 'resend'
 import { PRINT_FORMAT_OPTIONS } from './print-formats'
-import { PRODUCTS, formatPrice } from './products'
+import { formatPrice, getItemFallbackLabel } from './products'
 
 const FROM = 'petite-moment <noreply@petite-moment.com>'
 
@@ -14,7 +14,9 @@ function getResend(): Resend {
 
 interface OrderItemInput {
   productId: 'download' | 'poster' | 'frame'
-  format: 'a4' | 'a3'
+  /** PROJ-48: poster tier with frame addon. Legacy orders use productId='frame'. */
+  withFrame?: boolean
+  format: 'a4' | 'a3' | 'a2'
   posterType: 'map' | 'star-map'
   title: string
   priceCents: number
@@ -117,16 +119,21 @@ function strings(locale: Locale = 'de') {
   return STRINGS[locale]
 }
 
+// PROJ-48: locale-keyed labels covering all four display states:
+// download / poster (plain) / posterFramed (new shape) / frame (legacy).
 const PRODUCT_LABELS: Record<Locale, Record<string, string>> = {
-  de: { download: 'Digitaler Download', poster: 'Poster', frame: 'Gerahmtes Poster (schwarz)' },
-  en: { download: 'Digital download', poster: 'Poster', frame: 'Framed poster (black)' },
-  fr: { download: 'Téléchargement numérique', poster: 'Affiche', frame: 'Affiche encadrée (noir)' },
-  it: { download: 'Download digitale', poster: 'Poster', frame: 'Poster incorniciato (nero)' },
-  es: { download: 'Descarga digital', poster: 'Póster', frame: 'Póster enmarcado (negro)' },
+  de: { download: 'Digitaler Download', poster: 'Poster', posterFramed: 'Gerahmtes Poster (schwarz)', frame: 'Gerahmtes Poster (schwarz)' },
+  en: { download: 'Digital download', poster: 'Poster', posterFramed: 'Framed poster (black)', frame: 'Framed poster (black)' },
+  fr: { download: 'Téléchargement numérique', poster: 'Affiche', posterFramed: 'Affiche encadrée (noir)', frame: 'Affiche encadrée (noir)' },
+  it: { download: 'Download digitale', poster: 'Poster', posterFramed: 'Poster incorniciato (nero)', frame: 'Poster incorniciato (nero)' },
+  es: { download: 'Descarga digital', poster: 'Póster', posterFramed: 'Póster enmarcado (negro)', frame: 'Póster enmarcado (negro)' },
 }
 
-function productLabel(id: string, locale: Locale = 'de') {
-  return PRODUCT_LABELS[locale]?.[id] ?? PRODUCTS.find((p) => p.id === id)?.label ?? id
+function productLabel(item: { productId: 'download' | 'poster' | 'frame'; withFrame?: boolean }, locale: Locale = 'de') {
+  const labels = PRODUCT_LABELS[locale] ?? PRODUCT_LABELS.de
+  if (item.productId === 'frame') return labels.frame
+  if (item.productId === 'poster' && item.withFrame) return labels.posterFramed
+  return labels[item.productId] ?? getItemFallbackLabel(item)
 }
 function formatLabel(id: string) {
   return PRINT_FORMAT_OPTIONS.find((f) => f.id === id)?.label ?? id.toUpperCase()
@@ -147,7 +154,7 @@ function renderHtml(input: OrderConfirmationInput): string {
           <td style="padding:12px 16px;border-bottom:1px solid #eee;">
             <div style="font-size:12px;color:#888;text-transform:uppercase;letter-spacing:0.05em;">${typeLabel}</div>
             <div style="font-size:14px;color:#111;font-weight:600;margin-top:2px;">${item.title}</div>
-            <div style="font-size:12px;color:#666;margin-top:2px;">${productLabel(item.productId, locale)} · ${formatLabel(item.format)}</div>
+            <div style="font-size:12px;color:#666;margin-top:2px;">${productLabel(item, locale)} · ${formatLabel(item.format)}</div>
           </td>
           <td style="padding:12px 16px;border-bottom:1px solid #eee;text-align:right;font-size:14px;color:#111;font-weight:600;vertical-align:top;">
             ${formatPrice(item.priceCents)}
@@ -255,7 +262,7 @@ function renderAdminHtml(input: AdminNotificationInput): string {
       <tr>
         <td style="padding:8px 12px;border-bottom:1px solid #eee;font-size:13px;">
           ${item.posterType === 'star-map' ? 'Sternenposter' : 'Stadtposter'} · ${item.title}
-          <br><span style="color:#888;">${productLabel(item.productId)} · ${formatLabel(item.format)}</span>
+          <br><span style="color:#888;">${productLabel(item)} · ${formatLabel(item.format)}</span>
         </td>
         <td style="padding:8px 12px;border-bottom:1px solid #eee;font-size:13px;text-align:right;">
           ${formatPrice(item.priceCents)}

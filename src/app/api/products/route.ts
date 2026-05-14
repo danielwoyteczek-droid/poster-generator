@@ -11,9 +11,12 @@ export async function GET() {
       id: product.id,
       label: product.label,
       description: product.description,
-      formats: catalog[product.id] ?? {},
+      formats: catalog.products[product.id] ?? {},
     }))
-    return NextResponse.json({ products })
+    return NextResponse.json({
+      products,
+      frameMarkup: catalog.frameMarkup,
+    })
   } catch (err) {
     console.error('Failed to load product catalog:', err)
     return NextResponse.json({ error: 'Catalog unavailable' }, { status: 503 })

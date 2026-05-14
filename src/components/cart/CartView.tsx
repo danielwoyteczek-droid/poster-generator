@@ -7,11 +7,14 @@ import { useTranslatedLabel } from '@/lib/i18n-catalog'
 import { X, ShoppingCart, CreditCard, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useCartStore } from '@/hooks/useCartStore'
+import { useVoucherStore } from '@/hooks/useVoucherStore'
+import { useProductCatalog, frameMarkupFromCatalog } from '@/hooks/useProductCatalog'
 import { trackBeginCheckout } from '@/lib/analytics'
-import { PRODUCTS, formatPrice } from '@/lib/products'
-import { PRINT_FORMAT_OPTIONS } from '@/lib/print-formats'
+import { formatPrice, getItemFallbackLabel, getItemLabelKey } from '@/lib/products'
+import { PRINT_FORMAT_OPTIONS, type PrintFormat } from '@/lib/print-formats'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import { VoucherInput } from './VoucherInput'
 
 function formatLabel(format: string) {
   return PRINT_FORMAT_OPTIONS.find((f) => f.id === format)?.label ?? format.toUpperCase()
@@ -20,15 +23,30 @@ function formatLabel(format: string) {
 export function CartView() {
   const t = useTranslations('cart')
   const productI18n = useTranslatedLabel('products')
-  const productLabel = (id: string) =>
-    productI18n(`${id}Label`, PRODUCTS.find((p) => p.id === id)?.label ?? id)
+  const productLabel = (item: { productId: string; withFrame?: boolean }) =>
+    productI18n(
+      getItemLabelKey(item as { productId: 'download' | 'poster' | 'frame'; withFrame?: boolean }),
+      getItemFallbackLabel(item as { productId: 'download' | 'poster' | 'frame'; withFrame?: boolean }),
+    )
   const [hydrated, setHydrated] = useState(false)
   const [isCheckingOut, setIsCheckingOut] = useState(false)
   const [digitalConsent, setDigitalConsent] = useState(false)
   const items = useCartStore((s) => s.items)
   const removeItem = useCartStore((s) => s.removeItem)
-  const totalCents = useCartStore((s) => s.totalCents())
+  const subtotalCents = useCartStore((s) => s.totalCents())
+  const voucher = useVoucherStore((s) => s.applied)
+  const { frameMarkup } = useProductCatalog()
   const hasDigital = items.some((i) => i.productId === 'download')
+
+  // PROJ-48: discount-cents is a preview computed against the current cart.
+  // If the voucher no longer applies (subtotal dropped below min_amount, or
+  // the only frame-line was removed), the cap keeps the total non-negative.
+  // The Stripe Session is authoritative at checkout — webhook overwrites
+  // discount_cents on the order from total_details.amount_discount.
+  const discountCents = voucher
+    ? Math.min(voucher.discountCents, subtotalCents)
+    : 0
+  const totalCents = Math.max(0, subtotalCents - discountCents)
 
   useEffect(() => { setHydrated(true) }, [])
 
@@ -48,10 +66,13 @@ export function CartView() {
     })))
     try {
       const payload = {
-        items: items.map(({ productId, format, posterType, title, snapshot, projectId }) => ({
-          productId, format, posterType, title, snapshot, projectId,
+        items: items.map(({ productId, withFrame, format, posterType, title, snapshot, projectId }) => ({
+          productId, withFrame: !!withFrame, format, posterType, title, snapshot, projectId,
         })),
         digitalConsent: hasDigital ? digitalConsent : undefined,
+        voucher: voucher
+          ? { code: voucher.code, promotionCodeId: voucher.promotionCodeId }
+          : undefined,
       }
       const res = await fetch('/api/checkout', {
         method: 'POST',
@@ -93,7 +114,20 @@ export function CartView() {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
       <div className="space-y-3">
-        {items.map((item) => (
+        {items.map((item) => {
+          // PROJ-48: bei Frame-Tier den Aufpreis als eigene Sub-Zeile anzeigen,
+          // damit der Customer sieht, was er für den Rahmen extra zahlt — und
+          // ein „Gratis Rahmen"-Coupon sichtbar zuordenbar ist. Markup ziehen
+          // wir aus dem Catalog; der CartItem.priceCents bleibt unverändert.
+          const frameMarkupPrice =
+            item.productId === 'poster' && item.withFrame
+              ? frameMarkupFromCatalog(frameMarkup, item.format as PrintFormat)
+              : null
+          const baseCents = frameMarkupPrice
+            ? Math.max(0, item.priceCents - frameMarkupPrice.unitAmount)
+            : item.priceCents
+
+          return (
           <div key={item.id} className="flex gap-4 p-4 rounded-xl bg-white border border-border">
             <div className="w-24 h-32 shrink-0 rounded-md overflow-hidden bg-muted flex items-center justify-center">
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -110,14 +144,6 @@ export function CartView() {
                     {item.posterType === 'star-map' ? t('starPoster') : t('cityPoster')}
                   </p>
                   <h3 className="text-sm font-semibold text-foreground truncate mt-0.5">{item.title}</h3>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {productLabel(item.productId)} · {formatLabel(item.format)}
-                  </p>
-                  {item.productId !== 'download' && (
-                    <p className="text-xs text-green-700 mt-1.5 font-medium">
-                      {t('downloadIncluded')}
-                    </p>
-                  )}
                 </div>
                 <button
                   type="button"
@@ -128,12 +154,48 @@ export function CartView() {
                   <X className="w-4 h-4" />
                 </button>
               </div>
-              <div className="mt-auto text-sm font-semibold text-foreground">
-                {formatPrice(item.priceCents)}
+
+              <div className="mt-2 space-y-1 text-xs">
+                <div className="flex justify-between gap-2 text-muted-foreground">
+                  <span className="truncate">
+                    {productI18n(
+                      `${item.productId}Label`,
+                      getItemFallbackLabel({ productId: item.productId, withFrame: false }),
+                    )} · {formatLabel(item.format)}
+                  </span>
+                  <span className="text-foreground/80 font-medium shrink-0">
+                    {formatPrice(baseCents)}
+                  </span>
+                </div>
+                {frameMarkupPrice && (
+                  <div className="flex justify-between gap-2 text-muted-foreground">
+                    <span className="truncate">
+                      ↳ {t('frameAddonLineLabel')}
+                    </span>
+                    <span className="text-foreground/80 font-medium shrink-0">
+                      +{formatPrice(frameMarkupPrice.unitAmount)}
+                    </span>
+                  </div>
+                )}
+                {item.productId !== 'download' && (
+                  <p className="text-green-700 font-medium pt-0.5">
+                    {t('downloadIncluded')}
+                  </p>
+                )}
+              </div>
+
+              <div className="mt-auto pt-2 flex justify-between items-baseline border-t border-border/60">
+                <span className="text-xs text-muted-foreground uppercase tracking-wider">
+                  {productLabel(item)}
+                </span>
+                <span className="text-sm font-semibold text-foreground">
+                  {formatPrice(item.priceCents)}
+                </span>
               </div>
             </div>
           </div>
-        ))}
+          )
+        })}
       </div>
 
       <aside className="lg:sticky lg:top-20 h-fit rounded-xl bg-white border border-border p-5 space-y-4">
@@ -145,8 +207,14 @@ export function CartView() {
           </div>
           <div className="flex justify-between text-muted-foreground">
             <span>{t('subtotal')}</span>
-            <span>{formatPrice(totalCents)}</span>
+            <span>{formatPrice(subtotalCents)}</span>
           </div>
+          {voucher && discountCents > 0 && (
+            <div className="flex justify-between text-green-700 font-medium">
+              <span className="truncate">{t('discountLabel', { code: voucher.code })}</span>
+              <span>−{formatPrice(discountCents)}</span>
+            </div>
+          )}
           <div className="flex justify-between text-muted-foreground">
             <span>{t('shipping')}</span>
             <span>{t('shippingValue')}</span>
@@ -156,6 +224,9 @@ export function CartView() {
             <span>{formatPrice(totalCents)}</span>
           </div>
         </div>
+
+        <VoucherInput />
+
         {hasDigital && (
           <label className="flex items-start gap-2.5 p-3 rounded-md bg-amber-50 border border-amber-200 cursor-pointer">
             <Checkbox
