@@ -1,6 +1,7 @@
 import { getLocale } from 'next-intl/server'
 import { listOccasionPagesForLocale } from '@/sanity/queries'
 import { buildOccasionPagePath } from '@/lib/occasion-routing'
+import { CITY_URL_SEGMENT } from '@/lib/city-routing'
 import { getOccasions } from '@/lib/occasions-server'
 import { locales, type Locale } from '@/i18n/config'
 import { LandingNavClient, type OccasionNavLink } from './LandingNavClient'
@@ -41,5 +42,10 @@ export async function LandingNav() {
       }
     })
 
-  return <LandingNavClient occasionLinks={occasionLinks} />
+  // PROJ-44: City-Maps-Hub link surfaces in the top nav so the hub
+  // (and transitively all city LPs) gets sitewide link equity instead
+  // of being reachable only from the footer.
+  const cityMapsHref = `/${locale}/${CITY_URL_SEGMENT[locale]}/`
+
+  return <LandingNavClient occasionLinks={occasionLinks} cityMapsHref={cityMapsHref} />
 }
