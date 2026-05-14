@@ -60,7 +60,7 @@
 | PROJ-44 | Stadt-Karten-Hub (Topic-Authority-Übersicht /de/stadtkarte/) | Deployed | [PROJ-44-city-maps-hub.md](PROJ-44-city-maps-hub.md) | 2026-05-11 |
 | PROJ-45 | Multi-Map-Hochzeitsposter-Editor | In Progress | [PROJ-45-multi-map-wedding-poster.md](PROJ-45-multi-map-wedding-poster.md) | 2026-05-11 |
 | PROJ-46 | Typografie-Hochzeitsposter-Editor ("Liebespapier") | Architected (Paused) | [PROJ-46-typography-wedding-poster-editor.md](PROJ-46-typography-wedding-poster-editor.md) | 2026-05-12 |
-| PROJ-47 | Admin-Font-Verwaltung | Approved | [PROJ-47-admin-font-management.md](PROJ-47-admin-font-management.md) | 2026-05-14 |
+| PROJ-47 | Admin-Font-Verwaltung | Deployed | [PROJ-47-admin-font-management.md](PROJ-47-admin-font-management.md) | 2026-05-14 |
 
 <!-- Add features above this line -->
 

@@ -1,6 +1,6 @@
 # PROJ-47: Admin-Font-Verwaltung
 
-## Status: Approved
+## Status: Deployed
 
 ## Implementation Notes (Frontend, 2026-05-14) — Phase 1
 - `src/lib/fonts.ts`: Type-System (`Font`, `FontStyle`, `FontCategory`, `FontWeight`, `FontStyleSpec`), Konstanten (`FONT_CATEGORIES`, `FONT_WEIGHTS`, `FONT_PREVIEW_TEXT`, `SLUG_REGEX`), und `FALLBACK_FONTS`-Array mit allen 9 heute hartkodierten Fonts (Playfair, Cormorant, Montserrat, CaviarDreams Regular+Bold, Amsterdam, Cathalia, Lindsey Signature, Brittany Signature, Welcome). Kategorien nach Augenmaß zugeordnet (Playfair/Cormorant = serif, Montserrat/CaviarDreams = sans, Amsterdam/Cathalia/Lindsey/Brittany/Welcome = script). URLs zeigen weiterhin auf `public/fonts/*.ttf` — Phase 2 ersetzt das durch Storage-URLs.
@@ -391,4 +391,35 @@ Neu erstellt:
 **Status:** Bereit für `/deploy`. Phase 2 (DB-Seed + Storage-Migration + globals.css-Cleanup) bleibt als separater PR auf der Roadmap.
 
 ## Deployment
-_To be added by /deploy_
+
+- **Date:** 2026-05-14
+- **Commit:** `048174d` — `feat(PROJ-47): admin font management — upload fonts without code deploy`
+- **Tag:** `v1.0-PROJ-47`
+- **Production URL:** https://petite-moment.com/private/admin/fonts (admin-only)
+- **Auto-deploy:** via Vercel + GitHub `main`-branch trigger
+
+### Pre-Deployment-Checks
+- ✅ `npm run build` exit 0, alle neuen Routen kompiliert
+- ✅ 19/19 PROJ-47-Vitest-Tests grün (`font-validation.test.ts` + `fonts-server.test.ts`)
+- ✅ `npx tsc --noEmit` clean (Altlast in `useMobileSheet.test.ts` ist PROJ-43, nicht PROJ-47)
+- 🟡 `npm run lint` projekt-weit defekt (`next lint` interpretiert "lint" als Pfad) — bestehende Altlast, kein PROJ-47-Issue
+- ✅ Supabase-Migrationen live (`proj47_fonts_tables`, `proj47_fonts_storage_bucket`, `proj47_fonts_function_search_path`)
+- ✅ QA Approved (M1 mit drei-Schichten-Defense-in-Depth gefixt)
+- ✅ Keine neuen Env-Vars
+- ✅ Keine Secrets committed
+
+### Post-Deployment-Verification (zu prüfen)
+- [ ] Vercel-Build success im Dashboard
+- [ ] https://petite-moment.com/private/admin/fonts lädt 200 für eingeloggten Admin
+- [ ] Live-Test: Test-Font hochladen → publishen → im `/de/map`-Editor wählen → Canvas rendert korrekt
+- [ ] Smoke-Test pro Editor-Variante (Map ✓ live verifiziert; Star-Map, Photo, Wedding sollten transitiv funktionieren über shared `TextTab`-Komponente)
+- [ ] Vercel-Function-Logs keine Errors auf `/api/fonts`, `/api/admin/fonts/*`
+
+### Phase 2 — Outstanding Work (auf Roadmap)
+1. Migration `seed_fonts` der 9 Bestands-Fonts in die DB
+2. `scripts/migrate-fonts-to-storage.ts` — Upload der `public/fonts/*.ttf` in den `fonts/`-Bucket
+3. `@font-face`-Blöcke aus `globals.css` entfernen
+4. `useFonts()`-Merge-Fallback wird automatisch obsolet sobald Phase-2-Seed in DB ist
+
+### L1–L5 Edge-Case-Findings (Folge-PR)
+Defense-in-Depth-Verbesserungen aus dem QA-Report — können in einem separaten Cleanup-PR.
