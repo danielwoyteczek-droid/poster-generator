@@ -104,6 +104,7 @@ export function MapTab() {
   // tile to toggle open/closed; clicking any other palette tile resets to
   // collapsed so re-entering custom starts collapsed again.
   const [customPaletteEditorOpen, setCustomPaletteEditorOpen] = useState(false)
+  const [secondCustomPaletteEditorOpen, setSecondCustomPaletteEditorOpen] = useState(false)
 
   // Save-as-palette dialog state (admin-only, triggered from CustomPaletteEditor)
   const [saveDialogOpen, setSaveDialogOpen] = useState(false)
@@ -613,20 +614,31 @@ export function MapTab() {
 
           <div className="space-y-1.5">
             <Label className="text-xs text-muted-foreground">{t('mapSecondStyle')}</Label>
-            <div className="grid grid-cols-2 gap-1.5">
+            <div className="grid grid-cols-3 gap-1.5">
               {MAP_LAYOUTS.map((layout) => (
                 <button
                   key={layout.id}
                   onClick={() => setSecondMapStyleId(layout.id)}
                   title={layoutLabel(`${layout.id}Description`, layout.description)}
                   className={cn(
-                    'rounded-md border-2 px-2 py-2 text-left text-xs font-medium transition-all',
+                    'rounded-md border-2 p-1 text-left flex flex-col gap-1 transition-all',
                     secondMap.styleId === layout.id
-                      ? 'border-primary bg-primary text-primary-foreground'
-                      : 'border-border text-foreground/70 hover:border-muted-foreground'
+                      ? 'border-primary'
+                      : 'border-border hover:border-muted-foreground',
                   )}
                 >
-                  {layoutLabel(`${layout.id}Label`, layout.label)}
+                  <div className="aspect-[5/7] w-full overflow-hidden rounded-sm bg-muted">
+                    <Image
+                      src={`/map-style-thumbnails/${layout.id}.png`}
+                      alt=""
+                      width={160}
+                      height={224}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <span className="text-[10px] leading-tight text-foreground/70 text-center">
+                    {layoutLabel(`${layout.id}Label`, layout.label)}
+                  </span>
                 </button>
               ))}
             </div>
@@ -634,7 +646,10 @@ export function MapTab() {
               <Label className="text-xs text-muted-foreground">{t('mapSecondPalette')}</Label>
               <div className="grid grid-cols-3 gap-1.5">
                 <button
-                  onClick={() => setSecondMapPaletteId('original')}
+                  onClick={() => {
+                    setSecondMapPaletteId('original')
+                    setSecondCustomPaletteEditorOpen(false)
+                  }}
                   className={cn(
                     'rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
                     secondMap.paletteId === 'original'
@@ -651,7 +666,10 @@ export function MapTab() {
                   return (
                     <button
                       key={p.id}
-                      onClick={() => setSecondMapPaletteId(p.id)}
+                      onClick={() => {
+                        setSecondMapPaletteId(p.id)
+                        setSecondCustomPaletteEditorOpen(false)
+                      }}
                       className={cn(
                         'rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
                         secondMap.paletteId === p.id
@@ -672,7 +690,10 @@ export function MapTab() {
                 })}
                 <button
                   onClick={async () => {
-                    if (secondMap.paletteId === 'custom') return
+                    if (secondMap.paletteId === 'custom') {
+                      setSecondCustomPaletteEditorOpen((prev) => !prev)
+                      return
+                    }
                     let seed: MapPaletteColors
                     if (secondMap.paletteId === 'original') {
                       try {
@@ -686,6 +707,7 @@ export function MapTab() {
                     setSecondMapCustomPalette({ ...seed })
                     setSecondMapCustomPaletteBase(seed.water)
                     setSecondMapPaletteId('custom')
+                    setSecondCustomPaletteEditorOpen(true)
                   }}
                   className={cn(
                     'rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
@@ -701,7 +723,7 @@ export function MapTab() {
                   <span className="text-[10px] leading-tight text-foreground/70">{t('mapPaletteCustom')}</span>
                 </button>
               </div>
-              {secondMap.paletteId === 'custom' && (
+              {secondMap.paletteId === 'custom' && secondCustomPaletteEditorOpen && (
                 <CustomPaletteEditor
                   colors={secondMap.customPalette}
                   onColorChange={updateSecondMapCustomPaletteColor}
