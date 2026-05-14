@@ -613,6 +613,11 @@ export function AdminPresetsList() {
 
     applyPreset({ poster_type: preset.poster_type, config_json: config })
 
+    // Editing a preset is a fresh context — drop any binding to a project
+    // that was previously loaded in this tab so auto-save and "Als Projekt
+    // sichern" don't silently overwrite it with the preset's design.
+    useEditorStore.getState().clearProjectBinding()
+
     useEditorStore.getState().setEditingPreset({
       id: preset.id,
       name: preset.name,
