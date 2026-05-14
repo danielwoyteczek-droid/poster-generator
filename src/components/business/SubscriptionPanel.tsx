@@ -152,7 +152,7 @@ export function SubscriptionPanel() {
 
         {baseTier === 'free' && (
           <div className="mt-6 flex flex-col sm:flex-row gap-2">
-            <Button onClick={() => router.push(`/${locale}/business/upgrade`)}>
+            <Button onClick={() => router.push(`/${locale}/business#pricing`)}>
               Auf Pro upgraden
             </Button>
             <p className="text-xs text-muted-foreground self-center">

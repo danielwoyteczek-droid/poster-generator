@@ -20,7 +20,7 @@ import {
  * stripe-Customer-Object und blockt einen Re-Trial mit gleicher Karte.
  *
  * Flow:
- * 1. User waehlt auf /business/upgrade einen Tier
+ * 1. User waehlt auf /business#pricing einen Tier
  * 2. Client POSTet hierher mit { tier, currency, locale }
  * 3. Wir loesen den Stripe-Customer fuer den eingeloggten User auf (oder
  *    legen einen neuen an)
@@ -129,7 +129,7 @@ export async function POST(req: NextRequest) {
       automatic_tax: { enabled: true },
       tax_id_collection: { enabled: true },
       success_url: `${origin}/${successLocale}/account?b2b_checkout=success`,
-      cancel_url: `${origin}/${successLocale}/business/upgrade?canceled=1`,
+      cancel_url: `${origin}/${successLocale}/business?canceled=1#pricing`,
       metadata: {
         user_id: user.id,
         tier,

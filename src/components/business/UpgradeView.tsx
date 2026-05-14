@@ -73,7 +73,7 @@ export function UpgradeView() {
 
   const handleSelect = async (tier: PaidTier) => {
     if (!user) {
-      router.push(`/${locale}/login?redirect=/${locale}/business/upgrade`)
+      router.push(`/${locale}/login?redirect=/${locale}/business`)
       return
     }
     setBusyTier(tier)

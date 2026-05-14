@@ -156,7 +156,7 @@ export function UpgradeModal({ open, onOpenChange, variant = 'cta' }: UpgradeMod
           <p className="text-xs text-muted-foreground text-center sm:text-left flex-1">
             Preise + Currency-Auswahl auf der vollen{' '}
             <button
-              onClick={() => router.push(`/${locale}/business/upgrade`)}
+              onClick={() => router.push(`/${locale}/business#pricing`)}
               className="underline hover:text-foreground"
             >
               Pricing-Seite

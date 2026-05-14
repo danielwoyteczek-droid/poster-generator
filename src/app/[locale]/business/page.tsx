@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
 import { Sparkles, Printer, Store, FileImage } from 'lucide-react'
 import { LandingNav } from '@/components/landing/LandingNav'
 import { Button } from '@/components/ui/button'
+import { UpgradeView } from '@/components/business/UpgradeView'
 
 export const metadata: Metadata = {
   title: 'B2B & Pro · Petite-Moment',
@@ -11,16 +11,12 @@ export const metadata: Metadata = {
 }
 
 /**
- * PROJ-50: /[locale]/business — kurze Pitch-Page als Vorgriff auf den
- * vollen Marketing-Funnel (PROJ-51). Stellt das B2B-Modell vor und leitet
- * zur Tier-Auswahl unter /business/upgrade.
+ * PROJ-50: /[locale]/business — kombinierte Pitch + Pricing-Page.
+ * Hero, Personas, Features oben — Tier-Picker mit Stripe-Checkout direkt
+ * darunter. Keine Separation zu /business/upgrade (das ist nur noch ein
+ * Server-Redirect auf #pricing).
  */
-export default async function BusinessPage({
-  params,
-}: {
-  params: Promise<{ locale: string }>
-}) {
-  const { locale } = await params
+export default function BusinessPage() {
   return (
     <div className="min-h-screen flex flex-col pt-16">
       <LandingNav />
@@ -42,14 +38,10 @@ export default async function BusinessPage({
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Button asChild size="lg">
-                <Link href={`/${locale}/business/upgrade`}>
-                  Pricing ansehen
-                </Link>
+                <a href="#pricing">Pricing ansehen</a>
               </Button>
               <Button asChild size="lg" variant="outline">
-                <Link href={`/${locale}/business/upgrade`}>
-                  7-Tage-Trial starten
-                </Link>
+                <a href="#pricing">7-Tage-Trial starten</a>
               </Button>
             </div>
           </div>
@@ -98,17 +90,19 @@ export default async function BusinessPage({
           </div>
         </section>
 
-        {/* CTA */}
-        <section className="py-16">
-          <div className="max-w-3xl mx-auto px-6 text-center">
-            <h2 className="text-2xl font-semibold mb-4">7 Tage kostenlos testen</h2>
-            <p className="text-muted-foreground mb-6">
-              Kreditkarte zum Sign-up noetig, aber innerhalb 7 Tagen jederzeit kuendbar.
-              Nach dem Trial automatischer Convert in den gewaehlten Plan.
-            </p>
-            <Button asChild size="lg">
-              <Link href={`/${locale}/business/upgrade`}>Tier auswaehlen</Link>
-            </Button>
+        {/* Pricing — der eigentliche Funnel-Endpunkt */}
+        <section id="pricing" className="py-16 bg-muted scroll-mt-20">
+          <div className="max-w-5xl mx-auto px-6">
+            <div className="text-center mb-10">
+              <h2 className="text-3xl font-bold text-foreground mb-3">
+                Waehle deinen Pro-Plan
+              </h2>
+              <p className="text-muted-foreground max-w-2xl mx-auto">
+                Alle Plans inklusive Commercial License, Watermark-frei, 7-Tage-Trial.
+                Monatlich kuendbar — keine Mindestlaufzeit.
+              </p>
+            </div>
+            <UpgradeView />
           </div>
         </section>
       </main>
