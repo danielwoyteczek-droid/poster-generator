@@ -12,6 +12,20 @@ function isLocale(value: string): value is Locale {
   return (locales as readonly string[]).includes(value)
 }
 
+/**
+ * Locale → primärer Country-Code (ISO 3166-1 alpha-2). Steuert die
+ * Sortier-Präferenz im Footer-City-Block, damit /de zuerst DE-Städte
+ * zeigt statt nach globaler Einwohnerzahl. EN-Locale ist absichtlich
+ * GB statt US — petite-moment ist EU-fokussiert.
+ */
+const LOCALE_TO_COUNTRY: Record<Locale, string> = {
+  de: 'DE',
+  en: 'GB',
+  fr: 'FR',
+  it: 'IT',
+  es: 'ES',
+}
+
 export async function LandingFooter() {
   const t = await getTranslations('footer')
   const tNav = await getTranslations('nav')
@@ -42,10 +56,11 @@ export async function LandingFooter() {
       }
     })
 
-  // PROJ-42: Top-6 popular city pages in the current locale, sorted by
-  // population. Only cities with a Sanity-cityPage doc + a row in the
-  // cities-Tabelle land here. Orphans (Sanity refs city no longer in DB)
-  // are dropped.
+  // PROJ-42: Top-6 popular city pages in the current locale. Sort
+  // prioritises cities whose country_code matches the locale's primary
+  // market so e.g. /de surfaces Berlin/Hamburg/München before global
+  // mega-cities. Tie-breaker is population. Only cities with a Sanity-
+  // cityPage doc + a row in the cities table land here; orphans drop.
   const cityLinks: { label: string; href: string }[] = []
   const validCityRefs = (cityRefs ?? []).filter((ref) => Boolean(ref.slug))
   if (validCityRefs.length > 0) {
@@ -53,12 +68,17 @@ export async function LandingFooter() {
     const slugBases = validCityRefs.map((r) => r.cityId)
     const { data: cityRows } = await admin
       .from('cities')
-      .select('slug_base, name, population')
+      .select('slug_base, name, population, country_code')
       .in('slug_base', slugBases)
-      .order('population', { ascending: false, nullsFirst: false })
       .limit(slugBases.length)
-    const cityBySlug = new Map((cityRows ?? []).map((c) => [c.slug_base, c]))
-    const ordered = (cityRows ?? [])
+    const targetCountry = LOCALE_TO_COUNTRY[locale]
+    const sortedRows = (cityRows ?? []).slice().sort((a, b) => {
+      const aMatch = a.country_code === targetCountry ? 0 : 1
+      const bMatch = b.country_code === targetCountry ? 0 : 1
+      if (aMatch !== bMatch) return aMatch - bMatch
+      return (b.population ?? 0) - (a.population ?? 0)
+    })
+    const ordered = sortedRows
       .map((c) => {
         const ref = validCityRefs.find((r) => r.cityId === c.slug_base)
         if (!ref) return null
@@ -70,7 +90,6 @@ export async function LandingFooter() {
       .filter((entry): entry is { label: string; href: string } => entry !== null)
       .slice(0, 6)
     cityLinks.push(...ordered)
-    void cityBySlug
   }
 
   const showOccasions = occasionLinks.length > 0
