@@ -26,6 +26,8 @@ const STATIC_PATHS: { path: string; freq: 'weekly' | 'monthly' | 'yearly'; prior
   { path: '/faq', freq: 'monthly', priority: 0.8 },
   { path: '/map', freq: 'monthly', priority: 0.9 },
   { path: '/star-map', freq: 'monthly', priority: 0.9 },
+  { path: '/photo', freq: 'monthly', priority: 0.9 },
+  { path: '/gallery', freq: 'weekly', priority: 0.8 },
   { path: '/blog', freq: 'weekly', priority: 0.7 },
   { path: '/impressum', freq: 'yearly', priority: 0.3 },
   { path: '/datenschutz', freq: 'yearly', priority: 0.3 },
