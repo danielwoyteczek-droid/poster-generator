@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { stripe } from '@/lib/stripe'
 import { getProductCatalog } from '@/lib/stripe-catalog'
 import { tierToStripeLineItems } from '@/lib/tier-expansion'
-import { getClientIp, rateLimit } from '@/lib/rate-limit'
+import { getClientIp, rateLimitDb } from '@/lib/rate-limit'
 import {
   validateVoucher,
   type VoucherCartLine,
@@ -17,9 +17,9 @@ import type { PrintFormat } from '@/lib/print-formats'
  * Returns either a discount preview (valid=true) or a structured reason
  * (valid=false, reason='not_found'|'expired'|...).
  *
- * Rate-limited: 10 attempts per IP per 15 minutes. The in-memory limiter
- * is per Vercel-instance — not bulletproof against coordinated abuse,
- * but blocks zufällige Bot-Brute-Force attempts on code names.
+ * Rate-limited: 10 attempts per IP per 15 minutes, via the DB-backed
+ * limiter (`check_rate_limit` Postgres function) so all Vercel instances
+ * share one counter. Fails open if the DB is unreachable.
  *
  * Stripe is authoritative at checkout — this endpoint produces a preview
  * for the cart UI. The webhook writes the actual discount_cents on
@@ -43,7 +43,7 @@ const BodySchema = z.object({
 export async function POST(req: NextRequest) {
   // 1) Rate limit BEFORE doing any Stripe work.
   const ip = getClientIp(req)
-  const rl = rateLimit(`voucher-validate:${ip}`, RATE_LIMIT_PER_WINDOW, RATE_LIMIT_WINDOW_MS)
+  const rl = await rateLimitDb(`voucher-validate:${ip}`, RATE_LIMIT_PER_WINDOW, RATE_LIMIT_WINDOW_MS)
   if (!rl.ok) {
     return NextResponse.json(
       { error: 'Too many attempts. Please try again later.' },

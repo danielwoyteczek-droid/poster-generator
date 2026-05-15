@@ -1,18 +1,21 @@
 /**
- * PROJ-48 — In-Memory Rate-Limiter (Sliding Window).
+ * PROJ-48 — Rate-Limiter (Sliding Window).
  *
- * V1-Implementation: ein Map pro Vercel-Instance, geteilt per Bucket-Key.
- * Vercel-Functions skalieren horizontal, daher kann ein böser Akteur das
- * Limit theoretisch umgehen, indem er Pech mit unterschiedlichen
- * Instances hat. Akzeptabel für V1 — blockiert zufällige Bot-Brute-Force
- * auf Promotion-Code-Namen, kein Hard-Defense gegen koordinierte Angriffe.
- *
- * Bei steigendem Volumen → Upstash-Redis-Limiter mit Customer-Anchor
- * (separates Folge-Feature).
+ * Zwei Varianten:
+ * - `rateLimitDb` (async, PRODUKTIONS-Pfad für /api/voucher/validate):
+ *   DB-gestützt über die `check_rate_limit`-Postgres-Funktion. Alle
+ *   Vercel-Instances teilen denselben Zähler — kein Per-Instance-Umgehen.
+ *   Fail-open: bei DB-Fehler wird durchgelassen (Stripe validiert ohnehin
+ *   autoritativ beim Checkout).
+ * - `rateLimit` (sync, in-memory): generischer Sliding-Window-Counter pro
+ *   Instance. Bleibt als leichtgewichtige Utility erhalten (getestet),
+ *   wird vom Voucher-Endpoint aber nicht mehr genutzt.
  *
  * Sliding-Window: zählt alle Treffer in den letzten `windowMs` Millisekunden.
  * Wenn count >= limit → blockiert.
  */
+
+import { createAdminClient } from './supabase-admin'
 
 interface Bucket {
   hits: number[]
@@ -64,6 +67,48 @@ export function rateLimit(
     ok: true,
     remaining: limit - bucket.hits.length,
     retryAfterSeconds: 0,
+  }
+}
+
+/**
+ * Distributed rate-limit check, backed by the `check_rate_limit` Postgres
+ * function. Atomic cleanup + count + conditional insert in one round-trip,
+ * shared across all Vercel instances.
+ *
+ * Fail-open: if the DB call errors, the request is allowed through. The
+ * voucher endpoint it guards is non-critical (Stripe re-validates the
+ * promotion code authoritatively at checkout), so a Supabase hiccup must
+ * not lock legitimate customers out.
+ *
+ * @param key Identifier (typically `${endpoint}:${ip}`).
+ * @param limit Max hits allowed within the window.
+ * @param windowMs Window length in milliseconds.
+ */
+export async function rateLimitDb(
+  key: string,
+  limit: number,
+  windowMs: number,
+): Promise<RateLimitResult> {
+  try {
+    const admin = createAdminClient()
+    const { data, error } = await admin.rpc('check_rate_limit', {
+      p_bucket_key: key,
+      p_limit: limit,
+      p_window_seconds: Math.ceil(windowMs / 1000),
+    })
+    const row = Array.isArray(data) ? data[0] : data
+    if (error || !row) {
+      console.warn('[rate-limit] DB check failed, failing open:', error?.message)
+      return { ok: true, remaining: limit, retryAfterSeconds: 0 }
+    }
+    return {
+      ok: !!row.allowed,
+      remaining: Math.max(0, limit - (row.hit_count ?? 0)),
+      retryAfterSeconds: row.retry_after_seconds ?? 0,
+    }
+  } catch (err) {
+    console.warn('[rate-limit] DB check threw, failing open:', err)
+    return { ok: true, remaining: limit, retryAfterSeconds: 0 }
   }
 }
 

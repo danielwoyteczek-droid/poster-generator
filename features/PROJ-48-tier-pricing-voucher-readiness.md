@@ -1,6 +1,6 @@
 # PROJ-48: Tier-Pricing & Voucher-Readiness
 
-## Status: Approved
+## Status: Deployed
 **Created:** 2026-05-14
 **Last Updated:** 2026-05-15
 
@@ -479,15 +479,44 @@ Discount-Zeile in der Summary-Box:
 |---|---------|--------------|--------|
 | 1 | Low | **Stale `discount_code` bei 0-Discount.** Wenn eine Order mit Voucher angelegt wird, der Webhook aber `amount_discount=0` empfängt, blieb der beim Insert gespeicherte `discount_code` stehen während `discount_cents=0`. | ✅ **Fixed 2026-05-15** — Webhook nullt `discount_code` explizit, wenn `discount_cents=0`. |
 | 2 | Low | **Voucher-State war tab-lokal.** `sessionStorage` ist pro Tab — Cart in neuem Tab zeigte den Code nicht. | ✅ **Fixed 2026-05-15** — Store auf `localStorage` umgestellt; CartView re-validiert den Voucher beim Mount und verwirft ihn still, wenn er nicht mehr greift. |
-| 3 | Low / Beobachtung | **Rate-Limit-Bucket pro IP.** Kunden hinter geteilter NAT/Office-IP teilen sich 10 Voucher-Versuche/15min. | ⏭️ **Akzeptiert / Backlog** — "Fix" = verteiltes Rate-Limiting via Upstash Redis (neue kostenpflichtige Dependency). Spec führt das bewusst als Folge-Feature; für Boutique-Traffic unkritisch. |
+| 3 | Low / Beobachtung | **Rate-Limit-Bucket pro Vercel-Instance.** In-Memory-Limiter war bei horizontaler Skalierung umgehbar (Hit auf verschiedene Instances). | ✅ **Fixed 2026-05-15** — Verteiltes Rate-Limiting über Supabase: `rate_limit_hits`-Tabelle + atomare `check_rate_limit()`-Postgres-Funktion (Cleanup + Count + Conditional-Insert in einem Roundtrip). Alle Vercel-Instances teilen einen Zähler, keine neue kostenpflichtige Dependency. `rateLimitDb` fail-open bei DB-Fehler. Smoke verifiziert: 429 exakt nach 10 Hits. *Rest-Limitierung:* IP-basiertes Limiting teilt geteilte NAT-IPs einen Bucket — inhärent, für Boutique-Traffic akzeptiert. |
 
-**Keine Critical- oder High-Bugs.** Bug #1 + #2 im Deploy-Vorlauf gefixt; #3 bewusst als Backlog-Item akzeptiert.
+**Keine Critical- oder High-Bugs.** Alle 3 Low-Bugs vor Deploy gefixt und verifiziert.
 
 ### Production-Ready-Einschätzung: **READY**
 
-Keine Critical/High-Bugs. Bug #1 + #2 behoben und verifiziert (Typecheck clean, Build grün, 15 Unit- + 7 E2E-Tests grün). Vor Deploy empfohlen:
-1. **Manuelle 375px-Sichtprüfung** des Tier-Pickers in allen 3 Editoren (AC formal nicht in diesem Pass browser-verifiziert).
+Keine offenen Bugs. Alle 3 Low-Findings behoben und verifiziert (Typecheck clean, `npm run build` grün in 62s, DB-Rate-Limit-Smoke 429 nach 10 Hits, Supabase-Migration `proj48_rate_limit_hits` auf Live appliziert). Vor Deploy empfohlen:
+1. **Manuelle 375px-Sichtprüfung** des Tier-Pickers in allen 3 Editoren (AC formal nicht browser-verifiziert).
 2. Optionaler Cleanup: `vitest-pool`-Timeout als eigenes Infra-Ticket aufnehmen.
 
+### Nachtrag — Bug-Fixes (2026-05-15)
+- **Bug #1:** [webhook/route.ts](../src/app/api/stripe/webhook/route.ts) — `discountUpdate`-Block: `discount_code` wird auf `null` gesetzt wenn `discount_cents=0`, sonst auf den resolveten Stripe-Code (oder unverändert bei Resolve-Fehler).
+- **Bug #2:** [useVoucherStore.ts](../src/hooks/useVoucherStore.ts) `sessionStorage`→`localStorage`; [CartView.tsx](../src/components/cart/CartView.tsx) re-validiert den Voucher einmalig beim Mount gegen `/api/voucher/validate` (`revalidatedRef`-Guard, fail-open bei 429/Netzwerkfehler).
+- **Bug #3:** Migration [20260515000000_proj48_rate_limit_hits.sql](../supabase/migrations/20260515000000_proj48_rate_limit_hits.sql) + [rate-limit.ts](../src/lib/rate-limit.ts) `rateLimitDb`; [voucher/validate](../src/app/api/voucher/validate/route.ts) nutzt den DB-Limiter. In-Memory-`rateLimit` bleibt als getestete Utility erhalten, vom Endpoint ungenutzt.
+
 ## Deployment
-_To be added by /deploy_
+
+**Deployed:** 2026-05-15
+**Production:** https://petite-moment.com (Vercel, Auto-Deploy on push to `main`)
+
+### Rollout
+PROJ-48 wurde inkrementell über mehrere Commits ausgerollt:
+- Kern (Tier-Picker, Voucher-Infra, Bug #1 + #2) — bereits committed + gepusht während der Session.
+- Abschluss-Commit `deploy(PROJ-48)`: DB-Rate-Limit (Bug #3), Homepage-Pricing-Karte, Spec.
+
+### DB-Migrationen (Live appliziert via `mcp__supabase__apply_migration`)
+- `20260514000020_proj48_orders_discount` — `orders.discount_code` + `orders.discount_cents`
+- `20260515000000_proj48_rate_limit_hits` — `rate_limit_hits`-Tabelle + `check_rate_limit()`-Funktion
+
+### Stripe (Live-Mode)
+- 3 Frame-Markup-Prices angelegt (`frame_markup_a4/a3/a2` — €10/€15/€20), IDs in `products.ts`.
+- Legacy-Produkt `prod_UNSPddA6X2AyzH` umbenannt "Poster + Rahmen Schwarz A3" → "Poster A4".
+- Voucher-Aktion `RAHMEN24` (100 % auf Frame-Markup-Produkt) live, getestet.
+
+### Build
+`npm run build` — ✓ Compiled successfully in 62s, keine PROJ-48-Errors.
+
+### Post-Deploy-Verifikation (empfohlen)
+1. Manuelle 375px-Sichtprüfung des Tier-Pickers in allen 3 Editoren.
+2. End-to-End: Frame-Poster in den Cart, `RAHMEN24` anwenden, Checkout → Stripe-Discount prüfen, nach Zahlung Order-Discount-Zeile prüfen.
+3. `vitest-pool`-Worker-Timeout als separates Infra-Ticket aufnehmen.
