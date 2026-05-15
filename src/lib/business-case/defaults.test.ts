@@ -15,16 +15,24 @@ describe('mapOrderItemToTier', () => {
   it('maps poster + format to poster_<format> tier', () => {
     expect(mapOrderItemToTier('poster', 'a4')).toBe('poster_a4')
     expect(mapOrderItemToTier('poster', 'a3')).toBe('poster_a3')
+    expect(mapOrderItemToTier('poster', 'a2')).toBe('poster_a2')
   })
 
-  it('maps frame + format to frame_<format> tier', () => {
+  it('maps legacy frame + format to frame_<format> tier (PROJ-48 backwards compat)', () => {
     expect(mapOrderItemToTier('frame', 'a4')).toBe('frame_a4')
     expect(mapOrderItemToTier('frame', 'a3')).toBe('frame_a3')
+    expect(mapOrderItemToTier('frame', 'a2')).toBe('frame_a2')
+  })
+
+  it('maps new poster + withFrame=true to frame_<format> tier (PROJ-48)', () => {
+    expect(mapOrderItemToTier('poster', 'a4', true)).toBe('frame_a4')
+    expect(mapOrderItemToTier('poster', 'a3', true)).toBe('frame_a3')
+    expect(mapOrderItemToTier('poster', 'a2', true)).toBe('frame_a2')
   })
 
   it('returns null for unknown product or unsupported format', () => {
     expect(mapOrderItemToTier('mug', 'a4')).toBeNull()
-    expect(mapOrderItemToTier('poster', 'a2')).toBeNull()
+    expect(mapOrderItemToTier('poster', 'a5')).toBeNull()
     expect(mapOrderItemToTier('poster', null)).toBeNull()
     expect(mapOrderItemToTier('', '')).toBeNull()
   })

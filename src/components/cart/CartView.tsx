@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { useTranslatedLabel } from '@/lib/i18n-catalog'
@@ -35,6 +35,8 @@ export function CartView() {
   const removeItem = useCartStore((s) => s.removeItem)
   const subtotalCents = useCartStore((s) => s.totalCents())
   const voucher = useVoucherStore((s) => s.applied)
+  const applyVoucher = useVoucherStore((s) => s.apply)
+  const removeVoucher = useVoucherStore((s) => s.remove)
   const { frameMarkup } = useProductCatalog()
   const hasDigital = items.some((i) => i.productId === 'download')
 
@@ -49,6 +51,44 @@ export function CartView() {
   const totalCents = Math.max(0, subtotalCents - discountCents)
 
   useEffect(() => { setHydrated(true) }, [])
+
+  // PROJ-48 (QA Bug #2): the voucher now persists in localStorage (visible
+  // across tabs + after reload). To avoid showing a stale code from an
+  // earlier visit, re-validate it once when the cart mounts. If it no
+  // longer applies to the current cart, drop it silently. Runs exactly
+  // once — not on every cart edit — to stay within the validate rate-limit.
+  const revalidatedRef = useRef(false)
+  useEffect(() => {
+    if (!hydrated || revalidatedRef.current) return
+    if (!voucher || items.length === 0) return
+    revalidatedRef.current = true
+    void (async () => {
+      try {
+        const res = await fetch('/api/voucher/validate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            code: voucher.code,
+            items: items.map((i) => ({
+              productId: i.productId,
+              withFrame: !!i.withFrame,
+              format: i.format,
+            })),
+          }),
+        })
+        // 429 / network error → keep the voucher, don't penalise the customer.
+        if (!res.ok) return
+        const data = await res.json()
+        if (data.valid) {
+          applyVoucher(data.voucher) // refresh discountCents against current cart
+        } else {
+          removeVoucher()
+        }
+      } catch {
+        // network error — leave the voucher as-is
+      }
+    })()
+  }, [hydrated, voucher, items, applyVoucher, removeVoucher])
 
   const handleCheckout = async () => {
     if (hasDigital && !digitalConsent) {

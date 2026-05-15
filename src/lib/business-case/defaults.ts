@@ -52,11 +52,23 @@ export const FULFILLMENT_LIMIT_PER_DAY = 50
 /**
  * Maps an order item to its scenario tier_key.
  * Aligned with PRODUCTS catalog in src/lib/products.ts and PrintFormat in src/lib/print-formats.ts.
- * Currently: download=digital, poster=poster_{format}, frame=frame_{format}.
+ *
+ * PROJ-48: handles both the new tier shape (poster + withFrame flag) and
+ * legacy bundle SKU shape (productId='frame'). Both collapse to the same
+ * `frame_<fmt>` bucket for shipping/cost analysis.
+ *
+ * Tier keys: digital, poster_{fmt}, frame_{fmt} where fmt ∈ {a4,a3,a2}.
  */
-export function mapOrderItemToTier(productId: string, format: string | null | undefined): string | null {
+export function mapOrderItemToTier(
+  productId: string,
+  format: string | null | undefined,
+  withFrame?: boolean,
+): string | null {
   if (productId === 'download') return 'digital'
-  if (productId === 'poster' && (format === 'a4' || format === 'a3')) return `poster_${format}`
-  if (productId === 'frame' && (format === 'a4' || format === 'a3')) return `frame_${format}`
+  const validFormat = format === 'a4' || format === 'a3' || format === 'a2'
+  if (!validFormat) return null
+  if (productId === 'frame') return `frame_${format}`
+  if (productId === 'poster' && withFrame) return `frame_${format}`
+  if (productId === 'poster') return `poster_${format}`
   return null
 }

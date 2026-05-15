@@ -90,6 +90,18 @@ export async function POST(req: NextRequest) {
         }
       }
 
+      // PROJ-48 (QA Bug #1): keep discount_code consistent with discount_cents.
+      // - discount applied (cents > 0): write the resolved code; if resolving
+      //   failed, leave the checkout-route-stored code untouched.
+      // - no discount applied (cents = 0): null the code so the order never
+      //   carries a stale code with a €0 discount.
+      const discountUpdate: Record<string, unknown> = { discount_cents: discountCents }
+      if (discountCents === 0) {
+        discountUpdate.discount_code = null
+      } else if (resolvedDiscountCode) {
+        discountUpdate.discount_code = resolvedDiscountCode
+      }
+
       const { data: updated, error: updateErr } = await admin
         .from('orders')
         .update({
@@ -99,10 +111,7 @@ export async function POST(req: NextRequest) {
           shipping_address: shipping?.address
             ? { ...shipping.address, name: shipping.name ?? null }
             : null,
-          discount_cents: discountCents,
-          // Only overwrite discount_code if Stripe resolved one — otherwise
-          // keep whatever the checkout route stored when it created the order.
-          ...(resolvedDiscountCode ? { discount_code: resolvedDiscountCode } : {}),
+          ...discountUpdate,
         })
         .eq('stripe_session_id', session.id)
         .select('id, access_token, total_cents, items, email, shipping_address')

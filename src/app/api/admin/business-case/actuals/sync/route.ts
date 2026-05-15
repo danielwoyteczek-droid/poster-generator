@@ -5,6 +5,8 @@ import { mapOrderItemToTier } from '@/lib/business-case/defaults'
 
 interface OrderItem {
   productId?: string
+  /** PROJ-48: new orders with poster tier + frame addon carry this flag. */
+  withFrame?: boolean
   format?: string
   priceCents?: number
 }
@@ -49,7 +51,7 @@ export async function POST(req: NextRequest) {
     const month = new Date(order.paid_at).getUTCMonth() + 1
     const items = order.items ?? []
     for (const item of items) {
-      const tier = mapOrderItemToTier(item.productId ?? '', item.format ?? null)
+      const tier = mapOrderItemToTier(item.productId ?? '', item.format ?? null, item.withFrame)
       if (!tier) continue
       const k = `${month}|${tier}`
       const existing = buckets.get(k)
