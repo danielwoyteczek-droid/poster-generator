@@ -114,6 +114,7 @@ export async function LandingFooter() {
     { label: t('about'), href: `/${locale}/about` },
     { label: t('blog'), href: `/${locale}/blog` },
     { label: t('faq'), href: `/${locale}/faq` },
+    { label: t('business'), href: `/${locale}/business` },
   ]
 
   return (
