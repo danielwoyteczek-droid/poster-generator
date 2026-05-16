@@ -334,7 +334,7 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
   }
 
   return (
-    <div ref={wrapperRef} className="flex-1 relative bg-muted min-h-0 overflow-hidden flex items-center justify-center">
+    <div ref={wrapperRef} className="flex-1 relative bg-stone-200 min-h-0 overflow-hidden flex items-center justify-center">
       <PreviewTriggerButton />
       <GridToggleButton />
       {/* OSM/MapTiler attribution — outside the poster card, in the editor
@@ -361,12 +361,12 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
               transform-origin top-left + size-Berechnungen halten alles
               positioniert ohne overflow-Probleme. */}
           <div
-            className="flex-none relative overflow-hidden"
+            className="flex-none relative overflow-hidden shadow-2xl"
             style={{ width: visualSize.width, height: visualSize.height, contain: 'layout size' }}
           >
           <div
             ref={posterRef}
-            className="absolute top-0 left-0 shadow-2xl overflow-hidden"
+            className="absolute top-0 left-0 overflow-hidden"
             style={{
               width: logicalCanvas.width,
               height: logicalCanvas.height,
