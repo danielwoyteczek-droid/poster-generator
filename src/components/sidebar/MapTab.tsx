@@ -746,7 +746,7 @@ export function MapTab() {
       {/* Mask / Shape — filtered to split-only when second map is active */}
       <div className="space-y-1.5">
         <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">{t('mapShape')}</Label>
-        <div className="grid grid-cols-4 gap-1.5">
+        <div className="grid grid-cols-5 gap-1.5">
           {(masksExpanded ? visibleMasks : visibleMasks.slice(0, MASK_INITIAL_VISIBLE)).map((mask) => (
             <button
               key={mask.key}
@@ -757,14 +757,16 @@ export function MapTab() {
                 setDecorationSvgUrl(mask.decorationSvgUrl ?? null)
               }}
               className={cn(
-                'rounded-md border-2 py-2 px-1 transition-all flex flex-col items-center gap-1 relative',
+                // PROJ-41: compact ~45×45 px tile — labels already dropped,
+                // so the tile only needs to hold the form thumbnail.
+                'rounded-md border-2 p-1 transition-all flex flex-col items-center gap-1 relative',
                 maskKey === mask.key
                   ? 'border-primary bg-muted'
                   : 'border-border hover:border-muted-foreground'
               )}
               title={maskLabel(mask.key, mask.label)}
             >
-              <div className="w-12 h-12 flex items-center justify-center">
+              <div className="w-8 h-8 flex items-center justify-center">
                 {mask.svgPath ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   // Filter normalises every mask to a solid dark silhouette
@@ -776,11 +778,11 @@ export function MapTab() {
                   <img
                     src={mask.svgPath}
                     alt={maskLabel(mask.key, mask.label)}
-                    className="w-11 h-11 object-contain"
+                    className="w-8 h-8 object-contain"
                     style={{ filter: 'brightness(0)' }}
                   />
                 ) : (
-                  <div className="w-11 h-11 rounded-sm bg-muted" />
+                  <div className="w-8 h-8 rounded-sm bg-muted" />
                 )}
               </div>
               {mask.isPublic === false && isAdmin && (
