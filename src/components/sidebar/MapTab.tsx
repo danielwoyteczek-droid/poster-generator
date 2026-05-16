@@ -519,7 +519,7 @@ export function MapTab() {
                 setCustomPaletteEditorOpen(false)
               }}
               className={cn(
-                'rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
+                'rounded-md border-2 p-2 flex items-center justify-center transition-all',
                 paletteId === 'original'
                   ? 'border-primary'
                   : 'border-border hover:border-muted-foreground',
@@ -527,7 +527,6 @@ export function MapTab() {
               title={t('mapPaletteOriginalTitle')}
             >
               <div className="w-9 h-9 rounded-full border border-black/10 bg-gradient-to-br from-gray-200 via-gray-400 to-gray-600" />
-              <span className="text-[10px] leading-tight text-foreground/70">{t('mapPaletteOriginal')}</span>
             </button>
             {availablePalettes.map((p) => {
               const c = p.colors
@@ -539,7 +538,7 @@ export function MapTab() {
                     setCustomPaletteEditorOpen(false)
                   }}
                   className={cn(
-                    'rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
+                    'rounded-md border-2 p-2 flex items-center justify-center transition-all',
                     paletteId === p.id
                       ? 'border-primary'
                       : 'border-border hover:border-muted-foreground',
@@ -547,7 +546,6 @@ export function MapTab() {
                   title={p.description}
                 >
                   <PaletteThumbnail colors={c} />
-                  <span className="text-[10px] leading-tight text-foreground/70">{p.label}</span>
                 </button>
               )
             })}
@@ -573,7 +571,7 @@ export function MapTab() {
                 setCustomPaletteEditorOpen(true)
               }}
               className={cn(
-                'rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
+                'rounded-md border-2 p-2 flex items-center justify-center transition-all',
                 paletteId === 'custom'
                   ? 'border-primary'
                   : 'border-border hover:border-muted-foreground',
@@ -583,7 +581,6 @@ export function MapTab() {
                 className="w-9 h-9 rounded-full border border-black/10"
                 style={{ background: customPalette?.water ?? customPaletteBase ?? '#84c5a6' }}
               />
-              <span className="text-[10px] leading-tight text-foreground/70">{t('mapPaletteCustom')}</span>
             </button>
           </div>
           {paletteId === 'custom' && customPaletteEditorOpen && (
@@ -648,7 +645,7 @@ export function MapTab() {
                     setSecondCustomPaletteEditorOpen(false)
                   }}
                   className={cn(
-                    'rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
+                    'rounded-md border-2 p-2 flex items-center justify-center transition-all',
                     secondMap.paletteId === 'original'
                       ? 'border-primary'
                       : 'border-border hover:border-muted-foreground',
@@ -656,7 +653,6 @@ export function MapTab() {
                   title={t('mapPaletteOriginalTitle')}
                 >
                   <div className="w-9 h-9 rounded-full border border-black/10 bg-gradient-to-br from-gray-200 via-gray-400 to-gray-600" />
-                  <span className="text-[10px] leading-tight text-foreground/70">{t('mapPaletteOriginal')}</span>
                 </button>
                 {availablePalettes.map((p) => {
                   const c = p.colors
@@ -668,7 +664,7 @@ export function MapTab() {
                         setSecondCustomPaletteEditorOpen(false)
                       }}
                       className={cn(
-                        'rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
+                        'rounded-md border-2 p-2 flex items-center justify-center transition-all',
                         secondMap.paletteId === p.id
                           ? 'border-primary'
                           : 'border-border hover:border-muted-foreground',
@@ -676,7 +672,6 @@ export function MapTab() {
                       title={p.description}
                     >
                       <PaletteThumbnail colors={c} />
-                      <span className="text-[10px] leading-tight text-foreground/70">{p.label}</span>
                     </button>
                   )
                 })}
@@ -702,7 +697,7 @@ export function MapTab() {
                     setSecondCustomPaletteEditorOpen(true)
                   }}
                   className={cn(
-                    'rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
+                    'rounded-md border-2 p-2 flex items-center justify-center transition-all',
                     secondMap.paletteId === 'custom'
                       ? 'border-primary'
                       : 'border-border hover:border-muted-foreground',
@@ -712,7 +707,6 @@ export function MapTab() {
                     className="w-9 h-9 rounded-full border border-black/10"
                     style={{ background: secondMap.customPalette?.water ?? secondMap.customPaletteBase ?? '#84c5a6' }}
                   />
-                  <span className="text-[10px] leading-tight text-foreground/70">{t('mapPaletteCustom')}</span>
                 </button>
               </div>
               {secondMap.paletteId === 'custom' && secondCustomPaletteEditorOpen && (

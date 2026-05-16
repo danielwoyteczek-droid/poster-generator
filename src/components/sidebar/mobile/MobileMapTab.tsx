@@ -386,7 +386,7 @@ export function MobileMapTab() {
                       setSecondCustomPaletteEditorOpen(false)
                     }}
                     className={cn(
-                      'shrink-0 w-20 snap-start rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
+                      'shrink-0 w-20 snap-start rounded-md border-2 p-2 flex items-center justify-center transition-all',
                       secondMap.paletteId === 'original'
                         ? 'border-primary'
                         : 'border-border',
@@ -394,7 +394,6 @@ export function MobileMapTab() {
                     title={t('mapPaletteOriginalTitle')}
                   >
                     <div className="w-10 h-10 rounded-full border border-black/10 bg-gradient-to-br from-gray-200 via-gray-400 to-gray-600" />
-                    <span className="text-[11px] leading-tight text-foreground/70">{t('mapPaletteOriginal')}</span>
                   </button>
                   {availablePalettes.map((p) => {
                     const c = p.colors
@@ -406,14 +405,13 @@ export function MobileMapTab() {
                           setSecondCustomPaletteEditorOpen(false)
                         }}
                         className={cn(
-                          'shrink-0 w-20 snap-start rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
+                          'shrink-0 w-20 snap-start rounded-md border-2 p-2 flex items-center justify-center transition-all',
                           secondMap.paletteId === p.id
                             ? 'border-primary'
                             : 'border-border',
                         )}
                       >
                         <PaletteThumbnail colors={c} className="w-10 h-10" />
-                        <span className="text-[11px] leading-tight text-foreground/70">{p.label}</span>
                       </button>
                     )
                   })}
@@ -439,7 +437,7 @@ export function MobileMapTab() {
                       setSecondCustomPaletteEditorOpen(true)
                     }}
                     className={cn(
-                      'shrink-0 w-20 snap-start rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
+                      'shrink-0 w-20 snap-start rounded-md border-2 p-2 flex items-center justify-center transition-all',
                       secondMap.paletteId === 'custom'
                         ? 'border-primary'
                         : 'border-border',
@@ -449,7 +447,6 @@ export function MobileMapTab() {
                       className="w-10 h-10 rounded-full border border-black/10"
                       style={{ background: secondMap.customPalette?.water ?? secondMap.customPaletteBase ?? '#84c5a6' }}
                     />
-                    <span className="text-[11px] leading-tight text-foreground/70">{t('mapPaletteCustom')}</span>
                   </button>
                 </div>
                 {secondMap.paletteId === 'custom' && secondCustomPaletteEditorOpen && (
@@ -518,7 +515,7 @@ export function MobileMapTab() {
               setCustomPaletteEditorOpen(false)
             }}
             className={cn(
-              'shrink-0 w-20 snap-start rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
+              'shrink-0 w-20 snap-start rounded-md border-2 p-2 flex items-center justify-center transition-all',
               paletteId === 'original'
                 ? 'border-primary'
                 : 'border-border',
@@ -526,7 +523,6 @@ export function MobileMapTab() {
             title={t('mapPaletteOriginalTitle')}
           >
             <div className="w-10 h-10 rounded-full border border-black/10 bg-gradient-to-br from-gray-200 via-gray-400 to-gray-600" />
-            <span className="text-[11px] leading-tight text-foreground/70">{t('mapPaletteOriginal')}</span>
           </button>
           {availablePalettes.map((p) => {
             const c = p.colors
@@ -538,14 +534,13 @@ export function MobileMapTab() {
                   setCustomPaletteEditorOpen(false)
                 }}
                 className={cn(
-                  'shrink-0 w-20 snap-start rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
+                  'shrink-0 w-20 snap-start rounded-md border-2 p-2 flex items-center justify-center transition-all',
                   paletteId === p.id
                     ? 'border-primary'
                     : 'border-border',
                 )}
               >
                 <PaletteThumbnail colors={c} className="w-10 h-10" />
-                <span className="text-[11px] leading-tight text-foreground/70">{p.label}</span>
               </button>
             )
           })}
@@ -571,7 +566,7 @@ export function MobileMapTab() {
               setCustomPaletteEditorOpen(true)
             }}
             className={cn(
-              'shrink-0 w-20 snap-start rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
+              'shrink-0 w-20 snap-start rounded-md border-2 p-2 flex items-center justify-center transition-all',
               paletteId === 'custom'
                 ? 'border-primary'
                 : 'border-border',
@@ -581,7 +576,6 @@ export function MobileMapTab() {
               className="w-10 h-10 rounded-full border border-black/10"
               style={{ background: customPalette?.water ?? customPaletteBase ?? '#84c5a6' }}
             />
-            <span className="text-[11px] leading-tight text-foreground/70">{t('mapPaletteCustom')}</span>
           </button>
         </div>
         {paletteId === 'custom' && customPaletteEditorOpen && (
