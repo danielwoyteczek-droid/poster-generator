@@ -4,24 +4,15 @@ import { useId } from 'react'
 import { cn } from '@/lib/utils'
 import type { MapPaletteColors } from '@/lib/map-palettes'
 
-// Evenly spaced street grid (viewBox units). A regular grid reads as a
-// deliberate city map rather than a handful of random lines.
-const GRID = [13, 26, 39, 52]
-
-// Building blocks dropped into grid cells (11×11, inset 1 from the streets).
-const BUILDINGS = [
-  { x: 27, y: 14 },
-  { x: 40, y: 27 },
-  { x: 14, y: 40 },
-]
-
 /**
- * Round "mini-map" preview of a colour palette. The motif — a land disc with
- * a street grid, building blocks, a diagonal main road, a water cove and a
- * place marker — is fixed and deterministic; only the colours change. Every
- * one of the eight palette colours is used (background, land, road, building,
- * water, label, labelHalo, border) so the tile genuinely depicts the palette
- * composition. Used in the editor palette pickers and the admin palette list.
+ * Round "mini-map" preview of a colour palette. The motif is a fixed,
+ * deterministic diagonal stack — only the colours change:
+ *   - top:    the land area (`land`) with a few crossing roads (`road`)
+ *   - middle: a diagonal water stripe (`water`)
+ *   - bottom: the poster/canvas background (`background`)
+ *   - rim:    a thin ring in the palette `border` colour
+ * That mirrors how the colours sit on a real poster, so the tile depicts the
+ * palette composition. Used in the editor palette pickers and the admin list.
  */
 export function PaletteThumbnail({
   colors,
@@ -30,55 +21,45 @@ export function PaletteThumbnail({
   colors: MapPaletteColors
   className?: string
 }) {
-  // Unique, URL-safe id so multiple thumbnails on the page don't share a clip.
-  const clipId = `pt${useId().replace(/[^a-zA-Z0-9]/g, '')}`
+  // Unique, URL-safe ids so multiple thumbnails don't share their clip paths.
+  const uid = useId().replace(/[^a-zA-Z0-9]/g, '')
+  const circleClip = `ptc${uid}`
+  const landClip = `ptl${uid}`
+
+  // Land occupies the top; its lower edge is a gentle diagonal coastline.
+  const landShape = 'M0 0 L64 0 L64 40 L0 32 Z'
 
   return (
     <svg viewBox="0 0 64 64" className={cn('w-9 h-9', className)} aria-hidden="true">
       <defs>
-        <clipPath id={clipId}>
-          <circle cx="32" cy="32" r="27" />
+        <clipPath id={circleClip}>
+          <circle cx="32" cy="32" r="32" />
+        </clipPath>
+        <clipPath id={landClip}>
+          <path d={landShape} />
         </clipPath>
       </defs>
 
-      {/* Background rim — the poster colour around the map */}
-      <circle cx="32" cy="32" r="32" fill={colors.background} />
+      <g clipPath={`url(#${circleClip})`}>
+        {/* Canvas background — shows through in the bottom area */}
+        <rect x="0" y="0" width="64" height="64" fill={colors.background} />
 
-      <g clipPath={`url(#${clipId})`}>
-        {/* Land fills the inner disc */}
-        <rect x="0" y="0" width="64" height="64" fill={colors.land} />
+        {/* Land area on top */}
+        <path d={landShape} fill={colors.land} />
 
-        {/* Building blocks */}
-        {BUILDINGS.map((b) => (
-          <rect key={`${b.x}-${b.y}`} x={b.x} y={b.y} width="11" height="11" rx="1" fill={colors.building} />
-        ))}
-
-        {/* Regular street grid — minor roads */}
-        <g stroke={colors.road} strokeWidth="2">
-          {GRID.map((p) => (
-            <line key={`v${p}`} x1={p} y1="0" x2={p} y2="64" />
-          ))}
-          {GRID.map((p) => (
-            <line key={`h${p}`} x1="0" y1={p} x2="64" y2={p} />
-          ))}
+        {/* Roads — crossing lines, clipped to the land so they stop at the coast */}
+        <g clipPath={`url(#${landClip})`} stroke={colors.road} strokeLinecap="round" fill="none">
+          <path d="M-6 7 L70 31" strokeWidth="3" />
+          <path d="M11 -6 L46 45" strokeWidth="2.4" />
+          <path d="M-6 23 L70 8" strokeWidth="2" />
         </g>
 
-        {/* Diagonal main road */}
-        <line
-          x1="4" y1="12" x2="60" y2="56"
-          stroke={colors.road} strokeWidth="4.5" strokeLinecap="round"
-        />
-
-        {/* Water cove in the bottom-right — drawn last so the city meets it */}
-        <path d="M64 64 L64 34 C 55 37 49 49 47 64 Z" fill={colors.water} />
-
-        {/* Place marker — label colour with its halo */}
-        <circle cx="20" cy="20" r="4.6" fill={colors.labelHalo} />
-        <circle cx="20" cy="20" r="2.6" fill={colors.label} />
+        {/* Water stripe between land and background */}
+        <path d="M0 32 L64 40 L64 49 L0 41 Z" fill={colors.water} />
       </g>
 
-      {/* Border ring between rim and land */}
-      <circle cx="32" cy="32" r="27" fill="none" stroke={colors.border} strokeWidth="1.5" />
+      {/* Border ring */}
+      <circle cx="32" cy="32" r="31" fill="none" stroke={colors.border} strokeWidth="1.5" />
     </svg>
   )
 }
