@@ -274,7 +274,7 @@ export function MapTab() {
           <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
             {t('paperFormat')}
           </Label>
-          <div className="grid grid-cols-3 gap-1.5">
+          <div className="grid grid-cols-4 gap-1.5">
             {PRINT_FORMAT_OPTIONS.map((f) => (
               <button
                 key={f.id}
@@ -479,7 +479,7 @@ export function MapTab() {
       {/* Map layout — choose detail level / what's shown at which zoom */}
       <div className="space-y-1.5">
         <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">{t('mapStyleLabel')}</Label>
-        <div className="grid grid-cols-3 gap-1.5">
+        <div className="grid grid-cols-4 gap-1.5">
           {MAP_LAYOUTS.map((layout) => (
             <button
               key={layout.id}
@@ -512,14 +512,14 @@ export function MapTab() {
       {true && (
         <div className="space-y-1.5">
           <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">{t('mapPalette')}</Label>
-          <div className="grid grid-cols-3 gap-1.5">
+          <div className="grid grid-cols-4 gap-1.5">
             <button
               onClick={() => {
                 setPaletteId('original')
                 setCustomPaletteEditorOpen(false)
               }}
               className={cn(
-                'rounded-md border-2 p-2 flex items-center justify-center transition-all',
+                'rounded-md border-2 p-1.5 flex items-center justify-center transition-all',
                 paletteId === 'original'
                   ? 'border-primary'
                   : 'border-border hover:border-muted-foreground',
@@ -538,7 +538,7 @@ export function MapTab() {
                     setCustomPaletteEditorOpen(false)
                   }}
                   className={cn(
-                    'rounded-md border-2 p-2 flex items-center justify-center transition-all',
+                    'rounded-md border-2 p-1.5 flex items-center justify-center transition-all',
                     paletteId === p.id
                       ? 'border-primary'
                       : 'border-border hover:border-muted-foreground',
@@ -571,7 +571,7 @@ export function MapTab() {
                 setCustomPaletteEditorOpen(true)
               }}
               className={cn(
-                'rounded-md border-2 p-2 flex items-center justify-center transition-all',
+                'rounded-md border-2 p-1.5 flex items-center justify-center transition-all',
                 paletteId === 'custom'
                   ? 'border-primary'
                   : 'border-border hover:border-muted-foreground',
@@ -608,7 +608,7 @@ export function MapTab() {
 
           <div className="space-y-1.5">
             <Label className="text-xs text-muted-foreground">{t('mapSecondStyle')}</Label>
-            <div className="grid grid-cols-3 gap-1.5">
+            <div className="grid grid-cols-4 gap-1.5">
               {MAP_LAYOUTS.map((layout) => (
                 <button
                   key={layout.id}
@@ -638,14 +638,14 @@ export function MapTab() {
             </div>
             <div className="space-y-1.5 pt-2">
               <Label className="text-xs text-muted-foreground">{t('mapSecondPalette')}</Label>
-              <div className="grid grid-cols-3 gap-1.5">
+              <div className="grid grid-cols-4 gap-1.5">
                 <button
                   onClick={() => {
                     setSecondMapPaletteId('original')
                     setSecondCustomPaletteEditorOpen(false)
                   }}
                   className={cn(
-                    'rounded-md border-2 p-2 flex items-center justify-center transition-all',
+                    'rounded-md border-2 p-1.5 flex items-center justify-center transition-all',
                     secondMap.paletteId === 'original'
                       ? 'border-primary'
                       : 'border-border hover:border-muted-foreground',
@@ -664,7 +664,7 @@ export function MapTab() {
                         setSecondCustomPaletteEditorOpen(false)
                       }}
                       className={cn(
-                        'rounded-md border-2 p-2 flex items-center justify-center transition-all',
+                        'rounded-md border-2 p-1.5 flex items-center justify-center transition-all',
                         secondMap.paletteId === p.id
                           ? 'border-primary'
                           : 'border-border hover:border-muted-foreground',
@@ -697,7 +697,7 @@ export function MapTab() {
                     setSecondCustomPaletteEditorOpen(true)
                   }}
                   className={cn(
-                    'rounded-md border-2 p-2 flex items-center justify-center transition-all',
+                    'rounded-md border-2 p-1.5 flex items-center justify-center transition-all',
                     secondMap.paletteId === 'custom'
                       ? 'border-primary'
                       : 'border-border hover:border-muted-foreground',
@@ -746,7 +746,7 @@ export function MapTab() {
       {/* Mask / Shape — filtered to split-only when second map is active */}
       <div className="space-y-1.5">
         <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">{t('mapShape')}</Label>
-        <div className="grid grid-cols-3 gap-1.5">
+        <div className="grid grid-cols-4 gap-1.5">
           {(masksExpanded ? visibleMasks : visibleMasks.slice(0, MASK_INITIAL_VISIBLE)).map((mask) => (
             <button
               key={mask.key}
@@ -762,6 +762,7 @@ export function MapTab() {
                   ? 'border-primary bg-muted'
                   : 'border-border hover:border-muted-foreground'
               )}
+              title={maskLabel(mask.key, mask.label)}
             >
               <div className="w-12 h-12 flex items-center justify-center">
                 {mask.svgPath ? (
@@ -782,7 +783,6 @@ export function MapTab() {
                   <div className="w-11 h-11 rounded-sm bg-muted" />
                 )}
               </div>
-              <span className="text-[9px] leading-tight text-center text-muted-foreground">{maskLabel(mask.key, mask.label)}</span>
               {mask.isPublic === false && isAdmin && (
                 <span
                   className="absolute top-0.5 right-0.5 text-[7px] px-1 py-px rounded-sm bg-amber-500/90 text-white font-semibold uppercase tracking-wider"
@@ -812,7 +812,7 @@ export function MapTab() {
             <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
               Decoration (Admin)
             </Label>
-            <div className="grid grid-cols-3 gap-1.5">
+            <div className="grid grid-cols-4 gap-1.5">
               <button
                 type="button"
                 onClick={() => setDecorationSvgUrl(null)}
@@ -870,7 +870,7 @@ export function MapTab() {
       {/* Layout — where the text sits on the poster */}
       <div className="space-y-1.5">
         <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">{t('mapLayout')}</Label>
-        <div className="grid grid-cols-3 gap-1.5">
+        <div className="grid grid-cols-4 gap-1.5">
           {LAYOUT_OPTIONS.map((opt) => (
             <button
               key={opt.id}
