@@ -29,6 +29,7 @@ import {
 import { invalidateMapPalettesCache } from '@/hooks/useMapPalettes'
 import type { MapPaletteColors } from '@/lib/map-palettes'
 import { PalettePreviewMap } from './PalettePreviewMap'
+import { PaletteThumbnail } from '@/components/editor/PaletteThumbnail'
 
 interface PaletteRow {
   id: string
@@ -248,16 +249,7 @@ export function AdminPalettesList() {
         <div className="space-y-2">
           {palettes.map((p) => (
             <div key={p.id} className="bg-white border border-border rounded-md px-4 py-3 flex items-center gap-4">
-              <div className="flex gap-1 flex-none">
-                {COLOR_LABELS.map(({ key }) => (
-                  <span
-                    key={key}
-                    className="w-5 h-5 rounded border border-black/10"
-                    style={{ background: p.colors[key] }}
-                    title={`${key}: ${p.colors[key]}`}
-                  />
-                ))}
-              </div>
+              <PaletteThumbnail colors={p.colors} className="w-12 h-12 flex-none" />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="font-medium text-foreground">{p.name}</span>

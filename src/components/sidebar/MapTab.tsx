@@ -33,6 +33,8 @@ import { MAP_LAYOUTS } from '@/lib/map-layouts'
 import { MAP_PALETTES, type MapPaletteColors } from '@/lib/map-palettes'
 import { extractPaletteFromLayout } from '@/lib/petite-style-loader'
 import { useMapPalettes } from '@/hooks/useMapPalettes'
+import { PaletteThumbnail } from '@/components/editor/PaletteThumbnail'
+import { HexColorInput } from '@/components/editor/HexColorInput'
 import { uploadPhoto, deletePhoto } from '@/lib/photo-upload'
 import { getOrCreateGuestSessionId } from '@/lib/guest-session'
 import { PHOTO_FILTERS } from '@/lib/photo-filters'
@@ -272,7 +274,7 @@ export function MapTab() {
           <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
             {t('paperFormat')}
           </Label>
-          <div className="grid grid-cols-3 gap-1.5">
+          <div className="grid grid-cols-4 gap-1.5">
             {PRINT_FORMAT_OPTIONS.map((f) => (
               <button
                 key={f.id}
@@ -477,7 +479,7 @@ export function MapTab() {
       {/* Map layout — choose detail level / what's shown at which zoom */}
       <div className="space-y-1.5">
         <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">{t('mapStyleLabel')}</Label>
-        <div className="grid grid-cols-3 gap-1.5">
+        <div className="grid grid-cols-4 gap-1.5">
           {MAP_LAYOUTS.map((layout) => (
             <button
               key={layout.id}
@@ -510,22 +512,21 @@ export function MapTab() {
       {true && (
         <div className="space-y-1.5">
           <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">{t('mapPalette')}</Label>
-          <div className="grid grid-cols-3 gap-1.5">
+          <div className="grid grid-cols-4 gap-1.5">
             <button
               onClick={() => {
                 setPaletteId('original')
                 setCustomPaletteEditorOpen(false)
               }}
               className={cn(
-                'rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
+                'rounded-md border-2 p-1.5 flex items-center justify-center transition-all',
                 paletteId === 'original'
                   ? 'border-primary'
                   : 'border-border hover:border-muted-foreground',
               )}
               title={t('mapPaletteOriginalTitle')}
             >
-              <div className="w-3 h-3 rounded-full border border-black/10 bg-gradient-to-br from-gray-200 via-gray-400 to-gray-600" />
-              <span className="text-[10px] leading-tight text-foreground/70">{t('mapPaletteOriginal')}</span>
+              <div className="w-9 h-9 rounded-full border border-black/10 bg-gradient-to-br from-gray-200 via-gray-400 to-gray-600" />
             </button>
             {availablePalettes.map((p) => {
               const c = p.colors
@@ -537,20 +538,14 @@ export function MapTab() {
                     setCustomPaletteEditorOpen(false)
                   }}
                   className={cn(
-                    'rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
+                    'rounded-md border-2 p-1.5 flex items-center justify-center transition-all',
                     paletteId === p.id
                       ? 'border-primary'
                       : 'border-border hover:border-muted-foreground',
                   )}
                   title={p.description}
                 >
-                  <div className="flex gap-0.5">
-                    <span className="w-3 h-3 rounded-full border border-black/10" style={{ background: c.land }} />
-                    <span className="w-3 h-3 rounded-full border border-black/10" style={{ background: c.water }} />
-                    <span className="w-3 h-3 rounded-full border border-black/10" style={{ background: c.road }} />
-                    <span className="w-3 h-3 rounded-full border border-black/10" style={{ background: c.label }} />
-                  </div>
-                  <span className="text-[10px] leading-tight text-foreground/70">{p.label}</span>
+                  <PaletteThumbnail colors={c} />
                 </button>
               )
             })}
@@ -576,17 +571,16 @@ export function MapTab() {
                 setCustomPaletteEditorOpen(true)
               }}
               className={cn(
-                'rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
+                'rounded-md border-2 p-1.5 flex items-center justify-center transition-all',
                 paletteId === 'custom'
                   ? 'border-primary'
                   : 'border-border hover:border-muted-foreground',
               )}
             >
               <div
-                className="w-3 h-3 rounded-full border border-black/10"
+                className="w-9 h-9 rounded-full border border-black/10"
                 style={{ background: customPalette?.water ?? customPaletteBase ?? '#84c5a6' }}
               />
-              <span className="text-[10px] leading-tight text-foreground/70">{t('mapPaletteCustom')}</span>
             </button>
           </div>
           {paletteId === 'custom' && customPaletteEditorOpen && (
@@ -614,7 +608,7 @@ export function MapTab() {
 
           <div className="space-y-1.5">
             <Label className="text-xs text-muted-foreground">{t('mapSecondStyle')}</Label>
-            <div className="grid grid-cols-3 gap-1.5">
+            <div className="grid grid-cols-4 gap-1.5">
               {MAP_LAYOUTS.map((layout) => (
                 <button
                   key={layout.id}
@@ -644,22 +638,21 @@ export function MapTab() {
             </div>
             <div className="space-y-1.5 pt-2">
               <Label className="text-xs text-muted-foreground">{t('mapSecondPalette')}</Label>
-              <div className="grid grid-cols-3 gap-1.5">
+              <div className="grid grid-cols-4 gap-1.5">
                 <button
                   onClick={() => {
                     setSecondMapPaletteId('original')
                     setSecondCustomPaletteEditorOpen(false)
                   }}
                   className={cn(
-                    'rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
+                    'rounded-md border-2 p-1.5 flex items-center justify-center transition-all',
                     secondMap.paletteId === 'original'
                       ? 'border-primary'
                       : 'border-border hover:border-muted-foreground',
                   )}
                   title={t('mapPaletteOriginalTitle')}
                 >
-                  <div className="w-3 h-3 rounded-full border border-black/10 bg-gradient-to-br from-gray-200 via-gray-400 to-gray-600" />
-                  <span className="text-[10px] leading-tight text-foreground/70">{t('mapPaletteOriginal')}</span>
+                  <div className="w-9 h-9 rounded-full border border-black/10 bg-gradient-to-br from-gray-200 via-gray-400 to-gray-600" />
                 </button>
                 {availablePalettes.map((p) => {
                   const c = p.colors
@@ -671,20 +664,14 @@ export function MapTab() {
                         setSecondCustomPaletteEditorOpen(false)
                       }}
                       className={cn(
-                        'rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
+                        'rounded-md border-2 p-1.5 flex items-center justify-center transition-all',
                         secondMap.paletteId === p.id
                           ? 'border-primary'
                           : 'border-border hover:border-muted-foreground',
                       )}
                       title={p.description}
                     >
-                      <div className="flex gap-0.5">
-                        <span className="w-3 h-3 rounded-full border border-black/10" style={{ background: c.land }} />
-                        <span className="w-3 h-3 rounded-full border border-black/10" style={{ background: c.water }} />
-                        <span className="w-3 h-3 rounded-full border border-black/10" style={{ background: c.road }} />
-                        <span className="w-3 h-3 rounded-full border border-black/10" style={{ background: c.label }} />
-                      </div>
-                      <span className="text-[10px] leading-tight text-foreground/70">{p.label}</span>
+                      <PaletteThumbnail colors={c} />
                     </button>
                   )
                 })}
@@ -710,17 +697,16 @@ export function MapTab() {
                     setSecondCustomPaletteEditorOpen(true)
                   }}
                   className={cn(
-                    'rounded-md border-2 p-2 text-left flex flex-col gap-1 transition-all',
+                    'rounded-md border-2 p-1.5 flex items-center justify-center transition-all',
                     secondMap.paletteId === 'custom'
                       ? 'border-primary'
                       : 'border-border hover:border-muted-foreground',
                   )}
                 >
                   <div
-                    className="w-3 h-3 rounded-full border border-black/10"
+                    className="w-9 h-9 rounded-full border border-black/10"
                     style={{ background: secondMap.customPalette?.water ?? secondMap.customPaletteBase ?? '#84c5a6' }}
                   />
-                  <span className="text-[10px] leading-tight text-foreground/70">{t('mapPaletteCustom')}</span>
                 </button>
               </div>
               {secondMap.paletteId === 'custom' && secondCustomPaletteEditorOpen && (
@@ -760,7 +746,7 @@ export function MapTab() {
       {/* Mask / Shape — filtered to split-only when second map is active */}
       <div className="space-y-1.5">
         <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">{t('mapShape')}</Label>
-        <div className="grid grid-cols-3 gap-1.5">
+        <div className="grid grid-cols-5 gap-1.5">
           {(masksExpanded ? visibleMasks : visibleMasks.slice(0, MASK_INITIAL_VISIBLE)).map((mask) => (
             <button
               key={mask.key}
@@ -771,13 +757,16 @@ export function MapTab() {
                 setDecorationSvgUrl(mask.decorationSvgUrl ?? null)
               }}
               className={cn(
-                'rounded-md border-2 py-2 px-1 transition-all flex flex-col items-center gap-1 relative',
+                // PROJ-41: compact ~45×45 px tile — labels already dropped,
+                // so the tile only needs to hold the form thumbnail.
+                'rounded-md border-2 p-1 transition-all flex flex-col items-center gap-1 relative',
                 maskKey === mask.key
                   ? 'border-primary bg-muted'
                   : 'border-border hover:border-muted-foreground'
               )}
+              title={maskLabel(mask.key, mask.label)}
             >
-              <div className="w-12 h-12 flex items-center justify-center">
+              <div className="w-8 h-8 flex items-center justify-center">
                 {mask.svgPath ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   // Filter normalises every mask to a solid dark silhouette
@@ -789,14 +778,13 @@ export function MapTab() {
                   <img
                     src={mask.svgPath}
                     alt={maskLabel(mask.key, mask.label)}
-                    className="w-11 h-11 object-contain"
+                    className="w-8 h-8 object-contain"
                     style={{ filter: 'brightness(0)' }}
                   />
                 ) : (
-                  <div className="w-11 h-11 rounded-sm bg-muted" />
+                  <div className="w-8 h-8 rounded-sm bg-muted" />
                 )}
               </div>
-              <span className="text-[9px] leading-tight text-center text-muted-foreground">{maskLabel(mask.key, mask.label)}</span>
               {mask.isPublic === false && isAdmin && (
                 <span
                   className="absolute top-0.5 right-0.5 text-[7px] px-1 py-px rounded-sm bg-amber-500/90 text-white font-semibold uppercase tracking-wider"
@@ -826,7 +814,7 @@ export function MapTab() {
             <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
               Decoration (Admin)
             </Label>
-            <div className="grid grid-cols-3 gap-1.5">
+            <div className="grid grid-cols-4 gap-1.5">
               <button
                 type="button"
                 onClick={() => setDecorationSvgUrl(null)}
@@ -884,7 +872,7 @@ export function MapTab() {
       {/* Layout — where the text sits on the poster */}
       <div className="space-y-1.5">
         <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">{t('mapLayout')}</Label>
-        <div className="grid grid-cols-3 gap-1.5">
+        <div className="grid grid-cols-4 gap-1.5">
           {LAYOUT_OPTIONS.map((opt) => (
             <button
               key={opt.id}
@@ -1418,9 +1406,11 @@ function CustomPaletteEditor({
             <p className="text-[11px] text-foreground/70 leading-tight">{field.label}</p>
             <p className="text-[10px] text-muted-foreground/70 leading-tight">{field.description}</p>
           </div>
-          <span className="text-[10px] text-muted-foreground/70 font-mono tabular-nums uppercase">
-            {effective[field.key]}
-          </span>
+          <HexColorInput
+            value={effective[field.key]}
+            onChange={(hex) => onColorChange(field.key, hex)}
+            className="text-[10px]"
+          />
         </div>
       ))}
       {onSaveAsPalette && (

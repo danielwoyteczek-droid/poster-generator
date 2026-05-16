@@ -74,6 +74,7 @@ export function MobileLayoutTab() {
                   ? 'border-primary bg-muted'
                   : 'border-border'
               )}
+              title={maskLabel(mask.key, mask.label)}
             >
               <div className="w-12 h-12 flex items-center justify-center">
                 {mask.svgPath ? (
@@ -91,7 +92,6 @@ export function MobileLayoutTab() {
                   <div className="w-11 h-11 rounded-sm bg-muted" />
                 )}
               </div>
-              <span className="text-[11px] leading-tight text-center text-muted-foreground">{maskLabel(mask.key, mask.label)}</span>
               {mask.isPublic === false && isAdmin && (
                 <span
                   className="absolute top-0.5 right-0.5 text-[8px] px-1 py-px rounded-sm bg-amber-500/90 text-white font-semibold uppercase tracking-wider"
