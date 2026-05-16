@@ -9,7 +9,6 @@ import { MapTab } from '@/components/sidebar/MapTab'
 import { TextTab } from '@/components/sidebar/TextTab'
 import { PhotoTab } from '@/components/sidebar/PhotoTab'
 import { ExportTab } from '@/components/sidebar/ExportTab'
-import { CreditStatusChip } from '@/components/business/CreditStatusChip'
 import { PosterCanvas } from './PosterCanvas'
 import { useProjectSync } from '@/hooks/useProjectSync'
 import { EditorViewProvider, type EditorView } from './EditorViewContext'
@@ -28,11 +27,6 @@ export function EditorLayout() {
     <div className="flex h-full overflow-hidden">
       {/* Sidebar */}
       <div className="w-72 shrink-0 border-r border-border bg-white flex flex-col">
-        {/* PROJ-50: persistent Credit-Status oben in der Sidebar. Versteckt
-            sich automatisch fuer Visitor (nicht eingeloggte User). */}
-        <div className="px-3 py-2 border-b border-border min-h-[36px] flex items-center justify-end">
-          <CreditStatusChip />
-        </div>
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className="flex flex-col h-full min-h-0">
           <TabsList className="w-full rounded-none border-b border-border bg-white h-10 p-0 gap-0 shrink-0">
             <TabsTrigger
