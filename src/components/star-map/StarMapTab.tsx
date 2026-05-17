@@ -99,13 +99,16 @@ export function StarMapTab() {
           sky area to that silhouette via the renderer's destination-in pass. */}
       <div className="space-y-1.5">
         <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">Form</Label>
-        <div className="grid grid-cols-3 gap-1.5">
+        <div className="grid grid-cols-5 gap-1.5">
           {visibleMasks.map((mask) => (
             <button
               key={mask.key}
               onClick={() => setMaskKey(mask.key)}
+              title={mask.label}
               className={cn(
-                'rounded-md border-2 py-2 px-1 transition-all flex flex-col items-center gap-1',
+                // PROJ-41: identical compact ~45px square tile as the map
+                // editor's mask picker — no label, thumbnail dead-centered.
+                'rounded-md border-2 p-1 transition-all flex items-center justify-center aspect-square',
                 maskKey === mask.key
                   ? 'border-primary bg-muted'
                   : 'border-border hover:border-muted-foreground',
@@ -114,12 +117,11 @@ export function StarMapTab() {
               <div className="w-8 h-8 flex items-center justify-center">
                 {mask.svgPath ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={mask.svgPath} alt={mask.label} className="w-7 h-7 object-contain" />
+                  <img src={mask.svgPath} alt={mask.label} className="w-8 h-8 object-contain" />
                 ) : (
-                  <div className="w-7 h-7 rounded-full bg-muted" />
+                  <div className="w-8 h-8 rounded-full bg-muted" />
                 )}
               </div>
-              <span className="text-[9px] leading-tight text-center text-muted-foreground">{mask.label}</span>
             </button>
           ))}
         </div>

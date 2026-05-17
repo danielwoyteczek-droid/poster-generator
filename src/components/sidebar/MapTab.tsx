@@ -512,14 +512,14 @@ export function MapTab() {
       {true && (
         <div className="space-y-1.5">
           <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">{t('mapPalette')}</Label>
-          <div className="grid grid-cols-4 gap-1.5">
+          <div className="grid grid-cols-5 gap-1.5">
             <button
               onClick={() => {
                 setPaletteId('original')
                 setCustomPaletteEditorOpen(false)
               }}
               className={cn(
-                'rounded-md border-2 p-1.5 flex items-center justify-center transition-all',
+                'rounded-full border-2 p-0.5 flex items-center justify-center transition-all aspect-square',
                 paletteId === 'original'
                   ? 'border-primary'
                   : 'border-border hover:border-muted-foreground',
@@ -538,7 +538,7 @@ export function MapTab() {
                     setCustomPaletteEditorOpen(false)
                   }}
                   className={cn(
-                    'rounded-md border-2 p-1.5 flex items-center justify-center transition-all',
+                    'rounded-full border-2 p-0.5 flex items-center justify-center transition-all aspect-square',
                     paletteId === p.id
                       ? 'border-primary'
                       : 'border-border hover:border-muted-foreground',
@@ -571,7 +571,7 @@ export function MapTab() {
                 setCustomPaletteEditorOpen(true)
               }}
               className={cn(
-                'rounded-md border-2 p-1.5 flex items-center justify-center transition-all',
+                'rounded-full border-2 p-0.5 flex items-center justify-center transition-all aspect-square',
                 paletteId === 'custom'
                   ? 'border-primary'
                   : 'border-border hover:border-muted-foreground',
@@ -638,14 +638,14 @@ export function MapTab() {
             </div>
             <div className="space-y-1.5 pt-2">
               <Label className="text-xs text-muted-foreground">{t('mapSecondPalette')}</Label>
-              <div className="grid grid-cols-4 gap-1.5">
+              <div className="grid grid-cols-5 gap-1.5">
                 <button
                   onClick={() => {
                     setSecondMapPaletteId('original')
                     setSecondCustomPaletteEditorOpen(false)
                   }}
                   className={cn(
-                    'rounded-md border-2 p-1.5 flex items-center justify-center transition-all',
+                    'rounded-full border-2 p-0.5 flex items-center justify-center transition-all aspect-square',
                     secondMap.paletteId === 'original'
                       ? 'border-primary'
                       : 'border-border hover:border-muted-foreground',
@@ -664,7 +664,7 @@ export function MapTab() {
                         setSecondCustomPaletteEditorOpen(false)
                       }}
                       className={cn(
-                        'rounded-md border-2 p-1.5 flex items-center justify-center transition-all',
+                        'rounded-full border-2 p-0.5 flex items-center justify-center transition-all aspect-square',
                         secondMap.paletteId === p.id
                           ? 'border-primary'
                           : 'border-border hover:border-muted-foreground',
@@ -697,7 +697,7 @@ export function MapTab() {
                     setSecondCustomPaletteEditorOpen(true)
                   }}
                   className={cn(
-                    'rounded-md border-2 p-1.5 flex items-center justify-center transition-all',
+                    'rounded-full border-2 p-0.5 flex items-center justify-center transition-all aspect-square',
                     secondMap.paletteId === 'custom'
                       ? 'border-primary'
                       : 'border-border hover:border-muted-foreground',
@@ -757,9 +757,10 @@ export function MapTab() {
                 setDecorationSvgUrl(mask.decorationSvgUrl ?? null)
               }}
               className={cn(
-                // PROJ-41: compact ~45×45 px tile — labels already dropped,
-                // so the tile only needs to hold the form thumbnail.
-                'rounded-md border-2 p-1 transition-all flex flex-col items-center gap-1 relative',
+                // PROJ-41: compact ~45×45 px square tile — labels dropped, so
+                // the tile only holds the form thumbnail, dead-centered both
+                // axes (aspect-square + items/justify-center).
+                'rounded-md border-2 p-1 transition-all flex items-center justify-center aspect-square relative',
                 maskKey === mask.key
                   ? 'border-primary bg-muted'
                   : 'border-border hover:border-muted-foreground'
