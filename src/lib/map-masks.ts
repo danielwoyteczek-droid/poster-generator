@@ -5,6 +5,7 @@ export type MapMaskKey =
   | 'heart-single'
   | 'frame1'
   | 'text-below'
+  | 'geo-boundary'
   | 'split-circles'
   | 'split-halves'
   // Custom masks (uploaded via admin UI) get keys like 'custom-abc12345'.
@@ -178,6 +179,17 @@ export const MAP_MASKS: Record<MapMaskKey, MapMaskDefinition> = {
       width: 595.3, height: 841.9,
       markup: '<rect x="0" y="0" width="595.3" height="589.33"/>',
     },
+  },
+  // PROJ-51: Geo-Grenzen-Maske. Has NO `shape` and NO `svgPath` — the form is
+  // not a fixed SVG silhouette but a geographic polygon rendered as map layers
+  // inside MapLibre (see MapPreviewInner). PosterCanvas therefore treats it
+  // like `none` (no CSS mask, full-rectangle map); the masking happens inside
+  // the map. The selected region lives in the editor store as `geoBoundary`.
+  'geo-boundary': {
+    key: 'geo-boundary',
+    label: 'Grenzen',
+    svgPath: null,
+    applicableTo: ['map'],
   },
   'split-circles': {
     key: 'split-circles',

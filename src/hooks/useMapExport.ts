@@ -15,6 +15,7 @@ import { resolveFontSizePx } from '@/lib/font-scale'
 import { resolvePinSizePx } from '@/lib/pin-scale'
 import { applyWatermark, type WatermarkOptions } from '@/lib/watermark'
 import { getPalette, type MapPaletteColors } from '@/lib/map-palettes'
+import { buildInverseMaskPolygon, type GeoBoundaryGeometry, type GeoBoundary } from '@/lib/geo-boundaries'
 import { fetchDecorationSvgText, recolorSvg, svgTextToDataUrl } from '@/lib/decoration-color'
 import { wrapTextToWidth } from '@/lib/text-wrap'
 import type { PhotoItem, SplitPhoto } from '@/hooks/useEditorStore'
@@ -34,6 +35,8 @@ export interface ExportSnapshot {
   locale?: string
   posterDarkMode?: boolean
   maskKey: MapMaskKey
+  /** PROJ-51: selected region for the `geo-boundary` mask (incl. geometry). */
+  geoBoundary?: GeoBoundary | null
   marker: MarkerState
   secondMarker: MarkerState
   secondMap: SecondMapState
@@ -265,6 +268,7 @@ async function renderMapOffscreen({
   streetLabelsVisible,
   placeLabelsVisible,
   locale,
+  geoOverlay,
 }: {
   styleId: string
   vs: ViewState
@@ -278,6 +282,15 @@ async function renderMapOffscreen({
   streetLabelsVisible?: boolean
   placeLabelsVisible?: boolean
   locale?: string
+  /** PROJ-51: when set, bake the geo-boundary over-mask + contour into the
+   *  offscreen render so the export matches the editor preview pixel for
+   *  pixel. Only the single-map path passes this. `outer` mirrors the
+   *  shapeConfig outer-area mode (Leer / Faded / Leuchten / Voll). */
+  geoOverlay?: {
+    geometry: GeoBoundaryGeometry
+    bgColor: string
+    outer: { mode: string; opacity: number; glowRadius?: number; glowIntensity?: number }
+  } | null
 }): Promise<{ canvas: HTMLCanvasElement; bounds: ViewState['bounds'] }> {
   const maptilersdk = await import('@maptiler/sdk')
   const apiKey = process.env.NEXT_PUBLIC_MAPTILER_API_KEY!
@@ -327,6 +340,64 @@ async function renderMapOffscreen({
 
     map.resize()
     await waitForMapStable(map)
+
+    // PROJ-51: bake the geo-boundary over-mask + contour into the offscreen
+    // map so the export carries the exact same form as the editor preview.
+    if (geoOverlay) {
+      try {
+        map.addSource('geo-export-overmask-src', {
+          type: 'geojson',
+          data: {
+            type: 'Feature',
+            properties: {},
+            geometry: buildInverseMaskPolygon(geoOverlay.geometry),
+          },
+        })
+        map.addSource('geo-export-region-src', {
+          type: 'geojson',
+          data: { type: 'Feature', properties: {}, geometry: geoOverlay.geometry },
+        })
+        // Outer-area treatment — mirrors MapPreviewInner exactly.
+        const gMode = geoOverlay.outer.mode
+        if (gMode !== 'full') {
+          const fillOpacity = gMode === 'opacity'
+            ? Math.max(0, Math.min(1, 1 - geoOverlay.outer.opacity))
+            : 1
+          map.addLayer({
+            id: 'geo-export-overmask',
+            type: 'fill',
+            source: 'geo-export-overmask-src',
+            paint: { 'fill-color': geoOverlay.bgColor, 'fill-antialias': true, 'fill-opacity': fillOpacity },
+          })
+        }
+        if (gMode === 'glow') {
+          const radius = geoOverlay.outer.glowRadius ?? 250
+          const intensity = geoOverlay.outer.glowIntensity ?? 0.5
+          map.addLayer({
+            id: 'geo-export-glow',
+            type: 'line',
+            source: 'geo-export-region-src',
+            layout: { 'line-join': 'round' },
+            paint: {
+              'line-color': geoOverlay.bgColor,
+              'line-width': radius / 7,
+              'line-blur': radius / 9,
+              'line-opacity': intensity,
+            },
+          })
+        }
+        map.addLayer({
+          id: 'geo-export-contour',
+          type: 'line',
+          source: 'geo-export-region-src',
+          layout: { 'line-join': 'round' },
+          paint: { 'line-color': '#22272e', 'line-width': 1.6 },
+        })
+        await waitForMapStable(map)
+      } catch {
+        // A broken geometry shouldn't abort the whole export.
+      }
+    }
 
     // iOS Safari WebGL quirk: by the time we reach getCanvas() the framebuffer
     // may already have been cleared for compositing, even with
@@ -667,7 +738,22 @@ export async function buildPosterCanvas(
     await drawSplitPhoto(photoCtx, splitPhoto, photoSideSvg, W, H)
     drawHalf(photoCanvas, photoHalfRect)
   } else {
-    const mainRender = await renderMapOffscreen({ styleId, vs: viewState, previewW, previewH, outputW: W, outputH: H, paletteId: store.paletteId, customPaletteBase: store.customPaletteBase, customPalette: store.customPalette, streetLabelsVisible: store.streetLabelsVisible, placeLabelsVisible: store.placeLabelsVisible, locale: store.locale })
+    const geoOverlay =
+      store.maskKey === 'geo-boundary' && store.geoBoundary
+        ? {
+            geometry: store.geoBoundary.geometry,
+            bgColor: store.posterDarkMode
+              ? (store.customPalette?.background ?? getPalette(store.paletteId ?? '')?.colors.background ?? '#ffffff')
+              : '#ffffff',
+            outer: {
+              mode: store.shapeConfig?.outer.mode ?? 'none',
+              opacity: store.shapeConfig?.outer.opacity ?? 1,
+              glowRadius: store.shapeConfig?.outer.glowRadius,
+              glowIntensity: store.shapeConfig?.outer.glowIntensity,
+            },
+          }
+        : null
+    const mainRender = await renderMapOffscreen({ styleId, vs: viewState, previewW, previewH, outputW: W, outputH: H, paletteId: store.paletteId, customPaletteBase: store.customPaletteBase, customPalette: store.customPalette, streetLabelsVisible: store.streetLabelsVisible, placeLabelsVisible: store.placeLabelsVisible, locale: store.locale, geoOverlay })
     let mapCanvas = mainRender.canvas
     renderedBounds = mainRender.bounds
     if (mask.shape) {
@@ -939,7 +1025,7 @@ export function useMapExport() {
   const [isExporting, setIsExporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const locale = useLocale()
-  const { viewState, styleId, paletteId, customPaletteBase, customPalette, streetLabelsVisible, placeLabelsVisible, posterDarkMode, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos, splitMode, splitPhoto, splitPhotoZone, layoutId, innerMarginMm, decorationSvgUrl, decorationVisible, orientation } =
+  const { viewState, styleId, paletteId, customPaletteBase, customPalette, streetLabelsVisible, placeLabelsVisible, posterDarkMode, maskKey, geoBoundary, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos, splitMode, splitPhoto, splitPhotoZone, layoutId, innerMarginMm, decorationSvgUrl, decorationVisible, orientation } =
     useEditorStore()
 
   const run = async (format: PrintFormat, type: 'png' | 'pdf') => {
@@ -947,7 +1033,7 @@ export function useMapExport() {
     setError(null)
     try {
       const snapshot: ExportSnapshot = {
-        viewState, styleId, paletteId, customPaletteBase, customPalette, streetLabelsVisible, placeLabelsVisible, locale, posterDarkMode, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos, splitMode, splitPhoto, splitPhotoZone, layoutId, innerMarginMm, decorationSvgUrl, decorationVisible, orientation,
+        viewState, styleId, paletteId, customPaletteBase, customPalette, streetLabelsVisible, placeLabelsVisible, locale, posterDarkMode, maskKey, geoBoundary, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos, splitMode, splitPhoto, splitPhotoZone, layoutId, innerMarginMm, decorationSvgUrl, decorationVisible, orientation,
       }
       const canvas = await buildPosterCanvas(format, snapshot)
       const pngBlob = await canvasToBlob(canvas)
@@ -989,7 +1075,7 @@ export function useMapExport() {
     options?: WatermarkOptions,
   ): Promise<string> => {
     const snapshot: ExportSnapshot = {
-      viewState, styleId, paletteId, customPaletteBase, customPalette, streetLabelsVisible, posterDarkMode, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos, splitMode, splitPhoto, splitPhotoZone, layoutId, innerMarginMm, decorationSvgUrl, decorationVisible, orientation,
+      viewState, styleId, paletteId, customPaletteBase, customPalette, streetLabelsVisible, posterDarkMode, maskKey, geoBoundary, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos, splitMode, splitPhoto, splitPhotoZone, layoutId, innerMarginMm, decorationSvgUrl, decorationVisible, orientation,
     }
     const canvas = await buildPosterCanvas(format, snapshot)
     if (options?.watermark) {

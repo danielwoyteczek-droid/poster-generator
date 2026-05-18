@@ -46,6 +46,7 @@ Ein webbasierter Karten-Poster-Generator, mit dem Nutzer ohne Designkenntnisse p
 | P1 | Admin-Font-Verwaltung (Fonts ohne Code-Deploy hochladen, analog PROJ-22 Paletten) | Planned |
 | P1 | Tier-Pricing & Voucher-Readiness (Editor-Tier-Auswahl + Stripe-Coupon-fähiges Produktmodell, ermöglicht „Gratis Rahmen"-Promos) | Planned |
 | P1 | B2B Credits-Abo (Monatliches Abo für Druckereien/Etsy-Kreatoren, 3 Tiers, Credits=PNG/PDF-Export-only, Stripe Metered-Billing-Overage, Commercial License) | Planned |
+| P1 | Geo-Grenzen-Masken (Länder/Regionen/Städte als echte Posterform, neue Kartenform-Option im Editor) | Planned |
 
 ## Success Metrics
 - Conversion Rate: >5% der anonymen Nutzer erstellen ein Konto

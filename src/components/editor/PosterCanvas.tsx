@@ -194,7 +194,10 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
 
   // Fullbleed (no shape, no split) with outer.mode != 'none' and a margin > 0:
   // build an inset-rectangle mask so the map gets a passe-partout border.
-  const fullbleedMaskDataUrl = !mask.shape && !isDualMap && !isSplitPhoto
+  // PROJ-51: skip for the geo-boundary mask — its outer-area treatment is
+  // rendered inside MapLibre (overmask/glow layers), not via a CSS mask, so a
+  // fullbleed inset rect here would wrongly clip the whole map to a rectangle.
+  const fullbleedMaskDataUrl = !mask.shape && !isDualMap && !isSplitPhoto && maskKey !== 'geo-boundary'
     ? (() => {
         const svg = composeFullbleedMaskSvg(shapeConfig, orientation)
         return svg ? svgToDataUrl(svg) : null

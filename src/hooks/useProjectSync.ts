@@ -113,6 +113,7 @@ function getConfig(posterType: PosterType): Record<string, unknown> {
     placeLabelsVisible: editor.placeLabelsVisible,
     posterDarkMode: editor.posterDarkMode,
     maskKey: editor.maskKey,
+    geoBoundary: editor.geoBoundary,
     printFormat: editor.printFormat,
     orientation: editor.orientation,
     marker: editor.marker,

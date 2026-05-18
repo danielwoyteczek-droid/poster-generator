@@ -4,6 +4,7 @@ import type { PrintFormat, PosterOrientation } from '@/lib/print-formats'
 import { DEFAULT_SHAPE_CONFIG, type ShapeConfigState } from '@/lib/mask-composer'
 import type { PhotoMaskKey } from '@/lib/photo-masks'
 import type { MapPaletteColors } from '@/lib/map-palettes'
+import type { GeoBoundary } from '@/lib/geo-boundaries'
 import { FONT_SIZE_LEGACY_REF_WIDTH } from '@/lib/font-scale'
 
 export { FONT_SIZE_LEGACY_REF_WIDTH }
@@ -163,6 +164,19 @@ export interface EditorStore {
    *  map's land colour). When false, the poster bg stays white. */
   posterDarkMode: boolean
   maskKey: MapMaskKey
+  /**
+   * PROJ-51: the administrative region selected for the `geo-boundary` mask.
+   * Holds the region's simplified polygon so the poster stays reproducible
+   * (and the export self-contained) without re-hitting the geo API. Only
+   * rendered when `maskKey === 'geo-boundary'`. Null = no region picked yet.
+   */
+  geoBoundary: GeoBoundary | null
+  /**
+   * PROJ-51: pending camera request to frame a geo-boundary's bounding box.
+   * Set when a region is selected; MapPreviewInner consumes it via fitBounds
+   * and then clears it.
+   */
+  pendingFitBounds: [number, number, number, number] | null
   printFormat: PrintFormat
   orientation: PosterOrientation
   marker: MarkerState
@@ -237,6 +251,8 @@ export interface EditorStore {
   setPlaceLabelsVisible: (visible: boolean) => void
   setPosterDarkMode: (value: boolean) => void
   setMaskKey: (key: MapMaskKey) => void
+  setGeoBoundary: (boundary: GeoBoundary | null) => void
+  clearPendingFitBounds: () => void
   setDecorationSvgUrl: (url: string | null) => void
   setDecorationVisible: (visible: boolean) => void
   setGridVisible: (visible: boolean) => void
@@ -294,6 +310,7 @@ export interface EditorConfig {
   placeLabelsVisible: boolean
   posterDarkMode: boolean
   maskKey: MapMaskKey
+  geoBoundary: GeoBoundary | null
   printFormat: PrintFormat
   orientation: PosterOrientation
   marker: MarkerState
@@ -375,6 +392,8 @@ export const EDITOR_INITIAL_STATE = {
   placeLabelsVisible: true,
   posterDarkMode: false,
   maskKey: 'none',
+  geoBoundary: null,
+  pendingFitBounds: null,
   printFormat: 'a4' as const,
   orientation: 'portrait' as const,
   // Primary marker on by default so a fresh editor immediately shows the
@@ -461,6 +480,15 @@ export const useEditorStore = create<EditorStore>((set) => ({
   setPlaceLabelsVisible: (placeLabelsVisible) => set({ placeLabelsVisible }),
   setPosterDarkMode: (posterDarkMode) => set({ posterDarkMode }),
   setMaskKey: (maskKey) => set({ maskKey }),
+  setGeoBoundary: (geoBoundary) =>
+    // Selecting a region also queues a camera move so the map auto-frames
+    // the region's bounding box. Clearing the region (× button) leaves the
+    // camera where it is.
+    set({
+      geoBoundary,
+      pendingFitBounds: geoBoundary ? geoBoundary.bbox : null,
+    }),
+  clearPendingFitBounds: () => set({ pendingFitBounds: null }),
   setDecorationSvgUrl: (decorationSvgUrl) => set({ decorationSvgUrl }),
   setDecorationVisible: (decorationVisible) => set({ decorationVisible }),
   setGridVisible: (gridVisible) => set({ gridVisible }),
@@ -660,6 +688,11 @@ export const useEditorStore = create<EditorStore>((set) => ({
     placeLabelsVisible: config.placeLabelsVisible ?? s.placeLabelsVisible,
     posterDarkMode: config.posterDarkMode ?? s.posterDarkMode,
     maskKey: config.maskKey ?? s.maskKey,
+    geoBoundary: config.geoBoundary ?? s.geoBoundary,
+    // Don't auto-fit on project load — the saved viewState is the truth, and
+    // loadFromConfig restores the camera via pendingCenter below. Re-framing
+    // the bbox here would discard the user's saved zoom/pan.
+    pendingFitBounds: s.pendingFitBounds,
     printFormat: config.printFormat ?? s.printFormat,
     orientation: config.orientation ?? s.orientation,
     marker: config.marker ?? s.marker,

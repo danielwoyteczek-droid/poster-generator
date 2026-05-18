@@ -64,10 +64,11 @@
 | PROJ-48 | Tier-Pricing & Voucher-Readiness | Deployed | [PROJ-48-tier-pricing-voucher-readiness.md](PROJ-48-tier-pricing-voucher-readiness.md) | 2026-05-14 |
 | PROJ-49 | Etsy-Integration (Listing-Sync + Bestellungs-Importer) | In Progress | [PROJ-49-etsy-integration.md](PROJ-49-etsy-integration.md) | 2026-05-14 |
 | PROJ-50 | B2B Credits-Abo (Subscription mit Usage-Overage) | In Progress | [PROJ-50-b2b-credits-subscription.md](PROJ-50-b2b-credits-subscription.md) | 2026-05-14 |
+| PROJ-51 | Geo-Grenzen-Masken (Länder/Regionen/Städte als Posterform) | In Progress | [PROJ-51-geo-boundary-masks.md](PROJ-51-geo-boundary-masks.md) | 2026-05-17 |
 
 <!-- Add features above this line -->
 
-## Next Available ID: PROJ-51
+## Next Available ID: PROJ-52
 
 ## Recommended Build Order
 1. **PROJ-1** — Karten-Editor Core (Fundament der App)
