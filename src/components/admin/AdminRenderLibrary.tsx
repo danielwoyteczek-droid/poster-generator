@@ -1,13 +1,19 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { Loader2, Copy, ExternalLink, Search, X } from 'lucide-react'
+import { Loader2, Copy, ExternalLink, Search, X, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog'
+import {
+  AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader,
+  AlertDialogTitle, AlertDialogDescription, AlertDialogFooter,
+  AlertDialogCancel, AlertDialogAction,
+} from '@/components/ui/alert-dialog'
 import { useOccasions } from '@/hooks/useOccasions'
 import { locales as LOCALES } from '@/i18n/config'
 
@@ -52,6 +58,8 @@ export function AdminRenderLibrary() {
   const [searchQuery, setSearchQuery] = useState('')
 
   const [lightbox, setLightbox] = useState<RenderItem | null>(null)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [deleting, setDeleting] = useState(false)
 
   const fetchRenders = useCallback(async () => {
     setLoading(true)
@@ -83,6 +91,39 @@ export function AdminRenderLibrary() {
       () => toast.success('URL in Zwischenablage'),
       () => toast.error('Konnte nicht kopieren'),
     )
+  }
+
+  const toggleSelect = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const deleteRenders = async (ids: string[]) => {
+    if (ids.length === 0) return
+    setDeleting(true)
+    try {
+      const res = await fetch('/api/admin/renders', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        toast.error(data.error ?? 'Löschen fehlgeschlagen')
+        return
+      }
+      const n = data.deleted ?? ids.length
+      toast.success(`${n} Render${n === 1 ? '' : 's'} gelöscht`)
+      setSelected(new Set())
+      setLightbox(null)
+      await fetchRenders()
+    } finally {
+      setDeleting(false)
+    }
   }
 
   const resetFilters = () => {
@@ -172,6 +213,48 @@ export function AdminRenderLibrary() {
         </div>
       </div>
 
+      {selected.size > 0 && (
+        <div className="flex items-center justify-between gap-3 bg-white rounded-lg border px-4 py-2.5">
+          <span className="text-sm font-medium">{selected.size} ausgewählt</span>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={() => setSelected(new Set())}>
+              Auswahl aufheben
+            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="sm" disabled={deleting}>
+                  {deleting
+                    ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
+                    : <Trash2 className="w-3.5 h-3.5 mr-1" />}
+                  Löschen
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>
+                    {selected.size} Render{selected.size === 1 ? '' : 's'} löschen?
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Die gerenderten Bilder werden dauerhaft aus der Library und dem Storage
+                    entfernt. Die Presets selbst bleiben unverändert und können jederzeit neu
+                    gerendert werden.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => deleteRenders([...selected])}
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    Löschen
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        </div>
+      )}
+
       {loading && (
         <div className="py-12 text-center text-sm text-muted-foreground">
           <Loader2 className="w-5 h-5 animate-spin inline mr-2" />
@@ -188,22 +271,37 @@ export function AdminRenderLibrary() {
       {!loading && renders.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
           {renders.map((r) => (
-            <div key={r.id} className="bg-white rounded-lg border overflow-hidden flex flex-col">
-              <button
-                onClick={() => setLightbox(r)}
-                className="relative aspect-square bg-muted hover:opacity-80 transition-opacity"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={r.image_url}
-                  alt={`${r.preset.name} – ${r.mockup_set?.name ?? 'Mockup'} ${r.variant}`}
-                  className="w-full h-full object-contain"
-                  loading="lazy"
-                />
-                <span className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded text-[10px] font-medium bg-white/90 backdrop-blur capitalize">
-                  {r.variant}
-                </span>
-              </button>
+            <div
+              key={r.id}
+              className={`bg-white rounded-lg border overflow-hidden flex flex-col ${
+                selected.has(r.id) ? 'ring-2 ring-red-500' : ''
+              }`}
+            >
+              <div className="relative">
+                <button
+                  onClick={() => setLightbox(r)}
+                  className="relative aspect-square w-full bg-muted hover:opacity-80 transition-opacity"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={r.image_url}
+                    alt={`${r.preset.name} – ${r.mockup_set?.name ?? 'Mockup'} ${r.variant}`}
+                    className="w-full h-full object-contain"
+                    loading="lazy"
+                  />
+                  <span className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded text-[10px] font-medium bg-white/90 backdrop-blur capitalize">
+                    {r.variant}
+                  </span>
+                </button>
+                <div className="absolute top-1.5 left-1.5">
+                  <Checkbox
+                    checked={selected.has(r.id)}
+                    onCheckedChange={() => toggleSelect(r.id)}
+                    className="bg-white/90 border-muted-foreground/50 shadow-sm"
+                    aria-label={`${r.preset.name} auswählen`}
+                  />
+                </div>
+              </div>
               <div className="p-2 space-y-1.5 flex-1 flex flex-col">
                 <div className="text-xs font-medium truncate" title={r.preset.name}>{r.preset.name}</div>
                 <div className="text-[10px] text-muted-foreground truncate" title={r.mockup_set?.name ?? ''}>
@@ -257,6 +355,32 @@ export function AdminRenderLibrary() {
                   <Copy className="w-3.5 h-3.5 mr-1" />
                   Kopieren
                 </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button size="sm" variant="destructive" disabled={deleting}>
+                      <Trash2 className="w-3.5 h-3.5 mr-1" />
+                      Löschen
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Render löschen?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Dieses gerenderte Bild wird dauerhaft aus der Library und dem Storage
+                        entfernt. Das Preset bleibt unverändert.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => deleteRenders([lightbox.id])}
+                        className="bg-red-600 hover:bg-red-700"
+                      >
+                        Löschen
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
             </div>
           )}

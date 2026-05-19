@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { requireAdmin } from '@/lib/admin-auth'
 import { createAdminClient } from '@/lib/supabase-admin'
+
+// Storage-Bucket der Mockup-Composites (siehe scripts/render-worker.ts).
+const STORAGE_BUCKET = 'preset-renders'
 
 /**
  * Admin-Render-Library: alle fertigen preset_renders mit Metadata zum Filtern.
@@ -75,6 +79,55 @@ export async function GET(req: NextRequest) {
     .filter((r): r is NonNullable<typeof r> => r !== null)
 
   return NextResponse.json({ renders: enriched, filters_meta: await fetchMeta(admin) })
+}
+
+const DeleteSchema = z.object({
+  ids: z.array(z.string().uuid()).min(1).max(200),
+})
+
+/**
+ * Löscht ausgewählte preset_renders dauerhaft: erst die Storage-Dateien
+ * (best-effort), dann die DB-Zeilen. Presets selbst bleiben unverändert —
+ * gelöschte Renders erscheinen einfach nicht mehr in der Library und können
+ * jederzeit per Re-Render neu erzeugt werden.
+ */
+export async function DELETE(req: NextRequest) {
+  const auth = await requireAdmin()
+  if (!auth.ok) return NextResponse.json({ error: 'Forbidden' }, { status: auth.status })
+
+  const body = await req.json().catch(() => null)
+  const parsed = DeleteSchema.safeParse(body)
+  if (!parsed.success) {
+    return NextResponse.json({ error: 'Invalid body' }, { status: 400 })
+  }
+
+  const admin = createAdminClient()
+
+  // Zeilen vorab laden, um die Storage-Pfade zu rekonstruieren.
+  const { data: rows, error: fetchErr } = await admin
+    .from('preset_renders')
+    .select('id, preset_id, mockup_set_id, variant')
+    .in('id', parsed.data.ids)
+
+  if (fetchErr) return NextResponse.json({ error: fetchErr.message }, { status: 500 })
+  if (!rows || rows.length === 0) return NextResponse.json({ deleted: 0 })
+
+  // Storage-Cleanup: Pfad-Schema aus render-worker.ts
+  // (`${preset_id}/${mockup_set_id}/${variant}.png`). Best-effort — die
+  // DB-Zeile ist die Source of Truth, eine verwaiste Datei wäre nur Ballast.
+  const paths = rows.map((r) => `${r.preset_id}/${r.mockup_set_id}/${r.variant}.png`)
+  await admin.storage.from(STORAGE_BUCKET).remove(paths).then(
+    () => {},
+    () => {},
+  )
+
+  const { error: delErr } = await admin
+    .from('preset_renders')
+    .delete()
+    .in('id', rows.map((r) => r.id))
+
+  if (delErr) return NextResponse.json({ error: delErr.message }, { status: 500 })
+  return NextResponse.json({ deleted: rows.length })
 }
 
 async function fetchMeta(admin: ReturnType<typeof createAdminClient>) {
