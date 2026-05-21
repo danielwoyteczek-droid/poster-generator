@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Loader2, Plus, Pencil, Trash2, Eye, EyeOff } from 'lucide-react'
+import { Loader2, Plus, Pencil, Trash2, Eye, EyeOff, Copy } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -123,6 +123,17 @@ export function AdminPalettesList() {
     setFormDescription(p.description ?? '')
     setFormColors({ ...DEFAULT_COLORS, ...p.colors })
     setFormDisplayOrder(p.display_order)
+    setEditorOpen(true)
+  }
+
+  const openDuplicate = (p: PaletteRow) => {
+    setEditingId(null)
+    const baseName = `${p.name} (Kopie)`
+    setFormName(baseName)
+    setFormId(slugify(baseName))
+    setFormDescription(p.description ?? '')
+    setFormColors({ ...DEFAULT_COLORS, ...p.colors })
+    setFormDisplayOrder(Math.max(0, ...palettes.map((x) => x.display_order)) + 1)
     setEditorOpen(true)
   }
 
@@ -263,6 +274,9 @@ export function AdminPalettesList() {
               <div className="flex gap-1 flex-none">
                 <Button size="sm" variant="ghost" onClick={() => togglePublish(p)} title={p.status === 'published' ? 'Zurückziehen' : 'Veröffentlichen'}>
                   {p.status === 'published' ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => openDuplicate(p)} title="Duplizieren">
+                  <Copy className="w-4 h-4" />
                 </Button>
                 <Button size="sm" variant="ghost" onClick={() => openEdit(p)} title="Bearbeiten">
                   <Pencil className="w-4 h-4" />
