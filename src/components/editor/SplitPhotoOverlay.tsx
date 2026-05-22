@@ -43,8 +43,12 @@ export function SplitPhotoOverlay({ svgPath, side, noHalfClip, gapHalfPx = 0, in
       : `polygon(${rightEdge} 0, 100% 0, 100% 100%, ${rightEdge} 100%)`
 
   const maskStyle: React.CSSProperties = {
-    maskImage: `url(${svgPath})`,
-    WebkitMaskImage: `url(${svgPath})`,
+    // url() MUST be quoted: composed mask data-URLs contain literal
+    // parentheses (transform="translate(…) scale(…)" / clip-path="url(#h)")
+    // and an unquoted CSS url() would terminate at the first inner ")",
+    // breaking the mask so the photo spills over the whole canvas.
+    maskImage: `url("${svgPath}")`,
+    WebkitMaskImage: `url("${svgPath}")`,
     maskRepeat: 'no-repeat',
     WebkitMaskRepeat: 'no-repeat',
     maskSize: '100% 100%',
