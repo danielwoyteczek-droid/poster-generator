@@ -1112,6 +1112,22 @@ package.json                               ergänzt: Dependencies (siehe O)
 - **Konkurrenz zwischen App-Save und Worker-Render.** Wenn Operator ein Preset im Editor speichert, während Worker es gerade rendert, kann das alte `config_json` rendern. Mitigation: Worker liest `config_json` zu Job-Start, Save-Hook setzt `render_status='pending'` → Worker erkennt, dass Race passierte (Status nicht mehr `rendering` für seinen `worker_id`), verwirft Output. Edge-Case selten, aber sauber.
 
 
+## Implementation Notes
+
+### 2026-05-18 — Render-Library: Lösch-Funktion
+Die Admin-Render-Library ([AdminRenderLibrary.tsx](src/components/admin/AdminRenderLibrary.tsx)) hatte bislang keine Möglichkeit, einzelne `preset_renders` zu entfernen. Ergänzt:
+- **`DELETE /api/admin/renders`** ([route.ts](src/app/api/admin/renders/route.ts)) — nimmt `{ ids: string[] }`, löscht erst die Storage-Dateien aus dem Bucket `preset-renders` (Pfad-Schema `${preset_id}/${mockup_set_id}/${variant}.png`, best-effort), dann die DB-Zeilen. Presets bleiben unverändert.
+- **UI:** Checkbox-Auswahl pro Render-Kachel + Bulk-Lösch-Bar (mit `AlertDialog`-Bestätigung); zusätzlich ein Löschen-Button in der Lightbox.
+
+### 2026-05-18 — Bugfix: Draft-Presets rendern als Default-Design
+**Symptom:** Ein per Render-Queue verarbeitetes Preset kam mit fremdem Kartenstil + fremder Palette heraus (= Default-Editor-State).
+
+**Ursache:** Der Headless-Editor lädt Presets über die öffentliche Route `GET /api/presets/[id]`, die auf `status='published'` filterte → für Draft-Presets **404**. `PresetUrlApplier` rief dann `applyPreset` nie auf und setzte `__presetApplied=false`; die `HeadlessRenderBridge` renderte trotzdem weiter — mit dem Default-State. Draft-Presets landen u.a. über `csv-import` (legt `status='draft'` + `render_status='pending'` an) und `bulk-render` (kein `published`-Guard) in der Queue. Nur die Single-Render-Route `[id]/render` hatte den Guard.
+
+**Fix:**
+- [api/presets/[id]/route.ts](src/app/api/presets/[id]/route.ts) — serviert Drafts, wenn der Request einen gültigen `x-render-token` trägt (`validateHeadlessToken`). Der Worker schickt den Header ohnehin bei jedem Same-Origin-Request mit. Kunden-Deeplinks (kein Token) sehen weiterhin nur published Presets.
+- [HeadlessRenderBridge.tsx](src/components/editor/HeadlessRenderBridge.tsx) — Schutznetz: bei `__presetApplied !== true` (Fehler **oder** Timeout) wird nicht mehr der Default gerendert; `__renderPosterPng` wirft stattdessen → Worker markiert `render_status='failed'` mit klarer Ursache statt ein falsches Bild hochzuladen.
+
 ## QA Test Results
 _To be added by /qa_
 

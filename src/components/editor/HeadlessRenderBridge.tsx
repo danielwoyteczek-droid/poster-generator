@@ -65,7 +65,13 @@ function BridgeImpl({
   renderPreviewRef.current = renderPreview
 
   useEffect(() => {
+    // Safety net (PROJ-30): when the preset failed to apply, this holds the
+    // reason. `__renderPosterPng` then throws instead of rendering — see the
+    // abort block below for why a silent fallback render is dangerous.
+    let presetError: string | null = null
+
     window.__renderPosterPng = async (opts) => {
+      if (presetError) throw new Error(presetError)
       const format = opts?.format ?? DEFAULT_FORMAT
       return renderPreviewRef.current(format)
     }
@@ -86,6 +92,30 @@ function BridgeImpl({
           await new Promise((r) => setTimeout(r, 100))
         }
         console.log('[hl-debug] HeadlessBridge: __presetApplied =', window.__presetApplied)
+
+        // Abort the render if the preset never applied. `false` = fetch /
+        // 404 / apply error (see PresetUrlApplier); still `undefined` after
+        // the timeout = PresetUrlApplier never resolved. In both cases the
+        // store still holds the DEFAULT design — rendering it would upload a
+        // wrong poster (wrong map style + palette) as the preset/listing
+        // preview. Fail loudly so the worker marks render_status='failed'
+        // with a clear reason instead.
+        if (window.__presetApplied !== true) {
+          const presetId = url.searchParams.get('preset')
+          presetError =
+            window.__presetApplied === false
+              ? `Preset ${presetId} konnte nicht angewendet werden (nicht gefunden / Ladefehler) — Render abgebrochen, sonst würde das Default-Design gerendert.`
+              : `Preset ${presetId} wurde nicht innerhalb von ${PRESET_APPLY_TIMEOUT_MS}ms angewendet — Render abgebrochen.`
+          console.error('[hl-debug] HeadlessBridge:', presetError)
+          // Mark ready so the worker proceeds quickly to __renderPosterPng,
+          // which then throws presetError — a fast, clear failure instead of
+          // a 60s waitForFunction timeout.
+          if (!cancelled) {
+            window.__posterReady = true
+            console.log('[hl-debug] HeadlessBridge: __posterReady = true (preset-error)')
+          }
+          return
+        }
       }
 
       // 2. Location-Override per URL-Param (?lat=...&lng=...&location_name=...).
