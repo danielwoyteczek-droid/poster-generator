@@ -68,6 +68,26 @@ After completing work on any feature, you MUST update tracking files. Follow thi
 - Run `git diff` to verify what has already been changed in this session
 - Never guess at import paths, component names, or API routes - verify by reading
 
+## Cross-Cutting Change Impact (MANDATORY)
+Before marking ANY change as done, assess whether it touches shared code —
+anything under `src/lib/`, `src/hooks/`, shared components, or any module
+imported by more than one feature.
+
+If it does, you MUST:
+1. **Identify dependents** — explicitly name which other features/components
+   consume the changed code. Ask "what else uses this?" and verify by reading
+   imports/usages, not from memory.
+2. **Check parallel code paths** — when two places solve the same concern
+   (e.g. one mask-style helper for maps, another for photos), a fix or guard
+   added to one MUST be mirrored in its twin. Search for siblings.
+3. **Route through QA** — such changes go through `/qa`, or at minimum the
+   dependent features are manually re-tested. Do NOT report "done" after
+   testing only the feature you directly edited.
+
+Rationale: a change made for one feature can silently break another that
+shares the same mechanism (especially silent failures with no error/log).
+Verifying only the edited feature is not sufficient.
+
 ## Handoffs Between Skills
 - After completing a skill, suggest the next skill to the user
 - Format: "Next step: Run `/skillname` to [action]"
