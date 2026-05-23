@@ -738,5 +738,23 @@
       "font": "Police",
       "format": "Format"
     }
+  },
+  "about": {
+    "team": {
+      "heading": "Notre équipe",
+      "subheading": "Les visages derrière petite moment.",
+      "roles": {
+        "founder": "Fondatrice",
+        "designer": "Designer",
+        "technician": "Technique",
+        "customerService": "Service client"
+      },
+      "bios": {
+        "founder": "Elle a eu l'idée — et veille aujourd'hui sur tout ce qui se passe chez petite moment.",
+        "designer": "Elle choisit couleurs, polices et mises en page jusqu'à ce qu'une affiche sonne juste.",
+        "technician": "Il transforme vos clics dans l'éditeur en fichiers prêts à imprimer.",
+        "customerService": "Elle répond à vos e-mails — et intervient dès que quelque chose ne va pas."
+      }
+    }
   }
 }

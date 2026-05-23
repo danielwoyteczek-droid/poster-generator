@@ -738,5 +738,23 @@
       "font": "Fuente",
       "format": "Formato"
     }
+  },
+  "about": {
+    "team": {
+      "heading": "Nuestro equipo",
+      "subheading": "Las personas detrás de petite moment.",
+      "roles": {
+        "founder": "Fundadora",
+        "designer": "Diseñadora",
+        "technician": "Técnica",
+        "customerService": "Atención al cliente"
+      },
+      "bios": {
+        "founder": "Tuvo la idea — y hoy cuida de todo lo que ocurre en petite moment.",
+        "designer": "Elige colores, tipografías y composiciones hasta que un póster encaja.",
+        "technician": "Convierte tus clics en el editor en archivos listos para imprimir.",
+        "customerService": "Responde a tus correos — y se ocupa cuando algo no encaja."
+      }
+    }
   }
 }

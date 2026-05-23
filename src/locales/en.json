@@ -738,5 +738,23 @@
       "font": "Font",
       "format": "Format"
     }
+  },
+  "about": {
+    "team": {
+      "heading": "Our team",
+      "subheading": "The people behind petite moment.",
+      "roles": {
+        "founder": "Founder",
+        "designer": "Designer",
+        "technician": "Engineering",
+        "customerService": "Customer care"
+      },
+      "bios": {
+        "founder": "Had the idea — and looks after everything that happens at petite moment today.",
+        "designer": "Picks colors, fonts and layouts until a poster simply feels right.",
+        "technician": "Turns your clicks in the editor into print-ready files.",
+        "customerService": "Answers your emails — and steps in whenever something isn't quite right."
+      }
+    }
   }
 }
