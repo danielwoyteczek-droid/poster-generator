@@ -8,14 +8,11 @@ export const structure: StructureResolver = (S) =>
     .title('Inhalt')
     .items([
       S.listItem()
-        .title('About-Seite')
-        .id('aboutPage')
-        .child(S.document().schemaType('aboutPage').documentId('aboutPage')),
-      S.listItem()
         .title('Website-Einstellungen')
         .id('siteSettings')
         .child(S.document().schemaType('siteSettings').documentId('siteSettings')),
       S.divider(),
+      S.documentTypeListItem('aboutPage').title('About-Seite (pro Sprache)'),
       S.documentTypeListItem('homepage').title('Homepage (pro Sprache)'),
       S.documentTypeListItem('galleryPage').title('Galerie-Seite (pro Sprache)'),
       S.documentTypeListItem('occasion').title('Anlässe (Stammdaten)'),
