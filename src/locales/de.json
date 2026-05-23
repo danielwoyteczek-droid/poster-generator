@@ -722,5 +722,23 @@
       "font": "Schrift",
       "format": "Format"
     }
+  },
+  "about": {
+    "team": {
+      "heading": "Unser Team",
+      "subheading": "Die Menschen hinter petite moment.",
+      "roles": {
+        "founder": "Gründerin",
+        "designer": "Designerin",
+        "technician": "Technik",
+        "customerService": "Kundenservice"
+      },
+      "bios": {
+        "founder": "Hatte die Idee — und kümmert sich heute um alles, was bei petite moment passiert.",
+        "designer": "Wählt Farben, Schriften und Layouts so lange, bis ein Poster sich richtig anfühlt.",
+        "technician": "Sorgt dafür, dass aus deinem Klick im Editor eine druckreife Datei wird.",
+        "customerService": "Antwortet auf deine Mails — und kümmert sich, wenn mal etwas nicht passt."
+      }
+    }
   }
 }
