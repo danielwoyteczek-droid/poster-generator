@@ -132,24 +132,27 @@ Vorteil: Der **Export funktioniert ohne Sonderbehandlung** — die Export-Pipeli
 rendert dieselbe Karte headless, die Geo-Ebenen sind automatisch dabei und
 pixelgenau. Das war ein Akzeptanzkriterium.
 
-### Außenbereich & Formkontur — offener Folge-Schritt
-Der **Außenbereich** (Verblassen / Leuchten / Posterrand) und eine
-**anpassbare Formkontur** sind für Geo-Masken **nicht** umgesetzt. Mehrere
-Versuche, das über die MapLibre-Karten-Ebenen zu lösen, waren instabil
-(Flackern, „distant style could not be loaded"-Fehler beim Regler-Ziehen,
-Updates kamen nicht an). Der MapLibre-Ebenen-Ansatz ist dafür der falsche Weg.
+### Außenbereich & Formkontur — über die SVG-Masken-Pipeline
+Der **Außenbereich** (Leer / Verblassen / Leuchten / Posterrand) und die
+**anpassbare Formkontur** funktionieren für Geo-Masken — über genau denselben
+Code-Pfad wie die Form-Masken (Herz/Kreis):
 
-**Empfohlener Weg für den Folge-Schritt:** die Geo-Form durch **dieselbe
-SVG-Masken-Pipeline schicken wie die Form-Masken** (Herz/Kreis funktionieren
-damit tadellos) — das projizierte Grenz-Polygon als dynamische
-`ShapeDefinition` an `composeMaskSvg`/`composeFrameSvg` geben, statt eigene
-Karten-Ebenen zu bauen. Dann greifen Außenbereich-Modi **und** Formkontur
-automatisch. Das ist eine eigene, fokussierte Aufgabe.
+1. Das Grenz-Polygon wird bei jeder Kartenbewegung per `map.project()` in den
+   A4-viewBox-Koordinatenraum projiziert (siehe `src/lib/geo-shape.ts`).
+2. Das Ergebnis ist eine dynamische `ShapeDefinition`, die in einem winzigen
+   Store (`useGeoShape`) gehalten wird.
+3. PosterCanvas reicht diese Form als `mask.shape` in den bestehenden
+   Composer (`composeMaskSvg` / `composeFrameSvg`) — wie eine Form-Maske.
+4. Weil die Geo-Form bereits 1:1 auf den Viewport projiziert ist, übergibt
+   PosterCanvas `layoutMapHeight = 1`; damit ist der Einpass-Schritt des
+   Composers eine Identität, Form und Karte bleiben deckungsgleich.
 
-**Aktueller Stand:** Geo-Masken haben einen festen, immer-übermalten
-Außenbereich + eine feste Konturlinie. Der Außenbereich-Picker (Verblassen
-etc.) erscheint für Geo-Masken bewusst nicht. Geo-Masken sind im Admin Mask
-Transform Editor (PROJ-38) nicht editierbar — die Form ist die Geografie.
+**Was deshalb „geschenkt" geht:** Verblassen / Leuchten / Posterrand,
+Formkontur (Farbe/Dicke), Hintergrund-Farbabgleich, Export — alles über den
+erprobten Composer-Code, ohne Sonderweg.
+
+Geo-Masken sind im Admin Mask Transform Editor (PROJ-38) nicht editierbar —
+die Form ist die Geografie.
 
 ### Komponenten-Struktur (UI)
 ```
@@ -285,18 +288,124 @@ Frontend implemented per the Tech Design. Files:
   rate-limit compliance, ODbL attribution and caching. Nominatim returns the
   geometry inline with the search results, so it is cached client-side and
   `fetchGeoBoundary` reads it back without a second request.
-- The contour line uses a fixed neutral style (`#22272e`, 1.6 px).
 - Verified: `tsc --noEmit` clean for all PROJ-51 files.
 
-**Known limitation — open follow-up (own task):**
-- **Außenbereich-Modi (Verblassen / Leuchten / Posterrand) und eine
-  anpassbare Formkontur für Geo-Masken sind NICHT umgesetzt.** Mehrere
-  Versuche über die MapLibre-Karten-Ebenen waren instabil (Flackern,
-  „distant style could not be loaded", Updates kamen nicht an). Empfohlener
-  Weg: die projizierte Geo-Form als dynamische `ShapeDefinition` durch die
-  bestehende SVG-Masken-Pipeline (`composeMaskSvg`/`composeFrameSvg`) schicken
-  — dieselbe, die für Herz/Kreis tadellos funktioniert. Eigene, fokussierte
-  Aufgabe, idealerweise mit direkter Browser-Sicht.
+**Außenbereich + Formkontur — umgesetzt (zweite Iteration):**
+- Neu: `src/lib/geo-shape.ts` — projiziert das Grenz-Polygon per
+  `map.project()` in den A4-viewBox-Raum, gibt eine `ShapeDefinition` zurück.
+- Neu: `src/hooks/useGeoShape.ts` — winziger Zustand für die projizierte Form
+  (separat vom Editor-Store, damit nur PosterCanvas auf Pan-Frames reagiert).
+- `MapPreviewInner` — die alten MapLibre-Geo-Ebenen sind raus; stattdessen
+  wird pro Karten-Bewegung (rAF-throttled) projiziert und in `useGeoShape`
+  geschrieben.
+- `PosterCanvas` — splict die projizierte Form als `mask.shape` ein und
+  übergibt `layoutMapHeight = 1`, damit der Composer 1:1 rendert. Außenbereich
+  + Formkontur laufen jetzt über `composeMaskSvg`/`composeFrameSvg` — exakt
+  derselbe Code wie für Herz/Kreis.
+- `MapTab` — Außenbereich + Formkontur werden für Geo-Masken wieder
+  eingeblendet (`shapeSupported || maskKey === 'geo-boundary'`).
+- `useMapExport` — das alte `geoOverlay` (MapLibre-Karten-Ebenen-Bake) ist
+  entfernt; der Export greift dieselbe projizierte Form aus `useGeoShape` ab
+  (A4-normalisiert → auflösungsunabhängig identisch) und nutzt
+  `applyComposedMask` + `composeFrameSvg`-Block — wie Form-Masken.
+
+## Tech Design — Außenbereich + Formkontur für Geo-Masken (Follow-up)
+
+### Warum der erste Ansatz scheiterte
+Der Außenbereich wurde zunächst über **eigene MapLibre-Karten-Ebenen**
+nachgebaut (Overmask-Fläche, Glow-Linie, Konturlinie). Das war instabil:
+Flackern beim Regler-Ziehen, „distant style could not be loaded"-Fehler,
+Updates kamen visuell nicht an. Die Karten-Ebenen-Methode ist ein Sonderweg,
+der nichts mit dem bewährten Masken-Code teilt — jeder Effekt musste neu und
+fehleranfällig nachgebaut werden.
+
+### Der neue Ansatz: dieselbe Pipeline wie Herz/Kreis
+Form-Masken (Herz, Kreis, Haus) funktionieren tadellos, weil sie alle durch
+**einen** erprobten Weg laufen:
+1. Jede Maske hat eine `ShapeDefinition` — eine feste SVG-Form (viewBox +
+   Pfad-Markup).
+2. `composeMaskSvg(shape, …)` baut daraus die Maske **inklusive Außenbereich**
+   (Leer / Verblassen / Leuchten / Posterrand) — fertig komponiert.
+3. `composeFrameSvg(shape, …)` baut daraus die **Formkontur** (innerer Rahmen).
+4. Das Ergebnis wird als CSS-Maske / Overlay über die Karte gelegt.
+
+Die Geo-Grenze bekommt **keinen Sonderweg mehr** — sie wird einfach zu einer
+`ShapeDefinition` gemacht und durch genau dieselben Funktionen geschickt.
+Dann gibt es Außenbereich **und** Formkontur „geschenkt", weil sie über
+denselben, bereits funktionierenden Code laufen.
+
+### Der Kern: die Geo-Form in eine ShapeDefinition übersetzen
+Eine Form-Maske ist ein fester Pfad. Die Geo-Grenze ist ein geografisches
+Polygon — ihre Bildschirmform hängt von Kartenausschnitt + Zoom ab. Lösung:
+
+1. Bei Kartenbewegung jeden Polygon-Punkt (lng/lat) per `map.project()` in
+   Bildschirm-Pixel umrechnen.
+2. Diese Pixel in den **A4-viewBox-Koordinatenraum** (595,3 × 841,9)
+   umrechnen, in dem der Composer ohnehin arbeitet.
+3. Daraus einen SVG-Pfad bauen → eine `ShapeDefinition`, deren `viewBox` und
+   `width`/`height` **exakt der A4-Leinwand entsprechen**.
+
+**Wichtige Erkenntnis aus der Composer-Analyse:** Wenn die ShapeDefinition
+genau die A4-Maße hat, ist der „Einpass-/Zentrier"-Schritt des Composers eine
+**Identität** (Skalierung = 1, Versatz = 0). Der Composer behandelt die
+Geo-Form also wie jede andere Maske — **es ist voraussichtlich keine
+Composer-Änderung nötig.** (Falls beim Bau ein Sonderfall auftaucht, bekommt
+der Composer einen einfachen „Pfad-1:1-übernehmen"-Schalter — kein Umbau.)
+
+### Komponenten-Struktur / Datenfluss
+```
+Karte bewegt sich (pan / zoom)
+  └─ Geo-Shape-Projektor  [NEU]
+       ├─ projiziert das Grenz-Polygon → SVG-Pfad im A4-Raum
+       └─ legt eine dynamische ShapeDefinition in den Editor-Store
+
+PosterCanvas (bestehend)
+  └─ liest mask.shape  →  für Geo: die dynamische ShapeDefinition
+       ├─ composeMaskSvg(shape, shapeConfig)   → Maske + Außenbereich
+       └─ composeFrameSvg(shape, shapeConfig)  → Formkontur
+       (exakt derselbe Pfad wie Herz/Kreis)
+
+→ Die bisherigen MapLibre-Geo-Ebenen (Overmask/Kontur) entfallen.
+```
+
+### Kartenbewegung — Trade-off
+Die Karten-Ebenen-Methode reprojizierte automatisch pro Frame (GPU). Der
+SVG-Weg muss bei Kartenbewegung in JavaScript neu projizieren und die Maske
+neu rastern. Empfehlung: **bei jeder Bewegung neu projizieren, auf einen
+Frame pro Anzeige-Tick gedrosselt** (`requestAnimationFrame`). Für ein
+moderat vereinfachtes Polygon ist das performant genug. Fallback, falls es
+ruckelt: nur am Ende der Bewegung aktualisieren (minimale Verzögerung beim
+Pannen). Diese Entscheidung fällt final in der Umsetzung anhand echter
+Messung.
+
+### Was wegfällt / sich ändert
+- Die MapLibre-Geo-Ebenen in `MapPreviewInner` (Overmask + Kontur) entfallen —
+  ersetzt durch den Composer-Weg in `PosterCanvas`.
+- `MapTab`: der Außenbereich-Picker + die Formkontur-Sektion werden für
+  Geo-Masken wieder eingeblendet (sie funktionieren dann über den Composer).
+- `useMapExport`: nutzt den bestehenden `applyComposedMask`-Pfad (den
+  Form-Masken schon verwenden) statt der Geo-Sonderbehandlung — der Export
+  muss dieselbe Projektion verwenden wie die Editor-Vorschau.
+
+### Datenmodell
+Keine neuen gespeicherten Felder. Die dynamische ShapeDefinition ist ein
+**Laufzeit-Wert** (aus `geoBoundary.geometry` + aktueller Kartenprojektion
+abgeleitet) — nicht persistiert. `geoBoundary` selbst (Region + Polygon)
+wird wie bisher im Projekt gespeichert.
+
+### Abhängigkeiten
+Keine neuen Pakete — `composeMaskSvg`/`composeFrameSvg`, der Editor-Store und
+die MapLibre-Projektion sind alle bereits vorhanden.
+
+### Risiken
+- **Performance** der Pro-Frame-Neuprojektion (siehe Trade-off oben) — über
+  Drosselung beherrschbar.
+- **Editor-Vorschau vs. Export** müssen exakt dieselbe Projektion verwenden,
+  sonst weicht der Druck ab — der Export rendert die Karte headless mit eigener
+  Größe, die Projektion muss auf dessen Viewport gerechnet werden.
+- Empfehlung: Umsetzung mit **stabiler Verbindung und direkter Browser-Sicht**
+  — das Live-Debugging eines Masken-Renderings über einen reinen Chat-Kanal
+  hat sich als untauglich erwiesen.
 
 ## QA Test Results
 _To be added by /qa_

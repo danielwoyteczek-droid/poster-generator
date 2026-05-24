@@ -248,7 +248,10 @@ export function MapTab() {
     (MAP_MASKS as Record<string, typeof MAP_MASKS['none']>)[maskKey] ??
     customMasks.find((m) => m.key === maskKey) ??
     MAP_MASKS.none
-  const shapeSupported = !!currentMask.shape
+  // PROJ-51: the geo-boundary mask has no fixed `shape`, but its live-projected
+  // polygon runs through the same composer — so it supports Formkontur +
+  // Außenbereich just like the shape masks.
+  const shapeSupported = !!currentMask.shape || maskKey === 'geo-boundary'
   const [masksExpanded, setMasksExpanded] = useState(false)
   // PROJ-51: "Grenzen" map shape — opens the region search dialog.
   const isGeoBoundary = maskKey === 'geo-boundary'

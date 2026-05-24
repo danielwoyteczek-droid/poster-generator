@@ -15,7 +15,8 @@ import { resolveFontSizePx } from '@/lib/font-scale'
 import { resolvePinSizePx } from '@/lib/pin-scale'
 import { applyWatermark, type WatermarkOptions } from '@/lib/watermark'
 import { getPalette, type MapPaletteColors } from '@/lib/map-palettes'
-import { buildInverseMaskPolygon, type GeoBoundaryGeometry, type GeoBoundary } from '@/lib/geo-boundaries'
+import { type GeoBoundary } from '@/lib/geo-boundaries'
+import { useGeoShape } from '@/hooks/useGeoShape'
 import { fetchDecorationSvgText, recolorSvg, svgTextToDataUrl } from '@/lib/decoration-color'
 import { wrapTextToWidth } from '@/lib/text-wrap'
 import type { PhotoItem, SplitPhoto } from '@/hooks/useEditorStore'
@@ -268,7 +269,6 @@ async function renderMapOffscreen({
   streetLabelsVisible,
   placeLabelsVisible,
   locale,
-  geoOverlay,
 }: {
   styleId: string
   vs: ViewState
@@ -282,15 +282,6 @@ async function renderMapOffscreen({
   streetLabelsVisible?: boolean
   placeLabelsVisible?: boolean
   locale?: string
-  /** PROJ-51: when set, bake the geo-boundary over-mask + contour into the
-   *  offscreen render so the export matches the editor preview pixel for
-   *  pixel. Only the single-map path passes this. `outer` mirrors the
-   *  shapeConfig outer-area mode (Leer / Faded / Leuchten / Voll). */
-  geoOverlay?: {
-    geometry: GeoBoundaryGeometry
-    bgColor: string
-    outer: { mode: string; opacity: number; glowRadius?: number; glowIntensity?: number }
-  } | null
 }): Promise<{ canvas: HTMLCanvasElement; bounds: ViewState['bounds'] }> {
   const maptilersdk = await import('@maptiler/sdk')
   const apiKey = process.env.NEXT_PUBLIC_MAPTILER_API_KEY!
@@ -340,64 +331,6 @@ async function renderMapOffscreen({
 
     map.resize()
     await waitForMapStable(map)
-
-    // PROJ-51: bake the geo-boundary over-mask + contour into the offscreen
-    // map so the export carries the exact same form as the editor preview.
-    if (geoOverlay) {
-      try {
-        map.addSource('geo-export-overmask-src', {
-          type: 'geojson',
-          data: {
-            type: 'Feature',
-            properties: {},
-            geometry: buildInverseMaskPolygon(geoOverlay.geometry),
-          },
-        })
-        map.addSource('geo-export-region-src', {
-          type: 'geojson',
-          data: { type: 'Feature', properties: {}, geometry: geoOverlay.geometry },
-        })
-        // Outer-area treatment — mirrors MapPreviewInner exactly.
-        const gMode = geoOverlay.outer.mode
-        if (gMode !== 'full') {
-          const fillOpacity = gMode === 'opacity'
-            ? Math.max(0, Math.min(1, 1 - geoOverlay.outer.opacity))
-            : 1
-          map.addLayer({
-            id: 'geo-export-overmask',
-            type: 'fill',
-            source: 'geo-export-overmask-src',
-            paint: { 'fill-color': geoOverlay.bgColor, 'fill-antialias': true, 'fill-opacity': fillOpacity },
-          })
-        }
-        if (gMode === 'glow') {
-          const radius = geoOverlay.outer.glowRadius ?? 250
-          const intensity = geoOverlay.outer.glowIntensity ?? 0.5
-          map.addLayer({
-            id: 'geo-export-glow',
-            type: 'line',
-            source: 'geo-export-region-src',
-            layout: { 'line-join': 'round' },
-            paint: {
-              'line-color': geoOverlay.bgColor,
-              'line-width': radius / 7,
-              'line-blur': radius / 9,
-              'line-opacity': intensity,
-            },
-          })
-        }
-        map.addLayer({
-          id: 'geo-export-contour',
-          type: 'line',
-          source: 'geo-export-region-src',
-          layout: { 'line-join': 'round' },
-          paint: { 'line-color': '#22272e', 'line-width': 1.6 },
-        })
-        await waitForMapStable(map)
-      } catch {
-        // A broken geometry shouldn't abort the whole export.
-      }
-    }
 
     // iOS Safari WebGL quirk: by the time we reach getCanvas() the framebuffer
     // may already have been cleared for compositing, even with
@@ -526,7 +459,13 @@ export async function buildPosterCanvas(
   const H = fmt.heightPx
 
   const { viewState, styleId, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName } = store
-  const mask = (await resolveMask(maskKey)) ?? MAP_MASKS.none
+  const resolvedMask = (await resolveMask(maskKey)) ?? MAP_MASKS.none
+  // PROJ-51: the geo-boundary mask reuses the editor's live-projected shape
+  // (useGeoShape) — it is in normalised A4-viewBox coordinates, so it renders
+  // identically at print resolution. Splicing it in lets the same composer
+  // path (applyComposedMask + frame) handle geo exactly like a shape mask.
+  const geoShape = maskKey === 'geo-boundary' ? useGeoShape.getState().shape : null
+  const mask = geoShape ? { ...resolvedMask, shape: geoShape } : resolvedMask
   const splitMode = store.splitMode ?? (secondMap.enabled ? 'second-map' : 'none')
   const splitPhoto = store.splitPhoto ?? null
   const splitPhotoZone = store.splitPhotoZone ?? 1
@@ -544,7 +483,10 @@ export async function buildPosterCanvas(
   // Plain rectangles crop the map container directly; shapes keep the
   // container at full poster size and scale the shape SVG itself inside.
   const layoutFactor = isPlainRectangle ? rawLayoutFactor : 1.0
-  const layoutMapHeightForShape = mask.shape ? rawLayoutFactor : 1.0
+  // PROJ-51: geo's shape is already projected 1:1 onto the viewport — the
+  // composer must not shrink it for text layouts (pass 1, like the editor).
+  const layoutMapHeightForShape =
+    mask.shape && maskKey !== 'geo-boundary' ? rawLayoutFactor : 1.0
   const mmToPx = W / fmt.widthMm
   const marginPx = Math.max(0, (store.innerMarginMm ?? 0) * mmToPx)
   const mapTargetX = marginPx
@@ -738,22 +680,7 @@ export async function buildPosterCanvas(
     await drawSplitPhoto(photoCtx, splitPhoto, photoSideSvg, W, H)
     drawHalf(photoCanvas, photoHalfRect)
   } else {
-    const geoOverlay =
-      store.maskKey === 'geo-boundary' && store.geoBoundary
-        ? {
-            geometry: store.geoBoundary.geometry,
-            bgColor: store.posterDarkMode
-              ? (store.customPalette?.background ?? getPalette(store.paletteId ?? '')?.colors.background ?? '#ffffff')
-              : '#ffffff',
-            outer: {
-              mode: store.shapeConfig?.outer.mode ?? 'none',
-              opacity: store.shapeConfig?.outer.opacity ?? 1,
-              glowRadius: store.shapeConfig?.outer.glowRadius,
-              glowIntensity: store.shapeConfig?.outer.glowIntensity,
-            },
-          }
-        : null
-    const mainRender = await renderMapOffscreen({ styleId, vs: viewState, previewW, previewH, outputW: W, outputH: H, paletteId: store.paletteId, customPaletteBase: store.customPaletteBase, customPalette: store.customPalette, streetLabelsVisible: store.streetLabelsVisible, placeLabelsVisible: store.placeLabelsVisible, locale: store.locale, geoOverlay })
+    const mainRender = await renderMapOffscreen({ styleId, vs: viewState, previewW, previewH, outputW: W, outputH: H, paletteId: store.paletteId, customPaletteBase: store.customPaletteBase, customPalette: store.customPalette, streetLabelsVisible: store.streetLabelsVisible, placeLabelsVisible: store.placeLabelsVisible, locale: store.locale })
     let mapCanvas = mainRender.canvas
     renderedBounds = mainRender.bounds
     if (mask.shape) {

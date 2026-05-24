@@ -4,6 +4,7 @@ import { useRef, useEffect, useState } from 'react'
 import { Plus, Minus, LocateFixed } from 'lucide-react'
 import { useEditorStore, LAYOUT_MAP_HEIGHT } from '@/hooks/useEditorStore'
 import { useCustomMasks } from '@/hooks/useCustomMasks'
+import { useGeoShape } from '@/hooks/useGeoShape'
 import { MAP_MASKS } from '@/lib/map-masks'
 import { getPalette } from '@/lib/map-palettes'
 import { composeMaskSvg, composeFrameSvg, composeFullbleedMaskSvg, composeSplitSeamSvg, composeSplitMaskHalfSvg, svgToDataUrl, hasAnyFrame, shapeBoundsFraction } from '@/lib/mask-composer'
@@ -98,10 +99,20 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
   const { maskKey, printFormat, orientation, zoomIn, zoomOut, flyToLocation, zoomInSecond, zoomOutSecond, secondMap, marker, secondMarker, shapeConfig, viewState, setMarker, setSecondMarker, setSelectedBlockId, splitMode, splitPhoto, splitPhotoZone, layoutId, innerMarginMm, paletteId, customPalette, posterDarkMode, decorationSvgUrl, decorationVisible, gridVisible, activeSplitMap, setActiveSplitMap } = useEditorStore()
   const mapAreaRef = useRef<HTMLDivElement>(null)
   const { masks: customMasks } = useCustomMasks()
-  const mask =
+  const baseMask =
     (MAP_MASKS as Record<string, typeof MAP_MASKS['none']>)[maskKey] ??
     customMasks.find((m) => m.key === maskKey) ??
     MAP_MASKS.none
+  // PROJ-51: the geo-boundary mask has no fixed silhouette — its shape is the
+  // region polygon, live-projected to the viewport by MapPreviewInner and
+  // published via useGeoShape. Splicing it in as `mask.shape` lets the whole
+  // existing composer pipeline (mask + outer area + Formkontur) treat it like
+  // any other shape mask.
+  const geoShape = useGeoShape((s) => s.shape)
+  const mask =
+    maskKey === 'geo-boundary' && geoShape
+      ? { ...baseMask, shape: geoShape }
+      : baseMask
   const format = PRINT_FORMATS[printFormat]
   const dims = effectiveDimensions(format, orientation)
   const ratio = dims.widthMm / dims.heightMm
@@ -165,8 +176,12 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
     : null
   const useComposedMask = !!mask.shape && !isDualMap && !isSplitPhoto
   const layoutMapHeight = LAYOUT_MAP_HEIGHT[layoutId]
+  // PROJ-51: the geo shape is already projected 1:1 onto the map viewport, so
+  // the composer must NOT shrink it for text layouts — pass 1 (full) so the
+  // fit/scale step stays an identity and mask + map stay aligned.
+  const composerLayoutHeight = maskKey === 'geo-boundary' ? 1 : layoutMapHeight
   const composedMaskSvgString = useComposedMask && mask.shape
-    ? composeMaskSvg(mask.shape, shapeConfig, layoutMapHeight, orientation)
+    ? composeMaskSvg(mask.shape, shapeConfig, composerLayoutHeight, orientation)
     : null
   // Glow mode uses <radialGradient>, which Chromium doesn't always
   // rasterise from a CSS mask-image SVG data URL. Render those masks
@@ -189,7 +204,7 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
   // has the inner frame stroke disabled (the colour value is the source).
   const coloredDecorationUrl = useColoredDecoration(decorationSvgUrl, shapeConfig.innerFrame.color)
   const composedFrameDataUrl = useComposedMask && mask.shape && hasAnyFrame(shapeConfig)
-    ? svgToDataUrl(composeFrameSvg(mask.shape, shapeConfig, layoutMapHeight, 210, orientation))
+    ? svgToDataUrl(composeFrameSvg(mask.shape, shapeConfig, composerLayoutHeight, 210, orientation))
     : null
 
   // Fullbleed (no shape, no split) with outer.mode != 'none' and a margin > 0:

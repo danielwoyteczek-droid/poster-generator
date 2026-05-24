@@ -8,20 +8,12 @@ import { useEditorStore } from '@/hooks/useEditorStore'
 import type { ViewState } from '@/hooks/useEditorStore'
 import { setMapInstance } from '@/hooks/useMapInstance'
 import { buildPetiteStyle } from '@/lib/petite-style-loader'
-import { getPalette } from '@/lib/map-palettes'
-import { buildInverseMaskPolygon, type GeoBoundaryGeometry } from '@/lib/geo-boundaries'
+import { buildGeoShapeDefinition } from '@/lib/geo-shape'
+import { useGeoShape } from '@/hooks/useGeoShape'
 
 interface MapPreviewInnerProps {
   storeSlice?: 'primary' | 'secondary'
 }
-
-// PROJ-51: ids for the geo-boundary map layers. The "overmask" fill paints
-// everything OUTSIDE the region in the poster background colour; the contour
-// line traces the border.
-const GEO_OVERMASK_SRC = 'geo-boundary-overmask-src'
-const GEO_REGION_SRC = 'geo-boundary-region-src'
-const GEO_OVERMASK_LAYER = 'geo-boundary-overmask'
-const GEO_CONTOUR_LAYER = 'geo-boundary-contour'
 
 export default function MapPreviewInner({ storeSlice = 'primary' }: MapPreviewInnerProps) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -36,17 +28,13 @@ export default function MapPreviewInner({ storeSlice = 'primary' }: MapPreviewIn
   const customPalette = storeSlice === 'primary' ? store.customPalette : store.secondMap.customPalette
   const streetLabelsVisible = store.streetLabelsVisible
   const placeLabelsVisible = store.placeLabelsVisible
-  // PROJ-51: geo-boundary mask state (primary slice only — it's a single-map
-  // shape). geoBgColor must match the poster card so the over-painted area
-  // outside the region blends seamlessly.
+  // PROJ-51: geo-boundary state (primary slice only — it's a single-map shape).
   const maskKey = store.maskKey
   const geoBoundary = store.geoBoundary
-  const posterDarkMode = store.posterDarkMode
+  const orientation = store.orientation
   const pendingFitBounds = store.pendingFitBounds
   const clearPendingFitBounds = store.clearPendingFitBounds
-  const geoBgColor = posterDarkMode
-    ? (customPalette?.background ?? getPalette(paletteId)?.colors.background ?? '#ffffff')
-    : '#ffffff'
+  const setGeoShape = useGeoShape((s) => s.setShape)
   const locale = useLocale()
   const pendingCenter = storeSlice === 'primary' ? store.pendingCenter : store.secondMap.pendingCenter
   const pendingZoomDelta = storeSlice === 'primary' ? store.pendingZoomDelta : store.secondMap.pendingZoomDelta
@@ -63,27 +51,11 @@ export default function MapPreviewInner({ storeSlice = 'primary' }: MapPreviewIn
   const clearZoomDeltaRef = useRef(clearZoomDelta)
   const clearPendingFitBoundsRef = useRef(clearPendingFitBounds)
   const streetLabelsRef = useRef(streetLabelsVisible)
-  // PROJ-51: id of the geo-boundary region whose geometry is currently loaded
-  // into the map sources. Lets sync() skip the (expensive, worker-reparsing)
-  // setData() call when only paint values changed — that re-parse blanked the
-  // layer for a frame and made the mask flicker on every slider tick.
-  const geoRegionRef = useRef<string>('')
   useEffect(() => { setViewStateRef.current = setViewState }, [setViewState])
   useEffect(() => { clearPendingCenterRef.current = clearPendingCenter }, [clearPendingCenter])
   useEffect(() => { clearZoomDeltaRef.current = clearZoomDelta }, [clearZoomDelta])
   useEffect(() => { clearPendingFitBoundsRef.current = clearPendingFitBounds }, [clearPendingFitBounds])
   useEffect(() => { streetLabelsRef.current = streetLabelsVisible }, [streetLabelsVisible])
-
-  // PROJ-51: current geo-boundary layer config + a handle to the apply fn.
-  // The fn is created inside the map-init effect (it closes over the live
-  // map); the geoRef carries the latest store values into it, and the sync
-  // effect below pokes it whenever they change.
-  const geoRef = useRef<{ active: boolean; geometry: GeoBoundaryGeometry | null; bgColor: string }>({
-    active: false,
-    geometry: null,
-    bgColor: '#ffffff',
-  })
-  const applyGeoBoundaryRef = useRef<(() => void) | null>(null)
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return
@@ -156,55 +128,8 @@ export default function MapPreviewInner({ storeSlice = 'primary' }: MapPreviewIn
       }
     }
 
-    // PROJ-51: (re)apply the geo-boundary layers. Called after every style
-    // swap (setStyle wipes custom sources/layers) and whenever the selected
-    // region changes. geo-boundary is a single-map shape — secondary slice
-    // never renders it.
-    const applyGeoBoundary = () => {
-      const m = mapRef.current
-      if (!m || storeSlice !== 'primary' || !m.isStyleLoaded()) return
-      // Remove any previous geo layers/sources first so this is idempotent.
-      try {
-        if (m.getLayer(GEO_CONTOUR_LAYER)) m.removeLayer(GEO_CONTOUR_LAYER)
-        if (m.getLayer(GEO_OVERMASK_LAYER)) m.removeLayer(GEO_OVERMASK_LAYER)
-        if (m.getSource(GEO_REGION_SRC)) m.removeSource(GEO_REGION_SRC)
-        if (m.getSource(GEO_OVERMASK_SRC)) m.removeSource(GEO_OVERMASK_SRC)
-      } catch { /* style swapped mid-call */ }
-      const cfg = geoRef.current
-      if (!cfg.active || !cfg.geometry) return
-      try {
-        type AddSourceArg = Parameters<typeof m.addSource>[1]
-        m.addSource(GEO_OVERMASK_SRC, {
-          type: 'geojson',
-          data: { type: 'Feature', properties: {}, geometry: buildInverseMaskPolygon(cfg.geometry) },
-        } as AddSourceArg)
-        m.addSource(GEO_REGION_SRC, {
-          type: 'geojson',
-          data: { type: 'Feature', properties: {}, geometry: cfg.geometry },
-        } as AddSourceArg)
-        // Overmask: paints everything OUTSIDE the region in the poster
-        // background colour, so only the region shows the map.
-        m.addLayer({
-          id: GEO_OVERMASK_LAYER,
-          type: 'fill',
-          source: GEO_OVERMASK_SRC,
-          paint: { 'fill-color': cfg.bgColor, 'fill-opacity': 1 },
-        })
-        // Contour: traces the region border — the automatic "Formkontur".
-        m.addLayer({
-          id: GEO_CONTOUR_LAYER,
-          type: 'line',
-          source: GEO_REGION_SRC,
-          layout: { 'line-join': 'round' },
-          paint: { 'line-color': '#1a1a1a', 'line-width': 1.4 },
-        })
-      } catch { /* style swapped mid-call */ }
-    }
-    applyGeoBoundaryRef.current = applyGeoBoundary
-
-    map.on('load', () => { map.resize(); emit(); applyStreetLabels(); applyGeoBoundary() })
+    map.on('load', () => { map.resize(); emit(); applyStreetLabels() })
     map.on('styledata', applyStreetLabels)
-    map.on('styledata', applyGeoBoundary)
     map.on('moveend', emit)
     map.on('zoomend', emit)
 
@@ -311,106 +236,57 @@ export default function MapPreviewInner({ storeSlice = 'primary' }: MapPreviewIn
     }
   }, [placeLabelsVisible])
 
-  // PROJ-51: geo-boundary layers — an "overmask" fill that paints everything
-  // OUTSIDE the region in the poster background colour, plus a contour line
-  // tracing the border. The outer area is always fully masked.
+  // PROJ-51: project the geo-boundary polygon into a `ShapeDefinition` and
+  // publish it via the geo-shape store. PosterCanvas then runs it through the
+  // same SVG-mask pipeline as the heart/circle masks (`composeMaskSvg` /
+  // `composeFrameSvg`) — so outer-area modes and the Formkontur work for free.
   //
-  // NOTE: the outer-area modes (Verblassen / Leuchten / Posterrand) and a
-  // customisable Formkontur are NOT implemented for geo-masks — see the
-  // feature spec. They need the SVG-mask pipeline (like the shape masks),
-  // not these MapLibre layers; that is a separate, dedicated task.
-  //
-  // Two sources + two layers, created once and kept. Geometry is only
-  // re-uploaded on a real region change. After setStyle() (palette / map-style
-  // swap) wipes the style, the `idle` handler re-creates them. Only the
-  // primary map carries a geo-boundary.
+  // Re-projected on every map `move` (rAF-throttled) so the form tracks the
+  // map. Only the primary map carries a geo-boundary.
   useEffect(() => {
     if (storeSlice !== 'primary') return
     const map = mapRef.current
     if (!map) return
 
     const active = maskKey === 'geo-boundary' && !!geoBoundary
-
-    type GeoJsonSource = { setData: (data: unknown) => void }
-
-    const removeGeo = () => {
-      for (const id of [GEO_CONTOUR_LAYER, GEO_OVERMASK_LAYER]) {
-        if (map.getLayer(id)) map.removeLayer(id)
-      }
-      for (const id of [GEO_OVERMASK_SRC, GEO_REGION_SRC]) {
-        if (map.getSource(id)) map.removeSource(id)
-      }
+    if (!active || !geoBoundary) {
+      setGeoShape(null)
+      return
     }
 
-    const sync = () => {
+    let raf: number | null = null
+    const project = () => {
+      raf = null
       try {
-        if (!active || !geoBoundary) { removeGeo(); geoRegionRef.current = ''; return }
-
-        // Geometry is only (re)uploaded when a source is missing (first run /
-        // after a style swap) or the region itself changed.
-        const regionChanged = geoBoundary.id !== geoRegionRef.current
-        const overmaskSrc = map.getSource(GEO_OVERMASK_SRC) as GeoJsonSource | undefined
-        const regionSrc = map.getSource(GEO_REGION_SRC) as GeoJsonSource | undefined
-        if (!overmaskSrc || !regionSrc || regionChanged) {
-          const inverse = {
-            type: 'Feature' as const, properties: {},
-            geometry: buildInverseMaskPolygon(geoBoundary.geometry),
-          }
-          const region = {
-            type: 'Feature' as const, properties: {},
-            geometry: geoBoundary.geometry,
-          }
-          if (!overmaskSrc) {
-            map.addSource(GEO_OVERMASK_SRC, { type: 'geojson', data: inverse } as Parameters<typeof map.addSource>[1])
-          } else if (regionChanged) {
-            overmaskSrc.setData(inverse)
-          }
-          if (!regionSrc) {
-            map.addSource(GEO_REGION_SRC, { type: 'geojson', data: region } as Parameters<typeof map.addSource>[1])
-          } else if (regionChanged) {
-            regionSrc.setData(region)
-          }
-        }
-        geoRegionRef.current = geoBoundary.id
-
-        // Layers — overmask (outside fully over-painted) then contour.
-        if (!map.getLayer(GEO_OVERMASK_LAYER)) {
-          map.addLayer({
-            id: GEO_OVERMASK_LAYER, type: 'fill', source: GEO_OVERMASK_SRC,
-            paint: { 'fill-antialias': true, 'fill-color': geoBgColor },
-          })
-        }
-        if (!map.getLayer(GEO_CONTOUR_LAYER)) {
-          map.addLayer({
-            id: GEO_CONTOUR_LAYER, type: 'line', source: GEO_REGION_SRC,
-            layout: { 'line-join': 'round' },
-            paint: { 'line-color': '#22272e', 'line-width': 1.6 },
-          })
-        }
-        // Keep the over-paint colour in sync with the poster background.
-        if (map.getLayer(GEO_OVERMASK_LAYER)) {
-          map.setPaintProperty(GEO_OVERMASK_LAYER, 'fill-color', geoBgColor)
-        }
+        const container = map.getContainer()
+        const shape = buildGeoShapeDefinition(
+          geoBoundary.geometry,
+          (lngLat) => {
+            const p = map.project(lngLat)
+            return { x: p.x, y: p.y }
+          },
+          container.clientWidth,
+          container.clientHeight,
+          orientation,
+        )
+        setGeoShape(shape)
       } catch (e) {
-        console.error('[geo] sync error:', e)
+        console.error('[geo] projection error:', e)
       }
     }
-
-    sync()
-
-    // setStyle() (palette / map-style swap) wipes every source + layer. Once
-    // the new style settles (`idle`), re-create the geo layers if they're
-    // gone. `idle` only — never `styledata`, which our own addLayer calls
-    // fire synchronously and would re-enter this in a loop.
-    const onIdle = () => {
-      const present = !!map.getLayer(GEO_CONTOUR_LAYER)
-      if ((active && !present) || (!active && present)) sync()
+    const schedule = () => {
+      if (raf == null) raf = requestAnimationFrame(project)
     }
-    map.on('idle', onIdle)
+
+    project()
+    map.on('move', schedule)
+    map.on('resize', schedule)
     return () => {
-      map.off('idle', onIdle)
+      map.off('move', schedule)
+      map.off('resize', schedule)
+      if (raf != null) cancelAnimationFrame(raf)
     }
-  }, [storeSlice, maskKey, geoBoundary, geoBgColor])
+  }, [storeSlice, maskKey, geoBoundary, orientation, setGeoShape])
 
   // PROJ-51: auto-frame a freshly picked region by fitting its bounding box.
   useEffect(() => {
@@ -447,18 +323,6 @@ export default function MapPreviewInner({ storeSlice = 'primary' }: MapPreviewIn
     else mapRef.current.zoomOut()
     clearZoomDeltaRef.current()
   }, [pendingZoomDelta])
-
-  // PROJ-51: keep the geo-boundary layers in sync with the editor store.
-  // The 'styledata' binding above re-applies them after style swaps; this
-  // effect handles region selection / removal / palette (bg colour) changes.
-  useEffect(() => {
-    geoRef.current = {
-      active: storeSlice === 'primary' && maskKey === 'geo-boundary' && !!geoBoundary,
-      geometry: geoBoundary?.geometry ?? null,
-      bgColor: geoBgColor,
-    }
-    applyGeoBoundaryRef.current?.()
-  }, [storeSlice, maskKey, geoBoundary, geoBgColor])
 
   // PROJ-51: auto-frame a freshly-selected region's bounding box. Cleared
   // straight after so panning/zooming afterwards isn't overridden.
