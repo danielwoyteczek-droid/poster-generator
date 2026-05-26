@@ -324,11 +324,24 @@ export function useProjectSync(posterType: PosterType = 'map') {
     return () => { subs.forEach((u) => u()) }
   }, [posterType])
 
+  // Guest: restore from per-type localStorage on mount.
+  useEffect(() => {
+    if (user) return
+    try {
+      const raw = localStorage.getItem(LS_KEYS[posterType])
+      if (raw) {
+        const config = JSON.parse(raw) as Record<string, unknown>
+        applyConfig(posterType, config)
+      }
+    } catch { /* ignore */ }
+  }, [posterType]) // eslint-disable-line react-hooks/exhaustive-deps
+
   // Per-poster-type fresh-session title default. The base default 'NEW YORK'
   // lives in useEditorStore and only makes sense for the Map editor — on the
-  // Star-Map a romantic generic title fits better. Runs once on mount and
-  // skips when a project is already loaded or the customer has edited the
-  // title, so it never clobbers saved data or in-progress drafts.
+  // Star-Map a romantic generic title fits better. Runs AFTER the guest
+  // restore above so we also catch drafts that captured the old 'NEW YORK'
+  // default before this override existed. Only the literal default string
+  // is replaced, so customer-edited titles stay intact.
   useEffect(() => {
     if (posterType !== 'star-map') return
     const state = useEditorStore.getState()
@@ -342,18 +355,6 @@ export function useProjectSync(posterType: PosterType = 'map') {
       }))
     }
   }, [posterType])
-
-  // Guest: restore from per-type localStorage on mount.
-  useEffect(() => {
-    if (user) return
-    try {
-      const raw = localStorage.getItem(LS_KEYS[posterType])
-      if (raw) {
-        const config = JSON.parse(raw) as Record<string, unknown>
-        applyConfig(posterType, config)
-      }
-    } catch { /* ignore */ }
-  }, [posterType]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Guest: auto-save to per-type localStorage (debounce 1s).
   useEffect(() => {
