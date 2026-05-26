@@ -264,6 +264,8 @@ export interface EditorStore {
   setShapeOuter: (updates: Partial<ShapeConfigState['outer']>) => void
   setInnerFrame: (updates: Partial<ShapeConfigState['innerFrame']>) => void
   setOuterFrame: (updates: Partial<ShapeConfigState['outerFrame']>) => void
+  setDecoLine: (updates: Partial<NonNullable<ShapeConfigState['decoLine']>>) => void
+  setDecoLine2: (updates: Partial<NonNullable<ShapeConfigState['decoLine2']>>) => void
   setLayoutId: (id: PosterLayoutId) => void
   setInnerMarginMm: (mm: number) => void
 
@@ -526,6 +528,8 @@ export const useEditorStore = create<EditorStore>((set) => ({
   setShapeOuter: (updates) => set((s) => ({ shapeConfig: { ...s.shapeConfig, outer: { ...s.shapeConfig.outer, ...updates } } })),
   setInnerFrame: (updates) => set((s) => ({ shapeConfig: { ...s.shapeConfig, innerFrame: { ...s.shapeConfig.innerFrame, ...updates } } })),
   setOuterFrame: (updates) => set((s) => ({ shapeConfig: { ...s.shapeConfig, outerFrame: { ...s.shapeConfig.outerFrame, ...updates } } })),
+  setDecoLine: (updates) => set((s) => ({ shapeConfig: { ...s.shapeConfig, decoLine: { ...(s.shapeConfig.decoLine ?? { enabled: false, y: 0.62, lengthMm: 60, thicknessMm: 0.5, color: '#1a1a1a' }), ...updates } } })),
+  setDecoLine2: (updates) => set((s) => ({ shapeConfig: { ...s.shapeConfig, decoLine2: { ...(s.shapeConfig.decoLine2 ?? { enabled: false, y: 0.72, lengthMm: 60, thicknessMm: 0.5, color: '#1a1a1a' }), ...updates } } })),
   setLayoutId: (id) => set((s) => {
     // Layout is top-level. Changing it resets Formkontur (innerMarginMm) and
     // the decorative Rand so the new layout's visual change is immediately

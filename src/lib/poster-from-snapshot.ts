@@ -137,6 +137,7 @@ async function renderStarMapCanvas(format: PrintFormat, snapshot: Record<string,
     skyTextureOpacity: s.textureOpacity,
     skyMaskImage,
     printFormat: format,
+    maskKey: s.maskKey,
   })
 
   const displayTexts: Record<string, string> = {}

@@ -941,6 +941,12 @@ export function MapTab() {
             />
           </div>
         )}
+
+        {/* Horizontal decoration line (admin-only) — single divider/accent
+            line. Mirrors the same control in the star-map editor. */}
+        {isAdmin && (
+          <DecoLineAdminControls />
+        )}
       </div>
 
       <Separator />
@@ -1431,6 +1437,82 @@ export function MapTab() {
       </Dialog>
 
     </div>
+  )
+}
+
+// ─── Horizontal decoration lines (admin) ──────────────────────────────────────
+// Two independent accent/divider lines, each with position + length +
+// thickness + color. Live on shapeConfig.decoLine and shapeConfig.decoLine2.
+// Hidden entirely for non-admins (the parent gates with isAdmin).
+const DECO_LINE_FALLBACK_1 = { enabled: false, y: 0.62, lengthMm: 60, thicknessMm: 0.5, color: '#1a1a1a' }
+const DECO_LINE_FALLBACK_2 = { enabled: false, y: 0.72, lengthMm: 60, thicknessMm: 0.5, color: '#1a1a1a' }
+
+function DecoLineAdminControls() {
+  const { shapeConfig, setDecoLine, setDecoLine2 } = useEditorStore()
+  const slots = [
+    { label: 'Deko-Linie 1', line: shapeConfig.decoLine ?? DECO_LINE_FALLBACK_1, setter: setDecoLine },
+    { label: 'Deko-Linie 2', line: shapeConfig.decoLine2 ?? DECO_LINE_FALLBACK_2, setter: setDecoLine2 },
+  ]
+  return (
+    <>
+      {slots.map(({ label, line, setter }) => (
+        <div key={label} className="space-y-2 pt-3 border-t border-border">
+          <div className="flex items-center justify-between">
+            <Label className="text-xs font-medium text-foreground/70">{label} <span className="text-[9px] uppercase text-amber-600 ml-1">Admin</span></Label>
+            <Switch
+              checked={line.enabled}
+              onCheckedChange={(enabled) => setter({ enabled })}
+            />
+          </div>
+          {line.enabled && (
+            <div className="space-y-2 pl-1">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] text-muted-foreground">Farbe</span>
+                <input
+                  type="color"
+                  value={line.color}
+                  onChange={(e) => setter({ color: e.target.value })}
+                  className="w-6 h-6 rounded-full border border-border cursor-pointer p-0 overflow-hidden"
+                />
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-muted-foreground">Position</span>
+                  <span className="text-[11px] text-muted-foreground/70 tabular-nums">{Math.round(line.y * 100)}%</span>
+                </div>
+                <Slider
+                  min={0} max={1} step={0.01}
+                  value={[line.y]}
+                  onValueChange={([v]) => setter({ y: v })}
+                />
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-muted-foreground">Länge</span>
+                  <span className="text-[11px] text-muted-foreground/70 tabular-nums">{line.lengthMm} mm</span>
+                </div>
+                <Slider
+                  min={10} max={200} step={1}
+                  value={[line.lengthMm]}
+                  onValueChange={([v]) => setter({ lengthMm: v })}
+                />
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-muted-foreground">Stärke</span>
+                  <span className="text-[11px] text-muted-foreground/70 tabular-nums">{line.thicknessMm} mm</span>
+                </div>
+                <Slider
+                  min={0.2} max={3} step={0.1}
+                  value={[line.thicknessMm]}
+                  onValueChange={([v]) => setter({ thicknessMm: v })}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      ))}
+    </>
   )
 }
 

@@ -41,6 +41,29 @@ export interface ShapeConfigState {
     offset?: number   // mm, Abstand vom Poster-Rand (Default 10). Eigener Wert,
                       // damit der Rahmen nicht an `outer.margin` gekoppelt ist.
   }
+  /** Single horizontal decoration line — admin-only tool, mirrors the
+   *  star-map's `decoLine`. Useful as a divider/accent line between the
+   *  poster shape and the text block. Optional for back-compat with
+   *  serialised state from before this field existed. */
+  decoLine?: {
+    enabled: boolean
+    /** Vertical position as fraction of poster height (0 = top, 1 = bottom). */
+    y: number
+    /** Line length in mm, drawn centred horizontally. */
+    lengthMm: number
+    /** Stroke thickness in mm. */
+    thicknessMm: number
+    color: string
+  }
+  /** Second independent horizontal decoration line — same fields as
+   *  `decoLine`, fully independent. Optional for back-compat. */
+  decoLine2?: {
+    enabled: boolean
+    y: number
+    lengthMm: number
+    thicknessMm: number
+    color: string
+  }
 }
 
 export const DEFAULT_SHAPE_CONFIG: ShapeConfigState = {
@@ -53,6 +76,8 @@ export const DEFAULT_SHAPE_CONFIG: ShapeConfigState = {
   outer: { mode: 'none', opacity: 0.25, margin: 5, marginLocked: true, glowRadius: 250, glowIntensity: 0.4 },
   innerFrame: { enabled: false, color: '#1a1a1a', thickness: 0.7 },
   outerFrame: { enabled: false, color: '#1a1a1a', thickness: 0.7, style: 'single', gap: 1.5, offset: 10 },
+  decoLine: { enabled: false, y: 0.62, lengthMm: 60, thicknessMm: 0.5, color: '#1a1a1a' },
+  decoLine2: { enabled: false, y: 0.72, lengthMm: 60, thicknessMm: 0.5, color: '#1a1a1a' },
 }
 
 export interface ShapeDefinition {

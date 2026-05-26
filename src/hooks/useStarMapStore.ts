@@ -17,6 +17,12 @@ export interface StarMapFrameConfig {
     enabled: boolean
     color: string
     thickness: number // mm
+    /** Outward offset of the stroke in mm. 0 = stroke sits exactly on the
+     *  circle edge (legacy behaviour). > 0 = stroke is drawn at radius +
+     *  offset, leaving a transparent ring between circle and frame. Only
+     *  applies to the default circle silhouette — custom masks (PROJ-40)
+     *  ignore this so a complex outline doesn't need a parallel offset path. */
+    offset: number // mm
   }
   /** Stroke around the poster rectangle (uses outer.margin for positioning) */
   outerFrame: {
@@ -26,12 +32,36 @@ export interface StarMapFrameConfig {
     style: 'single' | 'double'
     gap: number    // mm between double lines
   }
+  /** Single horizontal decoration line — admin-only tool for divider/accent
+   *  lines between the circle and the title block, or under the coords. */
+  decoLine: {
+    enabled: boolean
+    /** Vertical position as fraction of poster height (0 = top, 1 = bottom). */
+    y: number
+    /** Line length in mm, drawn centred horizontally. */
+    lengthMm: number
+    /** Stroke thickness in mm. */
+    thicknessMm: number
+    color: string
+  }
+  /** Second independent horizontal decoration line — same shape as decoLine,
+   *  fully independent position/length/thickness/color. Optional so old
+   *  serialised state without this field still parses. */
+  decoLine2?: {
+    enabled: boolean
+    y: number
+    lengthMm: number
+    thicknessMm: number
+    color: string
+  }
 }
 
 export const DEFAULT_STAR_FRAME_CONFIG: StarMapFrameConfig = {
   outer: { mode: 'none', opacity: 0.3, margin: 10 },
-  innerFrame: { enabled: false, color: '#ffffff', thickness: 0.7 },
+  innerFrame: { enabled: false, color: '#1a1a1a', thickness: 0.7, offset: 3 },
   outerFrame: { enabled: false, color: '#1a1a1a', thickness: 0.7, style: 'single', gap: 1.5 },
+  decoLine: { enabled: false, y: 0.62, lengthMm: 60, thicknessMm: 0.5, color: '#1a1a1a' },
+  decoLine2: { enabled: false, y: 0.72, lengthMm: 60, thicknessMm: 0.5, color: '#1a1a1a' },
 }
 
 interface StarMapStore {
@@ -94,6 +124,8 @@ interface StarMapStore {
   setOuter: (updates: Partial<StarMapFrameConfig['outer']>) => void
   setInnerFrame: (updates: Partial<StarMapFrameConfig['innerFrame']>) => void
   setOuterFrame: (updates: Partial<StarMapFrameConfig['outerFrame']>) => void
+  setDecoLine: (updates: Partial<StarMapFrameConfig['decoLine']>) => void
+  setDecoLine2: (updates: Partial<NonNullable<StarMapFrameConfig['decoLine2']>>) => void
   setPreviewSize: (width: number, height: number) => void
 }
 
@@ -152,5 +184,7 @@ export const useStarMapStore = create<StarMapStore>((set) => ({
   setOuter: (updates) => set((s) => ({ frameConfig: { ...s.frameConfig, outer: { ...s.frameConfig.outer, ...updates } } })),
   setInnerFrame: (updates) => set((s) => ({ frameConfig: { ...s.frameConfig, innerFrame: { ...s.frameConfig.innerFrame, ...updates } } })),
   setOuterFrame: (updates) => set((s) => ({ frameConfig: { ...s.frameConfig, outerFrame: { ...s.frameConfig.outerFrame, ...updates } } })),
+  setDecoLine: (updates) => set((s) => ({ frameConfig: { ...s.frameConfig, decoLine: { ...s.frameConfig.decoLine, ...updates } } })),
+  setDecoLine2: (updates) => set((s) => ({ frameConfig: { ...s.frameConfig, decoLine2: { ...(s.frameConfig.decoLine2 ?? { enabled: false, y: 0.72, lengthMm: 60, thicknessMm: 0.5, color: '#1a1a1a' }), ...updates } } })),
   setPreviewSize: (previewWidth, previewHeight) => set({ previewWidth, previewHeight }),
 }))
