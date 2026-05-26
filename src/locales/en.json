@@ -116,6 +116,7 @@
     "textureNoneAria": "No texture",
     "textureOpacityLabel": "Visibility",
     "frameLabel": "Shape outline",
+    "frameOffsetLabel": "Offset",
     "colorLabel": "Color",
     "thicknessLabel": "Thickness",
     "starDensityLabel": "Star density",

@@ -715,6 +715,30 @@ export function PosterCanvas({ padding = 64, activeMobileTool }: PosterCanvasPro
                 it never interferes with map / text interaction. */}
             <GridOverlay visible={gridVisible} />
 
+            {/* Horizontal decoration lines — admin-only divider/accent.
+                Two independent slots (decoLine + decoLine2) so admins can
+                stack a primary + secondary line. Rendered before the text
+                overlay so text stays on top when they intersect. */}
+            {[shapeConfig.decoLine, shapeConfig.decoLine2].map((line, i) => {
+              if (!line?.enabled) return null
+              const lengthPx = line.lengthMm * mmToPx
+              const thicknessPx = line.thicknessMm * mmToPx
+              return (
+                <div
+                  key={i}
+                  className="absolute pointer-events-none"
+                  style={{
+                    left: '50%',
+                    top: `${line.y * 100}%`,
+                    width: lengthPx,
+                    height: thicknessPx,
+                    backgroundColor: line.color,
+                    transform: 'translate(-50%, -50%)',
+                  }}
+                />
+              )
+            })}
+
             {/* Text blocks overlay */}
             <TextBlockOverlay canvasWidth={logicalCanvas.width} interactive={textInteractive} />
           </div>

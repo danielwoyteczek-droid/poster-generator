@@ -116,6 +116,7 @@
     "textureNoneAria": "Sin textura",
     "textureOpacityLabel": "Visibilidad",
     "frameLabel": "Contorno de forma",
+    "frameOffsetLabel": "Distancia",
     "colorLabel": "Color",
     "thicknessLabel": "Grosor",
     "starDensityLabel": "Densidad de estrellas",

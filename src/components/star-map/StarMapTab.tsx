@@ -25,7 +25,7 @@ export function StarMapTab() {
     textureKey, textureOpacity,
     maskKey,
     setLocation, setDatetime, setPosterBgColor, setSkyBgColor, setStarColor,
-    setOuter, setInnerFrame, setOuterFrame,
+    setOuter, setInnerFrame, setOuterFrame, setDecoLine, setDecoLine2,
     setTextureKey, setTextureOpacity,
     setMaskKey,
   } = useStarMapStore()
@@ -310,6 +310,23 @@ export function StarMapTab() {
                 onValueChange={([v]) => setInnerFrame({ thickness: v })}
               />
             </div>
+            {/* Offset between circle edge and stroke. Only meaningful for
+                the canonical circle silhouette — custom masks (heart, house,
+                ...) would need a parallel offset path which we don't compute
+                today, so we hide the slider there. */}
+            {maskKey === 'circle' && (
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-muted-foreground">{t('frameOffsetLabel')}</span>
+                  <span className="text-[11px] text-muted-foreground/70 tabular-nums">{frameConfig.innerFrame.offset ?? 0} mm</span>
+                </div>
+                <Slider
+                  min={0} max={10} step={0.5}
+                  value={[frameConfig.innerFrame.offset ?? 0]}
+                  onValueChange={([v]) => setInnerFrame({ offset: v })}
+                />
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -439,6 +456,73 @@ export function StarMapTab() {
                 </div>
               )}
             </div>
+
+            {/* Horizontal decoration lines (admin-only) — two independent
+                slots so admins can stack a primary + secondary divider. */}
+            {([
+              { label: 'Deko-Linie 1', line: frameConfig.decoLine, setter: setDecoLine },
+              {
+                label: 'Deko-Linie 2',
+                line: frameConfig.decoLine2 ?? { enabled: false, y: 0.72, lengthMm: 60, thicknessMm: 0.5, color: '#1a1a1a' },
+                setter: setDecoLine2,
+              },
+            ] as const).map(({ label, line, setter }) => (
+              <div key={label} className="space-y-2 pt-2 border-t border-border">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-foreground/70">{label}</span>
+                  <Switch
+                    checked={line.enabled}
+                    onCheckedChange={(enabled) => setter({ enabled })}
+                  />
+                </div>
+                {line.enabled && (
+                  <div className="space-y-2 pl-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] text-muted-foreground">{t('colorLabel')}</span>
+                      <input
+                        type="color"
+                        value={line.color}
+                        onChange={(e) => setter({ color: e.target.value })}
+                        className="w-6 h-6 rounded-full border border-border cursor-pointer p-0 overflow-hidden"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] text-muted-foreground">Position</span>
+                        <span className="text-[11px] text-muted-foreground/70 tabular-nums">{Math.round(line.y * 100)}%</span>
+                      </div>
+                      <Slider
+                        min={0} max={1} step={0.01}
+                        value={[line.y]}
+                        onValueChange={([v]) => setter({ y: v })}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] text-muted-foreground">Länge</span>
+                        <span className="text-[11px] text-muted-foreground/70 tabular-nums">{line.lengthMm} mm</span>
+                      </div>
+                      <Slider
+                        min={10} max={200} step={1}
+                        value={[line.lengthMm]}
+                        onValueChange={([v]) => setter({ lengthMm: v })}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] text-muted-foreground">Stärke</span>
+                        <span className="text-[11px] text-muted-foreground/70 tabular-nums">{line.thicknessMm} mm</span>
+                      </div>
+                      <Slider
+                        min={0.2} max={3} step={0.1}
+                        value={[line.thicknessMm]}
+                        onValueChange={([v]) => setter({ thicknessMm: v })}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         </>
       )}

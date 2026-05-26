@@ -74,6 +74,13 @@ export interface StarMapRenderOptions {
    * been wired yet — defaults to no boost.
    */
   printFormat?: PrintFormat
+  /**
+   * Mask key the customer picked. Used so the configurable inner-frame
+   * stroke knows whether to draw (canonical circle only — arbitrary
+   * silhouettes don't have a straightforward parallel offset path).
+   * Defaults to 'circle' for back-compat with older snapshots/callers.
+   */
+  maskKey?: string
 }
 
 const DEG = Math.PI / 180
@@ -103,7 +110,9 @@ export function renderStarMap(ctx: CanvasRenderingContext2D, opts: StarMapRender
     skyTextureOpacity = 0.9,
     skyMaskImage,
     printFormat,
+    maskKey,
   } = opts
+  const isCircleMask = (maskKey ?? 'circle') === 'circle'
 
   // Magnitude cutoff derived from starDensity. Shifted upward in PROJ-40
   // because the silhouette mask geometry now projects stars onto a larger
@@ -129,12 +138,14 @@ export function renderStarMap(ctx: CanvasRenderingContext2D, opts: StarMapRender
   const cx = w / 2
   const cy = hasCustomMask ? h / 2 : w / 2
   // Pull the default sky circle in by 5 mm per edge (= 5 mm narrower margin
-  // on the left and right). Format-aware so the shrink stays a true 5 mm
-  // on A3/A2 instead of scaling with the page.
+  // on the left and right than the original 0.41-only geometry). Format-aware
+  // so the shrink stays a true 5 mm on A3/A2 instead of scaling with the
+  // page. circle.svg has been resized to match — keep them in sync if you
+  // change this value.
   const formatShortMm = printFormat === 'a2' ? 420 : printFormat === 'a3' ? 297 : 210
-  const fiveMmPx = 5 * (Math.min(w, h) / formatShortMm)
+  const shrinkPx = 5 * (Math.min(w, h) / formatShortMm)
   // Half-diagonal covers every poster pixel — the mask handles trimming.
-  const skyR = hasCustomMask ? Math.sqrt(w * w + h * h) / 2 : Math.min(w, h) * 0.41 - fiveMmPx
+  const skyR = hasCustomMask ? Math.sqrt(w * w + h * h) / 2 : Math.min(w, h) * 0.41 - shrinkPx
   const pxPerMm = w / 210
 
   // Poster background
@@ -388,10 +399,23 @@ export function renderStarMap(ctx: CanvasRenderingContext2D, opts: StarMapRender
   // compass labels, configurable inner frame) is skipped when a custom mask
   // is active — the customer sees the silhouette, not the circle.
 
+  // Visible-circle geometry for stroke purposes. When the mask SVG loaded
+  // we derive position + radius from circle.svg's `<circle cx=297.6 cy=297.6
+  // r=229.8>` in its 595.3×841.9 viewBox (drawImage stretched it across the
+  // canvas), otherwise we use the legacy renderer formula. The two formulas
+  // converge for portrait A-formats — circle.svg has been sized so its
+  // rendered radius matches `min*0.41 - 5 mm` exactly. Keep both in sync
+  // if circle.svg changes.
+  const visibleCx = w / 2
+  const visibleCy = hasCustomMask && isCircleMask ? h * (297.6 / 841.9) : w / 2
+  const visibleR = hasCustomMask && isCircleMask
+    ? Math.min(w, h) * (229.8 / 595.3)
+    : skyR
+
   // Default subtle sky-circle border — only shown when admin did NOT configure an inner frame
-  if (!hasCustomMask && !frameConfig?.innerFrame.enabled) {
+  if (isCircleMask && !frameConfig?.innerFrame.enabled) {
     ctx.beginPath()
-    ctx.arc(cx, cy, skyR, 0, Math.PI * 2)
+    ctx.arc(visibleCx, visibleCy, visibleR, 0, Math.PI * 2)
     ctx.strokeStyle = hexToRgba(starColor, 0.25)
     ctx.lineWidth = Math.max(1, w * 0.001)
     ctx.stroke()
@@ -414,9 +438,12 @@ export function renderStarMap(ctx: CanvasRenderingContext2D, opts: StarMapRender
 
   // Configurable frames (admin via presets)
   if (frameConfig) {
-    if (frameConfig.innerFrame.enabled && !hasCustomMask) {
+    if (frameConfig.innerFrame.enabled && isCircleMask) {
+      // Offset pushes the stroke outward from the circle edge; 0 sits flush.
+      // Falls back to 0 for back-compat with serialised state pre-offset.
+      const innerOffsetPx = (frameConfig.innerFrame.offset ?? 0) * pxPerMm
       ctx.beginPath()
-      ctx.arc(cx, cy, skyR, 0, Math.PI * 2)
+      ctx.arc(visibleCx, visibleCy, visibleR + innerOffsetPx, 0, Math.PI * 2)
       ctx.strokeStyle = frameConfig.innerFrame.color
       ctx.lineWidth = frameConfig.innerFrame.thickness * pxPerMm
       ctx.stroke()
@@ -434,6 +461,27 @@ export function renderStarMap(ctx: CanvasRenderingContext2D, opts: StarMapRender
           ctx.strokeRect(off, off, w - 2 * off, h - 2 * off)
         }
       }
+    }
+
+    // Horizontal decoration lines — admin-only divider/accent above the
+    // text block. Two independent slots so admins can stack a primary +
+    // secondary line (e.g. one under the location, one under the date).
+    // Both are optional for back-compat with older serialised state.
+    const decoLines = [frameConfig.decoLine, frameConfig.decoLine2]
+    for (const line of decoLines) {
+      if (!line?.enabled) continue
+      const lineY = h * line.y
+      const lineLenPx = line.lengthMm * pxPerMm
+      const lineThicknessPx = line.thicknessMm * pxPerMm
+      const x0 = w / 2 - lineLenPx / 2
+      const x1 = w / 2 + lineLenPx / 2
+      ctx.beginPath()
+      ctx.moveTo(x0, lineY)
+      ctx.lineTo(x1, lineY)
+      ctx.strokeStyle = line.color
+      ctx.lineWidth = lineThicknessPx
+      ctx.lineCap = 'butt'
+      ctx.stroke()
     }
   }
 }
