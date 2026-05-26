@@ -343,6 +343,7 @@
     "textStyle": "Stile",
     "textBold": "Grassetto",
     "textUppercase": "Maiuscolo",
+    "textLetterSpacing": "Spaziatura lettere",
     "textLock": "Blocca",
     "textUnlock": "Sblocca",
     "textDelete": "Elimina",

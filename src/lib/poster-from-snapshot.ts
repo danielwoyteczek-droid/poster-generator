@@ -43,6 +43,11 @@ function drawTextBlocks(
     const scaledFontSize = Math.max(8, Math.round(resolveFontSizePx(block, W)))
     const weight = block.bold ? 'bold' : 'normal'
     ctx.font = `${weight} ${scaledFontSize}px "${block.fontFamily}", sans-serif`
+    // Canvas 2D `letterSpacing` is supported in modern Chromium/Firefox/Safari
+    // (Chrome 99+, Firefox 112+, Safari 16.4+). Falls back silently when the
+    // browser doesn't support it. Em-relative input scaled by the rendered
+    // font size so the spacing tracks both format and zoom.
+    ctx.letterSpacing = `${(block.letterSpacingEm ?? 0) * scaledFontSize}px`
     ctx.fillStyle = block.color
     ctx.textAlign = block.align
     ctx.textBaseline = 'alphabetic'

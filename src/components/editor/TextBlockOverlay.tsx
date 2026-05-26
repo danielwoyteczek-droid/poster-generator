@@ -157,6 +157,7 @@ function BlockItem({ block, isSelected, overlayRef, displayText, interactive, ca
           textAlign: block.align,
           fontWeight: block.bold ? 'bold' : 'normal',
           textTransform: block.uppercase ? 'uppercase' : 'none',
+          letterSpacing: block.letterSpacingEm ? `${block.letterSpacingEm}em` : undefined,
           lineHeight: 1.2,
           whiteSpace: 'pre-wrap',
           wordBreak: 'break-word',

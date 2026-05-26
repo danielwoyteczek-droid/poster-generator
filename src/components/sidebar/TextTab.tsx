@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
+import { Slider } from '@/components/ui/slider'
 import { useEditorStore, type TextBlock } from '@/hooks/useEditorStore'
 import { getCoordinatesText } from '@/components/editor/TextBlockOverlay'
 import { useFonts } from '@/hooks/useFonts'
@@ -337,6 +338,24 @@ export function TextTab({ coordinatesSource, hideCoordinates = false }: TextTabP
                 AA
               </button>
             </div>
+          </div>
+
+          {/* Letter-spacing — em-relative so it scales with the font size
+              across A4/A3/A2 and preview vs print. */}
+          <div className="space-y-1">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
+                {t('textLetterSpacing')}
+              </Label>
+              <span className="text-[11px] text-muted-foreground/70 tabular-nums">
+                {((selectedBlock.letterSpacingEm ?? 0) * 1000).toFixed(0)}
+              </span>
+            </div>
+            <Slider
+              min={-0.05} max={0.5} step={0.005}
+              value={[selectedBlock.letterSpacingEm ?? 0]}
+              onValueChange={([v]) => updateTextBlock(selectedBlock.id, { letterSpacingEm: v })}
+            />
           </div>
         </>
       )}
