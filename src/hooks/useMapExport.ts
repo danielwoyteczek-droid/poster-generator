@@ -417,6 +417,7 @@ function drawTextBlocks(
     const scaledFontSize = Math.max(8, Math.round(resolveFontSizePx(block, W)))
     const weight = block.bold ? 'bold' : 'normal'
     ctx.font = `${weight} ${scaledFontSize}px "${block.fontFamily}", sans-serif`
+    ctx.letterSpacing = `${(block.letterSpacingEm ?? 0) * scaledFontSize}px`
     ctx.fillStyle = block.color
     ctx.textAlign = block.align
     ctx.textBaseline = 'alphabetic'

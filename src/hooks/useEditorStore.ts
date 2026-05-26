@@ -136,6 +136,13 @@ export interface TextBlock {
   align: 'left' | 'center' | 'right'
   bold: boolean
   uppercase: boolean
+  /**
+   * Letter-spacing in em (relative to font-size). 0 = default, positive
+   * values widen the spacing, negative tighten. Stored in em so the
+   * spacing stays proportional across format and preview/print scales.
+   * Optional on legacy data — renderers treat undefined as 0.
+   */
+  letterSpacingEm?: number
   locked: boolean
   isCoordinates: boolean
   /** For coords-blocks (`isCoordinates: true`) only: which map's lat/lng

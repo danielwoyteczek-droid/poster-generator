@@ -343,6 +343,7 @@
     "textStyle": "Estilo",
     "textBold": "Negrita",
     "textUppercase": "Mayúsculas",
+    "textLetterSpacing": "Espaciado entre letras",
     "textLock": "Bloquear",
     "textUnlock": "Desbloquear",
     "textDelete": "Eliminar",

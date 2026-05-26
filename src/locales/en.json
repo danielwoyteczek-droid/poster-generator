@@ -343,6 +343,7 @@
     "textStyle": "Style",
     "textBold": "Bold",
     "textUppercase": "Uppercase",
+    "textLetterSpacing": "Letter spacing",
     "textLock": "Lock",
     "textUnlock": "Unlock",
     "textDelete": "Delete",

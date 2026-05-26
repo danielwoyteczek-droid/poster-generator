@@ -343,6 +343,7 @@
     "textStyle": "Style",
     "textBold": "Gras",
     "textUppercase": "Majuscules",
+    "textLetterSpacing": "Espacement des lettres",
     "textLock": "Verrouiller",
     "textUnlock": "Déverrouiller",
     "textDelete": "Supprimer",

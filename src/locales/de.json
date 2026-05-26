@@ -343,6 +343,7 @@
     "textStyle": "Stil",
     "textBold": "Fett",
     "textUppercase": "Großbuchstaben",
+    "textLetterSpacing": "Buchstabenabstand",
     "textLock": "Sperren",
     "textUnlock": "Entsperren",
     "textDelete": "Löschen",
