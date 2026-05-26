@@ -323,6 +323,25 @@ export function useProjectSync(posterType: PosterType = 'map') {
     return () => { subs.forEach((u) => u()) }
   }, [posterType])
 
+  // Per-poster-type fresh-session title default. The base default 'NEW YORK'
+  // lives in useEditorStore and only makes sense for the Map editor — on the
+  // Star-Map a romantic generic title fits better. Runs once on mount and
+  // skips when a project is already loaded or the customer has edited the
+  // title, so it never clobbers saved data or in-progress drafts.
+  useEffect(() => {
+    if (posterType !== 'star-map') return
+    const state = useEditorStore.getState()
+    if (state.projectId !== null) return
+    const titleBlock = state.textBlocks.find((b) => b.id === 'block-title')
+    if (titleBlock?.text === 'NEW YORK') {
+      useEditorStore.setState((s) => ({
+        textBlocks: s.textBlocks.map((b) =>
+          b.id === 'block-title' ? { ...b, text: 'UNSER STERNENHIMMEL' } : b,
+        ),
+      }))
+    }
+  }, [posterType])
+
   // Guest: restore from per-type localStorage on mount.
   useEffect(() => {
     if (user) return
