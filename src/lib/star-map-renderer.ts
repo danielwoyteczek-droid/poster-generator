@@ -128,8 +128,13 @@ export function renderStarMap(ctx: CanvasRenderingContext2D, opts: StarMapRender
   const hasCustomMask = !!skyMaskImage && skyMaskImage.complete && skyMaskImage.naturalWidth > 0
   const cx = w / 2
   const cy = hasCustomMask ? h / 2 : w / 2
+  // Pull the default sky circle in by 5 mm per edge (= 5 mm narrower margin
+  // on the left and right). Format-aware so the shrink stays a true 5 mm
+  // on A3/A2 instead of scaling with the page.
+  const formatShortMm = printFormat === 'a2' ? 420 : printFormat === 'a3' ? 297 : 210
+  const fiveMmPx = 5 * (Math.min(w, h) / formatShortMm)
   // Half-diagonal covers every poster pixel — the mask handles trimming.
-  const skyR = hasCustomMask ? Math.sqrt(w * w + h * h) / 2 : Math.min(w, h) * 0.41
+  const skyR = hasCustomMask ? Math.sqrt(w * w + h * h) / 2 : Math.min(w, h) * 0.41 - fiveMmPx
   const pxPerMm = w / 210
 
   // Poster background
