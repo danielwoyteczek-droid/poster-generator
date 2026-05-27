@@ -22,7 +22,7 @@ body {
 
 @font-face {
   font-family: 'Playfair Display';
-  src: url('/fonts/PlayfairDisplay.ttf') format('truetype');
+  src: url('/fonts/PlayfairDisplay.woff2') format('woff2');
   font-weight: 100 900;
   font-style: normal;
   font-display: swap;
@@ -30,7 +30,7 @@ body {
 
 @font-face {
   font-family: 'Montserrat';
-  src: url('/fonts/Montserrat.ttf') format('truetype');
+  src: url('/fonts/Montserrat.woff2') format('woff2');
   font-weight: 100 900;
   font-style: normal;
   font-display: swap;
@@ -38,7 +38,7 @@ body {
 
 @font-face {
   font-family: 'Cormorant Garamond';
-  src: url('/fonts/CormorantGaramond.ttf') format('truetype');
+  src: url('/fonts/CormorantGaramond.woff2') format('woff2');
   font-weight: 100 900;
   font-style: normal;
   font-display: swap;
@@ -46,49 +46,49 @@ body {
 
 @font-face {
   font-family: 'Amsterdam';
-  src: url('/fonts/Amsterdam.ttf') format('truetype');
+  src: url('/fonts/Amsterdam.woff2') format('woff2');
   font-weight: normal;
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Cathalia';
-  src: url('/fonts/Cathalia.ttf') format('truetype');
+  src: url('/fonts/Cathalia.woff2') format('woff2');
   font-weight: normal;
   font-display: swap;
 }
 
 @font-face {
   font-family: 'CaviarDreams';
-  src: url('/fonts/CaviarDreams.ttf') format('truetype');
+  src: url('/fonts/CaviarDreams.woff2') format('woff2');
   font-weight: normal;
   font-display: swap;
 }
 
 @font-face {
   font-family: 'CaviarDreams';
-  src: url('/fonts/CaviarDreams_Bold.ttf') format('truetype');
+  src: url('/fonts/CaviarDreams_Bold.woff2') format('woff2');
   font-weight: bold;
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Lindsey Signature';
-  src: url('/fonts/lindsey-signature-regular.ttf') format('truetype');
+  src: url('/fonts/lindsey-signature-regular.woff2') format('woff2');
   font-weight: normal;
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Brittany Signature';
-  src: url('/fonts/BrittanySignature.ttf') format('truetype');
+  src: url('/fonts/BrittanySignature.woff2') format('woff2');
   font-weight: normal;
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Welcome';
-  src: url('/fonts/Welcome.ttf') format('truetype');
+  src: url('/fonts/Welcome.woff2') format('woff2');
   font-weight: normal;
   font-display: swap;
 }

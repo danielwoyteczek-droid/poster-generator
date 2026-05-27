@@ -68,7 +68,7 @@ export const FALLBACK_FONTS: Font[] = [
     display_order: 10,
     status: 'published',
     styles: [
-      { id: 'playfair-400', weight: 400, style: 'normal', url: '/fonts/PlayfairDisplay.ttf', file_size_bytes: null },
+      { id: 'playfair-400', weight: 400, style: 'normal', url: '/fonts/PlayfairDisplay.woff2', file_size_bytes: null },
     ],
   },
   {
@@ -79,7 +79,7 @@ export const FALLBACK_FONTS: Font[] = [
     display_order: 20,
     status: 'published',
     styles: [
-      { id: 'cormorant-400', weight: 400, style: 'normal', url: '/fonts/CormorantGaramond.ttf', file_size_bytes: null },
+      { id: 'cormorant-400', weight: 400, style: 'normal', url: '/fonts/CormorantGaramond.woff2', file_size_bytes: null },
     ],
   },
   {
@@ -90,7 +90,7 @@ export const FALLBACK_FONTS: Font[] = [
     display_order: 30,
     status: 'published',
     styles: [
-      { id: 'montserrat-400', weight: 400, style: 'normal', url: '/fonts/Montserrat.ttf', file_size_bytes: null },
+      { id: 'montserrat-400', weight: 400, style: 'normal', url: '/fonts/Montserrat.woff2', file_size_bytes: null },
     ],
   },
   {
@@ -101,8 +101,8 @@ export const FALLBACK_FONTS: Font[] = [
     display_order: 40,
     status: 'published',
     styles: [
-      { id: 'caviar-400', weight: 400, style: 'normal', url: '/fonts/CaviarDreams.ttf', file_size_bytes: null },
-      { id: 'caviar-700', weight: 700, style: 'normal', url: '/fonts/CaviarDreams_Bold.ttf', file_size_bytes: null },
+      { id: 'caviar-400', weight: 400, style: 'normal', url: '/fonts/CaviarDreams.woff2', file_size_bytes: null },
+      { id: 'caviar-700', weight: 700, style: 'normal', url: '/fonts/CaviarDreams_Bold.woff2', file_size_bytes: null },
     ],
   },
   {
@@ -113,7 +113,7 @@ export const FALLBACK_FONTS: Font[] = [
     display_order: 50,
     status: 'published',
     styles: [
-      { id: 'amsterdam-400', weight: 400, style: 'normal', url: '/fonts/Amsterdam.ttf', file_size_bytes: null },
+      { id: 'amsterdam-400', weight: 400, style: 'normal', url: '/fonts/Amsterdam.woff2', file_size_bytes: null },
     ],
   },
   {
@@ -124,7 +124,7 @@ export const FALLBACK_FONTS: Font[] = [
     display_order: 60,
     status: 'published',
     styles: [
-      { id: 'cathalia-400', weight: 400, style: 'normal', url: '/fonts/Cathalia.ttf', file_size_bytes: null },
+      { id: 'cathalia-400', weight: 400, style: 'normal', url: '/fonts/Cathalia.woff2', file_size_bytes: null },
     ],
   },
   {
@@ -135,7 +135,7 @@ export const FALLBACK_FONTS: Font[] = [
     display_order: 70,
     status: 'published',
     styles: [
-      { id: 'lindsey-400', weight: 400, style: 'normal', url: '/fonts/lindsey-signature-regular.ttf', file_size_bytes: null },
+      { id: 'lindsey-400', weight: 400, style: 'normal', url: '/fonts/lindsey-signature-regular.woff2', file_size_bytes: null },
     ],
   },
   {
@@ -146,7 +146,7 @@ export const FALLBACK_FONTS: Font[] = [
     display_order: 80,
     status: 'published',
     styles: [
-      { id: 'brittany-400', weight: 400, style: 'normal', url: '/fonts/BrittanySignature.ttf', file_size_bytes: null },
+      { id: 'brittany-400', weight: 400, style: 'normal', url: '/fonts/BrittanySignature.woff2', file_size_bytes: null },
     ],
   },
   {
@@ -157,7 +157,7 @@ export const FALLBACK_FONTS: Font[] = [
     display_order: 90,
     status: 'published',
     styles: [
-      { id: 'welcome-400', weight: 400, style: 'normal', url: '/fonts/Welcome.ttf', file_size_bytes: null },
+      { id: 'welcome-400', weight: 400, style: 'normal', url: '/fonts/Welcome.woff2', file_size_bytes: null },
     ],
   },
 ]
