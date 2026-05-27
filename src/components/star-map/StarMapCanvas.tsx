@@ -40,7 +40,7 @@ export function StarMapCanvas({ padding = 64, textInteractive }: StarMapCanvasPr
 
   const {
     lat, lng, datetime, locationName, posterBgColor, skyBgColor, starColor,
-    showConstellations, showMilkyWay, showSun, showMoon, showPlanets,
+    showConstellations, visibleZodiacIds, showMilkyWay, showSun, showMoon, showPlanets,
     showCompass, showGrid, gridOpacity, starDensity,
     textureKey, textureOpacity,
     maskKey,
@@ -63,13 +63,20 @@ export function StarMapCanvas({ padding = 64, textInteractive }: StarMapCanvasPr
   }, [])
 
   useEffect(() => {
-    if (showConstellations && constellationData.length === 0) {
-      fetch('/constellations.json')
-        .then((r) => r.json())
-        .then((d) => setConstellationData(d.features ?? []))
-        .catch(() => {})
-    }
-  }, [showConstellations, constellationData.length])
+    // Re-fetch when either: (a) we haven't loaded data yet OR (b) the loaded
+    // data lacks the `feature.id` field, which means a stale HMR-preserved
+    // state from before we switched to the named d3-celestial dataset for
+    // the zodiac picker. Without the second condition, an in-progress edit
+    // session would silently keep the old id-less features and the zodiac
+    // filter would drop everything.
+    if (!showConstellations) return
+    const stale = constellationData.length > 0 && !constellationData[0]?.id
+    if (constellationData.length > 0 && !stale) return
+    fetch('/constellations.json?v=2')
+      .then((r) => r.json())
+      .then((d) => setConstellationData(d.features ?? []))
+      .catch(() => {})
+  }, [showConstellations, constellationData])
 
   useEffect(() => {
     if (showMilkyWay && milkyWayData.length === 0) {
@@ -144,7 +151,7 @@ export function StarMapCanvas({ padding = 64, textInteractive }: StarMapCanvasPr
       date: new Date(datetime),
       posterBgColor, skyBgColor, starColor,
       starData, constellationData, milkyWayData,
-      showConstellations, showMilkyWay, showSun, showMoon, showPlanets,
+      showConstellations, visibleZodiacIds, showMilkyWay, showSun, showMoon, showPlanets,
       showCompass, showGrid, gridOpacity, starDensity,
       frameConfig,
       skyTextureImage,
@@ -156,7 +163,7 @@ export function StarMapCanvas({ padding = 64, textInteractive }: StarMapCanvasPr
   }, [
     starData, constellationData, milkyWayData,
     lat, lng, datetime, posterBgColor, skyBgColor, starColor,
-    showConstellations, showMilkyWay, showSun, showMoon, showPlanets,
+    showConstellations, visibleZodiacIds, showMilkyWay, showSun, showMoon, showPlanets,
     showCompass, showGrid, gridOpacity, starDensity,
     frameConfig, logicalCanvas.width, logicalCanvas.height, skyTextureImage, textureOpacity, skyMaskImage,
     printFormat, maskKey,

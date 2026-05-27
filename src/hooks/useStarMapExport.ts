@@ -98,7 +98,7 @@ export function useStarMapExport() {
   const {
     lat, lng, datetime, locationName,
     posterBgColor, skyBgColor, starColor,
-    showConstellations, showMilkyWay, showSun, showMoon, showPlanets,
+    showConstellations, visibleZodiacIds, showMilkyWay, showSun, showMoon, showPlanets,
     showCompass, showGrid, gridOpacity, starDensity,
     textureKey, textureOpacity,
     maskKey,
@@ -114,7 +114,7 @@ export function useStarMapExport() {
 
     const [starDataRaw, constellationRaw, milkyWayRaw, skyTextureImage, skyMaskImage] = await Promise.all([
       fetchJSON<StarEntry[]>('/bright-stars.json'),
-      showConstellations ? fetchJSON<{ features: GeoFeature[] }>('/constellations.json').then(d => d.features) : Promise.resolve([] as GeoFeature[]),
+      showConstellations ? fetchJSON<{ features: GeoFeature[] }>('/constellations.json?v=2').then(d => d.features) : Promise.resolve([] as GeoFeature[]),
       showMilkyWay ? fetchJSON<{ features: GeoFeature[] }>('/milky-way.json').then(d => d.features) : Promise.resolve([] as GeoFeature[]),
       loadStarTexture(textureKey),
       loadSkyMaskImage(maskKey),
@@ -131,7 +131,7 @@ export function useStarMapExport() {
       width: W, height: H, lat, lng, date: new Date(datetime),
       posterBgColor, skyBgColor, starColor,
       starData: starDataRaw, constellationData: constellationRaw, milkyWayData: milkyWayRaw,
-      showConstellations, showMilkyWay, showSun, showMoon, showPlanets,
+      showConstellations, visibleZodiacIds, showMilkyWay, showSun, showMoon, showPlanets,
       showCompass, showGrid, gridOpacity, starDensity,
       frameConfig,
       skyTextureImage,

@@ -73,6 +73,14 @@ interface StarMapStore {
   skyBgColor: string
   starColor: string
   showConstellations: boolean
+  /**
+   * Optional narrow-down filter for the twelve zodiac constellations.
+   * `null` means all twelve zodiacs are visible alongside the other
+   * 77 IAU constellations — the customer-facing default. An explicit
+   * array narrows the visible zodiacs to the listed IAU codes. Empty
+   * array hides all zodiacs but the other constellations still draw.
+   */
+  visibleZodiacIds: string[] | null
   showMilkyWay: boolean
   showSun: boolean
   showMoon: boolean
@@ -110,6 +118,7 @@ interface StarMapStore {
   setSkyBgColor: (color: string) => void
   setStarColor: (color: string) => void
   setShowConstellations: (show: boolean) => void
+  setVisibleZodiacIds: (ids: string[] | null) => void
   setShowMilkyWay: (show: boolean) => void
   setShowSun: (show: boolean) => void
   setShowMoon: (show: boolean) => void
@@ -144,6 +153,7 @@ export function getStarMapInitialState() {
     skyBgColor: '#000000',
     starColor: '#ffffff',
     showConstellations: false,
+    visibleZodiacIds: null,
     showMilkyWay: false,
     showSun: false,
     showMoon: false,
@@ -170,6 +180,7 @@ export const useStarMapStore = create<StarMapStore>((set) => ({
   setSkyBgColor: (skyBgColor) => set({ skyBgColor }),
   setStarColor: (starColor) => set({ starColor }),
   setShowConstellations: (showConstellations) => set({ showConstellations }),
+  setVisibleZodiacIds: (visibleZodiacIds) => set({ visibleZodiacIds }),
   setShowMilkyWay: (showMilkyWay) => set({ showMilkyWay }),
   setShowSun: (showSun) => set({ showSun }),
   setShowMoon: (showMoon) => set({ showMoon }),

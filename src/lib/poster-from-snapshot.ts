@@ -85,6 +85,8 @@ async function renderStarMapCanvas(format: PrintFormat, snapshot: Record<string,
     lat: number; lng: number; datetime: string; locationName: string
     posterBgColor: string; skyBgColor: string; starColor: string
     showConstellations: boolean; showMilkyWay: boolean; showSun: boolean; showMoon: boolean; showPlanets: boolean
+    /** Optional. `null`/undefined = all twelve zodiacs visible (default). */
+    visibleZodiacIds?: string[] | null
     /** Optional for backward compatibility with snapshots created before the
      *  compass-toggle feature. Renderer treats undefined as `true`. */
     showCompass?: boolean
@@ -111,7 +113,7 @@ async function renderStarMapCanvas(format: PrintFormat, snapshot: Record<string,
   const [starData, constellationData, milkyWayData, skyTextureImage, skyMaskImage] = await Promise.all([
     fetchJSON<StarEntry[]>('/bright-stars.json'),
     s.showConstellations
-      ? fetchJSON<{ features: GeoFeature[] }>('/constellations.json').then((d) => d.features)
+      ? fetchJSON<{ features: GeoFeature[] }>('/constellations.json?v=2').then((d) => d.features)
       : Promise.resolve([] as GeoFeature[]),
     s.showMilkyWay
       ? fetchJSON<{ features: GeoFeature[] }>('/milky-way.json').then((d) => d.features)
@@ -131,7 +133,8 @@ async function renderStarMapCanvas(format: PrintFormat, snapshot: Record<string,
     width: W, height: H, lat: s.lat, lng: s.lng, date: new Date(s.datetime),
     posterBgColor: s.posterBgColor, skyBgColor: s.skyBgColor, starColor: s.starColor,
     starData, constellationData, milkyWayData,
-    showConstellations: s.showConstellations, showMilkyWay: s.showMilkyWay,
+    showConstellations: s.showConstellations, visibleZodiacIds: s.visibleZodiacIds,
+    showMilkyWay: s.showMilkyWay,
     showSun: s.showSun, showMoon: s.showMoon, showPlanets: s.showPlanets,
     showCompass: s.showCompass,
     showGrid: s.showGrid,
