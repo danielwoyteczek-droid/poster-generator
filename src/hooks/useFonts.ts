@@ -33,6 +33,23 @@ async function fetchPublishedFonts(): Promise<Font[]> {
   return Array.isArray(data.fonts) ? data.fonts : []
 }
 
+function deferRegisterFonts(list: Font[]): void {
+  if (typeof window === 'undefined') return
+  // Defer JS FontFace.load() to idle time so editor mount stays fast.
+  // Currently-displayed text blocks are covered by globals.css @font-face
+  // (browser lazy-loads on first use); canvas-export pipelines force-load
+  // via document.fonts.load() right before drawing. The eager registration
+  // here is just to warm document.fonts for the font-picker preview, which
+  // can happily wait a tick.
+  const trigger = () => { registerFonts(list).catch(() => undefined) }
+  const w = window as Window & { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number }
+  if (typeof w.requestIdleCallback === 'function') {
+    w.requestIdleCallback(trigger, { timeout: 2000 })
+  } else {
+    setTimeout(trigger, 200)
+  }
+}
+
 async function loadOnce(): Promise<Font[]> {
   if (cache) return cache
   if (inflight) return inflight
@@ -45,16 +62,14 @@ async function loadOnce(): Promise<Font[]> {
       // the DB row by family_name and effectively becomes a no-op.
       const next = mergeFontsByFamilyName(rows, FALLBACK_FONTS)
       cache = next
-      // Fire-and-forget: register the FontFace records so subsequent canvas
-      // / export draws can pick them up via `document.fonts.ready`.
-      registerFonts(next).catch(() => undefined)
+      deferRegisterFonts(next)
       return next
     } catch {
       // API not yet deployed (Phase 1 backend not landed) or transient
       // network blip — fall back to the hardcoded set so the editor remains
       // fully usable.
       cache = FALLBACK_FONTS
-      registerFonts(FALLBACK_FONTS).catch(() => undefined)
+      deferRegisterFonts(FALLBACK_FONTS)
       return FALLBACK_FONTS
     } finally {
       inflight = null
@@ -89,9 +104,9 @@ export function useFonts(): { fonts: Font[]; loaded: boolean } {
 
   useEffect(() => {
     if (cache) {
-      // Cache was filled by an earlier mount — make sure FontFace records
-      // are registered for this document (idempotent, no-op if already).
-      registerFonts(cache).catch(() => undefined)
+      // Cache was filled by an earlier mount — idle-register so the FontFace
+      // records exist on this document too (idempotent, no-op if already).
+      deferRegisterFonts(cache)
       return
     }
     let cancelled = false
