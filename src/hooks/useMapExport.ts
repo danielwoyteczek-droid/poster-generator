@@ -753,6 +753,18 @@ export async function buildPosterCanvas(
   // Photos (before text so text sits on top)
   await drawPhotos(ctx, store.photos ?? [], W, H)
 
+  // Horizontal decoration lines — admin-only divider/accent. Mirrors the
+  // `<div>` overlays in PosterCanvas so preview/export match the editor.
+  // Drawn before text so text sits on top when they intersect.
+  for (const line of [shapeConfig?.decoLine, shapeConfig?.decoLine2]) {
+    if (!line?.enabled) continue
+    const lengthPx = line.lengthMm * mmToPx
+    const thicknessPx = line.thicknessMm * mmToPx
+    const yPx = line.y * H
+    ctx.fillStyle = line.color
+    ctx.fillRect(W / 2 - lengthPx / 2, yPx - thicknessPx / 2, lengthPx, thicknessPx)
+  }
+
   // Text blocks
   drawTextBlocks(ctx, textBlocks, displayTexts, W, H)
 
