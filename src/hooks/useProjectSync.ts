@@ -45,6 +45,7 @@ function getConfig(posterType: PosterType): Record<string, unknown> {
       skyBgColor: sm.skyBgColor,
       starColor: sm.starColor,
       showConstellations: sm.showConstellations,
+      visibleZodiacIds: sm.visibleZodiacIds,
       showMilkyWay: sm.showMilkyWay,
       showSun: sm.showSun,
       showMoon: sm.showMoon,
@@ -143,7 +144,7 @@ function applyConfig(posterType: PosterType, config: Record<string, unknown>): v
     const c = config as {
       lat?: number; lng?: number; locationName?: string; datetime?: string
       posterBgColor?: string; skyBgColor?: string; starColor?: string
-      showConstellations?: boolean; showMilkyWay?: boolean
+      showConstellations?: boolean; visibleZodiacIds?: string[] | null; showMilkyWay?: boolean
       showSun?: boolean; showMoon?: boolean; showPlanets?: boolean
       showCompass?: boolean
       showGrid?: boolean; gridOpacity?: number
@@ -162,6 +163,7 @@ function applyConfig(posterType: PosterType, config: Record<string, unknown>): v
     if (c.skyBgColor) sm.setSkyBgColor(c.skyBgColor)
     if (c.starColor) sm.setStarColor(c.starColor)
     if (c.showConstellations !== undefined) sm.setShowConstellations(c.showConstellations)
+    if (c.visibleZodiacIds !== undefined) sm.setVisibleZodiacIds(c.visibleZodiacIds)
     if (c.showMilkyWay !== undefined) sm.setShowMilkyWay(c.showMilkyWay)
     if (c.showSun !== undefined) sm.setShowSun(c.showSun)
     if (c.showMoon !== undefined) sm.setShowMoon(c.showMoon)

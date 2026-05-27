@@ -2,6 +2,7 @@ import { equatorialToHorizontal, horizontalToCanvas, horizontalToCanvasUnclipped
 import { getSunCoords, getMoonCoords, getPlanetCoords } from './celestial'
 import type { StarMapFrameConfig } from '@/hooks/useStarMapStore'
 import type { PrintFormat } from './print-formats'
+import { ZODIAC_IDS } from './zodiacs'
 
 /**
  * PROJ-37 follow-up: per-format magnitude-cutoff boost. Star-map editor's
@@ -18,7 +19,7 @@ const MAGNITUDE_BOOST_BY_FORMAT: Record<PrintFormat, number> = {
 }
 
 export interface StarEntry { ra: number; dec: number; mag: number }
-export interface GeoFeature { geometry: { type: string; coordinates: unknown } }
+export interface GeoFeature { id?: string; geometry: { type: string; coordinates: unknown }; properties?: { rank?: string } }
 
 export interface StarMapRenderOptions {
   width: number
@@ -37,6 +38,14 @@ export interface StarMapRenderOptions {
   showSun: boolean
   showMoon: boolean
   showPlanets: boolean
+  /**
+   * Optional narrow-down filter for the twelve zodiac constellations.
+   * `null`/undefined = all twelve zodiacs visible (default). An explicit
+   * array shows only the listed zodiac IAU codes — used by the zodiac
+   * picker. Non-zodiac constellations (Ursa Major, Orion, …) are
+   * unaffected and always render when `showConstellations` is on.
+   */
+  visibleZodiacIds?: string[] | null
   /** Toggle for the cardinal-direction labels (N/O/S/W) around the sky circle.
    *  Defaults to `true` when undefined to keep backward compatibility with
    *  callers and serialised state from before the flag was introduced. */
@@ -101,6 +110,7 @@ export function renderStarMap(ctx: CanvasRenderingContext2D, opts: StarMapRender
     posterBgColor, skyBgColor, starColor,
     starData, constellationData, milkyWayData,
     showConstellations, showMilkyWay, showSun, showMoon, showPlanets,
+    visibleZodiacIds,
     showCompass = true,
     showGrid = false,
     gridOpacity = 0.32,
@@ -135,8 +145,15 @@ export function renderStarMap(ctx: CanvasRenderingContext2D, opts: StarMapRender
   // intersection (e.g. House mask shows stars only in its central round
   // section, leaving roof + lower body empty).
   const hasCustomMask = !!skyMaskImage && skyMaskImage.complete && skyMaskImage.naturalWidth > 0
+  // The canonical 'circle' silhouette runs through the mask pipeline (so the
+  // star projection geometry stays consistent across all masks), but its
+  // visible area should be a standard sky chart: zenith at the centre,
+  // horizon at the edge. Only true custom shapes (heart, house, …) need
+  // the expanded "cover-the-poster" geometry where the mask itself defines
+  // visibility.
+  const useExpandedGeometry = hasCustomMask && !isCircleMask
   const cx = w / 2
-  const cy = hasCustomMask ? h / 2 : w / 2
+  const cy = useExpandedGeometry ? h / 2 : w / 2
   // Pull the default sky circle in by 5 mm per edge (= 5 mm narrower margin
   // on the left and right than the original 0.41-only geometry). Format-aware
   // so the shrink stays a true 5 mm on A3/A2 instead of scaling with the
@@ -145,7 +162,7 @@ export function renderStarMap(ctx: CanvasRenderingContext2D, opts: StarMapRender
   const formatShortMm = printFormat === 'a2' ? 420 : printFormat === 'a3' ? 297 : 210
   const shrinkPx = 5 * (Math.min(w, h) / formatShortMm)
   // Half-diagonal covers every poster pixel — the mask handles trimming.
-  const skyR = hasCustomMask ? Math.sqrt(w * w + h * h) / 2 : Math.min(w, h) * 0.41 - shrinkPx
+  const skyR = useExpandedGeometry ? Math.sqrt(w * w + h * h) / 2 : Math.min(w, h) * 0.41 - shrinkPx
   const pxPerMm = w / 210
 
   // Poster background
@@ -198,9 +215,7 @@ export function renderStarMap(ctx: CanvasRenderingContext2D, opts: StarMapRender
     ctx.strokeStyle = hexToRgba(starColor, gridOpacity)
     ctx.lineWidth = Math.max(0.8, w * 0.0024)
 
-    // RA meridians: fix RA, sweep declination. 15° spacing (24 lines) matches
-    // the dec-parallel density for a balanced grid.
-    for (let raDeg = 0; raDeg < 360; raDeg += 15) {
+    for (let raDeg = 0; raDeg < 360; raDeg += 20) {
       ctx.beginPath()
       let started = false
       for (let decDeg = -89; decDeg <= 89; decDeg += 3) {
@@ -211,10 +226,7 @@ export function renderStarMap(ctx: CanvasRenderingContext2D, opts: StarMapRender
       ctx.stroke()
     }
 
-    // Dec parallels: fix declination, sweep RA. 15° spacing matches the visual
-    // density of typical celestial reference posters. Skip the poles (90/-90)
-    // since they collapse to a single point and add no visual information.
-    for (const decDeg of [-75, -60, -45, -30, -15, 0, 15, 30, 45, 60, 75]) {
+    for (const decDeg of [-80, -60, -40, -20, 0, 20, 40, 60, 80]) {
       ctx.beginPath()
       let started = false
       for (let raDeg = 0; raDeg <= 360; raDeg += 6) {
@@ -255,12 +267,23 @@ export function renderStarMap(ctx: CanvasRenderingContext2D, opts: StarMapRender
     ctx.restore()
   }
 
-  // Constellation lines
+  // Constellation lines. Non-zodiac constellations always draw (they're not
+  // controlled by the picker — the picker only narrows down the twelve
+  // zodiacs). visibleZodiacIds semantics:
+  //   null   → all twelve zodiacs visible (default)
+  //   []     → no zodiacs visible, but non-zodiacs still draw
+  //   [ids…] → only the listed zodiacs visible, non-zodiacs still draw
   if (showConstellations && constellationData.length > 0) {
+    const zodiacFilter = visibleZodiacIds == null ? null : new Set(visibleZodiacIds)
     ctx.save()
     ctx.strokeStyle = hexToRgba(starColor, 0.4)
     ctx.lineWidth = Math.max(1, w * 0.0024)
     for (const feature of constellationData) {
+      const id = feature.id
+      // Only the zodiac picker is allowed to hide constellations — and only
+      // when the constellation is one of the twelve zodiacs. Non-zodiac
+      // features (Ursa Major, Orion, …) always draw when the switch is on.
+      if (zodiacFilter && id && ZODIAC_IDS.has(id) && !zodiacFilter.has(id)) continue
       const lines: number[][][] =
         feature.geometry.type === 'MultiLineString'
           ? (feature.geometry.coordinates as number[][][])

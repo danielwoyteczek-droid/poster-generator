@@ -112,6 +112,7 @@ function CustomerProductView({ printFormat }: { printFormat: PrintFormat }) {
           skyBgColor: starMap.skyBgColor,
           starColor: starMap.starColor,
           showConstellations: starMap.showConstellations,
+          visibleZodiacIds: starMap.visibleZodiacIds,
           showMilkyWay: starMap.showMilkyWay,
           showSun: starMap.showSun,
           showMoon: starMap.showMoon,
