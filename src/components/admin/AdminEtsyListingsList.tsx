@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Check, ChevronDown, Loader2, Plus, Rocket, Download, Trash2, RefreshCw } from 'lucide-react'
+import { Check, ChevronDown, Loader2, Plus, Rocket, Download, Trash2, RefreshCw, MapPin, Play, Eye, Pencil } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -33,6 +33,20 @@ interface ListingDef {
   mockup_set_ids: string[]
   status: 'draft' | 'published'
   created_at: string
+  location_name?: string | null
+  location_lat?: number | null
+  location_lng?: number | null
+  location_zoom?: number | null
+}
+
+interface GeoResult { place_name: string; center: [number, number] }
+
+interface PreviewLook {
+  paletteId: string
+  paletteName: string
+  status: string | null
+  flatUrl: string | null
+  mockups: string[]
 }
 
 interface Option { value: string; label: string }
@@ -92,12 +106,23 @@ export function AdminEtsyListingsList() {
   const [mockupSets, setMockupSets] = useState<Option[]>([])
   const [statusByDef, setStatusByDef] = useState<Record<string, DefStatus>>({})
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [workerStarting, setWorkerStarting] = useState(false)
+  const [previewOpen, setPreviewOpen] = useState(false)
+  const [previewName, setPreviewName] = useState('')
+  const [previewLooks, setPreviewLooks] = useState<PreviewLook[]>([])
+  const [previewLoading, setPreviewLoading] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
 
   const [dialogOpen, setDialogOpen] = useState(false)
   const [form, setForm] = useState({
     name: '', template_key: 'stadtkarte' as TemplateKey, base_preset_id: '',
     palette_ids: [] as string[], mockup_set_ids: [] as string[],
+    location_name: '' as string, location_lat: null as number | null,
+    location_lng: null as number | null, location_zoom: 13 as number,
   })
+  const [geoQuery, setGeoQuery] = useState('')
+  const [geoResults, setGeoResults] = useState<GeoResult[]>([])
+  const [geoLoading, setGeoLoading] = useState(false)
 
   const fetchDefs = useCallback(async () => {
     const res = await fetch('/api/admin/etsy-listings')
@@ -137,27 +162,122 @@ export function AdminEtsyListingsList() {
 
   // Live-Polling, solange ein Look rendert
   useEffect(() => {
-    const anyActive = Object.values(statusByDef).some((s) => s.anyActive)
+    const anyActive = Object.values(statusByDef).some((s) => s.anyActive && !s.flatDone)
     if (!anyActive) return
     const t = setInterval(() => fetchStatus(defs), 4000)
     return () => clearInterval(t)
   }, [statusByDef, defs, fetchStatus])
 
-  const createDef = async () => {
+  const runGeocode = async () => {
+    if (!geoQuery.trim()) return
+    setGeoLoading(true)
+    try {
+      const res = await fetch(`/api/geocode?query=${encodeURIComponent(geoQuery.trim())}`)
+      const data = await res.json()
+      if (res.ok && Array.isArray(data)) setGeoResults(data)
+      else { setGeoResults([]); toast.error(data?.error ?? 'Kein Ort gefunden') }
+    } catch { toast.error('Geocoding fehlgeschlagen') } finally { setGeoLoading(false) }
+  }
+
+  const pickLocation = (r: GeoResult) => {
+    setForm((f) => ({ ...f, location_name: r.place_name, location_lng: r.center[0], location_lat: r.center[1] }))
+    setGeoResults([])
+    setGeoQuery(r.place_name)
+  }
+
+  const resetForm = () => {
+    setForm({
+      name: '', template_key: 'stadtkarte', base_preset_id: '', palette_ids: [], mockup_set_ids: [],
+      location_name: '', location_lat: null, location_lng: null, location_zoom: 13,
+    })
+    setGeoQuery(''); setGeoResults([]); setEditingId(null)
+  }
+
+  const openCreate = () => { resetForm(); setDialogOpen(true) }
+
+  const openEdit = (def: ListingDef) => {
+    setEditingId(def.id)
+    setForm({
+      name: def.name,
+      template_key: def.template_key,
+      base_preset_id: def.base_preset_id,
+      palette_ids: def.palette_ids ?? [],
+      mockup_set_ids: def.mockup_set_ids ?? [],
+      location_name: def.location_name ?? '',
+      location_lat: def.location_lat ?? null,
+      location_lng: def.location_lng ?? null,
+      location_zoom: def.location_zoom ?? 13,
+    })
+    setGeoQuery(def.location_name ?? '')
+    setGeoResults([])
+    setDialogOpen(true)
+  }
+
+  const saveDef = async () => {
     if (!form.name.trim()) return toast.error('Name fehlt')
     if (!form.base_preset_id) return toast.error('Basis-Design (Preset) wählen')
     if (form.palette_ids.length === 0) return toast.error('Mindestens eine Palette wählen')
-    const res = await fetch('/api/admin/etsy-listings', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form),
-    })
+    const hasLoc = form.location_lat != null && form.location_lng != null
+    const body = {
+      name: form.name, template_key: form.template_key, base_preset_id: form.base_preset_id,
+      palette_ids: form.palette_ids, mockup_set_ids: form.mockup_set_ids,
+      location_name: hasLoc ? form.location_name : null,
+      location_lat: hasLoc ? form.location_lat : null,
+      location_lng: hasLoc ? form.location_lng : null,
+      // Zoom bewusst NICHT überschreiben — Render behält den Preset-Zoom 1:1.
+      location_zoom: null,
+    }
+    const res = await fetch(
+      editingId ? `/api/admin/etsy-listings/${editingId}` : '/api/admin/etsy-listings',
+      { method: editingId ? 'PATCH' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) },
+    )
     if (res.ok) {
-      toast.success('Listing-Definition angelegt')
+      toast.success(editingId ? 'Definition aktualisiert' : 'Listing-Definition angelegt')
       setDialogOpen(false)
-      setForm({ name: '', template_key: 'stadtkarte', base_preset_id: '', palette_ids: [], mockup_set_ids: [] })
+      resetForm()
       fetchDefs()
     } else {
       const j = await res.json().catch(() => ({}))
-      toast.error(j.error ?? 'Anlegen fehlgeschlagen')
+      toast.error(j.error ?? 'Speichern fehlgeschlagen')
+    }
+  }
+
+  const triggerWorker = async () => {
+    setWorkerStarting(true)
+    try {
+      const res = await fetch('/api/admin/render-worker/trigger', { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) {
+        toast.error(data.error ?? 'Worker-Start fehlgeschlagen', { description: data.detail })
+        return
+      }
+      toast.success('Worker gestartet — läuft ~5–25 Min', {
+        description: data.runUrl ? 'Klick für Live-Logs auf GitHub' : undefined,
+        action: data.runUrl
+          ? { label: 'Run öffnen', onClick: () => window.open(data.runUrl, '_blank', 'noopener') }
+          : undefined,
+      })
+    } catch {
+      toast.error('Worker-Start fehlgeschlagen')
+    } finally {
+      setWorkerStarting(false)
+    }
+  }
+
+  const openPreview = async (def: ListingDef) => {
+    setPreviewOpen(true)
+    setPreviewName(def.name)
+    setPreviewLooks([])
+    setPreviewLoading(true)
+    try {
+      const res = await fetch(`/api/admin/etsy-listings/${def.id}/images`)
+      const data = await res.json()
+      if (res.ok) setPreviewLooks(data.looks ?? [])
+      else toast.error(data.error ?? 'Vorschau fehlgeschlagen')
+    } catch {
+      toast.error('Vorschau fehlgeschlagen')
+    } finally {
+      setPreviewLoading(false)
     }
   }
 
@@ -167,8 +287,11 @@ export function AdminEtsyListingsList() {
     const j = await res.json().catch(() => ({}))
     setBusyId(null)
     if (res.ok) {
-      toast.success(`${j.created?.length ?? 0} neue Render-Jobs gestartet`, {
-        description: j.skipped?.length ? `${j.skipped.length} bereits vorhanden` : undefined,
+      const n = (j.created?.length ?? 0) + (j.updated?.length ?? 0)
+      toast.success(`${n} Render-Jobs gesetzt — jetzt „Worker starten"`, {
+        description: j.updated?.length
+          ? `${j.created?.length ?? 0} neu, ${j.updated.length} aktualisiert (Re-Render)`
+          : undefined,
       })
       fetchStatus(defs)
     } else {
@@ -222,7 +345,12 @@ export function AdminEtsyListingsList() {
           <Button variant="outline" size="sm" onClick={() => { fetchDefs(); fetchStatus(defs) }}>
             <RefreshCw className="w-4 h-4 mr-2" /> Aktualisieren
           </Button>
-          <Button size="sm" onClick={() => setDialogOpen(true)}>
+          <Button variant="outline" size="sm" onClick={triggerWorker} disabled={workerStarting}
+            title="Render-Worker via GitHub Actions starten (verarbeitet alle pending Renders)">
+            {workerStarting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Play className="w-4 h-4 mr-2" />}
+            Worker starten
+          </Button>
+          <Button size="sm" onClick={openCreate}>
             <Plus className="w-4 h-4 mr-2" /> Neue Definition
           </Button>
         </div>
@@ -248,18 +376,31 @@ export function AdminEtsyListingsList() {
                     <span>{def.palette_ids.length} Paletten</span>
                     <span>·</span>
                     <span>{def.mockup_set_ids.length} Mockup-Sets</span>
+                    {def.location_name && (
+                      <>
+                        <span>·</span>
+                        <span className="inline-flex items-center gap-1"><MapPin className="w-3 h-3" />{def.location_name}</span>
+                      </>
+                    )}
                     {st && st.total > 0 && (
                       <>
                         <span>·</span>
-                        <span className={st.flatDone ? 'text-green-600' : st.anyActive ? 'text-amber-600' : ''}>
-                          {st.anyActive && <Loader2 className="w-3 h-3 animate-spin inline mr-1" />}
+                        <button type="button" onClick={() => openPreview(def)}
+                          title="Renders ansehen"
+                          className={cn('inline-flex items-center gap-1 underline-offset-2 hover:underline',
+                            st.flatDone ? 'text-green-600' : st.anyActive ? 'text-amber-600' : '')}>
+                          {st.anyActive && !st.flatDone && <Loader2 className="w-3 h-3 animate-spin" />}
                           {st.doneCount}/{st.total} Looks gerendert
-                        </span>
+                          <Eye className="w-3 h-3" />
+                        </button>
                       </>
                     )}
                   </div>
                 </div>
                 <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => openEdit(def)}>
+                    <Pencil className="w-4 h-4 mr-2" /> Bearbeiten
+                  </Button>
                   <Button variant="outline" size="sm" disabled={busy} onClick={() => startRender(def)}>
                     {busy ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Rocket className="w-4 h-4 mr-2" />}
                     Render starten
@@ -292,10 +433,10 @@ export function AdminEtsyListingsList() {
         </div>
       )}
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) resetForm() }}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Neue Listing-Definition</DialogTitle>
+            <DialogTitle>{editingId ? 'Definition bearbeiten' : 'Neue Listing-Definition'}</DialogTitle>
             <DialogDescription>Ein Master-Design, das je gewählter Palette als eigenes Etsy-Listing ausgespielt wird.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -331,11 +472,93 @@ export function AdminEtsyListingsList() {
               <MultiSelect value={form.mockup_set_ids} onChange={(v) => setForm({ ...form, mockup_set_ids: v })}
                 options={mockupSets} placeholder="Mockup-Sets wählen…" />
             </div>
+            <div className="space-y-1.5">
+              <Label>Ort (überschreibt das Preset — nur Kartenausschnitt)</Label>
+              <div className="flex gap-2">
+                <Input value={geoQuery} onChange={(e) => setGeoQuery(e.target.value)}
+                  placeholder="Adresse oder Stadt, z. B. Frankfurt am Main"
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); runGeocode() } }} />
+                <Button type="button" variant="outline" onClick={runGeocode} disabled={geoLoading}>
+                  {geoLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Suchen'}
+                </Button>
+              </div>
+              {geoResults.length > 0 && (
+                <ul className="border rounded-md divide-y max-h-40 overflow-auto">
+                  {geoResults.map((r, i) => (
+                    <li key={i}>
+                      <button type="button" onClick={() => pickLocation(r)}
+                        className="w-full text-left px-2 py-1.5 text-sm hover:bg-muted">{r.place_name}</button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {form.location_lat != null && (
+                <div className="text-xs text-muted-foreground flex items-center gap-2">
+                  <MapPin className="w-3 h-3 shrink-0" />
+                  <span className="truncate">{form.location_name} ({form.location_lat.toFixed(4)}, {form.location_lng?.toFixed(4)})</span>
+                  <button type="button" className="underline shrink-0"
+                    onClick={() => setForm((f) => ({ ...f, location_name: '', location_lat: null, location_lng: null }))}>
+                    entfernen
+                  </button>
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Leer lassen = Design rendert am Ort des Presets. Mit Ort wird die Karte nur neu zentriert — der Zoom/Ausschnitt bleibt exakt wie im Preset.
+              </p>
+            </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Abbrechen</Button>
-            <Button onClick={createDef}>Anlegen</Button>
+            <Button variant="outline" onClick={() => { setDialogOpen(false); resetForm() }}>Abbrechen</Button>
+            <Button onClick={saveDef}>{editingId ? 'Speichern' : 'Anlegen'}</Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="sm:max-w-4xl max-h-[85vh] overflow-auto">
+          <DialogHeader>
+            <DialogTitle>Vorschau — {previewName}</DialogTitle>
+            <DialogDescription>Gerenderte Farb-Looks (flaches Poster + Mockups). Klick aufs Bild öffnet es in voller Größe.</DialogDescription>
+          </DialogHeader>
+          {previewLoading ? (
+            <div className="flex items-center gap-2 text-muted-foreground py-10 justify-center">
+              <Loader2 className="w-4 h-4 animate-spin" /> Lädt…
+            </div>
+          ) : previewLooks.length === 0 ? (
+            <div className="text-sm text-muted-foreground py-10 text-center">Keine Renders gefunden.</div>
+          ) : (
+            <div className="space-y-6">
+              {previewLooks.map((look) => (
+                <div key={look.paletteId}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Badge variant="secondary">{look.paletteName}</Badge>
+                    {look.status !== 'done' && (
+                      <span className="text-xs text-amber-600">{look.status ?? 'offen'}</span>
+                    )}
+                  </div>
+                  <div className="flex gap-3 flex-wrap">
+                    {look.flatUrl && (
+                      <a href={look.flatUrl} target="_blank" rel="noopener noreferrer">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={look.flatUrl} alt={look.paletteName}
+                          className="h-48 w-auto rounded border object-contain bg-muted" />
+                      </a>
+                    )}
+                    {look.mockups.map((url, i) => (
+                      <a key={i} href={url} target="_blank" rel="noopener noreferrer">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={url} alt={`${look.paletteName} Mockup ${i + 1}`}
+                          className="h-48 w-auto rounded border object-contain bg-muted" />
+                      </a>
+                    ))}
+                    {!look.flatUrl && look.mockups.length === 0 && (
+                      <span className="text-xs text-muted-foreground">noch keine Bilder</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

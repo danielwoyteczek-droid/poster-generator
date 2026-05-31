@@ -12,6 +12,10 @@ const PatchSchema = z.object({
   palette_ids: z.array(z.string().min(1)).optional(),
   mockup_set_ids: z.array(z.string().uuid()).optional(),
   status: z.enum(['draft', 'published']).optional(),
+  location_name: z.string().max(200).nullable().optional(),
+  location_lat: z.number().min(-90).max(90).nullable().optional(),
+  location_lng: z.number().min(-180).max(180).nullable().optional(),
+  location_zoom: z.number().min(0).max(22).nullable().optional(),
 })
 
 export async function GET(_req: NextRequest, context: { params: Promise<{ id: string }> }) {
