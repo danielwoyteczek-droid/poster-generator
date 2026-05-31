@@ -1012,10 +1012,23 @@ export function useMapExport() {
 
   const renderPreview = async (
     format: PrintFormat,
-    options?: WatermarkOptions,
+    options?: WatermarkOptions & { viewportW?: number; viewportH?: number },
   ): Promise<string> => {
+    // PROJ-53: optional viewport override. The headless worker passes the
+    // design's saved preview size (?vw/?vh) so the render reproduces the EXACT
+    // editor extent — the live store viewportWidth is the headless container's
+    // (clobbered by MapPreviewInner.emit), which would crop tighter.
+    const vs =
+      options?.viewportW && options.viewportW > 0
+        ? {
+            ...viewState,
+            viewportWidth: options.viewportW,
+            viewportHeight:
+              options.viewportH && options.viewportH > 0 ? options.viewportH : viewState.viewportHeight,
+          }
+        : viewState
     const snapshot: ExportSnapshot = {
-      viewState, styleId, paletteId, customPaletteBase, customPalette, streetLabelsVisible, posterDarkMode, maskKey, geoBoundary, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos, splitMode, splitPhoto, splitPhotoZone, layoutId, innerMarginMm, decorationSvgUrl, decorationVisible, orientation,
+      viewState: vs, styleId, paletteId, customPaletteBase, customPalette, streetLabelsVisible, posterDarkMode, maskKey, geoBoundary, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos, splitMode, splitPhoto, splitPhotoZone, layoutId, innerMarginMm, decorationSvgUrl, decorationVisible, orientation,
     }
     const canvas = await buildPosterCanvas(format, snapshot)
     if (options?.watermark) {
