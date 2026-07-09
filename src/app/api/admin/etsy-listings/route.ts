@@ -17,6 +17,10 @@ const CreateSchema = z.object({
   location_lat: z.number().min(-90).max(90).nullable().optional(),
   location_lng: z.number().min(-180).max(180).nullable().optional(),
   location_zoom: z.number().min(0).max(22).nullable().optional(),
+  // PROJ-54: optionale Verknüpfung zu einem Listing-Image-Set
+  listing_image_set_id: z.string().uuid().nullable().optional(),
+  // PROJ-54 Phase A: Haupt-Palette für palette_mode='main'-Items
+  main_palette_id: z.string().min(1).nullable().optional(),
 })
 
 export async function GET() {

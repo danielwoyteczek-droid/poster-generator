@@ -255,6 +255,12 @@ export function LandingNavClient({ occasionLinks = [] }: LandingNavClientProps) 
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
+                      <Link href="/private/admin/listing-image-sets" className="cursor-pointer">
+                        <LayoutTemplate className="w-4 h-4 mr-2" />
+                        Listing-Image-Sets
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
                       <Link href="/private/admin/masks" className="cursor-pointer">
                         <LayoutTemplate className="w-4 h-4 mr-2" />
                         {t('adminMasks')}

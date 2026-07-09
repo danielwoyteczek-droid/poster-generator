@@ -56,20 +56,6 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
 
   const admin = createAdminClient()
 
-  // Worker lädt Preset via öffentlicher /api/presets/[id]-Route, die nur
-  // published Presets serviert. Drafts würden 404 → leerer Default-Render.
-  const { data: existing } = await admin
-    .from('presets')
-    .select('status')
-    .eq('id', id)
-    .single()
-  if (existing?.status !== 'published') {
-    return NextResponse.json(
-      { error: 'Preset muss veröffentlicht sein, bevor es gerendert werden kann.' },
-      { status: 400 },
-    )
-  }
-
   const { data, error } = await admin
     .from('presets')
     .update(updates)

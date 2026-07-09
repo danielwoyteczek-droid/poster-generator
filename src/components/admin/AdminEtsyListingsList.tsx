@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Check, ChevronDown, Loader2, Plus, Rocket, Download, Trash2, RefreshCw, MapPin, Play, Eye, Pencil } from 'lucide-react'
+import { Check, ChevronDown, ChevronUp, Loader2, Plus, Rocket, Download, Trash2, RefreshCw, MapPin, Play, Eye, Pencil, X, Image as ImageIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -37,6 +37,10 @@ interface ListingDef {
   location_lat?: number | null
   location_lng?: number | null
   location_zoom?: number | null
+  // PROJ-54
+  listing_image_set_id?: string | null
+  // PROJ-54 Phase A
+  main_palette_id?: string | null
 }
 
 interface GeoResult { place_name: string; center: [number, number] }
@@ -47,6 +51,30 @@ interface PreviewLook {
   status: string | null
   flatUrl: string | null
   mockups: string[]
+}
+interface PreviewListingSetMeta {
+  id: string
+  slug: string
+  name: string
+  mainPaletteId?: string | null
+  items: { id: string; label: string; display_name: string; display_order: number; palette_mode: 'main' | 'all' }[]
+}
+interface PreviewGalleryPhoto {
+  slot: number
+  item_id: string
+  item_label: string
+  display_name: string
+  palette_id: string
+  palette_name: string
+  palette_mode: 'main' | 'all'
+  url: string
+}
+interface PreviewVariantPhoto {
+  palette_id: string
+  palette_name: string
+  item_id: string
+  item_label: string
+  url: string
 }
 
 interface Option { value: string; label: string }
@@ -104,12 +132,18 @@ export function AdminEtsyListingsList() {
   const [presets, setPresets] = useState<Option[]>([])
   const [palettes, setPalettes] = useState<Option[]>([])
   const [mockupSets, setMockupSets] = useState<Option[]>([])
+  const [listingImageSets, setListingImageSets] = useState<Option[]>([])
   const [statusByDef, setStatusByDef] = useState<Record<string, DefStatus>>({})
   const [busyId, setBusyId] = useState<string | null>(null)
   const [workerStarting, setWorkerStarting] = useState(false)
   const [previewOpen, setPreviewOpen] = useState(false)
   const [previewName, setPreviewName] = useState('')
   const [previewLooks, setPreviewLooks] = useState<PreviewLook[]>([])
+  const [previewListingSet, setPreviewListingSet] = useState<PreviewListingSetMeta | null>(null)
+  const [previewGallery, setPreviewGallery] = useState<PreviewGalleryPhoto[]>([])
+  const [previewVariant, setPreviewVariant] = useState<PreviewVariantPhoto[]>([])
+  const [previewRawOpen, setPreviewRawOpen] = useState(false)
+  const [previewDefId, setPreviewDefId] = useState<string | null>(null)
   const [previewLoading, setPreviewLoading] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
 
@@ -119,6 +153,8 @@ export function AdminEtsyListingsList() {
     palette_ids: [] as string[], mockup_set_ids: [] as string[],
     location_name: '' as string, location_lat: null as number | null,
     location_lng: null as number | null, location_zoom: 13 as number,
+    listing_image_set_id: '' as string,
+    main_palette_id: '' as string,
   })
   const [geoQuery, setGeoQuery] = useState('')
   const [geoResults, setGeoResults] = useState<GeoResult[]>([])
@@ -132,15 +168,21 @@ export function AdminEtsyListingsList() {
   }, [])
 
   const fetchOptions = useCallback(async () => {
-    const [pRes, paRes, mRes] = await Promise.all([
+    const [pRes, paRes, mRes, lRes] = await Promise.all([
       fetch('/api/admin/presets'),
       fetch('/api/admin/palettes?status=published'),
       fetch('/api/admin/mockup-sets'),
+      fetch('/api/admin/listing-image-sets'),
     ])
-    const [p, pa, m] = await Promise.all([pRes.json(), paRes.json(), mRes.json()])
+    const [p, pa, m, l] = await Promise.all([pRes.json(), paRes.json(), mRes.json(), lRes.json()])
     if (pRes.ok) setPresets((p.presets ?? []).map((x: { id: string; name: string }) => ({ value: x.id, label: x.name })))
     if (paRes.ok) setPalettes((pa.palettes ?? []).map((x: { id: string; name: string }) => ({ value: x.id, label: x.name })))
     if (mRes.ok) setMockupSets((m.mockup_sets ?? []).map((x: { id: string; name: string }) => ({ value: x.id, label: x.name })))
+    if (lRes.ok) setListingImageSets(
+      (l.listing_image_sets ?? [])
+        .filter((x: { is_active: boolean }) => x.is_active)
+        .map((x: { id: string; name: string; slug: string }) => ({ value: x.id, label: `${x.name} (${x.slug})` })),
+    )
   }, [])
 
   const fetchStatus = useCallback(async (defList: ListingDef[]) => {
@@ -189,6 +231,8 @@ export function AdminEtsyListingsList() {
     setForm({
       name: '', template_key: 'stadtkarte', base_preset_id: '', palette_ids: [], mockup_set_ids: [],
       location_name: '', location_lat: null, location_lng: null, location_zoom: 13,
+      listing_image_set_id: '',
+      main_palette_id: '',
     })
     setGeoQuery(''); setGeoResults([]); setEditingId(null)
   }
@@ -207,6 +251,8 @@ export function AdminEtsyListingsList() {
       location_lat: def.location_lat ?? null,
       location_lng: def.location_lng ?? null,
       location_zoom: def.location_zoom ?? 13,
+      listing_image_set_id: def.listing_image_set_id ?? '',
+      main_palette_id: def.main_palette_id ?? '',
     })
     setGeoQuery(def.location_name ?? '')
     setGeoResults([])
@@ -226,6 +272,8 @@ export function AdminEtsyListingsList() {
       location_lng: hasLoc ? form.location_lng : null,
       // Zoom bewusst NICHT überschreiben — Render behält den Preset-Zoom 1:1.
       location_zoom: null,
+      listing_image_set_id: form.listing_image_set_id || null,
+      main_palette_id: form.main_palette_id || null,
     }
     const res = await fetch(
       editingId ? `/api/admin/etsy-listings/${editingId}` : '/api/admin/etsy-listings',
@@ -264,16 +312,69 @@ export function AdminEtsyListingsList() {
     }
   }
 
+  const refreshPreview = async () => {
+    if (!previewDefId) return
+    const res = await fetch(`/api/admin/etsy-listings/${previewDefId}/images`)
+    if (!res.ok) return
+    const data = await res.json()
+    setPreviewLooks(data.looks ?? [])
+    setPreviewListingSet(data.listingImageSet ?? null)
+    setPreviewGallery(data.galleryPhotos ?? [])
+    setPreviewVariant(data.variantPhotos ?? [])
+  }
+
+  const moveListingItem = async (itemId: string, direction: 'up' | 'down') => {
+    if (!previewListingSet) return
+    const items = [...previewListingSet.items].sort((a, b) => a.display_order - b.display_order)
+    const idx = items.findIndex((i) => i.id === itemId)
+    if (idx < 0) return
+    const targetIdx = direction === 'up' ? idx - 1 : idx + 1
+    if (targetIdx < 0 || targetIdx >= items.length) return
+    const a = items[idx], b = items[targetIdx]
+    const url = `/api/admin/listing-image-sets/${previewListingSet.id}/items`
+    const [r1, r2] = await Promise.all([
+      fetch(`${url}/${a.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ display_order: b.display_order }) }),
+      fetch(`${url}/${b.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ display_order: a.display_order }) }),
+    ])
+    if (!r1.ok || !r2.ok) {
+      toast.error('Reihenfolge konnte nicht geändert werden')
+      return
+    }
+    toast.success('Reihenfolge gespeichert')
+    await refreshPreview()
+  }
+
+  const removeListingItem = async (itemId: string, label: string) => {
+    if (!previewListingSet) return
+    if (!confirm(`Item „${label}" aus dem Set „${previewListingSet.name}" entfernen?\n\nDas Item verschwindet aus allen Etsy-Defs, die dieses Set nutzen.`)) return
+    const res = await fetch(`/api/admin/listing-image-sets/${previewListingSet.id}/items/${itemId}`, { method: 'DELETE' })
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}))
+      toast.error(d.error ?? 'Löschen fehlgeschlagen')
+      return
+    }
+    toast.success('Item entfernt')
+    await refreshPreview()
+  }
+
   const openPreview = async (def: ListingDef) => {
     setPreviewOpen(true)
     setPreviewName(def.name)
     setPreviewLooks([])
+    setPreviewListingSet(null)
+    setPreviewGallery([])
+    setPreviewVariant([])
+    setPreviewDefId(def.id)
     setPreviewLoading(true)
     try {
       const res = await fetch(`/api/admin/etsy-listings/${def.id}/images`)
       const data = await res.json()
-      if (res.ok) setPreviewLooks(data.looks ?? [])
-      else toast.error(data.error ?? 'Vorschau fehlgeschlagen')
+      if (res.ok) {
+        setPreviewLooks(data.looks ?? [])
+        setPreviewListingSet(data.listingImageSet ?? null)
+        setPreviewGallery(data.galleryPhotos ?? [])
+        setPreviewVariant(data.variantPhotos ?? [])
+      } else toast.error(data.error ?? 'Vorschau fehlgeschlagen')
     } catch {
       toast.error('Vorschau fehlgeschlagen')
     } finally {
@@ -327,6 +428,53 @@ export function AdminEtsyListingsList() {
     URL.revokeObjectURL(url)
     setBusyId(null)
     toast.success('Vela-CSV heruntergeladen')
+  }
+
+  const renderListingImages = async (def: ListingDef) => {
+    setBusyId(def.id)
+    const res = await fetch(`/api/admin/etsy-listings/${def.id}/render-listing-images`, { method: 'POST' })
+    const j = await res.json().catch(() => ({}))
+    setBusyId(null)
+    if (!res.ok) {
+      toast.error(j.error ?? 'Listing-Bilder fehlgeschlagen')
+      return
+    }
+    const okCount = (j.variants ?? []).filter((v: { status: string }) => v.status === 'ok').length
+    const skipCount = (j.variants ?? []).filter((v: { status: string }) => v.status === 'skipped').length
+    const failCount = (j.variants ?? []).filter((v: { status: string }) => v.status === 'failed').length
+    toast.success(`Listing-Bilder: ${okCount} ok`, {
+      description: [
+        skipCount ? `${skipCount} übersprungen (Variante noch nicht gerendert)` : null,
+        failCount ? `${failCount} fehlgeschlagen` : null,
+      ].filter(Boolean).join(' · ') || undefined,
+    })
+    // PROJ-54: nach Erfolg direkt die Vorschau öffnen — sonst denkt der Operator
+    // „nichts ist passiert", weil der Button optisch nichts ändert.
+    if (okCount > 0) {
+      await openPreview(def)
+    }
+  }
+
+  const downloadListingImagesZip = async (def: ListingDef) => {
+    setBusyId(def.id)
+    try {
+      const res = await fetch(`/api/admin/etsy-listings/${def.id}/listing-images-zip`)
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}))
+        toast.error(j.error ?? 'ZIP-Download fehlgeschlagen')
+        return
+      }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `listing-${def.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}.zip`
+      a.click()
+      URL.revokeObjectURL(url)
+      toast.success('ZIP heruntergeladen')
+    } finally {
+      setBusyId(null)
+    }
   }
 
   const deleteDef = async (def: ListingDef) => {
@@ -405,6 +553,18 @@ export function AdminEtsyListingsList() {
                     {busy ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Rocket className="w-4 h-4 mr-2" />}
                     Render starten
                   </Button>
+                  {def.listing_image_set_id && (
+                    <>
+                      <Button variant="outline" size="sm" disabled={busy || !st?.flatDone} onClick={() => renderListingImages(def)}
+                        title={st?.flatDone ? 'Listing-Bilder pro Variante generieren (PROJ-54)' : 'Erst wenn alle Looks gerendert sind'}>
+                        <ImageIcon className="w-4 h-4 mr-2" /> Listing-Bilder
+                      </Button>
+                      <Button variant="outline" size="sm" disabled={busy || !st?.flatDone} onClick={() => downloadListingImagesZip(def)}
+                        title="Listing-Bilder als ZIP herunterladen (gallery/ + variants/<palette>/ + manifest.json)">
+                        <Download className="w-4 h-4 mr-2" /> Bilder-ZIP
+                      </Button>
+                    </>
+                  )}
                   <Button variant="outline" size="sm" disabled={busy || !st?.flatDone} onClick={() => exportCsv(def)}
                     title={st?.flatDone ? 'Vela-CSV exportieren' : 'Erst wenn alle Looks gerendert sind'}>
                     <Download className="w-4 h-4 mr-2" /> Vela-CSV
@@ -434,7 +594,7 @@ export function AdminEtsyListingsList() {
       )}
 
       <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) resetForm() }}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingId ? 'Definition bearbeiten' : 'Neue Listing-Definition'}</DialogTitle>
             <DialogDescription>Ein Master-Design, das je gewählter Palette als eigenes Etsy-Listing ausgespielt wird.</DialogDescription>
@@ -472,6 +632,32 @@ export function AdminEtsyListingsList() {
               <MultiSelect value={form.mockup_set_ids} onChange={(v) => setForm({ ...form, mockup_set_ids: v })}
                 options={mockupSets} placeholder="Mockup-Sets wählen…" />
             </div>
+            <div className="space-y-1.5">
+              <Label>Listing-Image-Set (Etsy-Bild-Vorlage)</Label>
+              <select className={SELECT_CLASS} value={form.listing_image_set_id}
+                onChange={(e) => setForm({ ...form, listing_image_set_id: e.target.value })}>
+                <option value="">— keines (nur raw Mockup-Composites) —</option>
+                {listingImageSets.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+              </select>
+              <p className="text-xs text-muted-foreground">
+                Optional: erzeugt nach dem Render zusätzlich die benannten Listing-Bilder pro Variante (PROJ-54).
+              </p>
+            </div>
+            {form.listing_image_set_id && form.palette_ids.length > 0 && (
+              <div className="space-y-1.5">
+                <Label>Haupt-Palette für „main"-Items</Label>
+                <select className={SELECT_CLASS} value={form.main_palette_id}
+                  onChange={(e) => setForm({ ...form, main_palette_id: e.target.value })}>
+                  <option value="">— erste Palette ({form.palette_ids[0]}) —</option>
+                  {form.palette_ids.map((pid) => (
+                    <option key={pid} value={pid}>{palettes.find((p) => p.value === pid)?.label ?? pid}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-muted-foreground">
+                  Welche Palette für Hero + Annotations (Items mit Modus „main") gerendert wird. Variant-Bilder („all") werden für jede Palette einzeln gerendert.
+                </p>
+              </div>
+            )}
             <div className="space-y-1.5">
               <Label>Ort (überschreibt das Preset — nur Kartenausschnitt)</Label>
               <div className="flex gap-2">
@@ -528,35 +714,133 @@ export function AdminEtsyListingsList() {
             <div className="text-sm text-muted-foreground py-10 text-center">Keine Renders gefunden.</div>
           ) : (
             <div className="space-y-6">
-              {previewLooks.map((look) => (
-                <div key={look.paletteId}>
-                  <div className="flex items-center gap-2 mb-2">
-                    <Badge variant="secondary">{look.paletteName}</Badge>
-                    {look.status !== 'done' && (
-                      <span className="text-xs text-amber-600">{look.status ?? 'offen'}</span>
+              {previewListingSet && (previewGallery.length > 0 || previewVariant.length > 0) && (
+                <div className="rounded-lg border bg-muted/30 p-4 space-y-4">
+                  <div>
+                    <div className="flex items-baseline justify-between gap-2 mb-2">
+                      <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                        Etsy-Upload-Reihenfolge · {previewListingSet.name}
+                        <span className="ml-2 text-muted-foreground/70 normal-case tracking-normal">
+                          ({previewGallery.length} Photos)
+                        </span>
+                      </div>
+                      <span className="text-[10px] text-muted-foreground/60">↑↓ + X wirken auf das Set — gilt für alle Defs damit</span>
+                    </div>
+                    {previewGallery.length === 0 ? (
+                      <div className="text-xs text-muted-foreground italic">
+                        Noch nicht generiert — klick „Listing-Bilder" auf der Def-Karte.
+                      </div>
+                    ) : (
+                      <ul className="space-y-2">
+                        {(() => {
+                          // Eindeutige Item-IDs in der Reihenfolge ihres ersten Auftauchens,
+                          // damit ↑↓ pro Item (nicht pro Photo-Zeile) richtig funktioniert.
+                          const uniqueItemIds: string[] = []
+                          for (const p of previewGallery) {
+                            if (!uniqueItemIds.includes(p.item_id)) uniqueItemIds.push(p.item_id)
+                          }
+                          return previewGallery.map((p, idx) => {
+                            const itemOrderIdx = uniqueItemIds.indexOf(p.item_id)
+                            const isFirstPhotoOfItem = previewGallery.findIndex((x) => x.item_id === p.item_id) === idx
+                            return (
+                              <li key={`${p.item_id}-${p.palette_id}`} className="flex items-center gap-3 bg-white rounded border p-2">
+                                <span className="text-xs font-mono text-muted-foreground w-14 shrink-0">Photo {p.slot}</span>
+                                <a href={p.url} target="_blank" rel="noopener noreferrer" className="shrink-0">
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img src={p.url} alt={p.display_name} className="h-16 w-16 object-contain rounded bg-muted border" />
+                                </a>
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-sm font-medium truncate">{p.display_name}</div>
+                                  <div className="text-[10px] text-muted-foreground flex gap-2 flex-wrap">
+                                    <span className="font-mono">{p.item_label}</span>
+                                    <span>·</span>
+                                    <span>{p.palette_name}</span>
+                                    <span className="opacity-60">({p.palette_mode === 'main' ? 'Main' : 'Pro Palette'})</span>
+                                  </div>
+                                </div>
+                                {isFirstPhotoOfItem && (
+                                  <div className="flex gap-0.5 shrink-0">
+                                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0 disabled:opacity-30"
+                                      disabled={itemOrderIdx === 0}
+                                      onClick={() => moveListingItem(p.item_id, 'up')}
+                                      title="Item nach oben">
+                                      <ChevronUp className="w-3.5 h-3.5" />
+                                    </Button>
+                                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0 disabled:opacity-30"
+                                      disabled={itemOrderIdx === uniqueItemIds.length - 1}
+                                      onClick={() => moveListingItem(p.item_id, 'down')}
+                                      title="Item nach unten">
+                                      <ChevronDown className="w-3.5 h-3.5" />
+                                    </Button>
+                                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-muted-foreground/70 hover:text-red-600"
+                                      onClick={() => removeListingItem(p.item_id, p.item_label)}
+                                      title="Item komplett entfernen (aus Set)">
+                                      <X className="w-3.5 h-3.5" />
+                                    </Button>
+                                  </div>
+                                )}
+                              </li>
+                            )
+                          })
+                        })()}
+                      </ul>
                     )}
                   </div>
-                  <div className="flex gap-3 flex-wrap">
-                    {look.flatUrl && (
-                      <a href={look.flatUrl} target="_blank" rel="noopener noreferrer">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={look.flatUrl} alt={look.paletteName}
-                          className="h-48 w-auto rounded border object-contain bg-muted" />
-                      </a>
-                    )}
-                    {look.mockups.map((url, i) => (
-                      <a key={i} href={url} target="_blank" rel="noopener noreferrer">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={url} alt={`${look.paletteName} Mockup ${i + 1}`}
-                          className="h-48 w-auto rounded border object-contain bg-muted" />
-                      </a>
-                    ))}
-                    {!look.flatUrl && look.mockups.length === 0 && (
-                      <span className="text-xs text-muted-foreground">noch keine Bilder</span>
-                    )}
-                  </div>
+                  {previewVariant.length > 0 && (
+                    <div>
+                      <div className="text-[11px] uppercase tracking-wide text-muted-foreground mb-2">
+                        Variant-Picker (Etsy zeigt's dem Kunden bei Farb-Auswahl)
+                      </div>
+                      <div className="flex gap-3 flex-wrap">
+                        {previewVariant.map((vp) => (
+                          <a key={vp.palette_id} href={vp.url} target="_blank" rel="noopener noreferrer" className="block">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={vp.url} alt={vp.palette_name}
+                              className="h-32 w-auto rounded border object-contain bg-background" />
+                            <div className="mt-1 text-[10px] font-mono text-muted-foreground">Var: {vp.palette_name}</div>
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              ))}
+              )}
+              <details className="rounded-lg border bg-muted/10" open={previewRawOpen} onToggle={(e) => setPreviewRawOpen((e.target as HTMLDetailsElement).open)}>
+                <summary className="cursor-pointer px-4 py-2 text-sm text-muted-foreground hover:bg-muted/30 rounded-lg">
+                  Raw Renders pro Look anzeigen (bare Poster + Mockup-Composites zur Inspektion, gehen NICHT in die CSV)
+                </summary>
+                <div className="p-4 pt-0 space-y-6">
+                  {previewLooks.map((look) => (
+                    <div key={look.paletteId}>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Badge variant="secondary">{look.paletteName}</Badge>
+                        {look.status !== 'done' && (
+                          <span className="text-xs text-amber-600">{look.status ?? 'offen'}</span>
+                        )}
+                      </div>
+                      <div className="flex gap-3 flex-wrap">
+                        {look.flatUrl && (
+                          <a href={look.flatUrl} target="_blank" rel="noopener noreferrer">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={look.flatUrl} alt={look.paletteName}
+                              className="h-48 w-auto rounded border object-contain bg-muted" />
+                          </a>
+                        )}
+                        {look.mockups.map((url, i) => (
+                          <a key={i} href={url} target="_blank" rel="noopener noreferrer">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={url} alt={`${look.paletteName} Mockup ${i + 1}`}
+                              className="h-48 w-auto rounded border object-contain bg-muted" />
+                          </a>
+                        ))}
+                        {!look.flatUrl && look.mockups.length === 0 && (
+                          <span className="text-xs text-muted-foreground">noch keine Bilder</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </details>
             </div>
           )}
         </DialogContent>

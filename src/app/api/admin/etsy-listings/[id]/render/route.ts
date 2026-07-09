@@ -23,10 +23,33 @@ export async function POST(_req: NextRequest, context: { params: Promise<{ id: s
 
   const { data: def, error: defErr } = await admin
     .from('etsy_listing_defs')
-    .select('id, name, base_preset_id, palette_ids, mockup_set_ids, location_lat, location_lng, location_zoom')
+    .select('id, name, base_preset_id, palette_ids, mockup_set_ids, location_lat, location_lng, location_zoom, listing_image_set_id')
     .eq('id', id)
     .single()
   if (defErr || !def) return NextResponse.json({ error: 'Listing-Definition nicht gefunden' }, { status: 404 })
+
+  // PROJ-54: Wenn ein Listing-Image-Set zugewiesen ist, alle DM-Mockups, die
+  // dort in Items referenziert werden, automatisch zu mockup_set_ids hinzufügen
+  // — damit der Worker sie pro Palette vorrendert und der Listing-Image-Set-
+  // Compositor sie später aus preset_renders lesen kann. Lokale Mockups
+  // brauchen das nicht (composite passiert direkt aus dem PNG).
+  let effectiveMockupSetIds: string[] = (def.mockup_set_ids as string[]) ?? []
+  if (def.listing_image_set_id) {
+    const { data: items } = await admin
+      .from('listing_image_set_items')
+      .select('mockup_set_id')
+      .eq('listing_image_set_id', def.listing_image_set_id)
+    const itemMockupIds = Array.from(new Set((items ?? []).map((i) => i.mockup_set_id as string)))
+    if (itemMockupIds.length > 0) {
+      const { data: dmMockups } = await admin
+        .from('mockup_sets')
+        .select('id')
+        .in('id', itemMockupIds)
+        .eq('provider', 'dynamic_mockups')
+      const dmIds = (dmMockups ?? []).map((m) => m.id as string)
+      effectiveMockupSetIds = Array.from(new Set([...effectiveMockupSetIds, ...dmIds]))
+    }
+  }
 
   if (!def.palette_ids?.length) {
     return NextResponse.json({ error: 'Keine Paletten ausgewählt' }, { status: 400 })
@@ -94,7 +117,7 @@ export async function POST(_req: NextRequest, context: { params: Promise<{ id: s
       config_json: buildConfig(paletteId),
       display_order: base.display_order,
       status: 'draft',
-      mockup_set_ids: def.mockup_set_ids ?? [],
+      mockup_set_ids: effectiveMockupSetIds,
       render_status: 'pending',
       render_status_a4: 'pending',
       render_status_a3: 'pending',

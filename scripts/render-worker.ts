@@ -23,6 +23,7 @@ import { chromium, type Browser, type BrowserContext } from 'playwright'
 import { config as loadEnv } from 'dotenv'
 import crypto from 'node:crypto'
 import { renderMockup, fetchCompositeBuffer, DynamicMockupsApiError } from '../src/lib/dynamic-mockups-client'
+import { composeLocalMockup, type SlotRect as LocalSlotRect } from '../src/lib/local-mockup-processor'
 import { FEATURED_STYLES, type FeaturedStyle } from '../src/lib/featured-styles'
 
 loadEnv({ path: '.env.local' })
@@ -41,6 +42,12 @@ const HEADLESS_TOKEN = envOr('RENDER_HEADLESS_TOKEN', undefined)
 const SUPABASE_URL = envOr('NEXT_PUBLIC_SUPABASE_URL', undefined)
 const SUPABASE_KEY = envOr('SUPABASE_SECRET_KEY', undefined)
 const POLL_INTERVAL_MS = Number.parseInt(envOr('RENDER_POLL_INTERVAL_MS', '5000'), 10)
+// Self-healing: Jobs, die länger als STALE_RENDER_THRESHOLD_MIN auf 'rendering'
+// stehen (Worker abgestürzt, Netz weg, Prozess gekillt) werden auf 'pending'
+// zurückgesetzt, damit der nächste Worker sie erneut aufnehmen kann. Wird
+// gedrosselt einmal pro RECLAIM_INTERVAL_MS ausgeführt, nicht bei jedem Poll.
+const STALE_RENDER_THRESHOLD_MIN = Number.parseInt(envOr('RENDER_STALE_THRESHOLD_MIN', '10'), 10)
+const RECLAIM_INTERVAL_MS = 60_000
 // Drain-Mode (für GitHub Actions): Worker beendet sich, wenn 2 Polls in
 // Folge nichts zu tun fanden. Lokal (Default) bleibt der Worker am Leben
 // und pollt unbegrenzt.
@@ -78,6 +85,11 @@ const FALLBACK_LOCATION = {
 interface PresetConfigJson {
   marker?: { lat?: number | null; lng?: number | null }
   zoom?: number
+  orientation?: 'portrait' | 'landscape'
+  // PROJ-53: editor preview size captured at save — reproduces the exact
+  // design extent in the headless render (zoom is container-width dependent).
+  renderVpW?: number
+  renderVpH?: number
   [key: string]: unknown
 }
 
@@ -99,16 +111,30 @@ interface PresetRow {
 type PortraitFormat = 'a4' | 'a3' | 'a2'
 const PORTRAIT_FORMATS: PortraitFormat[] = ['a4', 'a3', 'a2']
 
+interface SlotRect {
+  x: number
+  y: number
+  width: number
+  height: number
+  canvasWidth: number
+  canvasHeight: number
+}
+
 interface MockupSetRow {
   id: string
   slug: string
   name: string
-  desktop_template_uuid: string
-  desktop_smart_object_uuid: string
-  desktop_slot_uuids: string[]
-  mobile_template_uuid: string
-  mobile_smart_object_uuid: string
-  mobile_slot_uuids: string[]
+  provider: 'dynamic_mockups' | 'local'
+  desktop_template_uuid: string | null
+  desktop_smart_object_uuid: string | null
+  desktop_slot_uuids: string[] | null
+  mobile_template_uuid: string | null
+  mobile_smart_object_uuid: string | null
+  mobile_slot_uuids: string[] | null
+  local_portrait_overlay_url: string | null
+  local_portrait_slot: SlotRect | null
+  local_landscape_overlay_url: string | null
+  local_landscape_slot: SlotRect | null
   is_active: boolean
 }
 
@@ -187,6 +213,96 @@ async function claimNextPreset(supabase: SupabaseClient): Promise<PresetRow | nu
 
   if (updErr || !claimed) return null
   return claimed as PresetRow
+}
+
+// ─── Stale-Job Reclaim (Self-Healing) ──────────────────────────────────────
+
+/**
+ * Setzt Jobs auf 'pending' zurück, die länger als STALE_RENDER_THRESHOLD_MIN
+ * auf 'rendering' hängen. Tritt auf, wenn ein Worker mitten im Job abstürzt,
+ * Netz verliert oder hart gekillt wird — die Row bleibt sonst für immer als
+ * 'rendering' liegen und kein neuer Worker traut sich ran.
+ *
+ * Idempotent: parallele Reclaims über mehrere Worker hinweg sind safe (das
+ * zweite UPDATE matched nichts mehr, weil das erste den Status schon geändert
+ * hat).
+ */
+async function reclaimStaleJobs(supabase: SupabaseClient) {
+  const cutoff = new Date(Date.now() - STALE_RENDER_THRESHOLD_MIN * 60_000).toISOString()
+  const note = `Reclaimed after >${STALE_RENDER_THRESHOLD_MIN}min stuck in 'rendering'`
+
+  // Presets (legacy single-status)
+  const { data: presets, error: presetErr } = await supabase
+    .from('presets')
+    .update({
+      render_status: 'pending',
+      render_worker_id: null,
+      render_started_at: null,
+      render_error: note,
+    })
+    .eq('render_status', 'rendering')
+    .lt('render_started_at', cutoff)
+    .select('id, name')
+  if (presetErr) {
+    logErr(`Reclaim presets failed: ${presetErr.message}`)
+  } else if (presets && presets.length > 0) {
+    log(`↻ Reclaimed ${presets.length} stale preset(s): ${presets.map((p) => p.name).join(', ')}`)
+  }
+
+  // Presets per-format (a4/a3/a2)
+  for (const fmt of ['a4', 'a3', 'a2'] as const) {
+    const { data, error } = await supabase
+      .from('presets')
+      .update({
+        [`render_status_${fmt}`]: 'pending',
+        [`render_started_at_${fmt}`]: null,
+        [`render_error_${fmt}`]: note,
+      })
+      .eq(`render_status_${fmt}`, 'rendering')
+      .lt(`render_started_at_${fmt}`, cutoff)
+      .select('id, name')
+    if (error) {
+      logErr(`Reclaim presets[${fmt}] failed: ${error.message}`)
+    } else if (data && data.length > 0) {
+      log(`↻ Reclaimed ${data.length} stale preset(s) for ${fmt}: ${data.map((p) => p.name).join(', ')}`)
+    }
+  }
+
+  // Compositions
+  const { data: comps, error: compErr } = await supabase
+    .from('mockup_compositions')
+    .update({
+      render_status: 'pending',
+      render_started_at: null,
+      render_worker_id: null,
+      render_error: note,
+    })
+    .eq('render_status', 'rendering')
+    .lt('render_started_at', cutoff)
+    .select('id, name')
+  if (compErr) {
+    logErr(`Reclaim compositions failed: ${compErr.message}`)
+  } else if (comps && comps.length > 0) {
+    log(`↻ Reclaimed ${comps.length} stale composition(s): ${comps.map((c) => c.name).join(', ')}`)
+  }
+
+  // City renders
+  const { data: cities, error: cityErr } = await supabase
+    .from('city_renders')
+    .update({
+      render_status: 'pending',
+      render_started_at: null,
+      render_worker_id: null,
+      render_error: note,
+    })
+    .eq('render_status', 'rendering')
+    .lt('render_started_at', cutoff)
+    .select('id, city_id, style_id')
+  if (cityErr) {
+    logErr(`Reclaim city_renders failed: ${cityErr.message}`)
+  } else if (cities && cities.length > 0) {
+    log(`↻ Reclaimed ${cities.length} stale city render(s)`)
+  }
 }
 
 async function markDone(supabase: SupabaseClient, presetId: string) {
@@ -348,6 +464,13 @@ async function renderPosterPng(
     if (loc.zoom) params.set('zoom', String(loc.zoom))
   }
 
+  // PROJ-53: forward the editor preview size so the headless render reproduces
+  // the exact design extent (zoom alone is container-width dependent).
+  const vpW = preset.config_json?.renderVpW
+  const vpH = preset.config_json?.renderVpH
+  if (typeof vpW === 'number' && vpW > 0) params.set('vw', String(vpW))
+  if (typeof vpH === 'number' && vpH > 0) params.set('vh', String(vpH))
+
   const url = `${APP_BASE_URL}/${DEFAULT_LOCALE}/${editorPath}?${params.toString()}`
   log(`  → headless render: ${url}`)
 
@@ -428,9 +551,83 @@ async function cropToAspect(
 }
 
 /**
- * Rendert das Mockup-Composite via Dynamic Mockups EINMAL (Desktop) und
- * leitet daraus die Mobile-Variante per Center-Crop zu 2:3 ab.
- * Spart 50% DM-Credits gegenüber zwei separaten API-Calls.
+ * Dynamic-Mockups-Pfad: lädt Poster temporär nach Storage, ruft die DM-API
+ * und holt das fertige Composite. Verbraucht 1 DM-Credit pro Render.
+ */
+async function renderDmComposite(
+  supabase: SupabaseClient,
+  mockupSet: MockupSetRow,
+  posterBuffer: Buffer,
+  jobUuid: string,
+): Promise<Buffer> {
+  if (!mockupSet.desktop_template_uuid || !mockupSet.desktop_smart_object_uuid) {
+    throw new Error(`Mockup-Set "${mockupSet.slug}" hat keine Dynamic-Mockups-UUIDs konfiguriert`)
+  }
+
+  const tempPath = `_temp/${jobUuid}/poster.png`
+  const { error: tempErr } = await supabase.storage
+    .from(STORAGE_BUCKET)
+    .upload(tempPath, posterBuffer, { contentType: 'image/png', upsert: true })
+  if (tempErr) throw new Error(`Temp-Upload: ${tempErr.message}`)
+
+  const { data: tempUrlData } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(tempPath)
+  const posterUrl = tempUrlData.publicUrl
+
+  log(`  → DM-Render (template=${mockupSet.desktop_template_uuid.slice(0, 8)})`)
+  const { exportPath } = await renderMockup({
+    templateUuid: mockupSet.desktop_template_uuid,
+    smartObjectUuid: mockupSet.desktop_smart_object_uuid,
+    assetUrl: posterUrl,
+  })
+
+  return fetchCompositeBuffer(exportPath)
+}
+
+/**
+ * PROJ-52 Local-Provider: lädt das passende Orientation-Overlay aus Storage,
+ * komponiert es mit sharp gegen das Poster-PNG. Keine API-Kosten.
+ *
+ * Wirft, wenn das Preset eine Orientation braucht, für die kein Overlay
+ * hinterlegt ist — der Render schlägt dann sauber fehl, andere Mockup-Sets
+ * desselben Presets sind nicht betroffen.
+ */
+async function renderLocalComposite(
+  preset: PresetRow,
+  mockupSet: MockupSetRow,
+  posterBuffer: Buffer,
+): Promise<Buffer> {
+  const orientation: 'portrait' | 'landscape' =
+    preset.config_json?.orientation === 'landscape' ? 'landscape' : 'portrait'
+
+  const overlayUrl: string | null =
+    orientation === 'landscape' ? mockupSet.local_landscape_overlay_url : mockupSet.local_portrait_overlay_url
+  const slot: LocalSlotRect | null =
+    orientation === 'landscape' ? mockupSet.local_landscape_slot : mockupSet.local_portrait_slot
+
+  if (!overlayUrl || !slot) {
+    throw new Error(
+      `Mockup-Set "${mockupSet.slug}" hat kein ${orientation}-Overlay konfiguriert — Preset "${preset.name}" braucht aber ${orientation}.`,
+    )
+  }
+
+  log(`  → Local-Render (${mockupSet.slug}, ${orientation}, slot ${slot.width}×${slot.height})`)
+  const overlayResp = await fetch(overlayUrl)
+  if (!overlayResp.ok) {
+    throw new Error(`Konnte Overlay nicht laden: ${overlayUrl} → HTTP ${overlayResp.status}`)
+  }
+  const overlayBuffer = Buffer.from(await overlayResp.arrayBuffer())
+
+  return composeLocalMockup({ posterBuffer, overlayBuffer, slot })
+}
+
+/**
+ * Rendert das Mockup-Composite EINMAL (Desktop) und leitet daraus die
+ * Mobile-Variante per Center-Crop zu 2:3 ab.
+ *
+ * Provider-Weiche:
+ *  - 'dynamic_mockups': Roundtrip zur externen DM-API
+ *  - 'local' (PROJ-52): serverseitiges Compositing mit sharp gegen ein
+ *    hochgeladenes Overlay-PNG. Keine API-Kosten.
  *
  * Returns: ein Map von variant → { imageUrl, width, height }
  */
@@ -441,29 +638,12 @@ async function compositeViaMockup(
   posterBuffer: Buffer,
   jobUuid: string,
 ): Promise<Record<Variant, { imageUrl: string; width: number; height: number }>> {
-  // 1. Poster-PNG temporär nach Storage hochladen (1x für beide Varianten)
-  const tempPath = `_temp/${jobUuid}/poster.png`
-  const { error: tempErr } = await supabase.storage
-    .from(STORAGE_BUCKET)
-    .upload(tempPath, posterBuffer, {
-      contentType: 'image/png',
-      upsert: true,
-    })
-  if (tempErr) throw new Error(`Temp-Upload: ${tempErr.message}`)
-
-  const { data: tempUrlData } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(tempPath)
-  const posterUrl = tempUrlData.publicUrl
-
-  // 2. Dynamic Mockups Render-Call (Desktop = native PSD-Aspect)
-  log(`  → DM-Render (template=${mockupSet.desktop_template_uuid.slice(0, 8)})`)
-  const { exportPath } = await renderMockup({
-    templateUuid: mockupSet.desktop_template_uuid,
-    smartObjectUuid: mockupSet.desktop_smart_object_uuid,
-    assetUrl: posterUrl,
-  })
-
-  // 3. Composite herunterladen
-  const desktopBuffer = await fetchCompositeBuffer(exportPath)
+  let desktopBuffer: Buffer
+  if (mockupSet.provider === 'local') {
+    desktopBuffer = await renderLocalComposite(preset, mockupSet, posterBuffer)
+  } else {
+    desktopBuffer = await renderDmComposite(supabase, mockupSet, posterBuffer, jobUuid)
+  }
 
   // 4. Desktop-Variante hochladen (Original-PSD-Aspect, kein Crop)
   const desktopPath = `${preset.id}/${mockupSet.id}/desktop.png`
@@ -581,7 +761,7 @@ async function renderPresetEnd2End(
   // 2. Mockup-Sets nachladen
   const { data: mockupSets, error: msErr } = await supabase
     .from('mockup_sets')
-    .select('id, slug, name, desktop_template_uuid, desktop_smart_object_uuid, mobile_template_uuid, mobile_smart_object_uuid, is_active')
+    .select('id, slug, name, provider, desktop_template_uuid, desktop_smart_object_uuid, mobile_template_uuid, mobile_smart_object_uuid, local_portrait_overlay_url, local_landscape_overlay_url, local_portrait_slot, local_landscape_slot, is_active')
     .in('id', mockupSetIds)
 
   if (msErr) throw new Error(`mockup_sets fetch: ${msErr.message}`)
@@ -970,12 +1150,24 @@ async function main() {
 
     let running = true
     let consecutiveEmptyPolls = 0
+    let lastReclaimAt = 0
     process.on('SIGINT', () => { log('SIGINT — graceful shutdown'); running = false })
     process.on('SIGTERM', () => { log('SIGTERM — graceful shutdown'); running = false })
 
     if (DRAIN_MODE) log(`Drain-Mode aktiv — Exit nach ${DRAIN_EMPTY_THRESHOLD} leeren Polls`)
 
     while (running) {
+      // 0. Self-Healing: stale 'rendering' jobs zurück auf 'pending' setzen
+      // (gedrosselt, läuft beim ersten Poll und dann alle RECLAIM_INTERVAL_MS).
+      if (Date.now() - lastReclaimAt >= RECLAIM_INTERVAL_MS) {
+        try {
+          await reclaimStaleJobs(supabase)
+        } catch (err) {
+          logErr(`Reclaim error: ${err instanceof Error ? err.message : err}`)
+        }
+        lastReclaimAt = Date.now()
+      }
+
       // 1. Erst Presets versuchen
       let claimedPreset: PresetRow | null = null
       try {
