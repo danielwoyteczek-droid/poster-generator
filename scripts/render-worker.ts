@@ -25,6 +25,7 @@ import crypto from 'node:crypto'
 import { renderMockup, fetchCompositeBuffer, DynamicMockupsApiError } from '../src/lib/dynamic-mockups-client'
 import { composeLocalMockup, type SlotRect as LocalSlotRect } from '../src/lib/local-mockup-processor'
 import { FEATURED_STYLES, type FeaturedStyle } from '../src/lib/featured-styles'
+import { HEADLESS_TOKEN_HEADER } from '../src/lib/headless-render'
 
 loadEnv({ path: '.env.local' })
 
@@ -37,7 +38,7 @@ function envOr<T>(name: string, fallback: T): string | T {
   return v && v.length > 0 ? v : fallback
 }
 
-const APP_BASE_URL = envOr('APP_BASE_URL', 'http://localhost:3000')
+let APP_BASE_URL = envOr('APP_BASE_URL', 'http://localhost:3000')
 const HEADLESS_TOKEN = envOr('RENDER_HEADLESS_TOKEN', undefined)
 const SUPABASE_URL = envOr('NEXT_PUBLIC_SUPABASE_URL', undefined)
 const SUPABASE_KEY = envOr('SUPABASE_SECRET_KEY', undefined)
@@ -176,14 +177,38 @@ function resolveLocation(preset: PresetRow) {
   return FALLBACK_LOCATION
 }
 
+async function resolveAppBaseUrl(): Promise<string> {
+  const explicit = envOr('APP_BASE_URL', '')
+  if (typeof explicit === 'string' && explicit.trim()) {
+    return explicit.trim().replace(/\/+$/, '')
+  }
+
+  const envCandidates = [
+    envOr('NEXT_PUBLIC_APP_URL', ''),
+    envOr('NEXT_PUBLIC_SITE_URL', ''),
+    envOr('APP_URL', ''),
+    process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '',
+  ]
+
+  for (const candidate of envCandidates) {
+    if (typeof candidate === 'string' && candidate.trim()) {
+      return candidate.trim().replace(/\/+$/, '')
+    }
+  }
+
+  return 'http://localhost:3000'
+}
+
 // ─── Atomic Claim ──────────────────────────────────────────────────────────
 
 async function claimNextPreset(supabase: SupabaseClient): Promise<PresetRow | null> {
-  // Step 1: find a pending row (read-only)
+  // Step 1: find a preset that has at least one format pending/stale/null.
+  // The current admin routes queue per-format states, so the worker must look
+  // at the format-specific columns rather than only the legacy render_status.
   const { data: candidates, error: selErr } = await supabase
     .from('presets')
     .select('id, name, poster_type, config_json, mockup_set_ids, preview_image_url, render_status_a4, render_status_a3, render_status_a2')
-    .eq('render_status', 'pending')
+    .or('render_status_a4.eq.pending,render_status_a4.eq.stale,render_status_a4.is.null,render_status_a3.eq.pending,render_status_a3.eq.stale,render_status_a3.is.null,render_status_a2.eq.pending,render_status_a2.eq.stale,render_status_a2.is.null')
     .order('created_at')
     .limit(1)
 
@@ -195,9 +220,8 @@ async function claimNextPreset(supabase: SupabaseClient): Promise<PresetRow | nu
 
   const candidate = candidates[0]
 
-  // Step 2: claim atomically via UPDATE with WHERE status='pending'.
-  // Wenn ein anderer Worker bereits geclaimt hat, ist render_status nicht
-  // mehr 'pending' und das Update liefert keine Row zurück.
+  // Step 2: claim atomically by updating the legacy columns so concurrent
+  // workers do not grab the same preset twice.
   const { data: claimed, error: updErr } = await supabase
     .from('presets')
     .update({
@@ -207,7 +231,7 @@ async function claimNextPreset(supabase: SupabaseClient): Promise<PresetRow | nu
       render_error: null,
     })
     .eq('id', candidate.id)
-    .eq('render_status', 'pending')
+    .or('render_status_a4.eq.pending,render_status_a4.eq.stale,render_status_a4.is.null,render_status_a3.eq.pending,render_status_a3.eq.stale,render_status_a3.is.null,render_status_a2.eq.pending,render_status_a2.eq.stale,render_status_a2.is.null')
     .select('id, name, poster_type, config_json, mockup_set_ids, preview_image_url, render_status_a4, render_status_a3, render_status_a2')
     .single()
 
@@ -1128,6 +1152,7 @@ async function main() {
     auth: { persistSession: false, autoRefreshToken: false },
   })
 
+  APP_BASE_URL = await resolveAppBaseUrl()
   log(`Worker started — poll=${POLL_INTERVAL_MS}ms, app=${APP_BASE_URL}`)
 
   let browser: Browser | undefined
