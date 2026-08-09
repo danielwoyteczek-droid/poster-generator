@@ -1,0 +1,13 @@
+{
+  "portrait": {
+    "file": "/mockups/frame-portrait.png",
+    "canvasWidth": 1500,
+    "canvasHeight": 1500,
+    "slot": {
+      "x": 386,
+      "y": 233,
+      "width": 731,
+      "height": 1037
+    }
+  }
+}

@@ -58,6 +58,30 @@ function push(event: Record<string, unknown>) {
   w.dataLayer.push(event)
 }
 
+/**
+ * Enhanced Conversions: Google erwartet die E-Mail normalisiert (trim +
+ * lowercase) und SHA-256-gehasht als Hex-String. Wir hashen client-seitig,
+ * damit die Klartext-Adresse nie den Browser verlaesst.
+ */
+async function sha256Hex(value: string): Promise<string> {
+  const data = new TextEncoder().encode(value)
+  const buf = await crypto.subtle.digest('SHA-256', data)
+  return Array.from(new Uint8Array(buf))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('')
+}
+
+export async function hashedEmail(email: string): Promise<string | null> {
+  const normalized = email.trim().toLowerCase()
+  if (!normalized) return null
+  try {
+    return await sha256Hex(normalized)
+  } catch {
+    // crypto.subtle ist nur in Secure Contexts verfuegbar — fail soft.
+    return null
+  }
+}
+
 interface EcommerceItem {
   item_id: string
   item_name: string
@@ -135,6 +159,8 @@ export function trackBeginCheckout(items: Array<{
 export function trackPurchase(input: {
   transactionId: string
   totalCents: number
+  /** SHA-256-Hex der Kunden-E-Mail fuer Enhanced Conversions. Optional. */
+  emailHash?: string | null
   items: Array<{
     id: string
     title: string
@@ -166,5 +192,10 @@ export function trackPurchase(input: {
       value: input.totalCents / 100,
       items: gtmItems,
     },
+    // Enhanced Conversions: nur mitsenden, wenn ein Hash vorliegt. Der
+    // GTM-Conversion-Tag liest user_data und ist consent-gated (ad_user_data).
+    ...(input.emailHash
+      ? { user_data: { sha256_email_address: input.emailHash } }
+      : {}),
   })
 }

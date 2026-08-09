@@ -10,6 +10,7 @@ import { useCartStore } from '@/hooks/useCartStore'
 import { useVoucherStore } from '@/hooks/useVoucherStore'
 import { useProductCatalog, frameMarkupFromCatalog } from '@/hooks/useProductCatalog'
 import { trackBeginCheckout } from '@/lib/analytics'
+import { readAttributionCookie } from '@/lib/attribution'
 import { formatPrice, getItemFallbackLabel, getItemLabelKey } from '@/lib/products'
 import { PRINT_FORMAT_OPTIONS, type PrintFormat } from '@/lib/print-formats'
 import { Button } from '@/components/ui/button'
@@ -113,6 +114,7 @@ export function CartView() {
         voucher: voucher
           ? { code: voucher.code, promotionCodeId: voucher.promotionCodeId }
           : undefined,
+        attribution: readAttributionCookie() ?? undefined,
       }
       const res = await fetch('/api/checkout', {
         method: 'POST',

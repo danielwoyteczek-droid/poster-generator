@@ -1,5 +1,6 @@
 'use client'
 
+import { useRef } from 'react'
 import { useEditorStore } from '@/hooks/useEditorStore'
 import { filterCss } from '@/lib/photo-filters'
 
@@ -28,6 +29,9 @@ interface Props {
  */
 export function SplitPhotoOverlay({ svgPath, side, noHalfClip, gapHalfPx = 0, interactive = true }: Props) {
   const { splitPhoto, updateSplitPhoto } = useEditorStore()
+  // Ref on the masked photo div — the resize handle measures its width to
+  // normalise drag distance into a cropScale delta.
+  const photoDivRef = useRef<HTMLDivElement>(null)
   if (!splitPhoto) return null
 
   // Restrict pointer events to the half this photo occupies, so the map
@@ -88,33 +92,79 @@ export function SplitPhotoOverlay({ svgPath, side, noHalfClip, gapHalfPx = 0, in
   const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
     e.preventDefault()
     const delta = -e.deltaY * 0.002
-    const newScale = Math.max(1, Math.min(4, splitPhoto.cropScale + delta))
+    // Lower bound 0.3 matches the sidebar zoom slider — the old min of 1
+    // meant the wheel could only zoom in, never back out.
+    const newScale = Math.max(0.3, Math.min(4, splitPhoto.cropScale + delta))
     updateSplitPhoto({ cropScale: newScale })
   }
 
+  // Corner resize handle — drags the photo's cropScale, mirroring the
+  // normal poster photo's handle. Dragging the handle outward (away from
+  // the centre seam) enlarges the photo; inward shrinks it.
+  const handleResizePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.stopPropagation()
+    const rect = photoDivRef.current?.getBoundingClientRect()
+    if (!rect) return
+
+    const startX = e.clientX
+    const startScale = splitPhoto.cropScale
+
+    const handleMove = (ev: PointerEvent) => {
+      const dx = ev.clientX - startX
+      // Right-zone handle sits bottom-right → drag right grows it.
+      // Left-zone handle sits bottom-left → drag left grows it.
+      const directional = side === 'right' ? dx : -dx
+      const next = startScale + (directional / rect.width) * 3
+      updateSplitPhoto({ cropScale: Math.max(0.3, Math.min(4, next)) })
+    }
+
+    const handleUp = () => {
+      window.removeEventListener('pointermove', handleMove)
+      window.removeEventListener('pointerup', handleUp)
+    }
+
+    window.addEventListener('pointermove', handleMove)
+    window.addEventListener('pointerup', handleUp)
+  }
+
   return (
-    <div
-      className={
-        interactive
-          ? 'absolute inset-0 pointer-events-auto cursor-move'
-          : 'absolute inset-0 pointer-events-none'
-      }
-      style={maskStyle}
-      onPointerDown={interactive ? handlePointerDown : undefined}
-      onWheel={interactive ? handleWheel : undefined}
-    >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={splitPhoto.publicUrl}
-        alt=""
-        draggable={false}
-        className="absolute w-full h-full object-cover select-none"
-        style={{
-          transform: `translate(${splitPhoto.cropX * 100}%, ${splitPhoto.cropY * 100}%) scale(${splitPhoto.cropScale})`,
-          transformOrigin: 'center',
-          filter: filterCss(splitPhoto.filter),
-        }}
-      />
-    </div>
+    <>
+      <div
+        ref={photoDivRef}
+        className={
+          interactive
+            ? 'absolute inset-0 pointer-events-auto cursor-move'
+            : 'absolute inset-0 pointer-events-none'
+        }
+        style={maskStyle}
+        onPointerDown={interactive ? handlePointerDown : undefined}
+        onWheel={interactive ? handleWheel : undefined}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={splitPhoto.publicUrl}
+          alt=""
+          draggable={false}
+          className="absolute w-full h-full object-cover select-none"
+          style={{
+            transform: `translate(${splitPhoto.cropX * 100}%, ${splitPhoto.cropY * 100}%) scale(${splitPhoto.cropScale})`,
+            transformOrigin: 'center',
+            filter: filterCss(splitPhoto.filter),
+          }}
+        />
+      </div>
+      {/* Resize handle — rendered OUTSIDE the masked div (the CSS mask
+          would otherwise clip it away) at the outer-bottom corner of the
+          photo's half. */}
+      {interactive && (
+        <div
+          className={
+            'absolute bottom-1 z-50 h-4 w-4 rounded-sm border border-primary bg-white shadow pointer-events-auto ' +
+            (side === 'right' ? 'right-1 cursor-nwse-resize' : 'left-1 cursor-nesw-resize')
+          }
+          onPointerDown={handleResizePointerDown}
+        />
+      )}
+    </>
   )
 }

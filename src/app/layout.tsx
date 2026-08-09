@@ -6,6 +6,7 @@ import { NextIntlClientProvider } from 'next-intl'
 import { getLocale, getMessages } from 'next-intl/server'
 import { Toaster } from "@/components/ui/sonner";
 import { GtmNoscript } from "@/components/analytics/GtmScript";
+import { AttributionCapture } from "@/components/analytics/AttributionCapture";
 import { ConsentBanner } from "@/components/consent/ConsentBanner";
 
 const cormorant = Cormorant_Garamond({
@@ -98,6 +99,7 @@ export default async function RootLayout({
           </>
         )}
         <GtmNoscript />
+        <AttributionCapture />
         <NextIntlClientProvider locale={locale} messages={messages}>
           {children}
           <ConsentBanner />

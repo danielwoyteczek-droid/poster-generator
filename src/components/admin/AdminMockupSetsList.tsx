@@ -16,17 +16,31 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Checkbox } from '@/components/ui/checkbox'
 
+interface SlotRect {
+  x: number
+  y: number
+  width: number
+  height: number
+  canvasWidth: number
+  canvasHeight: number
+}
+
 interface MockupSet {
   id: string
   slug: string
   name: string
   description: string | null
-  desktop_template_uuid: string
-  desktop_smart_object_uuid: string
-  mobile_template_uuid: string
-  mobile_smart_object_uuid: string
+  provider: 'dynamic_mockups' | 'local'
+  desktop_template_uuid: string | null
+  desktop_smart_object_uuid: string | null
+  mobile_template_uuid: string | null
+  mobile_smart_object_uuid: string | null
   desktop_thumbnail_url: string | null
   mobile_thumbnail_url: string | null
+  local_portrait_overlay_url: string | null
+  local_portrait_slot: SlotRect | null
+  local_landscape_overlay_url: string | null
+  local_landscape_slot: SlotRect | null
   is_active: boolean
   version: number
 }
@@ -43,20 +57,34 @@ interface FormState {
   slug: string
   name: string
   description: string
+  provider: 'dynamic_mockups' | 'local'
+  // Dynamic-Mockups-Felder (nur bei provider='dynamic_mockups' relevant)
   desktop_template_uuid: string
   desktop_smart_object_uuid: string
   mobile_template_uuid: string
   mobile_smart_object_uuid: string
+  // Local-Felder (nur bei provider='local' relevant)
+  // Overlay-URLs werden vom upload-overlay-Endpoint zurückgegeben (Magenta-Auto
+  // oder manuelles Slot-Rect). Im Edit-Mode kommen sie aus dem MockupSet.
+  local_portrait_overlay_url: string
+  local_portrait_slot: SlotRect | null
+  local_landscape_overlay_url: string
+  local_landscape_slot: SlotRect | null
 }
 
 const EMPTY_FORM: FormState = {
   slug: '',
   name: '',
   description: '',
+  provider: 'dynamic_mockups',
   desktop_template_uuid: '',
   desktop_smart_object_uuid: '',
   mobile_template_uuid: '',
   mobile_smart_object_uuid: '',
+  local_portrait_overlay_url: '',
+  local_portrait_slot: null,
+  local_landscape_overlay_url: '',
+  local_landscape_slot: null,
 }
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -70,6 +98,7 @@ export function AdminMockupSetsList() {
   const [submitting, setSubmitting] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<MockupSet | null>(null)
   const [testRendering, setTestRendering] = useState<string | null>(null)
+  const [uploadingOrientation, setUploadingOrientation] = useState<'portrait' | 'landscape' | null>(null)
   const [discoverOpen, setDiscoverOpen] = useState(false)
   const [discoverLoading, setDiscoverLoading] = useState(false)
   const [dmMockups, setDmMockups] = useState<DmMockupItem[] | null>(null)
@@ -101,29 +130,78 @@ export function AdminMockupSetsList() {
       slug: m.slug,
       name: m.name,
       description: m.description ?? '',
-      desktop_template_uuid: m.desktop_template_uuid,
-      desktop_smart_object_uuid: m.desktop_smart_object_uuid,
-      mobile_template_uuid: m.mobile_template_uuid,
-      mobile_smart_object_uuid: m.mobile_smart_object_uuid,
+      provider: m.provider,
+      desktop_template_uuid: m.desktop_template_uuid ?? '',
+      desktop_smart_object_uuid: m.desktop_smart_object_uuid ?? '',
+      mobile_template_uuid: m.mobile_template_uuid ?? '',
+      mobile_smart_object_uuid: m.mobile_smart_object_uuid ?? '',
+      local_portrait_overlay_url: m.local_portrait_overlay_url ?? '',
+      local_portrait_slot: m.local_portrait_slot,
+      local_landscape_overlay_url: m.local_landscape_overlay_url ?? '',
+      local_landscape_slot: m.local_landscape_slot,
     })
     setEditTarget(m)
     setCreating(false)
+  }
+
+  const validateSlot = (orientation: 'Hochformat' | 'Querformat', slot: SlotRect): string | null => {
+    const { x, y, width, height, canvasWidth, canvasHeight } = slot
+    if ([x, y, width, height, canvasWidth, canvasHeight].some((n) => !Number.isInteger(n))) {
+      return `${orientation}-Slot: alle Werte müssen Ganzzahlen sein`
+    }
+    if (x < 0 || y < 0) return `${orientation}-Slot: x/y dürfen nicht negativ sein`
+    if (width <= 0 || height <= 0) return `${orientation}-Slot: width/height müssen > 0 sein`
+    if (canvasWidth <= 0 || canvasHeight <= 0) return `${orientation}-Slot: canvas-Maße müssen > 0 sein`
+    if (x + width > canvasWidth) return `${orientation}-Slot: ragt rechts aus dem Canvas`
+    if (y + height > canvasHeight) return `${orientation}-Slot: ragt unten aus dem Canvas`
+    return null
   }
 
   const validateForm = (): string | null => {
     if (!form.slug.trim()) return 'Slug fehlt'
     if (!/^[a-z0-9-]+$/.test(form.slug)) return 'Slug: nur Kleinbuchstaben, Zahlen, Bindestriche'
     if (!form.name.trim()) return 'Name fehlt'
-    // Nur Desktop-Felder sind Pflicht; Mobile fällt auf Desktop zurück
-    for (const field of ['desktop_template_uuid', 'desktop_smart_object_uuid'] as const) {
-      const v = form[field]
-      if (!v.trim()) return `${field}: Pflichtfeld`
-      if (!UUID_REGEX.test(v.trim())) return `${field}: ungültiges UUID-Format`
+
+    if (form.provider === 'dynamic_mockups') {
+      // Desktop-Felder Pflicht; Mobile fällt auf Desktop zurück
+      for (const field of ['desktop_template_uuid', 'desktop_smart_object_uuid'] as const) {
+        const v = form[field]
+        if (!v.trim()) return `${field}: Pflichtfeld`
+        if (!UUID_REGEX.test(v.trim())) return `${field}: ungültiges UUID-Format`
+      }
+      for (const field of ['mobile_template_uuid', 'mobile_smart_object_uuid'] as const) {
+        const v = form[field].trim()
+        if (v && !UUID_REGEX.test(v)) return `${field}: ungültiges UUID-Format`
+      }
+      return null
     }
-    // Mobile-Felder optional — falls eingetragen, müssen sie valide UUIDs sein
-    for (const field of ['mobile_template_uuid', 'mobile_smart_object_uuid'] as const) {
-      const v = form[field].trim()
-      if (v && !UUID_REGEX.test(v)) return `${field}: ungültiges UUID-Format`
+
+    // provider === 'local'
+    const hasPortrait = form.local_portrait_overlay_url.trim() !== '' || form.local_portrait_slot !== null
+    const hasLandscape = form.local_landscape_overlay_url.trim() !== '' || form.local_landscape_slot !== null
+    if (!hasPortrait && !hasLandscape) {
+      return 'Mindestens eine Orientierung (Hochformat oder Querformat) muss hochgeladen sein'
+    }
+    // Symmetrie: URL und Slot müssen je Orientierung beide gesetzt oder beide leer sein
+    if (form.local_portrait_overlay_url.trim() !== '' && form.local_portrait_slot === null) {
+      return 'Hochformat: Slot fehlt (Magenta-Auto fehlgeschlagen? Manuell eintragen)'
+    }
+    if (form.local_portrait_slot !== null && form.local_portrait_overlay_url.trim() === '') {
+      return 'Hochformat: Overlay-PNG fehlt'
+    }
+    if (form.local_landscape_overlay_url.trim() !== '' && form.local_landscape_slot === null) {
+      return 'Querformat: Slot fehlt (Magenta-Auto fehlgeschlagen? Manuell eintragen)'
+    }
+    if (form.local_landscape_slot !== null && form.local_landscape_overlay_url.trim() === '') {
+      return 'Querformat: Overlay-PNG fehlt'
+    }
+    if (form.local_portrait_slot) {
+      const err = validateSlot('Hochformat', form.local_portrait_slot)
+      if (err) return err
+    }
+    if (form.local_landscape_slot) {
+      const err = validateSlot('Querformat', form.local_landscape_slot)
+      if (err) return err
     }
     return null
   }
@@ -133,22 +211,45 @@ export function AdminMockupSetsList() {
     if (err) { toast.error(err); return }
     setSubmitting(true)
     try {
-      // Mobile-Felder werden aktuell nicht gerendert (siehe render-worker:
-      // nur Desktop-Variante aktiv). Trotzdem gespeichert für späteres
-      // Re-Aktivieren — fallback auf Desktop-UUIDs wenn nicht eingetragen.
-      const mobileTpl = form.mobile_template_uuid.trim() || form.desktop_template_uuid.trim()
-      const mobileSO = form.mobile_smart_object_uuid.trim() || form.desktop_smart_object_uuid.trim()
-      const payload = {
+      const base = {
         slug: form.slug.trim(),
         name: form.name.trim(),
         description: form.description.trim() || null,
-        desktop_template_uuid: form.desktop_template_uuid.trim(),
-        desktop_smart_object_uuid: form.desktop_smart_object_uuid.trim(),
-        mobile_template_uuid: mobileTpl,
-        mobile_smart_object_uuid: mobileSO,
+      }
+      let payload: Record<string, unknown>
+      if (form.provider === 'dynamic_mockups') {
+        // Mobile-Felder werden aktuell nicht gerendert (siehe render-worker:
+        // nur Desktop-Variante aktiv). Trotzdem gespeichert für späteres
+        // Re-Aktivieren — fallback auf Desktop-UUIDs wenn nicht eingetragen.
+        const mobileTpl = form.mobile_template_uuid.trim() || form.desktop_template_uuid.trim()
+        const mobileSO = form.mobile_smart_object_uuid.trim() || form.desktop_smart_object_uuid.trim()
+        payload = {
+          ...base,
+          provider: 'dynamic_mockups',
+          desktop_template_uuid: form.desktop_template_uuid.trim(),
+          desktop_smart_object_uuid: form.desktop_smart_object_uuid.trim(),
+          mobile_template_uuid: mobileTpl,
+          mobile_smart_object_uuid: mobileSO,
+        }
+      } else {
+        // Local: Overlays sind beim Save bereits in Storage (upload-overlay hat
+        // sie hochgeladen, sobald der Admin die Datei ausgewählt hat). Hier
+        // referenzieren wir nur die zurückgelieferten URLs + Slot-JSONs.
+        payload = {
+          ...base,
+          provider: 'local',
+          local_portrait_overlay_url: form.local_portrait_overlay_url.trim() || null,
+          local_portrait_slot: form.local_portrait_slot,
+          local_landscape_overlay_url: form.local_landscape_overlay_url.trim() || null,
+          local_landscape_slot: form.local_landscape_slot,
+        }
       }
       const url = editTarget ? `/api/admin/mockup-sets/${editTarget.id}` : '/api/admin/mockup-sets'
       const method = editTarget ? 'PATCH' : 'POST'
+      // PATCH lehnt `provider` ab (Spec: Provider-Wechsel verboten). Im Edit-Mode
+      // schicken wir nur die Felder mit, die für den jeweiligen Provider relevant
+      // sind — `provider` selbst nicht.
+      if (editTarget) delete (payload as { provider?: unknown }).provider
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
@@ -280,6 +381,63 @@ export function AdminMockupSetsList() {
     }
   }
 
+  /**
+   * Lädt ein Overlay-PNG zum upload-overlay-Endpoint hoch, der die Datei in
+   * Supabase Storage ablegt und die Slot-Koordinaten zurückliefert.
+   * Magenta-Marker wird serverseitig automatisch erkannt; ein optionales
+   * slot_override wird mitgeschickt, wenn der Admin manuell überschrieben hat.
+   */
+  const handleOverlayUpload = async (
+    orientation: 'portrait' | 'landscape',
+    file: File | null | undefined,
+    slotOverride?: { x: number; y: number; width: number; height: number },
+  ) => {
+    if (!file) return
+    const slug = form.slug.trim()
+    if (!slug) {
+      toast.error('Slug muss vor dem Upload eingetragen sein')
+      return
+    }
+    if (!/^[a-z0-9-]+$/.test(slug)) {
+      toast.error('Slug ungültig — nur Kleinbuchstaben, Zahlen, Bindestriche')
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Overlay max. 5 MB')
+      return
+    }
+    setUploadingOrientation(orientation)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      fd.append('slug', slug)
+      fd.append('orientation', orientation)
+      if (slotOverride) fd.append('slot_override', JSON.stringify(slotOverride))
+      const res = await fetch('/api/admin/mockup-sets/upload-overlay', { method: 'POST', body: fd })
+      const data = await res.json()
+      if (!res.ok) {
+        toast.error(data.error ?? 'Upload fehlgeschlagen')
+        return
+      }
+      const urlKey = orientation === 'portrait' ? 'local_portrait_overlay_url' : 'local_landscape_overlay_url'
+      const slotKey = orientation === 'portrait' ? 'local_portrait_slot' : 'local_landscape_slot'
+      setForm((prev) => ({ ...prev, [urlKey]: data.url, [slotKey]: data.slot }))
+      toast.success(`${orientation === 'portrait' ? 'Hochformat' : 'Querformat'} hochgeladen`)
+    } catch (err) {
+      toast.error('Upload-Fehler: ' + (err as Error).message)
+    } finally {
+      setUploadingOrientation(null)
+    }
+  }
+
+  const clearOverlay = (orientation: 'portrait' | 'landscape') => {
+    if (orientation === 'portrait') {
+      setForm((prev) => ({ ...prev, local_portrait_overlay_url: '', local_portrait_slot: null }))
+    } else {
+      setForm((prev) => ({ ...prev, local_landscape_overlay_url: '', local_landscape_slot: null }))
+    }
+  }
+
   const runTestRender = async (m: MockupSet) => {
     setTestRendering(m.id)
     try {
@@ -287,7 +445,7 @@ export function AdminMockupSetsList() {
       const data = await res.json()
       if (!res.ok) {
         toast.error(data.error ?? 'Test-Render fehlgeschlagen', {
-          description: data.failures?.map((f: { variant: string; message: string }) => `${f.variant}: ${f.message}`).join('\n'),
+          description: data.failures?.map((f: { variant?: string; orientation?: string; message: string }) => `${f.variant ?? f.orientation}: ${f.message}`).join('\n'),
         })
         return
       }
@@ -343,7 +501,19 @@ export function AdminMockupSetsList() {
                 )}
               </div>
               <div>
-                <h3 className="font-semibold text-sm truncate">{m.name}</h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-semibold text-sm truncate">{m.name}</h3>
+                  <span
+                    className={`shrink-0 inline-block text-[10px] font-medium px-1.5 py-0.5 rounded ${
+                      m.provider === 'local'
+                        ? 'bg-emerald-100 text-emerald-800'
+                        : 'bg-sky-100 text-sky-800'
+                    }`}
+                    title={m.provider === 'local' ? 'Lokal (sharp)' : 'Dynamic Mockups API'}
+                  >
+                    {m.provider === 'local' ? 'Lokal' : 'DM'}
+                  </span>
+                </div>
                 <p className="text-xs text-muted-foreground truncate">{m.slug} · v{m.version}</p>
                 {m.description && <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{m.description}</p>}
               </div>
@@ -368,11 +538,13 @@ export function AdminMockupSetsList() {
       )}
 
       <Dialog open={formOpen} onOpenChange={(open) => { if (!open) { setCreating(false); setEditTarget(null) } }}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-xl">
           <DialogHeader>
             <DialogTitle>{editTarget ? 'Mockup-Set bearbeiten' : 'Neues Mockup-Set'}</DialogTitle>
             <DialogDescription>
-              UUIDs aus dem „Use API"-Snippet im Dynamic-Mockups-Dashboard kopieren.
+              {form.provider === 'local'
+                ? 'Lokales Overlay-PNG hochladen — Slot wird per Magenta-Marker automatisch erkannt.'
+                : 'UUIDs aus dem „Use API"-Snippet im Dynamic-Mockups-Dashboard kopieren.'}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 max-h-[60vh] overflow-y-auto">
@@ -406,37 +578,148 @@ export function AdminMockupSetsList() {
                 placeholder="Frontaler Holzrahmen über Sideboard…"
               />
             </div>
-            <div className="space-y-2 p-3 rounded-md bg-muted">
-              <p className="text-xs font-medium uppercase text-muted-foreground">Desktop-Variante</p>
-              <div>
-                <Label htmlFor="ms-d-tpl">mockup_uuid</Label>
-                <Input id="ms-d-tpl" value={form.desktop_template_uuid} onChange={(e) => setForm({ ...form, desktop_template_uuid: e.target.value })} className="font-mono text-xs" />
-              </div>
-              <div>
-                <Label htmlFor="ms-d-so">smart_objects[0].uuid</Label>
-                <Input id="ms-d-so" value={form.desktop_smart_object_uuid} onChange={(e) => setForm({ ...form, desktop_smart_object_uuid: e.target.value })} className="font-mono text-xs" />
+
+            <div>
+              <Label className="text-xs">Provider</Label>
+              <div className="flex gap-2 mt-1">
+                {(['dynamic_mockups', 'local'] as const).map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setForm({ ...form, provider: p })}
+                    disabled={editTarget !== null && editTarget.provider !== p}
+                    className={`flex-1 px-3 py-2 rounded-md text-xs font-medium border transition-colors ${
+                      form.provider === p
+                        ? p === 'local'
+                          ? 'bg-emerald-100 border-emerald-400 text-emerald-900'
+                          : 'bg-sky-100 border-sky-400 text-sky-900'
+                        : 'bg-white border-border text-muted-foreground hover:bg-muted'
+                    } ${editTarget !== null && editTarget.provider !== p ? 'opacity-40 cursor-not-allowed' : ''}`}
+                    title={editTarget !== null && editTarget.provider !== p ? 'Provider-Wechsel verboten — Set löschen und neu anlegen' : undefined}
+                  >
+                    {p === 'local' ? 'Lokal (Overlay-PNG)' : 'Dynamic Mockups (API)'}
+                  </button>
+                ))}
               </div>
             </div>
-            <details className="group">
-              <summary className="cursor-pointer text-xs font-medium text-muted-foreground hover:text-foreground select-none">
-                Mobile-Variante (optional, aktuell nicht gerendert)
-              </summary>
-              <div className="space-y-2 p-3 mt-2 rounded-md bg-muted">
-                <p className="text-[10px] text-muted-foreground">
-                  Aktuell rendert der Worker nur die Desktop-Variante (Mobile war redundant).
-                  Felder bleiben für späteres Re-Aktivieren — leer lassen falls nicht benötigt,
-                  fallback ist dann die Desktop-PSD.
-                </p>
-                <div>
-                  <Label htmlFor="ms-m-tpl">mockup_uuid</Label>
-                  <Input id="ms-m-tpl" value={form.mobile_template_uuid} onChange={(e) => setForm({ ...form, mobile_template_uuid: e.target.value })} className="font-mono text-xs" />
+
+            {form.provider === 'dynamic_mockups' && (
+              <>
+                <div className="space-y-2 p-3 rounded-md bg-muted">
+                  <p className="text-xs font-medium uppercase text-muted-foreground">Desktop-Variante</p>
+                  <div>
+                    <Label htmlFor="ms-d-tpl">mockup_uuid</Label>
+                    <Input id="ms-d-tpl" value={form.desktop_template_uuid} onChange={(e) => setForm({ ...form, desktop_template_uuid: e.target.value })} className="font-mono text-xs" />
+                  </div>
+                  <div>
+                    <Label htmlFor="ms-d-so">smart_objects[0].uuid</Label>
+                    <Input id="ms-d-so" value={form.desktop_smart_object_uuid} onChange={(e) => setForm({ ...form, desktop_smart_object_uuid: e.target.value })} className="font-mono text-xs" />
+                  </div>
                 </div>
-                <div>
-                  <Label htmlFor="ms-m-so">smart_objects[0].uuid</Label>
-                  <Input id="ms-m-so" value={form.mobile_smart_object_uuid} onChange={(e) => setForm({ ...form, mobile_smart_object_uuid: e.target.value })} className="font-mono text-xs" />
-                </div>
+                <details className="group">
+                  <summary className="cursor-pointer text-xs font-medium text-muted-foreground hover:text-foreground select-none">
+                    Mobile-Variante (optional, aktuell nicht gerendert)
+                  </summary>
+                  <div className="space-y-2 p-3 mt-2 rounded-md bg-muted">
+                    <p className="text-[10px] text-muted-foreground">
+                      Aktuell rendert der Worker nur die Desktop-Variante (Mobile war redundant).
+                      Felder bleiben für späteres Re-Aktivieren — leer lassen falls nicht benötigt,
+                      fallback ist dann die Desktop-PSD.
+                    </p>
+                    <div>
+                      <Label htmlFor="ms-m-tpl">mockup_uuid</Label>
+                      <Input id="ms-m-tpl" value={form.mobile_template_uuid} onChange={(e) => setForm({ ...form, mobile_template_uuid: e.target.value })} className="font-mono text-xs" />
+                    </div>
+                    <div>
+                      <Label htmlFor="ms-m-so">smart_objects[0].uuid</Label>
+                      <Input id="ms-m-so" value={form.mobile_smart_object_uuid} onChange={(e) => setForm({ ...form, mobile_smart_object_uuid: e.target.value })} className="font-mono text-xs" />
+                    </div>
+                  </div>
+                </details>
+              </>
+            )}
+
+            {form.provider === 'local' && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {(['portrait', 'landscape'] as const).map((orientation) => {
+                  const url = orientation === 'portrait' ? form.local_portrait_overlay_url : form.local_landscape_overlay_url
+                  const slot = orientation === 'portrait' ? form.local_portrait_slot : form.local_landscape_slot
+                  const isUploading = uploadingOrientation === orientation
+                  const label = orientation === 'portrait' ? 'Hochformat' : 'Querformat'
+                  return (
+                    <div key={orientation} className="space-y-2 p-3 rounded-md bg-muted">
+                      <p className="text-xs font-medium uppercase text-muted-foreground">{label}</p>
+                      {url ? (
+                        <div className="space-y-2">
+                          <div className="aspect-square bg-[linear-gradient(45deg,#ccc_25%,transparent_25%),linear-gradient(-45deg,#ccc_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#ccc_75%),linear-gradient(-45deg,transparent_75%,#ccc_75%)] bg-[length:16px_16px] bg-[position:0_0,0_8px,8px_-8px,-8px_0px] rounded border border-border overflow-hidden">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={url} alt={`${label}-Overlay`} className="w-full h-full object-contain" />
+                          </div>
+                          {slot && (
+                            <p className="text-[10px] font-mono text-muted-foreground leading-tight">
+                              Slot: {slot.x}/{slot.y} · {slot.width}×{slot.height}
+                              <br />Canvas: {slot.canvasWidth}×{slot.canvasHeight}
+                            </p>
+                          )}
+                          <div className="flex gap-1.5">
+                            <label className="flex-1 cursor-pointer">
+                              <input
+                                type="file"
+                                accept="image/png"
+                                className="hidden"
+                                disabled={isUploading}
+                                onChange={(e) => {
+                                  handleOverlayUpload(orientation, e.target.files?.[0])
+                                  e.target.value = ''
+                                }}
+                              />
+                              <span className="block text-center text-xs px-2 py-1.5 rounded border border-border bg-white hover:bg-muted/50">
+                                {isUploading ? <Loader2 className="w-3 h-3 inline animate-spin" /> : 'Ersetzen'}
+                              </span>
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() => clearOverlay(orientation)}
+                              disabled={isUploading}
+                              className="text-xs px-2 py-1.5 rounded text-destructive hover:bg-destructive/10"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <label className="block cursor-pointer">
+                          <input
+                            type="file"
+                            accept="image/png"
+                            className="hidden"
+                            disabled={isUploading}
+                            onChange={(e) => {
+                              handleOverlayUpload(orientation, e.target.files?.[0])
+                              e.target.value = ''
+                            }}
+                          />
+                          <div className={`aspect-square rounded border-2 border-dashed flex flex-col items-center justify-center p-3 text-center border-muted-foreground/40 hover:border-emerald-400 hover:bg-emerald-50/30`}>
+                            {isUploading ? (
+                              <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
+                            ) : (
+                              <>
+                                <ImageIcon className="w-6 h-6 text-muted-foreground/50 mb-1" />
+                                <p className="text-xs text-muted-foreground">PNG hochladen</p>
+                                <p className="text-[10px] text-muted-foreground/70">max 5 MB · Magenta-Marker für Slot</p>
+                                {!form.slug.trim() && (
+                                  <p className="text-[10px] text-amber-700 mt-1">Erst Slug eintragen</p>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        </label>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
-            </details>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => { setCreating(false); setEditTarget(null) }}>Abbrechen</Button>

@@ -23,9 +23,28 @@ const CartItemSchema = z.object({
   snapshot: z.record(z.string(), z.unknown()),
 })
 
+/**
+ * Attribution payload from the `__ps_attribution` cookie. Set client-side
+ * on the first pageview that arrives with utm_* or gclid in the URL and
+ * survives 90 days (Google's conversion window). All fields are optional
+ * because direct/non-paid traffic produces no attribution.
+ */
+const AttributionSchema = z.object({
+  utm_source: z.string().max(200).optional(),
+  utm_medium: z.string().max(200).optional(),
+  utm_campaign: z.string().max(200).optional(),
+  utm_content: z.string().max(200).optional(),
+  utm_term: z.string().max(200).optional(),
+  gclid: z.string().max(500).optional(),
+  landing_page: z.string().max(2000),
+  referrer: z.string().max(2000).nullable(),
+  first_seen_at: z.string().datetime(),
+})
+
 const CheckoutBodySchema = z.object({
   items: z.array(CartItemSchema).min(1).max(20),
   digitalConsent: z.boolean().optional(),
+  attribution: AttributionSchema.optional(),
   /**
    * Active editor locale at checkout time (PROJ-20). Stored on the order
    * so post-purchase mails (confirmation, shipping, review request) go
@@ -136,6 +155,7 @@ export async function POST(req: NextRequest) {
   // PROJ-48: persist the voucher code (not the amount — Stripe is
   // authoritative). discount_cents stays 0 until the webhook reads it
   // from session.total_details.amount_discount.
+  const attribution = parsed.data.attribution
   const { data: order, error: insertErr } = await admin
     .from('orders')
     .insert({
@@ -147,6 +167,15 @@ export async function POST(req: NextRequest) {
       locale,
       digital_consent_at: hasDigital ? new Date().toISOString() : null,
       discount_code: parsed.data.voucher?.code ?? null,
+      utm_source: attribution?.utm_source ?? null,
+      utm_medium: attribution?.utm_medium ?? null,
+      utm_campaign: attribution?.utm_campaign ?? null,
+      utm_content: attribution?.utm_content ?? null,
+      utm_term: attribution?.utm_term ?? null,
+      gclid: attribution?.gclid ?? null,
+      landing_page: attribution?.landing_page ?? null,
+      referrer: attribution?.referrer ?? null,
+      attribution_at: attribution?.first_seen_at ?? null,
     })
     .select('id, access_token')
     .single()
