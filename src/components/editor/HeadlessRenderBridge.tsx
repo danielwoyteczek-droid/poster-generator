@@ -86,6 +86,13 @@ function BridgeImpl({
     }
 
     let cancelled = false
+    const markReady = () => {
+      if (!cancelled) {
+        window.__posterReady = true
+        console.log('[hl-debug] HeadlessBridge: __posterReady = true')
+      }
+    }
+
     void (async () => {
       // 1. Wenn ein Preset in der URL steckt, warte bis PresetUrlApplier
       //    `__presetApplied` setzt (true bei Erfolg, false bei Fehler).
@@ -119,10 +126,7 @@ function BridgeImpl({
           // Mark ready so the worker proceeds quickly to __renderPosterPng,
           // which then throws presetError — a fast, clear failure instead of
           // a 60s waitForFunction timeout.
-          if (!cancelled) {
-            window.__posterReady = true
-            console.log('[hl-debug] HeadlessBridge: __posterReady = true (preset-error)')
-          }
+          markReady()
           return
         }
       }
@@ -236,10 +240,7 @@ function BridgeImpl({
 
       // 4. Kurzer Puffer für Style/Tile-Loader
       await new Promise((r) => setTimeout(r, READY_DELAY_MS))
-      if (!cancelled) {
-        window.__posterReady = true
-        console.log('[hl-debug] HeadlessBridge: __posterReady = true')
-      }
+      markReady()
     })()
 
     return () => {
