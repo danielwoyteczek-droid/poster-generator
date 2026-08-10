@@ -626,3 +626,89 @@ clientseitig gelieferte Sitzungs-ID.
 Playwright-Specs unter `tests/` mit auf, die dort nicht laufen können. Alle
 261 echten Unit-Tests sind grün. Keine der betroffenen Dateien wurde in
 dieser Phase angefasst.
+
+### Phase 2 — Editor-Oberfläche (2026-08-10)
+
+Gebaut ist der reduzierte erste Wurf: **ein Bogen, nur Bilder, kein
+Speichern**. Text, Bogen-Reiter und Projekt-Speicherung folgen später; das
+Datenmodell ist darauf ausgelegt, ohne Umbau erweitert zu werden.
+
+Wichtig: Der Verzicht auf Bogen-Reiter nimmt dem Kunden **keine Fähigkeit**.
+Weil jeder Bogen ohnehin eine eigene Warenkorb-Position ist, kann er mehrere
+Bögen bestellen — gestalten, ablegen, nächsten gestalten. Die Reiter wären
+reiner Komfort.
+
+**Neue Dateien**
+| Datei | Zweck |
+|---|---|
+| `src/hooks/useDtfStore.ts` | Bogen, Auflage, Elemente, Motiv-Ablage |
+| `src/components/dtf-editor/DtfSheetCanvas.tsx` | Bogen maßstabsgetreu; ziehen, skalieren, drehen |
+| `src/components/dtf-editor/sidebar/DtfSheetTab.tsx` | Format und Auflage |
+| `src/components/dtf-editor/sidebar/DtfMotifsTab.tsx` | Upload, Ablage, Eigenschaften, dpi |
+| `src/components/dtf-editor/DtfEditorLayout.tsx` | Desktop-Layout |
+| `src/components/dtf-editor/mobile/MobileDtfEditorLayout.tsx` | Mobiles Tap-Sheet |
+| `src/components/dtf-editor/DtfEditorShell.tsx` | Weiche Desktop/Mobil |
+| `src/app/[locale]/dtf/page.tsx` | Route |
+
+`dtf-constants.ts` wurde um `DtfSheetFormat` (a4, a3, 40x50), die Randwerte
+und die Elementgrenzen erweitert. 36 Übersetzungsschlüssel plus
+`nav.dtfPrint` in allen fünf Sprachen; Navigationslink in
+`LandingNavClient.tsx`.
+
+#### Abweichung von der Spec: Millimeter statt Bruchteile
+
+Das Tech Design sah Position und Größe „als Anteil des Bogens" vor, damit ein
+Formatwechsel nichts zerstört. Umgesetzt sind **Millimeter**.
+
+Für Poster sind Bruchteile richtig: Ein Textblock soll auf A3 genauso
+proportioniert sitzen wie auf A4. Für DTF ist es umgekehrt — wer ein Logo auf
+10 cm zieht, will 10 cm gedruckt bekommen. Beim Wechsel von A4 auf A3 darf es
+nicht auf 14 cm mitwachsen; der Kunde will mehr Platz, nicht ein größeres
+Motiv. Millimeter treiben zudem direkt die cm-Anzeige, die dpi-Rechnung und
+später die Druckdatei.
+
+Beim Verkleinern des Formats können Motive dadurch außerhalb landen. Sie
+werden weder verschoben noch gelöscht, sondern rot umrandet und mit
+Hinweistext markiert — Motive hinter dem Rücken des Kunden zu verschieben
+wäre die schlechtere Überraschung.
+
+#### Umsetzungsdetails
+
+- **Maßstabsgetreu über einen einzigen Faktor.** `pxPerMm` bildet Millimeter
+  auf Bildschirmpixel ab, alles andere rechnet in Millimetern. Vorschau und
+  Druckdatei entstehen so zwangsläufig aus derselben Beschreibung — bei einem
+  Produkt mit verbindlicher Druckfreigabe ist das die Kernanforderung, keine
+  Fleißaufgabe.
+- **Karomuster als Bogenhintergrund.** Der Bogen ist Folie, kein Papier.
+  Weiße Flächen im Motiv werden gedruckt und müssen von „nichts"
+  unterscheidbar sein — besonders wichtig bei JPG-Uploads.
+- **Pointer-Events statt eines Drag-Pakets.** Maus und Touch nehmen denselben
+  Pfad, keine neue Abhängigkeit.
+- **Skalieren über den Abstand zum Mittelpunkt**, nicht über die
+  Achsendifferenz. Damit bleibt der Griff auch bei gedrehten Motiven
+  intuitiv.
+- **Drehen rastet mit Shift auf 15°.** Hilft, ein Motiv exakt gerade oder auf
+  90° zu stellen.
+- **Hüllbox-Rechnung für „außerhalb".** Ein um 45° gedrehtes Quadrat braucht
+  deutlich mehr Platz als seine Kantenlänge; eine Prüfung ohne Rotation
+  würde das übersehen.
+- **dpi immer sichtbar, eine einzige Warnung unter 150.** Keine Ampel: Eine
+  Warnung, die bei jedem Handyfoto anspringt, wird ignoriert.
+
+#### Verifiziert
+
+- `npm run build`: erfolgreich, Route `/[locale]/dtf` registriert
+- 261 Unit-Tests weiterhin grün
+
+#### Noch nicht vorhanden
+
+Kein „In den Warenkorb" — das ist Phase 3 zusammen mit Produkten,
+Freigabe-Schritt und eingefrorener Kopie. Der Editor ist bis dahin
+benutzbar, aber nicht bestellbar.
+
+#### Bestehende Werkzeugprobleme (nicht von dieser Phase)
+
+`npm run lint` ruft `next lint` auf, das es in Next 16 nicht mehr gibt; und
+es existiert keine `eslint.config.js`. Lint läuft also derzeit überhaupt
+nicht — unabhängig von PROJ-55, aber es heißt, dass Stilfehler im gesamten
+Projekt momentan unentdeckt bleiben.

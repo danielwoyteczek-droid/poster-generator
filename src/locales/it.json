@@ -686,7 +686,8 @@
     "adminPalettes": "Palette colori",
     "adminFonts": "Caratteri",
     "adminBusinessCenter": "Business Center",
-    "createPoster": "Crea poster"
+    "createPoster": "Crea poster",
+    "dtfPrint": "Stampa DTF"
   },
   "gallery": {
     "pageTitle": "Galleria",
@@ -762,5 +763,43 @@
         "customerService": "Risponde alle tue e-mail — e interviene quando qualcosa non torna."
       }
     }
+  },
+  "dtfEditor": {
+    "pageTitle": "Crea la tua stampa DTF",
+    "tabMotifs": "Motivi",
+    "tabSheet": "Foglio",
+    "sheetFormat": "Formato foglio",
+    "sheetFormatHint": "Area utile: {width} × {height} cm meno 1 cm di margine.",
+    "quantity": "Copie",
+    "quantityHint": "Quante volte viene stampato questo foglio. Per un foglio con motivi diversi, aggiungi prima questo al carrello e poi crea il successivo.",
+    "quantityDecrease": "Meno copie",
+    "quantityIncrease": "Più copie",
+    "uploadHeading": "Carica un motivo",
+    "uploadDropHint": "Trascina qui un file oppure selezionalo",
+    "uploadButton": "Scegli file",
+    "uploading": "Caricamento …",
+    "uploadFormats": "PNG o JPG, fino a {maxMb} MB. Consigliato PNG con sfondo trasparente.",
+    "uploadFailed": "Caricamento non riuscito.",
+    "jpegWarning": "Il JPG non ha sfondo trasparente — l’area bianca attorno al motivo verrà stampata. Per un transfer scontornato serve un PNG con trasparenza.",
+    "libraryHeading": "I tuoi motivi",
+    "libraryHint": "Tocca per posizionarlo sul foglio. Lo stesso motivo può essere inserito più volte.",
+    "placeMotif": "Posiziona sul foglio",
+    "deleteMotif": "Elimina motivo",
+    "deleteFailed": "Impossibile eliminare il motivo.",
+    "selectedHeading": "Motivo selezionato",
+    "widthCm": "Larghezza in cm",
+    "heightCm": "Altezza: {value} cm",
+    "rotation": "Rotazione in gradi",
+    "rotationReset": "Raddrizza",
+    "dpiValue": "{dpi} dpi alla dimensione attuale",
+    "dpiTarget": "Per una stampa nitida punta a {target} dpi.",
+    "dpiWarning": "Sotto i {min} dpi la stampa diventa visibilmente sfocata. Puoi comunque ordinare — riduci il motivo oppure carica un file a risoluzione maggiore.",
+    "outsideSheet": "Questo motivo esce dal foglio e verrebbe tagliato. Spostalo, riducilo oppure passa a un formato più grande di {format}.",
+    "duplicate": "Duplica",
+    "remove": "Rimuovi",
+    "selectHint": "Tocca un motivo sul foglio per modificarlo.",
+    "handleResize": "Ridimensiona",
+    "handleRotate": "Ruota",
+    "closeSheet": "Chiudi"
   }
 }

@@ -686,7 +686,8 @@
     "adminPalettes": "Colour palettes",
     "adminFonts": "Fonts",
     "adminBusinessCenter": "Business Center",
-    "createPoster": "Create poster"
+    "createPoster": "Create poster",
+    "dtfPrint": "DTF Print"
   },
   "gallery": {
     "pageTitle": "Gallery",
@@ -762,5 +763,43 @@
         "customerService": "Answers your emails — and steps in whenever something isn't quite right."
       }
     }
+  },
+  "dtfEditor": {
+    "pageTitle": "Design your DTF print",
+    "tabMotifs": "Artwork",
+    "tabSheet": "Sheet",
+    "sheetFormat": "Sheet size",
+    "sheetFormatHint": "Usable area: {width} × {height} cm minus a 1 cm margin.",
+    "quantity": "Copies",
+    "quantityHint": "How many times this sheet is printed. For a sheet with different artwork, add this one to the cart first, then design the next.",
+    "quantityDecrease": "Fewer copies",
+    "quantityIncrease": "More copies",
+    "uploadHeading": "Upload artwork",
+    "uploadDropHint": "Drop a file here or choose one",
+    "uploadButton": "Choose file",
+    "uploading": "Uploading …",
+    "uploadFormats": "PNG or JPG, up to {maxMb} MB. PNG with a transparent background recommended.",
+    "uploadFailed": "Upload failed.",
+    "jpegWarning": "JPG has no transparent background — the white area around your artwork will be printed. For a cut-out transfer you need a PNG with transparency.",
+    "libraryHeading": "Your artwork",
+    "libraryHint": "Tap to place it on the sheet. The same artwork can be placed several times.",
+    "placeMotif": "Place on sheet",
+    "deleteMotif": "Delete artwork",
+    "deleteFailed": "Could not delete artwork.",
+    "selectedHeading": "Selected artwork",
+    "widthCm": "Width in cm",
+    "heightCm": "Height: {value} cm",
+    "rotation": "Rotation in degrees",
+    "rotationReset": "Straighten",
+    "dpiValue": "{dpi} dpi at current size",
+    "dpiTarget": "Aim for {target} dpi for a crisp print.",
+    "dpiWarning": "Below {min} dpi the print becomes visibly soft. You can still order — make the artwork smaller or upload a higher-resolution file.",
+    "outsideSheet": "This artwork extends beyond the sheet and would be cut off. Move or shrink it, or switch to a size larger than {format}.",
+    "duplicate": "Duplicate",
+    "remove": "Remove",
+    "selectHint": "Tap artwork on the sheet to edit it.",
+    "handleResize": "Resize",
+    "handleRotate": "Rotate",
+    "closeSheet": "Close"
   }
 }

@@ -686,7 +686,8 @@
     "adminPalettes": "Farbpaletten",
     "adminFonts": "Schriften",
     "adminBusinessCenter": "Business Center",
-    "createPoster": "Poster erstellen"
+    "createPoster": "Poster erstellen",
+    "dtfPrint": "DTF-Druck"
   },
   "gallery": {
     "pageTitle": "Galerie",
@@ -762,5 +763,43 @@
         "customerService": "Antwortet auf deine Mails — und kümmert sich, wenn mal etwas nicht passt."
       }
     }
+  },
+  "dtfEditor": {
+    "pageTitle": "DTF-Druck gestalten",
+    "tabMotifs": "Motive",
+    "tabSheet": "Bogen",
+    "sheetFormat": "Bogenformat",
+    "sheetFormatHint": "Nutzbare Fläche: {width} × {height} cm abzüglich 1 cm Rand.",
+    "quantity": "Auflage",
+    "quantityHint": "Wie oft dieser Bogen gedruckt wird. Für einen Bogen mit anderen Motiven legst du diesen zuerst in den Warenkorb und gestaltest dann den nächsten.",
+    "quantityDecrease": "Auflage verringern",
+    "quantityIncrease": "Auflage erhöhen",
+    "uploadHeading": "Motiv hochladen",
+    "uploadDropHint": "Datei hierher ziehen oder auswählen",
+    "uploadButton": "Datei wählen",
+    "uploading": "Wird hochgeladen …",
+    "uploadFormats": "PNG oder JPG, bis {maxMb} MB. PNG mit transparentem Hintergrund empfohlen.",
+    "uploadFailed": "Upload fehlgeschlagen.",
+    "jpegWarning": "JPG hat keinen transparenten Hintergrund — die weiße Fläche um dein Motiv wird mitgedruckt. Für einen freigestellten Transfer brauchst du ein PNG mit Transparenz.",
+    "libraryHeading": "Deine Motive",
+    "libraryHint": "Antippen legt das Motiv auf den Bogen. Dasselbe Motiv lässt sich mehrfach platzieren.",
+    "placeMotif": "Auf den Bogen legen",
+    "deleteMotif": "Motiv löschen",
+    "deleteFailed": "Motiv konnte nicht gelöscht werden.",
+    "selectedHeading": "Ausgewähltes Motiv",
+    "widthCm": "Breite in cm",
+    "heightCm": "Höhe: {value} cm",
+    "rotation": "Drehung in Grad",
+    "rotationReset": "Gerade",
+    "dpiValue": "{dpi} dpi bei aktueller Größe",
+    "dpiTarget": "Zielwert für scharfen Druck sind {target} dpi.",
+    "dpiWarning": "Unter {min} dpi wird der Druck sichtbar unscharf. Du kannst trotzdem bestellen — mach das Motiv kleiner oder lade eine höher aufgelöste Datei hoch.",
+    "outsideSheet": "Dieses Motiv ragt über den Bogen hinaus und würde abgeschnitten. Verschiebe oder verkleinere es, oder wechsle auf ein größeres Format als {format}.",
+    "duplicate": "Duplizieren",
+    "remove": "Entfernen",
+    "selectHint": "Tippe ein Motiv auf dem Bogen an, um es zu bearbeiten.",
+    "handleResize": "Größe ändern",
+    "handleRotate": "Drehen",
+    "closeSheet": "Schließen"
   }
 }

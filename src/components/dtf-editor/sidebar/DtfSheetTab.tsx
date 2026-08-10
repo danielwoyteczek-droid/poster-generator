@@ -1,0 +1,104 @@
+'use client'
+
+import { useTranslations } from 'next-intl'
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { DTF_SHEET_FORMAT_OPTIONS, DTF_SHEET_FORMATS } from '@/lib/dtf-constants'
+import { useDtfStore } from '@/hooks/useDtfStore'
+import { cn } from '@/lib/utils'
+
+/**
+ * PROJ-55: Bogenformat und Auflage.
+ *
+ * Die zwei Mengen-Achsen werden hier bewusst getrennt benannt, weil sie
+ * regelmäßig verwechselt werden: Die **Auflage** vervielfältigt denselben
+ * Bogen. Ein zweiter Bogen mit anderen Motiven ist dagegen eine eigene
+ * Warenkorb-Position — der Kunde gestaltet ihn, nachdem er diesen abgelegt
+ * hat.
+ */
+export function DtfSheetTab() {
+  const t = useTranslations('dtfEditor')
+  const sheetFormat = useDtfStore((s) => s.sheetFormat)
+  const setSheetFormat = useDtfStore((s) => s.setSheetFormat)
+  const quantity = useDtfStore((s) => s.quantity)
+  const setQuantity = useDtfStore((s) => s.setQuantity)
+
+  const sheet = DTF_SHEET_FORMATS[sheetFormat]
+
+  return (
+    <div className="p-4 space-y-6">
+      <div className="space-y-2">
+        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
+          {t('sheetFormat')}
+        </Label>
+        <div className="grid grid-cols-1 gap-1.5">
+          {DTF_SHEET_FORMAT_OPTIONS.map((f) => (
+            <button
+              key={f.id}
+              type="button"
+              onClick={() => setSheetFormat(f.id)}
+              className={cn(
+                'h-10 rounded-md border-2 px-3 text-sm font-medium transition-colors flex items-center justify-between',
+                sheetFormat === f.id
+                  ? 'border-primary bg-primary text-primary-foreground'
+                  : 'border-border text-foreground/70 hover:border-muted-foreground',
+              )}
+            >
+              <span>{f.label}</span>
+              <span className="text-xs opacity-80">
+                {f.widthMm / 10} × {f.heightMm / 10} cm
+              </span>
+            </button>
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground">
+          {t('sheetFormatHint', {
+            width: sheet.widthMm / 10,
+            height: sheet.heightMm / 10,
+          })}
+        </p>
+      </div>
+
+      <div className="space-y-2">
+        <Label
+          htmlFor="dtf-quantity"
+          className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70"
+        >
+          {t('quantity')}
+        </Label>
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            aria-label={t('quantityDecrease')}
+            onClick={() => setQuantity(quantity - 1)}
+            disabled={quantity <= 1}
+          >
+            −
+          </Button>
+          <Input
+            id="dtf-quantity"
+            type="number"
+            min={1}
+            max={99}
+            value={quantity}
+            onChange={(e) => setQuantity(Number(e.target.value) || 1)}
+            className="text-center"
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            aria-label={t('quantityIncrease')}
+            onClick={() => setQuantity(quantity + 1)}
+          >
+            +
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground">{t('quantityHint')}</p>
+      </div>
+    </div>
+  )
+}

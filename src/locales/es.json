@@ -686,7 +686,8 @@
     "adminPalettes": "Paletas de colores",
     "adminFonts": "Tipografías",
     "adminBusinessCenter": "Business Center",
-    "createPoster": "Crear póster"
+    "createPoster": "Crear póster",
+    "dtfPrint": "Impresión DTF"
   },
   "gallery": {
     "pageTitle": "Galería",
@@ -762,5 +763,43 @@
         "customerService": "Responde a tus correos — y se ocupa cuando algo no encaja."
       }
     }
+  },
+  "dtfEditor": {
+    "pageTitle": "Diseña tu impresión DTF",
+    "tabMotifs": "Motivos",
+    "tabSheet": "Hoja",
+    "sheetFormat": "Formato de hoja",
+    "sheetFormatHint": "Superficie útil: {width} × {height} cm menos 1 cm de margen.",
+    "quantity": "Copias",
+    "quantityHint": "Cuántas veces se imprime esta hoja. Para una hoja con otros motivos, añade primero esta al carrito y luego diseña la siguiente.",
+    "quantityDecrease": "Menos copias",
+    "quantityIncrease": "Más copias",
+    "uploadHeading": "Subir motivo",
+    "uploadDropHint": "Arrastra un archivo aquí o elígelo",
+    "uploadButton": "Elegir archivo",
+    "uploading": "Subiendo …",
+    "uploadFormats": "PNG o JPG, hasta {maxMb} MB. Se recomienda PNG con fondo transparente.",
+    "uploadFailed": "Error al subir.",
+    "jpegWarning": "El JPG no tiene fondo transparente — el área blanca alrededor del motivo se imprimirá. Para un transfer recortado necesitas un PNG con transparencia.",
+    "libraryHeading": "Tus motivos",
+    "libraryHint": "Toca para colocarlo en la hoja. El mismo motivo puede colocarse varias veces.",
+    "placeMotif": "Colocar en la hoja",
+    "deleteMotif": "Eliminar motivo",
+    "deleteFailed": "No se pudo eliminar el motivo.",
+    "selectedHeading": "Motivo seleccionado",
+    "widthCm": "Ancho en cm",
+    "heightCm": "Alto: {value} cm",
+    "rotation": "Rotación en grados",
+    "rotationReset": "Enderezar",
+    "dpiValue": "{dpi} ppp al tamaño actual",
+    "dpiTarget": "Apunta a {target} ppp para una impresión nítida.",
+    "dpiWarning": "Por debajo de {min} ppp la impresión se ve borrosa. Aun así puedes pedirlo — reduce el motivo o sube un archivo de mayor resolución.",
+    "outsideSheet": "Este motivo sobresale de la hoja y se cortaría. Muévelo, redúcelo o cambia a un formato mayor que {format}.",
+    "duplicate": "Duplicar",
+    "remove": "Quitar",
+    "selectHint": "Toca un motivo en la hoja para editarlo.",
+    "handleResize": "Cambiar tamaño",
+    "handleRotate": "Girar",
+    "closeSheet": "Cerrar"
   }
 }

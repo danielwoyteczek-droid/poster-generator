@@ -10,6 +10,53 @@
 export const DTF_BUCKET = 'dtf-uploads'
 
 /**
+ * Bogenformate. Bewusst ein eigener Begriff neben den Posterformaten aus
+ * `print-formats.ts` (a4 | a3 | a2): Jene Liste hängt an Produkten,
+ * Warenkorb, Versandkosten, Vorlagen und der Render-Pipeline. Würde 40 × 50
+ * dort einhängen, müsste jeder dieser Bereiche eine Antwort auf ein Format
+ * haben, das ihn nichts angeht — etwa „Wie sieht ein Sternenposter in
+ * 40 × 50 aus?". Die Überschneidung bei A4 und A3 ist zufällig; das eine
+ * ist ein Papierformat für Poster, das andere ein Bogenmaß für
+ * Transferfolie.
+ */
+export type DtfSheetFormat = 'a4' | 'a3' | '40x50'
+
+export interface DtfSheetDefinition {
+  id: DtfSheetFormat
+  label: string
+  widthMm: number
+  heightMm: number
+}
+
+export const DTF_SHEET_FORMATS: Record<DtfSheetFormat, DtfSheetDefinition> = {
+  a4: { id: 'a4', label: 'A4', widthMm: 210, heightMm: 297 },
+  a3: { id: 'a3', label: 'A3', widthMm: 297, heightMm: 420 },
+  '40x50': { id: '40x50', label: '40 × 50 cm', widthMm: 400, heightMm: 500 },
+}
+
+export const DTF_SHEET_FORMAT_OPTIONS = Object.values(DTF_SHEET_FORMATS)
+
+export const DTF_DEFAULT_SHEET_FORMAT: DtfSheetFormat = 'a4'
+
+/**
+ * Sicherheitsabstand zur Bogenkante und Mindestabstand zwischen Motiven,
+ * beide in Millimetern. Getrennte Werte, weil sie verschiedene Zwecke
+ * haben: der eine schützt vor dem nicht bedruckbaren Rand des Druckers,
+ * der andere lässt Platz zum Zuschneiden.
+ *
+ * Zentral hier, nicht im Code verstreut — nach dem ersten Testdruck ändern
+ * sich die Werte erfahrungsgemäß noch.
+ */
+export const DTF_SHEET_MARGIN_MM = 10
+export const DTF_ELEMENT_GAP_MM = 10
+
+/** Kleinstes sinnvolles Motiv auf dem Bogen. */
+export const DTF_MIN_ELEMENT_WIDTH_MM = 10
+
+/** Höchstzahl Bögen einer Bestellung bzw. Motive je Bogen. */
+export const DTF_MAX_ELEMENTS_PER_SHEET = 60
+
+/**
  * 50 MB. Ein bogenfüllendes PNG mit Transparenz auf 40 × 50 cm hat bei
  * 300 dpi rund 28 Megapixel und liegt je nach Motiv bei 30–60 MB. Ein
  * niedrigeres Limit würde genau die Dateien aussperren, die für gute

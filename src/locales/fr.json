@@ -686,7 +686,8 @@
     "adminPalettes": "Palettes de couleurs",
     "adminFonts": "Polices",
     "adminBusinessCenter": "Business Center",
-    "createPoster": "Créer une affiche"
+    "createPoster": "Créer une affiche",
+    "dtfPrint": "Impression DTF"
   },
   "gallery": {
     "pageTitle": "Galerie",
@@ -762,5 +763,43 @@
         "customerService": "Elle répond à vos e-mails — et intervient dès que quelque chose ne va pas."
       }
     }
+  },
+  "dtfEditor": {
+    "pageTitle": "Créez votre impression DTF",
+    "tabMotifs": "Motifs",
+    "tabSheet": "Feuille",
+    "sheetFormat": "Format de feuille",
+    "sheetFormatHint": "Surface utile : {width} × {height} cm moins 1 cm de marge.",
+    "quantity": "Exemplaires",
+    "quantityHint": "Nombre d’impressions de cette feuille. Pour une feuille avec d’autres motifs, ajoutez celle-ci au panier puis créez la suivante.",
+    "quantityDecrease": "Moins d’exemplaires",
+    "quantityIncrease": "Plus d’exemplaires",
+    "uploadHeading": "Importer un motif",
+    "uploadDropHint": "Déposez un fichier ici ou choisissez-en un",
+    "uploadButton": "Choisir un fichier",
+    "uploading": "Envoi en cours …",
+    "uploadFormats": "PNG ou JPG, jusqu’à {maxMb} Mo. PNG avec fond transparent recommandé.",
+    "uploadFailed": "Échec de l’envoi.",
+    "jpegWarning": "Le JPG n’a pas de fond transparent — la zone blanche autour du motif sera imprimée. Pour un transfert détouré, il faut un PNG avec transparence.",
+    "libraryHeading": "Vos motifs",
+    "libraryHint": "Touchez pour placer sur la feuille. Un même motif peut être placé plusieurs fois.",
+    "placeMotif": "Placer sur la feuille",
+    "deleteMotif": "Supprimer le motif",
+    "deleteFailed": "Impossible de supprimer le motif.",
+    "selectedHeading": "Motif sélectionné",
+    "widthCm": "Largeur en cm",
+    "heightCm": "Hauteur : {value} cm",
+    "rotation": "Rotation en degrés",
+    "rotationReset": "Redresser",
+    "dpiValue": "{dpi} ppp à la taille actuelle",
+    "dpiTarget": "Visez {target} ppp pour une impression nette.",
+    "dpiWarning": "En dessous de {min} ppp, l’impression devient visiblement floue. Vous pouvez commander malgré tout — réduisez le motif ou importez un fichier de meilleure résolution.",
+    "outsideSheet": "Ce motif dépasse de la feuille et serait coupé. Déplacez-le, réduisez-le ou passez à un format plus grand que {format}.",
+    "duplicate": "Dupliquer",
+    "remove": "Retirer",
+    "selectHint": "Touchez un motif sur la feuille pour le modifier.",
+    "handleResize": "Redimensionner",
+    "handleRotate": "Pivoter",
+    "closeSheet": "Fermer"
   }
 }
