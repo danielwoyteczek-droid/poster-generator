@@ -1,6 +1,6 @@
 # PROJ-55: DTF-Print-Editor (Kunden-Motive auf Transferbogen)
 
-## Status: Planned
+## Status: Architected
 **Created:** 2026-08-10
 **Last Updated:** 2026-08-10
 
@@ -282,7 +282,234 @@ Beispiel: 2 Bögen, Bogen 1 = A4 in 3-facher Auflage, Bogen 2 = A3 in 1-facher A
 <!-- Sections below are added by subsequent skills -->
 
 ## Tech Design (Solution Architect)
-_To be added by /architecture_
+
+**Erstellt:** 2026-08-10
+
+### Einordnung
+
+DTF sieht auf den ersten Blick aus wie „noch ein Editor". Technisch ist es der erste
+Bereich, in dem **Kundendateien in Druckqualität** durch das System laufen. Alle
+bestehenden Editoren erzeugen ihr Bild selbst und kennen dessen Auflösung. Hier kommt
+das Material von außen, und wir garantieren dem Kunden per Freigabe, dass genau das
+gedruckt wird, was er gesehen hat.
+
+Daraus folgen die drei Entscheidungen, die diesen Entwurf tragen: ein eigener Upload-Weg,
+der nichts wegwirft; ein serverseitiger Druckdatei-Erzeuger; und eine eingefrorene Kopie
+der Bestellung, die sich nicht mehr ändern kann.
+
+---
+
+### A) Komponentenstruktur
+
+```
+DTF-Editor-Seite  (neue Route, neben /map, /star-map, /photo)
+├── Bogen-Leiste
+│   ├── Bogen-Reiter (wechseln zwischen Bogen 1, 2, 3 …)
+│   ├── "Bogen hinzufügen"
+│   └── "Bogen löschen"
+├── Arbeitsfläche
+│   ├── Bogen maßstabsgetreu, Hochformat oder Querformat
+│   ├── Sicherheitsrand als Hilfslinie (1 cm)
+│   ├── Bildelemente      — verschieben, skalieren, drehen, duplizieren
+│   ├── Textelemente      — dieselben Griffe wie Bilder
+│   └── Auswahlrahmen mit Anfassern
+├── Seitenleiste (Desktop) / Tap-Sheet (Mobil, Muster aus PROJ-43)
+│   ├── Reiter "Bogen"   — Format, Auflage
+│   ├── Reiter "Motive"  — Upload-Feld, Motiv-Ablage, Größe in cm, dpi-Anzeige
+│   └── Reiter "Text"    — Text anlegen, Schrift, Größe, Farbe, Ausrichtung,
+│                          Fett, Versalien, Laufweite
+├── Hinweisleiste        — dpi des gewählten Bildes, Warnungen
+└── "In den Warenkorb"   — legt den aktuellen Bogen als Position ab
+
+Checkout — Freigabe-Schritt   (erscheint nur, wenn DTF im Warenkorb liegt)
+├── Vorschau jedes DTF-Bogens mit Format, Maßen und Auflage
+├── Transparenz als Karomuster erkennbar
+├── Liste der Motive unter 150 dpi
+├── Checkbox 1 — Druckfreigabe
+├── Checkbox 2 — Rechteinhaber-Bestätigung
+└── "Bezahlen"  (gesperrt, solange nicht beide gesetzt sind)
+
+Admin-Bestellansicht  (Erweiterung des bestehenden Bereichs aus PROJ-10)
+└── Pro DTF-Position: Format, Auflage, Vorschaubild, Download der Druckdatei
+    und die beiden Freigabe-Zeitstempel
+```
+
+Die Motiv-Ablage ist bewusst eine eigene Fläche: Ein einmal hochgeladenes Bild soll auf
+mehrere Bögen gezogen werden können, ohne erneut übertragen zu werden. Bei Dateien in
+Druckgröße ist jeder vermiedene Upload spürbar.
+
+---
+
+### B) Datenmodell
+
+**Ein Upload** (eine hochgeladene Kundendatei)
+- Die Originaldatei, unverändert und in voller Auflösung
+- Eine verkleinerte Web-Vorschau für die Arbeit im Editor
+- Breite und Höhe in Pixeln, Dateityp, Dateigröße
+- Wem sie gehört: Konto oder — bei Gästen — eine anonyme Sitzungskennung
+- Wann sie hochgeladen wurde
+- Ob sie Teil einer bezahlten Bestellung ist (steuert das Aufräumen)
+
+**Ein Bogen**
+- Format: A4, A3 oder 40 × 50 cm
+- Auflage: wie oft dieser Bogen gedruckt wird
+- Position im Entwurf (Bogen 1, 2, 3 …)
+- Die Elemente darauf
+
+**Ein Element** — entweder Bild oder Text
+- Art des Elements
+- Position und Größe, angegeben als Anteil des Bogens statt in Pixeln, damit ein
+  Formatwechsel nichts zerstört
+- Drehung
+- Stapelreihenfolge
+- Bei Bild: Verweis auf den Upload
+- Bei Text: der Text selbst plus Schrift, Größe, Farbe, Ausrichtung, Fett, Versalien
+  und Laufweite — dieselben Eigenschaften, die Textblöcke in den anderen Editoren haben
+
+**Eine Bestellposition**
+- Eine eingefrorene Kopie eines Bogens samt aller Elemente
+- Format, Auflage, Preis
+- Verweis auf die erzeugte Druckdatei, sobald sie vorliegt
+
+**An der Bestellung selbst**
+- Zeitpunkt der Druckfreigabe
+- Zeitpunkt der Rechteinhaber-Bestätigung
+
+Entwürfe werden wie die anderen Editoren als Projekt gespeichert, mit DTF als neuer
+Projektart. Die Dateien liegen in einem eigenen Ablagebereich, getrennt von den
+Poster-Fotos — sie haben andere Größen, andere Aufbewahrungsregeln und andere
+Zugriffsmuster.
+
+---
+
+### C) Technische Entscheidungen
+
+**Ein eigener Editor statt Ausbau des Foto-Editors.**
+Der Foto-Editor arbeitet mit festen Plätzen: eine bestimmte Anzahl Slots, in die Bilder
+einrasten, dazu Masken und Raster. DTF ist das Gegenteil — eine freie Fläche mit beliebig
+vielen Elementen an beliebigen Stellen. Diese beiden Modelle in einer Komponente zu
+vereinen würde beide verkomplizieren und die bestehende Foto-Funktion gefährden. Die
+gemeinsamen Teile (Upload, Textblock-Eigenschaften, Tap-Sheet auf Mobil) werden trotzdem
+geteilt.
+
+**Jeder Upload wird zweimal vorgehalten: Original und Vorschau.**
+Das ist die wichtigste Entscheidung des Entwurfs. Der bestehende Foto-Upload verkleinert
+jedes Bild auf 2400 Pixel Kantenlänge und wirft das Original weg — für Poster-Fotos
+sinnvoll, für Druckdaten fatal. Ein bogenfüllendes Motiv auf 40 × 50 cm braucht rund
+5900 Pixel. Wir behalten deshalb das Original unangetastet und erzeugen zusätzlich eine
+kleine Fassung, mit der der Editor arbeitet. Der Kunde schiebt im Browser also ein
+leichtes Bild herum, gedruckt wird aus dem Original. Ohne diese Trennung wäre der Editor
+auf dem Handy unbenutzbar oder die Druckqualität ruiniert — beides zusammen geht nicht.
+
+**Das neue Format bekommt einen eigenen Begriff.**
+Die bestehende Formatliste (A4, A3, A2) hängt an Produkten, Warenkorb, Versandkosten,
+Vorlagen und der Render-Pipeline. Würden wir 40 × 50 dort einhängen, müsste jeder dieser
+Bereiche eine Antwort auf ein Format haben, das ihn nichts angeht — etwa „Wie sieht ein
+Sternenposter in 40 × 50 aus?". Deshalb führen wir Bogenformate als eigenständigen Begriff
+neben den Posterformaten. Sie überschneiden sich zufällig bei A4 und A3, sind aber
+fachlich verschiedene Dinge: das eine ist ein Papierformat für Poster, das andere ein
+Bogenmaß für Transferfolie.
+
+**Die Druckdatei entsteht auf dem Server, nicht im Browser.**
+Ein Bogen mit mehreren Motiven in Druckauflösung übersteigt, was ein Mobilbrowser
+zuverlässig verarbeitet. Der Server hat die Originaldateien ohnehin und setzt sie mit den
+bereits eingesetzten Werkzeugen zusammen. Das hält auch die Vorschau ehrlich: Vorschau und
+Druckdatei entstehen aus derselben Beschreibung des Bogens, nicht aus zwei getrennten
+Wegen, die auseinanderlaufen können.
+
+**Erzeugung automatisch bei Zahlungseingang.**
+Sobald die Zahlung bestätigt ist, werden die Druckdateien erzeugt und abgelegt. Wenn du
+die Bestellung öffnest, liegt alles bereit. Damit ein Fehlschlag nicht unbemerkt bleibt,
+bekommt jede Position einen sichtbaren Status und die Erzeugung lässt sich manuell
+wiederholen — sonst merkst du ein Problem erst, wenn der Kunde auf seinen Druck wartet.
+
+**Die Bestellung bekommt eine eingefrorene Kopie, keinen Verweis.**
+Der Kunde gibt frei, was er im Checkout sieht. Würde die Bestellung auf den lebenden
+Entwurf zeigen, könnte er ihn danach ändern — und wir würden etwas anderes drucken als
+freigegeben. Die Kopie macht die Freigabe belastbar. Der Warenkorb selbst arbeitet bereits
+so und legt eine Momentaufnahme pro Position ab; DTF folgt diesem Muster.
+
+**Aufräumen nach 30 Tagen.**
+Dateien aus bezahlten Bestellungen bleiben, damit Nachdrucke und Reklamationen möglich
+sind. Uploads aus abgebrochenen Entwürfen werden nach 30 Tagen gelöscht. Bei Dateigrößen
+in dieser Größenordnung wäre unbefristetes Sammeln teuer, und es entstünde ein Bestand
+personenbezogener Bilddaten ohne Löschkonzept.
+
+**Text nutzt die vorhandenen Textblock-Eigenschaften.**
+Schrift, Größe, Farbe, Ausrichtung, Fett, Versalien und Laufweite gibt es bereits, ebenso
+die Schriftenverwaltung aus PROJ-47. DTF erbt das, ergänzt um Drehung — die Bilder auf
+demselben Bogen lassen sich drehen, beim Text wäre alles andere inkonsistent. In der
+Druckdatei werden Schriften eingebettet oder in Kurven gewandelt, damit die Datei auf dem
+Druckrechner identisch aussieht.
+
+**Versandkosten als eigene Zeile in der bestehenden Matrix.**
+DTF-Bögen wiegen und verpacken sich anders als gerahmte Poster. Sie kommen deshalb als
+eigenes Produkt in die Versandkosten-Verwaltung, statt Poster-Tarife mitzubenutzen.
+
+---
+
+### D) Abhängigkeiten
+
+**Keine neuen Pakete nötig.** Alles Erforderliche ist bereits im Projekt:
+
+| Vorhanden | Wofür bei DTF |
+|---|---|
+| `pdf-lib` | Erzeugung der Druck-PDF, wird schon für den Poster-Export genutzt |
+| `sharp` | Serverseitige Bildverarbeitung, seit PROJ-52 im Einsatz |
+| `browser-image-compression` | Erzeugung der kleinen Editor-Vorschau (nicht des Originals) |
+| `heic2any` | Umwandlung von iPhone-Fotos, bereits im Foto-Upload verwendet |
+| Supabase Storage | Ablage von Originalen, Vorschauen und Druckdateien |
+| shadcn/ui | Alle Bedienelemente; Drag-und-Skalier-Logik existiert in den Editoren bereits |
+
+---
+
+### E) Was dieser Entwurf an bestehenden Bereichen berührt
+
+Diese Liste ist bewusst vollständig, weil DTF quer durch den Bestellprozess schneidet:
+
+| Bereich | Änderung |
+|---|---|
+| Produktkatalog | Dritter Produkttyp neben Download und Poster, drei neue Stripe-Preise |
+| Warenkorb | Positionen mit Bogenformat und Auflage statt Posterformat |
+| Checkout | Neuer Freigabe-Schritt vor dem Bezahlen |
+| Bestellungen | Zwei Freigabe-Zeitstempel, Druckdateien pro Position |
+| Admin (PROJ-10) | Neue Darstellung und Download in der Bestellansicht |
+| Versandkosten (PROJ-26) | Neue Tarifzeilen |
+| Projekte (PROJ-5) | DTF als weitere Projektart |
+| Schriften (PROJ-47) | Werden im DTF-Editor mitverwendet |
+| Navigation | Neuer Punkt „DTF Print", in fünf Sprachen |
+| Ablage | Neuer Bereich für Kundendateien mit Aufräum-Regel |
+
+Der Checkout ist der heikelste Punkt: Dort ist heute jede Bestellung des Shops unterwegs.
+Der Freigabe-Schritt darf für Bestellungen ohne DTF nicht in Erscheinung treten und den
+bestehenden Ablauf nicht verändern.
+
+---
+
+### F) Risiken
+
+**Vorschau und Druck müssen übereinstimmen.** Weicht der Druck von der Vorschau ab, hat der
+Kunde etwas freigegeben, das er nie gesehen hat — und die Freigabe ist wertlos. Beide
+müssen aus derselben Bogenbeschreibung entstehen. Das ist die wichtigste Prüfung in der
+QA-Phase.
+
+**Weißer Text und weiße Flächen.** Auf dem Karomuster der Vorschau kaum zu sehen, im Druck
+deutlich vorhanden. Die Vorschau muss das ehrlich zeigen, sonst führt sie in die Irre.
+
+**Speicherwachstum.** Originaldateien in Druckauflösung summieren sich schnell. Die
+Aufräum-Regel muss von Anfang an laufen, nicht nachgereicht werden.
+
+**Bedienbarkeit auf dem Handy.** Mehrere Elemente frei zu positionieren ist auf kleinen
+Bildschirmen anspruchsvoll. Das Tap-Sheet-Muster aus PROJ-43 ist die Grundlage, reicht
+aber allein nicht — die Griffe zum Skalieren und Drehen brauchen eine eigene Lösung.
+
+**Gast-Uploads.** Der Editor ist ohne Anmeldung nutzbar, es können also nicht angemeldete
+Besucher Dateien ablegen. Der Zugriffsschutz muss verhindern, dass jemand fremde Uploads
+liest, obwohl kein Konto dahintersteht.
+
+**Die Spiegelung ist noch unbestätigt.** Der Entwurf geht davon aus, dass euer RIP selbst
+spiegelt. Das ist eine Annahme, kein Wissen — und wenn sie falsch ist, ist jeder gedruckte
+Bogen Ausschuss. Ein Testdruck vor Baubeginn klärt es.
 
 ## QA Test Results
 _To be added by /qa_
