@@ -8,6 +8,8 @@ import { useEditorStore } from '@/hooks/useEditorStore'
 import type { ViewState } from '@/hooks/useEditorStore'
 import { setMapInstance } from '@/hooks/useMapInstance'
 import { buildPetiteStyle } from '@/lib/petite-style-loader'
+import { buildGeoShapeDefinition } from '@/lib/geo-shape'
+import { useGeoShape } from '@/hooks/useGeoShape'
 
 interface MapPreviewInnerProps {
   storeSlice?: 'primary' | 'secondary'
@@ -26,6 +28,13 @@ export default function MapPreviewInner({ storeSlice = 'primary' }: MapPreviewIn
   const customPalette = storeSlice === 'primary' ? store.customPalette : store.secondMap.customPalette
   const streetLabelsVisible = store.streetLabelsVisible
   const placeLabelsVisible = store.placeLabelsVisible
+  // PROJ-51: geo-boundary state (primary slice only — it's a single-map shape).
+  const maskKey = store.maskKey
+  const geoBoundary = store.geoBoundary
+  const orientation = store.orientation
+  const pendingFitBounds = store.pendingFitBounds
+  const clearPendingFitBounds = store.clearPendingFitBounds
+  const setGeoShape = useGeoShape((s) => s.setShape)
   const locale = useLocale()
   const pendingCenter = storeSlice === 'primary' ? store.pendingCenter : store.secondMap.pendingCenter
   const pendingZoomDelta = storeSlice === 'primary' ? store.pendingZoomDelta : store.secondMap.pendingZoomDelta
@@ -40,10 +49,12 @@ export default function MapPreviewInner({ storeSlice = 'primary' }: MapPreviewIn
   const setViewStateRef = useRef(setViewState)
   const clearPendingCenterRef = useRef(clearPendingCenter)
   const clearZoomDeltaRef = useRef(clearZoomDelta)
+  const clearPendingFitBoundsRef = useRef(clearPendingFitBounds)
   const streetLabelsRef = useRef(streetLabelsVisible)
   useEffect(() => { setViewStateRef.current = setViewState }, [setViewState])
   useEffect(() => { clearPendingCenterRef.current = clearPendingCenter }, [clearPendingCenter])
   useEffect(() => { clearZoomDeltaRef.current = clearZoomDelta }, [clearZoomDelta])
+  useEffect(() => { clearPendingFitBoundsRef.current = clearPendingFitBounds }, [clearPendingFitBounds])
   useEffect(() => { streetLabelsRef.current = streetLabelsVisible }, [streetLabelsVisible])
 
   useEffect(() => {
@@ -225,6 +236,70 @@ export default function MapPreviewInner({ storeSlice = 'primary' }: MapPreviewIn
     }
   }, [placeLabelsVisible])
 
+  // PROJ-51: project the geo-boundary polygon into a `ShapeDefinition` and
+  // publish it via the geo-shape store. PosterCanvas then runs it through the
+  // same SVG-mask pipeline as the heart/circle masks (`composeMaskSvg` /
+  // `composeFrameSvg`) — so outer-area modes and the Formkontur work for free.
+  //
+  // Re-projected on every map `move` (rAF-throttled) so the form tracks the
+  // map. Only the primary map carries a geo-boundary.
+  useEffect(() => {
+    if (storeSlice !== 'primary') return
+    const map = mapRef.current
+    if (!map) return
+
+    const active = maskKey === 'geo-boundary' && !!geoBoundary
+    if (!active || !geoBoundary) {
+      setGeoShape(null)
+      return
+    }
+
+    let raf: number | null = null
+    const project = () => {
+      raf = null
+      try {
+        const container = map.getContainer()
+        const shape = buildGeoShapeDefinition(
+          geoBoundary.geometry,
+          (lngLat) => {
+            const p = map.project(lngLat)
+            return { x: p.x, y: p.y }
+          },
+          container.clientWidth,
+          container.clientHeight,
+          orientation,
+        )
+        setGeoShape(shape)
+      } catch (e) {
+        console.error('[geo] projection error:', e)
+      }
+    }
+    const schedule = () => {
+      if (raf == null) raf = requestAnimationFrame(project)
+    }
+
+    project()
+    map.on('move', schedule)
+    map.on('resize', schedule)
+    return () => {
+      map.off('move', schedule)
+      map.off('resize', schedule)
+      if (raf != null) cancelAnimationFrame(raf)
+    }
+  }, [storeSlice, maskKey, geoBoundary, orientation, setGeoShape])
+
+  // PROJ-51: auto-frame a freshly picked region by fitting its bounding box.
+  useEffect(() => {
+    if (storeSlice !== 'primary') return
+    if (!pendingFitBounds || !mapRef.current) return
+    const [w, s, e, n] = pendingFitBounds
+    mapRef.current.fitBounds(
+      [[w, s], [e, n]],
+      { padding: 24, duration: 600 },
+    )
+    clearPendingFitBounds()
+  }, [pendingFitBounds, storeSlice, clearPendingFitBounds])
+
   // Apply pending camera. Default path is jumpTo — applyPreset() fires a
   // parallel style swap and setStyle() would cancel an in-flight flyTo
   // mid-animation, stranding the camera. User-driven location searches
@@ -248,6 +323,15 @@ export default function MapPreviewInner({ storeSlice = 'primary' }: MapPreviewIn
     else mapRef.current.zoomOut()
     clearZoomDeltaRef.current()
   }, [pendingZoomDelta])
+
+  // PROJ-51: auto-frame a freshly-selected region's bounding box. Cleared
+  // straight after so panning/zooming afterwards isn't overridden.
+  useEffect(() => {
+    if (storeSlice !== 'primary' || !pendingFitBounds || !mapRef.current) return
+    const [w, s, e, n] = pendingFitBounds
+    mapRef.current.fitBounds([[w, s], [e, n]], { padding: 28, duration: 600, maxZoom: 13 })
+    clearPendingFitBoundsRef.current()
+  }, [pendingFitBounds, storeSlice])
 
   return <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
 }

@@ -26,5 +26,5 @@ export const env = {
   get adminEmail() { return required('ADMIN_EMAIL') },
   get appUrl() { return optional('NEXT_PUBLIC_APP_URL', 'https://petite-moment.com') },
   get monthlyBudgetUsd() { return Number(optional('BLOG_AUTOMATION_MONTHLY_BUDGET_USD', '5')) },
-  get defaultModel() { return optional('BLOG_AUTOMATION_MODEL', 'claude-opus-4-7') },
+  get defaultModel() { return optional('BLOG_AUTOMATION_MODEL', 'claude-sonnet-4-6') },
 }

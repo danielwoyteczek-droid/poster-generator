@@ -8,7 +8,7 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { useCartStore } from '@/hooks/useCartStore'
 import { useVoucherStore } from '@/hooks/useVoucherStore'
-import { trackPurchase } from '@/lib/analytics'
+import { trackPurchase, hashedEmail } from '@/lib/analytics'
 import { formatPrice, getItemFallbackLabel, getItemLabelKey } from '@/lib/products'
 import { PRINT_FORMAT_OPTIONS, type PrintFormat } from '@/lib/print-formats'
 import {
@@ -47,6 +47,8 @@ interface OrderData {
   /** PROJ-48: present on orders paid after 2026-05-14, null/0 on older orders. */
   discount_code?: string | null
   discount_cents?: number | null
+  /** Customer email — used (SHA-256 hashed) for Google Ads Enhanced Conversions. */
+  email?: string | null
 }
 
 interface Props {
@@ -84,19 +86,26 @@ export function OrderView({ orderId, token, showSuccessBanner }: Props) {
   useEffect(() => {
     if (!showSuccessBanner || !order || purchaseTrackedRef.current) return
     if (order.status !== 'paid') return
+    // Set the guard synchronously — the email hashing below is async, so a
+    // re-render must not be able to slip a second purchase event through.
     purchaseTrackedRef.current = true
-    trackPurchase({
-      transactionId: order.id,
-      totalCents: order.total_cents,
-      items: order.items.map((item, idx) => ({
-        id: `${order.id}-${idx}`,
-        title: item.title,
-        productId: item.productId,
-        format: item.format,
-        priceCents: item.priceCents,
-        posterType: item.posterType,
-      })),
-    })
+    const items = order.items.map((item, idx) => ({
+      id: `${order.id}-${idx}`,
+      title: item.title,
+      productId: item.productId,
+      format: item.format,
+      priceCents: item.priceCents,
+      posterType: item.posterType,
+    }))
+    void (async () => {
+      const emailHash = order.email ? await hashedEmail(order.email) : null
+      trackPurchase({
+        transactionId: order.id,
+        totalCents: order.total_cents,
+        emailHash,
+        items,
+      })
+    })()
   }, [showSuccessBanner, order])
 
   const fetchOrder = useCallback(async () => {

@@ -4,7 +4,7 @@ import { useRef, useState } from 'react'
 import Image from 'next/image'
 import { useTranslations } from 'next-intl'
 import { useTranslatedLabel } from '@/lib/i18n-catalog'
-import { ChevronDown, ChevronUp, Loader2, Upload, Trash2, ChevronLeft, ChevronRight, RectangleVertical, RectangleHorizontal } from 'lucide-react'
+import { ChevronDown, ChevronUp, Loader2, Upload, Trash2, ChevronLeft, ChevronRight, RectangleVertical, RectangleHorizontal, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { Label } from '@/components/ui/label'
 import { LocationSearch } from '@/components/editor/LocationSearch'
@@ -23,6 +23,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { PresetPicker } from '@/components/editor/PresetPicker'
+import { GeoBoundarySearch } from '@/components/editor/GeoBoundarySearch'
 import { useEditorStore } from '@/hooks/useEditorStore'
 import { PRINT_FORMAT_OPTIONS, type PosterOrientation } from '@/lib/print-formats'
 import { useAuth } from '@/hooks/useAuth'
@@ -79,7 +80,8 @@ export function MapTab() {
     layoutId,
     printFormat, orientation,
     decorationSvgUrl, decorationVisible,
-    setStyleId, setMaskKey, setDecorationSvgUrl, setDecorationVisible, setMarker, setSecondMarker,
+    geoBoundary,
+    setStyleId, setMaskKey, setGeoBoundary, setDecorationSvgUrl, setDecorationVisible, setMarker, setSecondMarker,
     setShapeOuter, setInnerFrame, setOuterFrame,
     setLayoutId,
     setPrintFormat, setOrientation,
@@ -246,8 +248,13 @@ export function MapTab() {
     (MAP_MASKS as Record<string, typeof MAP_MASKS['none']>)[maskKey] ??
     customMasks.find((m) => m.key === maskKey) ??
     MAP_MASKS.none
-  const shapeSupported = !!currentMask.shape
+  // PROJ-51: the geo-boundary mask has no fixed `shape`, but its live-projected
+  // polygon runs through the same composer — so it supports Formkontur +
+  // Außenbereich just like the shape masks.
+  const shapeSupported = !!currentMask.shape || maskKey === 'geo-boundary'
   const [masksExpanded, setMasksExpanded] = useState(false)
+  // PROJ-51: "Grenzen" map shape — opens the region search dialog.
+  const isGeoBoundary = maskKey === 'geo-boundary'
 
   const isSplitActive = splitMode === 'second-map' || splitMode === 'photo'
   const visibleMasks = isSplitActive
@@ -473,6 +480,42 @@ export function MapTab() {
 
       {/* Preset picker — shows published map designs, collapsible */}
       <PresetPicker posterType="map" />
+
+      <Separator />
+
+      {/* Street + place labels — one row of click-to-mark buttons. Active =
+          petrol fill + white text (brand-primary inverse); click again to
+          deactivate. Replaces the two separate Switch rows to slim the
+          sidebar. Place labels default visible so the location name shows.
+          Sits above the map-style section per editor-layout request. */}
+      <div className="grid grid-cols-2 gap-1.5">
+        <button
+          type="button"
+          onClick={() => setStreetLabelsVisible(!streetLabelsVisible)}
+          aria-pressed={streetLabelsVisible}
+          className={cn(
+            'h-9 rounded-md border-2 text-xs font-medium transition-colors',
+            streetLabelsVisible
+              ? 'border-primary bg-primary text-primary-foreground'
+              : 'border-border text-foreground/70 hover:border-muted-foreground',
+          )}
+        >
+          {t('mapLabelStreets')}
+        </button>
+        <button
+          type="button"
+          onClick={() => setPlaceLabelsVisible(!placeLabelsVisible)}
+          aria-pressed={placeLabelsVisible}
+          className={cn(
+            'h-9 rounded-md border-2 text-xs font-medium transition-colors',
+            placeLabelsVisible
+              ? 'border-primary bg-primary text-primary-foreground'
+              : 'border-border text-foreground/70 hover:border-muted-foreground',
+          )}
+        >
+          {t('mapLabelPlaces')}
+        </button>
+      </div>
 
       <Separator />
 
@@ -722,25 +765,6 @@ export function MapTab() {
         </div>
       )}
 
-      {/* Street labels — always available, works on any map style */}
-      <div className="flex items-center justify-between">
-        <Label className="text-xs text-foreground/70">{t('mapShowStreets')}</Label>
-        <Switch
-          checked={streetLabelsVisible}
-          onCheckedChange={setStreetLabelsVisible}
-        />
-      </div>
-      {/* Place labels — separate axis from street labels. Cities, towns,
-          parks, water features. Defaults to visible so customers see their
-          location's name without flipping anything. */}
-      <div className="flex items-center justify-between">
-        <Label className="text-xs text-foreground/70">{t('mapShowPlaces')}</Label>
-        <Switch
-          checked={placeLabelsVisible}
-          onCheckedChange={setPlaceLabelsVisible}
-        />
-      </div>
-
       <Separator />
 
       {/* Mask / Shape — filtered to split-only when second map is active */}
@@ -768,7 +792,22 @@ export function MapTab() {
               title={maskLabel(mask.key, mask.label)}
             >
               <div className="w-8 h-8 flex items-center justify-center">
-                {mask.svgPath ? (
+                {mask.key === 'geo-boundary' ? (
+                  // PROJ-51: geo-boundary has no fixed SVG silhouette — show a
+                  // generic country-outline glyph so the tile reads as "shape
+                  // follows a real border".
+                  <svg
+                    viewBox="0 0 32 32"
+                    className="w-7 h-7"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M7 5 L14 7 L20 4 L26 9 L23 16 L27 22 L20 27 L13 24 L8 28 L5 20 L9 13 Z" />
+                  </svg>
+                ) : mask.svgPath ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   // Filter normalises every mask to a solid dark silhouette
                   // regardless of its source SVG fill (some uploads use white
@@ -807,6 +846,42 @@ export function MapTab() {
             {masksExpanded ? t('mapShowLess') : t('mapShowMore', { n: visibleMasks.length - MASK_INITIAL_VISIBLE })}
           </button>
         )}
+        {/* PROJ-51: Geo-Grenzen-Auswahl — only when the "Grenzen" shape is
+            active. Inline region search (mirrors the location search), plus
+            the picked region shown as a removable chip. */}
+        {isGeoBoundary && (
+          <div className="space-y-1.5 pt-3">
+            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
+              {t('geoBoundarySectionLabel')}
+            </Label>
+            {geoBoundary && (
+              <div className="flex items-center gap-2 rounded-md border border-primary bg-muted px-2.5 py-2">
+                <span className="flex-1 truncate text-sm text-foreground/80">
+                  {geoBoundary.name}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    // × resets the shape back to "Ohne" per spec.
+                    setGeoBoundary(null)
+                    setMaskKey('none')
+                  }}
+                  className="w-6 h-6 flex items-center justify-center rounded-sm text-muted-foreground hover:bg-background hover:text-red-600 transition-colors"
+                  aria-label={t('geoBoundaryRemove')}
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+            <GeoBoundarySearch onSelect={(boundary) => setGeoBoundary(boundary)} />
+            {!geoBoundary && (
+              <p className="text-[11px] text-muted-foreground">
+                {t('geoBoundaryNoneSelected')}
+              </p>
+            )}
+          </div>
+        )}
+
         {/* PROJ-35: Decoration — admins get a picker (so they can attach a
             decoration to any preset, not only mask-bound ones). Customers see
             only the visibility toggle, and only when a decoration is active. */}
@@ -1360,6 +1435,7 @@ export function MapTab() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
     </div>
   )
 }

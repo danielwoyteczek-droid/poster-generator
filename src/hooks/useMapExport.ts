@@ -15,6 +15,8 @@ import { resolveFontSizePx } from '@/lib/font-scale'
 import { resolvePinSizePx } from '@/lib/pin-scale'
 import { applyWatermark, type WatermarkOptions } from '@/lib/watermark'
 import { getPalette, type MapPaletteColors } from '@/lib/map-palettes'
+import { type GeoBoundary } from '@/lib/geo-boundaries'
+import { useGeoShape } from '@/hooks/useGeoShape'
 import { fetchDecorationSvgText, recolorSvg, svgTextToDataUrl } from '@/lib/decoration-color'
 import { wrapTextToWidth } from '@/lib/text-wrap'
 import type { PhotoItem, SplitPhoto } from '@/hooks/useEditorStore'
@@ -34,6 +36,8 @@ export interface ExportSnapshot {
   locale?: string
   posterDarkMode?: boolean
   maskKey: MapMaskKey
+  /** PROJ-51: selected region for the `geo-boundary` mask (incl. geometry). */
+  geoBoundary?: GeoBoundary | null
   marker: MarkerState
   secondMarker: MarkerState
   secondMap: SecondMapState
@@ -456,7 +460,13 @@ export async function buildPosterCanvas(
   const H = fmt.heightPx
 
   const { viewState, styleId, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName } = store
-  const mask = (await resolveMask(maskKey)) ?? MAP_MASKS.none
+  const resolvedMask = (await resolveMask(maskKey)) ?? MAP_MASKS.none
+  // PROJ-51: the geo-boundary mask reuses the editor's live-projected shape
+  // (useGeoShape) — it is in normalised A4-viewBox coordinates, so it renders
+  // identically at print resolution. Splicing it in lets the same composer
+  // path (applyComposedMask + frame) handle geo exactly like a shape mask.
+  const geoShape = maskKey === 'geo-boundary' ? useGeoShape.getState().shape : null
+  const mask = geoShape ? { ...resolvedMask, shape: geoShape } : resolvedMask
   const splitMode = store.splitMode ?? (secondMap.enabled ? 'second-map' : 'none')
   const splitPhoto = store.splitPhoto ?? null
   const splitPhotoZone = store.splitPhotoZone ?? 1
@@ -474,7 +484,10 @@ export async function buildPosterCanvas(
   // Plain rectangles crop the map container directly; shapes keep the
   // container at full poster size and scale the shape SVG itself inside.
   const layoutFactor = isPlainRectangle ? rawLayoutFactor : 1.0
-  const layoutMapHeightForShape = mask.shape ? rawLayoutFactor : 1.0
+  // PROJ-51: geo's shape is already projected 1:1 onto the viewport — the
+  // composer must not shrink it for text layouts (pass 1, like the editor).
+  const layoutMapHeightForShape =
+    mask.shape && maskKey !== 'geo-boundary' ? rawLayoutFactor : 1.0
   const mmToPx = W / fmt.widthMm
   const marginPx = Math.max(0, (store.innerMarginMm ?? 0) * mmToPx)
   const mapTargetX = marginPx
@@ -952,7 +965,7 @@ export function useMapExport() {
   const [isExporting, setIsExporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const locale = useLocale()
-  const { viewState, styleId, paletteId, customPaletteBase, customPalette, streetLabelsVisible, placeLabelsVisible, posterDarkMode, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos, splitMode, splitPhoto, splitPhotoZone, layoutId, innerMarginMm, decorationSvgUrl, decorationVisible, orientation } =
+  const { viewState, styleId, paletteId, customPaletteBase, customPalette, streetLabelsVisible, placeLabelsVisible, posterDarkMode, maskKey, geoBoundary, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos, splitMode, splitPhoto, splitPhotoZone, layoutId, innerMarginMm, decorationSvgUrl, decorationVisible, orientation } =
     useEditorStore()
 
   const run = async (format: PrintFormat, type: 'png' | 'pdf') => {
@@ -960,7 +973,7 @@ export function useMapExport() {
     setError(null)
     try {
       const snapshot: ExportSnapshot = {
-        viewState, styleId, paletteId, customPaletteBase, customPalette, streetLabelsVisible, placeLabelsVisible, locale, posterDarkMode, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos, splitMode, splitPhoto, splitPhotoZone, layoutId, innerMarginMm, decorationSvgUrl, decorationVisible, orientation,
+        viewState, styleId, paletteId, customPaletteBase, customPalette, streetLabelsVisible, placeLabelsVisible, locale, posterDarkMode, maskKey, geoBoundary, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos, splitMode, splitPhoto, splitPhotoZone, layoutId, innerMarginMm, decorationSvgUrl, decorationVisible, orientation,
       }
       const canvas = await buildPosterCanvas(format, snapshot)
       const pngBlob = await canvasToBlob(canvas)
@@ -999,10 +1012,23 @@ export function useMapExport() {
 
   const renderPreview = async (
     format: PrintFormat,
-    options?: WatermarkOptions,
+    options?: WatermarkOptions & { viewportW?: number; viewportH?: number },
   ): Promise<string> => {
+    // PROJ-53: optional viewport override. The headless worker passes the
+    // design's saved preview size (?vw/?vh) so the render reproduces the EXACT
+    // editor extent — the live store viewportWidth is the headless container's
+    // (clobbered by MapPreviewInner.emit), which would crop tighter.
+    const vs =
+      options?.viewportW && options.viewportW > 0
+        ? {
+            ...viewState,
+            viewportWidth: options.viewportW,
+            viewportHeight:
+              options.viewportH && options.viewportH > 0 ? options.viewportH : viewState.viewportHeight,
+          }
+        : viewState
     const snapshot: ExportSnapshot = {
-      viewState, styleId, paletteId, customPaletteBase, customPalette, streetLabelsVisible, posterDarkMode, maskKey, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos, splitMode, splitPhoto, splitPhotoZone, layoutId, innerMarginMm, decorationSvgUrl, decorationVisible, orientation,
+      viewState: vs, styleId, paletteId, customPaletteBase, customPalette, streetLabelsVisible, posterDarkMode, maskKey, geoBoundary, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos, splitMode, splitPhoto, splitPhotoZone, layoutId, innerMarginMm, decorationSvgUrl, decorationVisible, orientation,
     }
     const canvas = await buildPosterCanvas(format, snapshot)
     if (options?.watermark) {

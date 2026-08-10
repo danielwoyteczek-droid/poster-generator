@@ -54,7 +54,7 @@ function BridgeImpl({
   renderPreview,
   skipLocationOverride = false,
 }: {
-  renderPreview: (format: PrintFormat) => Promise<string>
+  renderPreview: (format: PrintFormat, opts?: { watermark?: boolean; viewportW?: number; viewportH?: number }) => Promise<string>
   /** When true, skip the lat/lng/zoom URL override step. Photo posters
    *  have no geo state to write to, so the override block is a no-op
    *  there — and writing to `useEditorStore.viewState` would touch a
@@ -73,10 +73,26 @@ function BridgeImpl({
     window.__renderPosterPng = async (opts) => {
       if (presetError) throw new Error(presetError)
       const format = opts?.format ?? DEFAULT_FORMAT
-      return renderPreviewRef.current(format)
+      // PROJ-53: reproduce the editor's exact extent — the worker passes the
+      // design-time preview size as ?vw/?vh. Without it renderMapOffscreen
+      // falls back to 500px → tighter crop than the editor.
+      const sp = new URL(window.location.href).searchParams
+      const vw = parseFloat(sp.get('vw') ?? '')
+      const vh = parseFloat(sp.get('vh') ?? '')
+      return renderPreviewRef.current(format, {
+        viewportW: Number.isFinite(vw) && vw > 0 ? vw : undefined,
+        viewportH: Number.isFinite(vh) && vh > 0 ? vh : undefined,
+      })
     }
 
     let cancelled = false
+    const markReady = () => {
+      if (!cancelled) {
+        window.__posterReady = true
+        console.log('[hl-debug] HeadlessBridge: __posterReady = true')
+      }
+    }
+
     void (async () => {
       // 1. Wenn ein Preset in der URL steckt, warte bis PresetUrlApplier
       //    `__presetApplied` setzt (true bei Erfolg, false bei Fehler).
@@ -110,10 +126,7 @@ function BridgeImpl({
           // Mark ready so the worker proceeds quickly to __renderPosterPng,
           // which then throws presetError — a fast, clear failure instead of
           // a 60s waitForFunction timeout.
-          if (!cancelled) {
-            window.__posterReady = true
-            console.log('[hl-debug] HeadlessBridge: __posterReady = true (preset-error)')
-          }
+          markReady()
           return
         }
       }
@@ -227,10 +240,7 @@ function BridgeImpl({
 
       // 4. Kurzer Puffer für Style/Tile-Loader
       await new Promise((r) => setTimeout(r, READY_DELAY_MS))
-      if (!cancelled) {
-        window.__posterReady = true
-        console.log('[hl-debug] HeadlessBridge: __posterReady = true')
-      }
+      markReady()
     })()
 
     return () => {

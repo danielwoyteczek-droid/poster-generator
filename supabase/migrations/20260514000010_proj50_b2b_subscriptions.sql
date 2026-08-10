@@ -326,6 +326,17 @@ DECLARE
   v_now            TIMESTAMPTZ := NOW();
   v_period_age     INTERVAL;
 BEGIN
+  -- Guard gegen direkten RPC-Aufruf mit fremder User-ID. Die Function ist
+  -- SECURITY DEFINER und umgeht damit RLS — sie darf p_user_id deshalb nicht
+  -- blind vertrauen. Serverseitige Aufrufe (createAdminClient -> service_role)
+  -- duerfen jede User-ID setzen; ein Client-Token nur die eigene.
+  IF auth.role() IS DISTINCT FROM 'service_role'
+     AND p_user_id IS DISTINCT FROM auth.uid()
+  THEN
+    RETURN QUERY SELECT FALSE, FALSE, FALSE, NULL::TEXT, NULL::TEXT, 'forbidden'::TEXT;
+    RETURN;
+  END IF;
+
   IF p_format NOT IN ('png', 'pdf') THEN
     RETURN QUERY SELECT FALSE, FALSE, FALSE, NULL::TEXT, NULL::TEXT, 'invalid_format'::TEXT;
     RETURN;
@@ -478,10 +489,20 @@ BEGIN
 END;
 $$;
 
--- Function-Permission: nur authenticated darf aufrufen. Service-Role bypassed
--- ohnehin alles.
+-- Function-Permission: NUR service_role. Die App ruft die Function
+-- ausschliesslich serverseitig via createAdminClient() auf (siehe
+-- /api/business/authorize-export) — `authenticated` braucht das EXECUTE-Recht
+-- nicht. Mit dem Grant waere die Function als PostgREST-RPC
+-- (/rest/v1/rpc/authorize_export) fuer jeden eingeloggten Nutzer direkt
+-- erreichbar, unter Umgehung der Auth- und Ownership-Checks der Route.
+-- Wichtig: Supabase setzt ALTER DEFAULT PRIVILEGES auf dem public-Schema und
+-- erteilt damit bei jedem CREATE FUNCTION automatisch EXECUTE an anon,
+-- authenticated und service_role. Das sind DIREKTE Grants — ein REVOKE FROM
+-- PUBLIC entfernt sie NICHT. Beide Rollen muessen einzeln entzogen werden.
 REVOKE ALL ON FUNCTION authorize_export(UUID, UUID, TEXT) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION authorize_export(UUID, UUID, TEXT) TO authenticated, service_role;
+REVOKE ALL ON FUNCTION authorize_export(UUID, UUID, TEXT) FROM anon;
+REVOKE ALL ON FUNCTION authorize_export(UUID, UUID, TEXT) FROM authenticated;
+GRANT EXECUTE ON FUNCTION authorize_export(UUID, UUID, TEXT) TO service_role;
 
 -- =====================================================================
 -- COMMENTS

@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Image from 'next/image'
-import { getTranslations } from 'next-intl/server'
+import { getLocale, getTranslations } from 'next-intl/server'
 import { LandingNav } from '@/components/landing/LandingNav'
 import { LandingFooter } from '@/components/landing/LandingFooter'
 import { PortableTextRenderer } from '@/components/sanity/PortableTextRenderer'
@@ -22,7 +22,8 @@ const team = [
 ] as const
 
 export async function generateMetadata(): Promise<Metadata> {
-  const page = await getAboutPage()
+  const locale = await getLocale()
+  const page = await getAboutPage(locale)
   return {
     title: page?.title ?? 'Über uns',
     description: page?.metaDescription,
@@ -30,7 +31,8 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function AboutPage() {
-  const [page, t] = await Promise.all([getAboutPage(), getTranslations('about.team')])
+  const locale = await getLocale()
+  const [page, t] = await Promise.all([getAboutPage(locale), getTranslations('about.team')])
 
   return (
     <div className="min-h-screen flex flex-col pt-16 bg-white">

@@ -64,10 +64,14 @@
 | PROJ-48 | Tier-Pricing & Voucher-Readiness | Deployed | [PROJ-48-tier-pricing-voucher-readiness.md](PROJ-48-tier-pricing-voucher-readiness.md) | 2026-05-14 |
 | PROJ-49 | Etsy-Integration (Listing-Sync + Bestellungs-Importer) | In Progress | [PROJ-49-etsy-integration.md](PROJ-49-etsy-integration.md) | 2026-05-14 |
 | PROJ-50 | B2B Credits-Abo (Subscription mit Usage-Overage) | In Progress | [PROJ-50-b2b-credits-subscription.md](PROJ-50-b2b-credits-subscription.md) | 2026-05-14 |
+| PROJ-51 | Geo-Grenzen-Masken (Länder/Regionen/Städte als Posterform) | In Progress | [PROJ-51-geo-boundary-masks.md](PROJ-51-geo-boundary-masks.md) | 2026-05-17 |
+| PROJ-52 | Local-Mockup-Provider (sharp-Compositing neben Dynamic Mockups) | In Progress | [PROJ-52-local-mockup-provider.md](PROJ-52-local-mockup-provider.md) | 2026-05-27 |
+| PROJ-53 | Etsy Mass-Listing-Generator (Paletten-Varianten-Matrix + Vela-CSV) | Planned | [PROJ-53-etsy-mass-listing-generator.md](PROJ-53-etsy-mass-listing-generator.md) | 2026-05-31 |
+| PROJ-54 | Listing-Image-Sets (Etsy-Bild-Vorlagen pro Produkttyp) | In Progress | [PROJ-54-listing-image-sets.md](PROJ-54-listing-image-sets.md) | 2026-06-02 |
 
 <!-- Add features above this line -->
 
-## Next Available ID: PROJ-51
+## Next Available ID: PROJ-55
 
 ## Recommended Build Order
 1. **PROJ-1** — Karten-Editor Core (Fundament der App)

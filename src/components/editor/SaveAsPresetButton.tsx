@@ -145,6 +145,12 @@ export function SaveAsPresetButton() {
       lat: editor.viewState.lat,
       lng: editor.viewState.lng,
       locationName: editor.locationName,
+      // PROJ-53: Vorschau-Größe beim Speichern festhalten. Der MapLibre-Zoom
+      // zeigt je nach Container-Breite einen anderen Ausschnitt — der Headless-
+      // Worker-Render reproduziert mit diesen Maßen GENAU den Editor-Ausschnitt
+      // (statt 500px-Fallback → zu nah). Siehe HeadlessRenderBridge (?vw/?vh).
+      renderVpW: editor.viewState.viewportWidth,
+      renderVpH: editor.viewState.viewportHeight,
     }
   }
 

@@ -1,0 +1,38 @@
+name: Etsy Order Sync
+
+# PROJ-49: Pulls new Etsy receipts every 15 minutes via the
+# /api/etsy/cron/pull-orders endpoint. Auth is a shared secret in the
+# Authorization header — no GitHub OIDC, no Vercel-cron quota burn.
+#
+# Same pattern as render-worker.yml: workflow_dispatch for manual fire +
+# a 15-minute schedule once activated.
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Every 15 minutes. GitHub Actions drift is ~1-2 minutes which is fine
+    # for this latency target.
+    - cron: '*/15 * * * *'
+
+jobs:
+  pull:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Trigger pull-orders endpoint
+        env:
+          APP_BASE_URL: ${{ secrets.APP_BASE_URL }}
+          ETSY_CRON_SECRET: ${{ secrets.ETSY_CRON_SECRET }}
+        run: |
+          if [ -z "$APP_BASE_URL" ] || [ -z "$ETSY_CRON_SECRET" ]; then
+            echo "Missing APP_BASE_URL or ETSY_CRON_SECRET secret"
+            exit 1
+          fi
+          # -f makes curl exit non-zero on HTTP errors so the workflow run
+          # shows red. -sS keeps it quiet but prints errors. --max-time guards
+          # against a stuck request hanging the action.
+          curl -fsS --max-time 60 \
+            -X POST \
+            -H "Authorization: Bearer $ETSY_CRON_SECRET" \
+            -H "Content-Type: application/json" \
+            "$APP_BASE_URL/api/etsy/cron/pull-orders"

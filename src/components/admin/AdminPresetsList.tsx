@@ -194,7 +194,7 @@ export function AdminPresetsList() {
   const [renders, setRenders] = useState<RenderListItem[] | null>(null)
   const [rendersLoading, setRendersLoading] = useState(false)
   const [renderTarget, setRenderTarget] = useState<Preset | null>(null)
-  const [availableMockupSets, setAvailableMockupSets] = useState<{ id: string; name: string; slug: string; is_active: boolean }[]>([])
+  const [availableMockupSets, setAvailableMockupSets] = useState<{ id: string; name: string; slug: string; is_active: boolean; desktop_thumbnail_url: string | null }[]>([])
   const [selectedMockupSetIds, setSelectedMockupSetIds] = useState<string[]>([])
   const [renderTriggering, setRenderTriggering] = useState(false)
   const [workerStarting, setWorkerStarting] = useState(false)
@@ -1535,9 +1535,22 @@ export function AdminPresetsList() {
                     else setSelectedMockupSetIds((prev) => prev.filter((x) => x !== m.id))
                   }}
                 />
-                <div className="text-sm">
-                  <div className="font-medium">{m.name}</div>
-                  <div className="text-xs text-muted-foreground">{m.slug}</div>
+                <div className="w-12 h-12 shrink-0 rounded border border-border bg-muted overflow-hidden flex items-center justify-center">
+                  {m.desktop_thumbnail_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={m.desktop_thumbnail_url}
+                      alt=""
+                      className="w-full h-full object-contain"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <ImageIcon className="w-4 h-4 text-muted-foreground/40" />
+                  )}
+                </div>
+                <div className="text-sm min-w-0">
+                  <div className="font-medium truncate">{m.name}</div>
+                  <div className="text-xs text-muted-foreground truncate">{m.slug}</div>
                 </div>
               </label>
             ))}
