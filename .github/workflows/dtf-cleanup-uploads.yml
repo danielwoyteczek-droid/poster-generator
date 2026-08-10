@@ -1,0 +1,51 @@
+name: DTF Upload Cleanup
+
+# PROJ-55: Räumt abgelaufene DTF-Kundendateien auf — nicht bestellte
+# Uploads nach 30 Tagen, verwaiste 'pending'-Zeilen nach 24 Stunden.
+# Bestellte Dateien bleiben unangetastet (Nachdruck, Reklamation).
+#
+# Ohne diesen Lauf wächst der Storage unbegrenzt: DTF-Originale sind bis zu
+# 50 MB groß, weil Druckdaten nicht komprimiert werden dürfen.
+#
+# Gleiches Muster wie etsy-order-sync.yml: Shared Secret im
+# Authorization-Header, workflow_dispatch für manuelles Auslösen.
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Täglich um 03:20 UTC. Uhrzeit bewusst schräg, damit der Lauf nicht mit
+    # anderen Jobs zur vollen Stunde kollidiert.
+    - cron: '20 3 * * *'
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Trigger cleanup endpoint
+        env:
+          APP_BASE_URL: ${{ secrets.APP_BASE_URL }}
+          DTF_CLEANUP_CRON_SECRET: ${{ secrets.DTF_CLEANUP_CRON_SECRET }}
+        run: |
+          if [ -z "$APP_BASE_URL" ] || [ -z "$DTF_CLEANUP_CRON_SECRET" ]; then
+            echo "Missing APP_BASE_URL or DTF_CLEANUP_CRON_SECRET secret"
+            exit 1
+          fi
+
+          # Die Route räumt höchstens 500 Uploads pro Aufruf ab und meldet
+          # `more: true`, wenn noch etwas übrig ist. Deshalb bis zu 10 Runden,
+          # damit ein Rückstand nicht über Tage abgetragen wird.
+          for i in $(seq 1 10); do
+            RESPONSE=$(curl -fsS --max-time 90 \
+              -X POST \
+              -H "Authorization: Bearer $DTF_CLEANUP_CRON_SECRET" \
+              -H "Content-Type: application/json" \
+              "$APP_BASE_URL/api/dtf/cron/cleanup-uploads")
+
+            echo "Runde $i: $RESPONSE"
+
+            case "$RESPONSE" in
+              *'"more":true'*) ;;
+              *) echo "Nichts mehr abzuräumen."; break ;;
+            esac
+          done

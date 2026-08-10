@@ -68,7 +68,7 @@
 | PROJ-52 | Local-Mockup-Provider (sharp-Compositing neben Dynamic Mockups) | In Progress | [PROJ-52-local-mockup-provider.md](PROJ-52-local-mockup-provider.md) | 2026-05-27 |
 | PROJ-53 | Etsy Mass-Listing-Generator (Paletten-Varianten-Matrix + Vela-CSV) | Planned | [PROJ-53-etsy-mass-listing-generator.md](PROJ-53-etsy-mass-listing-generator.md) | 2026-05-31 |
 | PROJ-54 | Listing-Image-Sets (Etsy-Bild-Vorlagen pro Produkttyp) | In Progress | [PROJ-54-listing-image-sets.md](PROJ-54-listing-image-sets.md) | 2026-06-02 |
-| PROJ-55 | DTF-Print-Editor (Kunden-Motive auf Transferbogen) | Architected | [PROJ-55-dtf-print-editor.md](PROJ-55-dtf-print-editor.md) | 2026-08-10 |
+| PROJ-55 | DTF-Print-Editor (Kunden-Motive auf Transferbogen) | In Progress | [PROJ-55-dtf-print-editor.md](PROJ-55-dtf-print-editor.md) | 2026-08-10 |
 
 <!-- Add features above this line -->
 

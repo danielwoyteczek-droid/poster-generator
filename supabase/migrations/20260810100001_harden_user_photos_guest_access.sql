@@ -1,0 +1,53 @@
+-- =====================================================================
+-- Sicherheitsfix: Gast-Uploads in user-photos gegeneinander abschotten
+-- =====================================================================
+-- Die Gast-Policies auf dem Bucket 'user-photos' pruefen nur, ob der erste
+-- Ordner 'anon' heisst — nicht, WELCHER Gast dahintersteckt:
+--
+--   user_photos_guest_select (anon): foldername[1] = 'anon'
+--   user_photos_guest_update (anon): foldername[1] = 'anon'
+--   user_photos_guest_delete (anon): foldername[1] = 'anon'
+--
+-- Damit kann jeder nicht angemeldete Besucher mit dem oeffentlichen
+-- Anon-Key die Fotos ALLER anderen Gaeste lesen, ueberschreiben und
+-- loeschen. Betrifft den Foto-Poster-Editor (PROJ-19/32) und die
+-- Foto-Integration im Map-Editor. Bei angemeldeten Nutzern greift die
+-- Pruefung korrekt gegen auth.uid(), dort ist nichts zu tun.
+--
+-- Ein RLS-seitiger Fix ist nicht moeglich: anon hat keine Identitaet, die
+-- eine Policy pruefen koennte. Die Abschottung muss deshalb serverseitig
+-- passieren.
+--
+-- VORGEHEN
+-- Lesen, Aendern und Loeschen fuer anon werden entzogen. Das ist der
+-- eigentliche Sicherheitsgewinn — Fremdzugriff ist damit unterbunden.
+--
+-- Der anon-INSERT BLEIBT bestehen, damit der Direkt-Upload aus dem Browser
+-- weiter funktioniert (Dateien gehen an Storage vorbei am Server, das ist
+-- wegen der Body-Limits von Serverless-Funktionen so gewollt). Ein Gast
+-- kann damit weiterhin Objekte unter anon/ ANLEGEN, aber keine fremden
+-- mehr sehen oder zerstoeren. upsert=false im Client verhindert zudem das
+-- Ueberschreiben bestehender Objekte.
+--
+-- Signierte URLs und das Loeschen eigener Fotos laufen ab sofort ueber
+-- /api/photos/sign und /api/photos/delete (Service-Role, mit
+-- Besitzpruefung). Einziger Aufrufer ist src/lib/photo-upload.ts, die
+-- Editor-Komponenten bleiben unveraendert.
+--
+-- BEKANNTE RESTGRENZE
+-- Fuer Bestands-Gaeste steckt die Sitzungs-ID im localStorage und wird vom
+-- Client mitgeschickt; der Server kann sie nicht kryptografisch pruefen.
+-- Wer eine fremde Sitzungs-UUID kennt, koennte eine signierte URL dafuer
+-- anfordern. Erraten laesst sie sich nicht, und Auflisten ist ohne
+-- SELECT-Recht nicht mehr moeglich — der praktische Angriffsweg ist damit
+-- zu. PROJ-55 verwendet fuer neue DTF-Uploads von Anfang an ein
+-- httpOnly-Cookie und akzeptiert gar keine clientseitige ID mehr.
+-- =====================================================================
+
+DROP POLICY IF EXISTS "user_photos_guest_select" ON storage.objects;
+DROP POLICY IF EXISTS "user_photos_guest_update" ON storage.objects;
+DROP POLICY IF EXISTS "user_photos_guest_delete" ON storage.objects;
+
+-- user_photos_guest_insert bleibt absichtlich bestehen (siehe oben).
+-- Die authenticated-Policies bleiben ebenfalls unveraendert, sie pruefen
+-- korrekt gegen auth.uid().

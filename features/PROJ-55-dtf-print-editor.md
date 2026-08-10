@@ -1,8 +1,11 @@
 # PROJ-55: DTF-Print-Editor (Kunden-Motive auf Transferbogen)
 
-## Status: Architected
+## Status: In Progress
 **Created:** 2026-08-10
 **Last Updated:** 2026-08-10
+
+> **Phase 1 (Upload-Fundament) ist gebaut.** Siehe „Implementierung" am Ende.
+> Editor, Warenkorb, Freigabe und Druckdatei stehen noch aus.
 
 ## Kontext
 
@@ -516,3 +519,110 @@ _To be added by /qa_
 
 ## Deployment
 _To be added by /deploy_
+
+---
+
+## Implementierung
+
+### Phase 1 — Upload-Fundament (2026-08-10)
+
+Gebaut wurde ausschließlich die Datei-Infrastruktur. Editor, Warenkorb,
+Freigabe-Schritt und Druckdatei-Erzeugung folgen in späteren Phasen.
+
+**Datenbank** (`20260810100000_proj55_dtf_uploads.sql`)
+- Tabelle `dtf_uploads` mit `original_path` und `preview_path` als getrennten
+  Feldern. Besitzer ist per CHECK entweder ein Konto oder eine Gast-Sitzung,
+  nie beides und nie keines.
+- Bucket `dtf-uploads`: **privat**, 50 MB, PNG und JPEG. Bewusst **ohne jede
+  Policy** auf `storage.objects` — damit kommt weder `anon` noch
+  `authenticated` direkt heran, nur Service-Role und signierte URLs.
+- `dtf_uploads_collect_expired()` liefert abgelaufene Zeilen und löscht sie;
+  die Storage-Objekte entfernt der Aufrufer anhand der zurückgegebenen Pfade.
+  EXECUTE nur für `service_role`.
+
+**Kein Weg über den Server für die Datei selbst.** Serverless-Funktionen
+nehmen rund 4,5 MB Body an; bei bis zu 50 MB großen Druckdaten scheidet das
+aus. Die Route stellt stattdessen zwei signierte Upload-URLs aus, der Client
+lädt direkt zu Storage und meldet den Abschluss zurück. Der Server prüft
+dabei, dass Original **und** Vorschau wirklich liegen, bevor er auf `ready`
+setzt — sonst zeigte der Editor ein Motiv, das beim Drucken fehlt.
+
+**Neue Dateien**
+| Datei | Zweck |
+|---|---|
+| `src/lib/dtf-constants.ts` | Gemeinsame Grenzwerte für Client und Server, damit keine doppelte Prüfung auseinanderläuft |
+| `src/lib/dtf-guest-session.ts` | Besitzer-Identität; Gäste über httpOnly-Cookie |
+| `src/lib/dtf-upload.ts` | Client-Upload: Original unverändert, Vorschau zusätzlich |
+| `src/app/api/dtf/uploads/route.ts` | Upload anmelden (POST), eigene Ablage (GET) |
+| `src/app/api/dtf/uploads/[id]/route.ts` | Abschluss (PATCH), Löschen (DELETE) |
+| `src/app/api/dtf/cron/cleanup-uploads/route.ts` | 30-Tage-Aufräumen |
+| `src/app/api/photos/sign/route.ts` | Signierte URLs für `user-photos`, siehe Sicherheitsfix |
+| `.github/workflows/dtf-cleanup-uploads.yml` | Täglicher Aufräum-Lauf |
+
+### Mitgefixt: offene Gast-Uploads in `user-photos`
+
+Beim Prüfen der bestehenden Upload-Infrastruktur fiel auf, dass die
+anon-Policies auf `user-photos` nur prüften, ob der erste Ordner `anon`
+heißt — nicht, welchem Gast er gehört:
+
+```
+user_photos_guest_select / _update / _delete  (anon):  foldername[1] = 'anon'
+```
+
+Damit konnte **jeder nicht angemeldete Besucher die Fotos aller anderen
+Gäste lesen, überschreiben und löschen**. Betroffen waren Foto-Poster-Editor
+und die Foto-Integration im Map-Editor. Angemeldete Nutzer waren nie
+betroffen, dort prüft die Policy korrekt gegen `auth.uid()`.
+
+Ein reiner RLS-Fix ist nicht möglich, weil `anon` keine Identität hat, die
+eine Policy prüfen könnte. Deshalb:
+- SELECT, UPDATE und DELETE für `anon` entfernt
+  (`20260810100001_harden_user_photos_guest_access.sql`)
+- INSERT bleibt, damit der Direkt-Upload weiter funktioniert
+- Signieren und Löschen laufen über `/api/photos/sign` mit Besitzprüfung
+- Einziger Aufrufer ist `src/lib/photo-upload.ts` — die sechs
+  Editor-Aufrufstellen bleiben unverändert
+
+**Restgrenze:** Bestands-Gäste identifizieren sich über eine localStorage-UUID,
+die der Client mitschickt; der Server kann sie nicht kryptografisch prüfen.
+Wer eine fremde UUID kennt, käme an deren Fotos — erraten lässt sie sich
+nicht, und Auflisten ist ohne SELECT-Recht nicht mehr möglich. Für DTF wird
+diese Schwäche vermieden: Dort steckt die Gast-Identität in einem
+httpOnly-Cookie, und die Routen akzeptieren grundsätzlich keine
+clientseitig gelieferte Sitzungs-ID.
+
+### Abweichungen von der Spec
+
+- **Zwei Fristen statt einer** beim Aufräumen: 30 Tage für fertige Uploads,
+  zusätzlich 24 Stunden für `pending`-Zeilen, bei denen der Client nie
+  abgeschlossen hat. Ohne die zweite Frist blieben Karteileichen einen
+  Monat liegen.
+- **`preview_path` ist zunächst NULL.** Er wird erst beim Abschluss gesetzt,
+  weil vorher nicht feststeht, ob die Vorschau wirklich ankam.
+
+### Verifiziert
+
+- Bucket privat, 50 MB, **0** Policies auf `storage.objects`; `dtf_uploads`
+  mit aktivem RLS; `collect_expired` weder für `anon` noch `authenticated`
+  ausführbar — alles per Query gegen die DB geprüft
+- Bei `user-photos` verbleibt nur noch `user_photos_guest_insert`
+- 33 neue Integrationstests, davon 13 allein für die Besitzprüfung
+  (Präfix-Trick `anon/<id>-evil` und Pfad-Traversal eingeschlossen)
+- Volle Unit-Suite: 261 Tests grün
+- `npm run build`: erfolgreich, alle vier Routen registriert
+
+### Noch offen für den Betrieb
+
+- Secret **`DTF_CLEANUP_CRON_SECRET`** in GitHub und in Vercel setzen, sonst
+  antwortet die Aufräum-Route mit 401 und der Storage wächst ungebremst.
+- **Foto-Editor erneut testen.** Der Upload-Weg von PROJ-19/32 wurde durch
+  den Sicherheitsfix verändert (Signieren und Löschen laufen jetzt über den
+  Server). Die Unit-Tests decken die Route ab, den echten Upload-Durchlauf
+  im Browser aber nicht.
+
+### Bestehendes Problem, nicht von dieser Phase verursacht
+
+`npm test` meldet 7 fehlgeschlagene Dateien: Vitest greift die
+Playwright-Specs unter `tests/` mit auf, die dort nicht laufen können. Alle
+261 echten Unit-Tests sind grün. Keine der betroffenen Dateien wurde in
+dieser Phase angefasst.
