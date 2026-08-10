@@ -10,6 +10,7 @@ import {
 } from '@/lib/dtf-constants'
 import {
   useDtfStore,
+  activeSheetOf,
   boundingBoxMm,
   elementDpi,
   elementHeightMm,
@@ -76,14 +77,15 @@ export function DtfSheetCanvas() {
   const [pxPerMm, setPxPerMm] = useState(1)
   const dragRef = useRef<DragMode | null>(null)
 
-  const sheetFormat = useDtfStore((s) => s.sheetFormat)
+  const activeSheet = useDtfStore(activeSheetOf)
   const showGrid = useDtfStore((s) => s.showGrid)
-  const elements = useDtfStore((s) => s.elements)
   const selectedId = useDtfStore((s) => s.selectedId)
   const select = useDtfStore((s) => s.select)
   const updateElement = useDtfStore((s) => s.updateElement)
   const bringToFront = useDtfStore((s) => s.bringToFront)
 
+  const sheetFormat = activeSheet.format
+  const elements = activeSheet.elements
   const sheet = DTF_SHEET_FORMATS[sheetFormat]
   /** Bildschirmpixel je Zentimeter — Taktmaß des Rasters. */
   const cmPx = pxPerMm * 10
@@ -211,44 +213,55 @@ export function DtfSheetCanvas() {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: `${showGrid ? RULER_PX : 0}px auto`,
-          gridTemplateRows: `${showGrid ? RULER_PX : 0}px auto`,
+          // Der Linealstreifen ist IMMER reserviert, auch wenn er leer
+          // bleibt. Würde die Breite mit umgeschaltet, spränge der Bogen
+          // beim Ein- und Ausschalten um die Linealbreite nach links oben —
+          // das Raster ist eine Anzeigehilfe und darf das Layout nicht
+          // bewegen.
+          gridTemplateColumns: `${RULER_PX}px auto`,
+          gridTemplateRows: `${RULER_PX}px auto`,
         }}
       >
-        <div />
+        {/* Alle vier Zellen bekommen ihre Position ausdrücklich zugewiesen.
+            Ohne das landet der Bogen bei ausgeschaltetem Raster per
+            Auto-Platzierung in Zeile 1 — die dann 0 px hoch ist — und
+            rutscht um seine eigene Höhe nach unten aus der Zentrierung. */}
+        <div style={{ gridArea: '1 / 1' }} />
 
-        {showGrid && (
-          <div
-            className="relative select-none"
-            style={{ width: sheet.widthMm * pxPerMm, height: RULER_PX }}
-          >
-            {Array.from(
-              { length: Math.floor(sheet.widthMm / 10 / labelStepCm(cmPx)) },
-              (_, i) => (i + 1) * labelStepCm(cmPx),
-            ).map((valueCm) => (
-              <div
-                key={`rt-${valueCm}`}
-                className="absolute bottom-0 flex flex-col items-center"
-                style={{ left: valueCm * cmPx, transform: 'translateX(-50%)' }}
-              >
-                <span className="text-[10px] leading-none text-muted-foreground tabular-nums">
-                  {valueCm}
-                </span>
-                <span className="mt-0.5 block h-1.5 w-px bg-muted-foreground/50" />
-              </div>
-            ))}
-            <span className="absolute right-0 bottom-0 text-[10px] leading-none text-muted-foreground/70">
-              cm
-            </span>
-          </div>
-        )}
+        <div
+          className="relative select-none"
+          style={{ gridArea: '1 / 2', width: sheet.widthMm * pxPerMm, height: RULER_PX }}
+        >
+          {showGrid && (
+            <>
+              {Array.from(
+                { length: Math.floor(sheet.widthMm / 10 / labelStepCm(cmPx)) },
+                (_, i) => (i + 1) * labelStepCm(cmPx),
+              ).map((valueCm) => (
+                <div
+                  key={`rt-${valueCm}`}
+                  className="absolute bottom-0 flex flex-col items-center"
+                  style={{ left: valueCm * cmPx, transform: 'translateX(-50%)' }}
+                >
+                  <span className="text-[10px] leading-none text-muted-foreground tabular-nums">
+                    {valueCm}
+                  </span>
+                  <span className="mt-0.5 block h-1.5 w-px bg-muted-foreground/50" />
+                </div>
+              ))}
+              <span className="absolute right-0 bottom-0 text-[10px] leading-none text-muted-foreground/70">
+                cm
+              </span>
+            </>
+          )}
+        </div>
 
-        {showGrid && (
-          <div
-            className="relative select-none"
-            style={{ width: RULER_PX, height: sheet.heightMm * pxPerMm }}
-          >
-            {Array.from(
+        <div
+          className="relative select-none"
+          style={{ gridArea: '2 / 1', width: RULER_PX, height: sheet.heightMm * pxPerMm }}
+        >
+          {showGrid &&
+            Array.from(
               { length: Math.floor(sheet.heightMm / 10 / labelStepCm(cmPx)) },
               (_, i) => (i + 1) * labelStepCm(cmPx),
             ).map((valueCm) => (
@@ -263,13 +276,13 @@ export function DtfSheetCanvas() {
                 <span className="ml-0.5 block w-1.5 h-px bg-muted-foreground/50" />
               </div>
             ))}
-          </div>
-        )}
+        </div>
 
       <div
         ref={sheetRef}
         className="relative shadow-lg ring-1 ring-border"
         style={{
+          gridArea: '2 / 2',
           width: sheet.widthMm * pxPerMm,
           height: sheet.heightMm * pxPerMm,
           // Karomuster = Transparenz. Der Bogen ist Folie; was hier

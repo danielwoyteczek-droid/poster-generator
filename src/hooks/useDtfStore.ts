@@ -24,10 +24,14 @@ import {
  * bequemer, sie sind die fachlich korrekte Einheit: Sie treiben die
  * cm-Anzeige, die dpi-Warnung und am Ende die Druckdatei.
  *
- * Beim Verkleinern des Formats können Motive dadurch außerhalb des Bogens
- * landen. Sie werden nicht verschoben und nicht gelöscht, sondern als
- * „außerhalb" markiert — das Wegschieben von Motiven hinter dem Rücken des
- * Kunden wäre die schlechtere Überraschung.
+ * Beim Verkleinern des Formats können Motive dadurch außerhalb landen.
+ * `clampElementToSheet` holt sie zurück und verkleinert sie nötigenfalls,
+ * damit der Formatwechsel nicht der eine Weg bleibt, auf dem doch etwas
+ * über den Rand gerät.
+ *
+ * Ein Entwurf besteht aus mehreren **Bögen**. Der Kunde gestaltet alle
+ * fertig, wechselt frei zwischen ihnen und legt erst am Ende gemeinsam in
+ * den Warenkorb.
  */
 
 export interface DtfElement {
@@ -59,15 +63,44 @@ export interface DtfMotif {
   previewUrl: string | null
 }
 
-interface DtfState {
-  sheetFormat: DtfSheetFormat
+/**
+ * Ein Transferbogen. Format und Auflage gehören zum einzelnen Bogen, nicht
+ * zum Entwurf — Bogen 1 kann A4 in dreifacher Auflage sein, Bogen 2 A3 als
+ * Einzelstück.
+ */
+export interface DtfSheet {
+  id: string
+  format: DtfSheetFormat
   /** Auflage: wie oft dieser Bogen gedruckt wird. */
   quantity: number
-  /** Zentimeterraster auf dem Bogen. Hilft beim Abschätzen von Größen. */
-  showGrid: boolean
   elements: DtfElement[]
+}
+
+interface DtfState {
+  /**
+   * Alle Bögen des Entwurfs. Der Kunde gestaltet sie fertig und legt erst
+   * am Ende alles gemeinsam in den Warenkorb.
+   *
+   * Die Alternative — jeden Bogen einzeln ablegen und mit leerer Fläche
+   * weitermachen — wäre einfacher gewesen, hätte aber einen unangenehmen
+   * Haken: Wer Bogen 1 nachträglich ändern will, müsste die Position aus
+   * dem Warenkorb löschen und den Bogen neu bauen. So bleibt bis zum
+   * Checkout alles änderbar, was auch besser dazu passt, dass die
+   * Druckfreigabe ohnehin erst beim Bezahlen erteilt wird.
+   */
+  sheets: DtfSheet[]
+  activeSheetId: string
+  /** Ausgewähltes Element auf dem aktiven Bogen. */
   selectedId: string | null
+  /** Zentimeterraster und Lineale. Hilft beim Abschätzen von Größen. */
+  showGrid: boolean
+  /** Motiv-Ablage — gilt für alle Bögen gemeinsam. */
   motifs: DtfMotif[]
+
+  addSheet: () => void
+  duplicateSheet: (id: string) => void
+  removeSheet: (id: string) => void
+  setActiveSheet: (id: string) => void
 
   setSheetFormat: (format: DtfSheetFormat) => void
   setQuantity: (quantity: number) => void
@@ -77,7 +110,7 @@ interface DtfState {
   addMotif: (motif: DtfMotif) => void
   removeMotif: (id: string) => void
 
-  /** Legt ein Motiv mittig auf den Bogen. */
+  /** Legt ein Motiv mittig auf den aktiven Bogen. */
   placeMotif: (motif: DtfMotif) => void
   updateElement: (id: string, patch: Partial<Omit<DtfElement, 'id'>>) => void
   duplicateElement: (id: string) => void
@@ -193,30 +226,98 @@ export function clampElementToSheet(el: DtfElement, format: DtfSheetFormat): Dtf
   }
 }
 
-const INITIAL = {
-  sheetFormat: DTF_DEFAULT_SHEET_FORMAT,
-  quantity: 1,
-  showGrid: true,
-  elements: [] as DtfElement[],
-  selectedId: null as string | null,
-  motifs: [] as DtfMotif[],
+/** Frischer, leerer Bogen. Erbt das Format des zuletzt bearbeiteten. */
+function makeSheet(format: DtfSheetFormat): DtfSheet {
+  return { id: crypto.randomUUID(), format, quantity: 1, elements: [] }
+}
+
+const FIRST_SHEET = makeSheet(DTF_DEFAULT_SHEET_FORMAT)
+
+/**
+ * Kürzt den Zugriff auf den aktiven Bogen ab und schreibt ihn zurück.
+ * Alle Element-Operationen laufen darüber, damit an keiner Stelle
+ * versehentlich am falschen Bogen gearbeitet wird.
+ */
+function withActiveSheet(
+  state: DtfState,
+  fn: (sheet: DtfSheet) => DtfSheet,
+): Pick<DtfState, 'sheets'> {
+  return {
+    sheets: state.sheets.map((s) => (s.id === state.activeSheetId ? fn(s) : s)),
+  }
+}
+
+/** Der gerade bearbeitete Bogen. */
+export function activeSheetOf(state: { sheets: DtfSheet[]; activeSheetId: string }): DtfSheet {
+  return state.sheets.find((s) => s.id === state.activeSheetId) ?? state.sheets[0]
+}
+
+/** Summe aller gedruckten Bögen über alle Auflagen. */
+export function totalPrintedSheets(sheets: DtfSheet[]): number {
+  return sheets.reduce((sum, s) => sum + s.quantity, 0)
 }
 
 export const useDtfStore = create<DtfState>((set, get) => ({
-  ...INITIAL,
+  sheets: [FIRST_SHEET],
+  activeSheetId: FIRST_SHEET.id,
+  selectedId: null,
+  showGrid: true,
+  motifs: [],
 
-  // Formatwechsel zieht alle Motive nach: Beim Verkleinern rutschen sie in
-  // den neuen bedruckbaren Bereich und werden nötigenfalls verkleinert.
-  // Vorher wurden sie nur rot markiert — mit der harten Begrenzung wäre das
-  // inkonsequent, denn dann bliebe ausgerechnet der Formatwechsel der eine
-  // Weg, auf dem ein Motiv doch über den Rand geraten kann.
-  setSheetFormat: (sheetFormat) =>
-    set((s) => ({
-      sheetFormat,
-      elements: s.elements.map((e) => clampElementToSheet(e, sheetFormat)),
-    })),
+  addSheet: () =>
+    set((s) => {
+      const sheet = makeSheet(activeSheetOf(s).format)
+      return { sheets: [...s.sheets, sheet], activeSheetId: sheet.id, selectedId: null }
+    }),
 
-  setQuantity: (quantity) => set({ quantity: Math.max(1, Math.round(quantity)) }),
+  duplicateSheet: (id) =>
+    set((s) => {
+      const source = s.sheets.find((x) => x.id === id)
+      if (!source) return {}
+      const copy: DtfSheet = {
+        ...source,
+        id: crypto.randomUUID(),
+        // Elemente brauchen eigene IDs, sonst würde die Auswahl auf dem
+        // einen Bogen das gleichnamige Element auf dem anderen treffen.
+        elements: source.elements.map((e) => ({ ...e, id: crypto.randomUUID() })),
+      }
+      const at = s.sheets.findIndex((x) => x.id === id) + 1
+      const sheets = [...s.sheets.slice(0, at), copy, ...s.sheets.slice(at)]
+      return { sheets, activeSheetId: copy.id, selectedId: null }
+    }),
+
+  removeSheet: (id) =>
+    set((s) => {
+      // Der letzte Bogen bleibt bestehen — ein Entwurf ohne Bogen wäre ein
+      // Zustand, aus dem der Kunde nicht mehr herausfindet.
+      if (s.sheets.length <= 1) return {}
+      const sheets = s.sheets.filter((x) => x.id !== id)
+      const activeSheetId = s.activeSheetId === id ? sheets[0].id : s.activeSheetId
+      return { sheets, activeSheetId, selectedId: null }
+    }),
+
+  setActiveSheet: (activeSheetId) => set({ activeSheetId, selectedId: null }),
+
+  // Formatwechsel zieht die Motive des aktiven Bogens nach: Beim
+  // Verkleinern rutschen sie in den neuen bedruckbaren Bereich und werden
+  // nötigenfalls verkleinert. Sonst bliebe der Formatwechsel der eine Weg,
+  // auf dem ein Motiv doch über den Rand gerät.
+  setSheetFormat: (format) =>
+    set((s) =>
+      withActiveSheet(s, (sheet) => ({
+        ...sheet,
+        format,
+        elements: sheet.elements.map((e) => clampElementToSheet(e, format)),
+      })),
+    ),
+
+  setQuantity: (quantity) =>
+    set((s) =>
+      withActiveSheet(s, (sheet) => ({
+        ...sheet,
+        quantity: Math.max(1, Math.round(quantity)),
+      })),
+    ),
 
   setShowGrid: (showGrid) => set({ showGrid }),
 
@@ -227,22 +328,25 @@ export const useDtfStore = create<DtfState>((set, get) => ({
   removeMotif: (id) =>
     set((s) => ({
       motifs: s.motifs.filter((m) => m.id !== id),
-      // Platzierte Instanzen dieses Motivs verschwinden mit — sonst zeigte
-      // der Bogen Bilder, deren Datei es nicht mehr gibt.
-      elements: s.elements.filter((e) => e.uploadId !== id),
-      selectedId: s.elements.find((e) => e.id === s.selectedId)?.uploadId === id
-        ? null
-        : s.selectedId,
+      // Platzierte Instanzen verschwinden mit — auf ALLEN Bögen, nicht nur
+      // dem aktiven. Sonst zeigten andere Bögen Bilder, deren Datei es
+      // nicht mehr gibt.
+      sheets: s.sheets.map((sheet) => ({
+        ...sheet,
+        elements: sheet.elements.filter((e) => e.uploadId !== id),
+      })),
+      selectedId: null,
     })),
 
   placeMotif: (motif) => {
-    const { sheetFormat, elements } = get()
-    if (elements.length >= DTF_MAX_ELEMENTS_PER_SHEET) return
+    const state = get()
+    const sheet = activeSheetOf(state)
+    if (sheet.elements.length >= DTF_MAX_ELEMENTS_PER_SHEET) return
     if (!motif.previewUrl) return
 
-    const sheet = DTF_SHEET_FORMATS[sheetFormat]
-    const usableWidth = sheet.widthMm - 2 * DTF_SHEET_MARGIN_MM
-    const usableHeight = sheet.heightMm - 2 * DTF_SHEET_MARGIN_MM
+    const def = DTF_SHEET_FORMATS[sheet.format]
+    const usableWidth = def.widthMm - 2 * DTF_SHEET_MARGIN_MM
+    const usableHeight = def.heightMm - 2 * DTF_SHEET_MARGIN_MM
     const aspect = motif.heightPx / Math.max(1, motif.widthPx)
 
     // Startgröße: die Hälfte der nutzbaren Breite, aber nie so hoch, dass
@@ -255,86 +359,111 @@ export const useDtfStore = create<DtfState>((set, get) => ({
     const id = crypto.randomUUID()
 
     set((s) => ({
-      elements: [
-        ...s.elements,
-        clampElementToSheet(
-          {
-            id,
-            uploadId: motif.id,
-            previewUrl: motif.previewUrl!,
-            sourceWidthPx: motif.widthPx,
-            sourceHeightPx: motif.heightPx,
-            xMm: (sheet.widthMm - widthMm) / 2,
-            yMm: (sheet.heightMm - heightMm) / 2,
-            widthMm,
-            rotationDeg: 0,
-            z: s.elements.reduce((max, e) => Math.max(max, e.z), 0) + 1,
-          },
-          sheetFormat,
-        ),
-      ],
+      ...withActiveSheet(s, (sh) => ({
+        ...sh,
+        elements: [
+          ...sh.elements,
+          clampElementToSheet(
+            {
+              id,
+              uploadId: motif.id,
+              previewUrl: motif.previewUrl!,
+              sourceWidthPx: motif.widthPx,
+              sourceHeightPx: motif.heightPx,
+              xMm: (def.widthMm - widthMm) / 2,
+              yMm: (def.heightMm - heightMm) / 2,
+              widthMm,
+              rotationDeg: 0,
+              z: sh.elements.reduce((max, e) => Math.max(max, e.z), 0) + 1,
+            },
+            sh.format,
+          ),
+        ],
+      })),
       selectedId: id,
     }))
   },
 
   updateElement: (id, patch) =>
-    set((s) => ({
-      elements: s.elements.map((e) => {
-        if (e.id !== id) return e
-        const merged = {
-          ...e,
-          ...patch,
-          widthMm:
-            patch.widthMm !== undefined
-              ? Math.max(DTF_MIN_ELEMENT_WIDTH_MM, patch.widthMm)
-              : e.widthMm,
-        }
-        // Jede Änderung — Ziehen, Skalieren, Drehen, numerische Eingabe —
-        // läuft durch dieselbe Begrenzung. Damit gibt es keinen Weg, ein
-        // Motiv über den bedruckbaren Bereich hinaus zu bekommen.
-        return clampElementToSheet(merged, s.sheetFormat)
-      }),
-    })),
+    set((s) =>
+      withActiveSheet(s, (sheet) => ({
+        ...sheet,
+        elements: sheet.elements.map((e) => {
+          if (e.id !== id) return e
+          const merged = {
+            ...e,
+            ...patch,
+            widthMm:
+              patch.widthMm !== undefined
+                ? Math.max(DTF_MIN_ELEMENT_WIDTH_MM, patch.widthMm)
+                : e.widthMm,
+          }
+          // Jede Änderung — Ziehen, Skalieren, Drehen, numerische Eingabe —
+          // läuft durch dieselbe Begrenzung.
+          return clampElementToSheet(merged, sheet.format)
+        }),
+      })),
+    ),
 
   duplicateElement: (id) => {
-    const { elements } = get()
-    const source = elements.find((e) => e.id === id)
-    if (!source || elements.length >= DTF_MAX_ELEMENTS_PER_SHEET) return
+    const sheet = activeSheetOf(get())
+    const source = sheet.elements.find((e) => e.id === id)
+    if (!source || sheet.elements.length >= DTF_MAX_ELEMENTS_PER_SHEET) return
 
     const copyId = crypto.randomUUID()
-    // Leicht versetzt einfügen, damit die Kopie nicht deckungsgleich auf
-    // dem Original liegt und unsichtbar wirkt.
     set((s) => ({
-      elements: [
-        ...s.elements,
-        clampElementToSheet(
-          {
-            ...source,
-            id: copyId,
-            xMm: source.xMm + 5,
-            yMm: source.yMm + 5,
-            z: s.elements.reduce((max, e) => Math.max(max, e.z), 0) + 1,
-          },
-          s.sheetFormat,
-        ),
-      ],
+      ...withActiveSheet(s, (sh) => ({
+        ...sh,
+        elements: [
+          ...sh.elements,
+          clampElementToSheet(
+            {
+              ...source,
+              id: copyId,
+              // Leicht versetzt, damit die Kopie nicht deckungsgleich auf
+              // dem Original liegt und unsichtbar wirkt.
+              xMm: source.xMm + 5,
+              yMm: source.yMm + 5,
+              z: sh.elements.reduce((max, e) => Math.max(max, e.z), 0) + 1,
+            },
+            sh.format,
+          ),
+        ],
+      })),
       selectedId: copyId,
     }))
   },
 
   removeElement: (id) =>
     set((s) => ({
-      elements: s.elements.filter((e) => e.id !== id),
+      ...withActiveSheet(s, (sheet) => ({
+        ...sheet,
+        elements: sheet.elements.filter((e) => e.id !== id),
+      })),
       selectedId: s.selectedId === id ? null : s.selectedId,
     })),
 
   select: (selectedId) => set({ selectedId }),
 
   bringToFront: (id) =>
-    set((s) => {
-      const top = s.elements.reduce((max, e) => Math.max(max, e.z), 0)
-      return { elements: s.elements.map((e) => (e.id === id ? { ...e, z: top + 1 } : e)) }
-    }),
+    set((s) =>
+      withActiveSheet(s, (sheet) => {
+        const top = sheet.elements.reduce((max, e) => Math.max(max, e.z), 0)
+        return {
+          ...sheet,
+          elements: sheet.elements.map((e) => (e.id === id ? { ...e, z: top + 1 } : e)),
+        }
+      }),
+    ),
 
-  reset: () => set({ ...INITIAL, elements: [], motifs: [] }),
+  reset: () => {
+    const fresh = makeSheet(DTF_DEFAULT_SHEET_FORMAT)
+    set({
+      sheets: [fresh],
+      activeSheetId: fresh.id,
+      selectedId: null,
+      showGrid: true,
+      motifs: [],
+    })
+  },
 }))

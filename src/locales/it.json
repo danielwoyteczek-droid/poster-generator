@@ -802,6 +802,15 @@
     "handleRotate": "Ruota",
     "closeSheet": "Chiudi",
     "grid": "Griglia in centimetri",
-    "gridHint": "Linee sottili ogni centimetro, più marcate ogni 5 cm."
+    "gridHint": "Linee sottili ogni centimetro, più marcate ogni 5 cm.",
+    "sheetLabel": "Foglio {index}",
+    "sheetTimes": "{count}×",
+    "sheetEmpty": "vuoto",
+    "sheetAdd": "+ Foglio",
+    "sheetDuplicate": "Duplica foglio",
+    "sheetRemove": "Rimuovi foglio {index}",
+    "sheetTotal": "{count} fogli in totale",
+    "sheetsHeading": "Fogli",
+    "sheetMotifs": "{count} motivi"
   }
 }

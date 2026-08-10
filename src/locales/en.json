@@ -802,6 +802,15 @@
     "handleRotate": "Rotate",
     "closeSheet": "Close",
     "grid": "Centimetre grid",
-    "gridHint": "Fine lines every centimetre, stronger ones every 5 cm."
+    "gridHint": "Fine lines every centimetre, stronger ones every 5 cm.",
+    "sheetLabel": "Sheet {index}",
+    "sheetTimes": "{count}×",
+    "sheetEmpty": "empty",
+    "sheetAdd": "+ Sheet",
+    "sheetDuplicate": "Duplicate sheet",
+    "sheetRemove": "Remove sheet {index}",
+    "sheetTotal": "{count} sheets total",
+    "sheetsHeading": "Sheets",
+    "sheetMotifs": "{count} items"
   }
 }

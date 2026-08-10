@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { DTF_SHEET_FORMAT_OPTIONS, DTF_SHEET_FORMATS } from '@/lib/dtf-constants'
-import { useDtfStore } from '@/hooks/useDtfStore'
+import { useDtfStore, activeSheetOf } from '@/hooks/useDtfStore'
+import { DtfSheetList } from './DtfSheetList'
 import { cn } from '@/lib/utils'
 
 /**
@@ -20,18 +21,23 @@ import { cn } from '@/lib/utils'
  */
 export function DtfSheetTab() {
   const t = useTranslations('dtfEditor')
-  const sheetFormat = useDtfStore((s) => s.sheetFormat)
+  const activeSheet = useDtfStore(activeSheetOf)
   const setSheetFormat = useDtfStore((s) => s.setSheetFormat)
-  const quantity = useDtfStore((s) => s.quantity)
   const setQuantity = useDtfStore((s) => s.setQuantity)
   const showGrid = useDtfStore((s) => s.showGrid)
   const setShowGrid = useDtfStore((s) => s.setShowGrid)
 
+  const sheetFormat = activeSheet.format
+  const quantity = activeSheet.quantity
   const sheet = DTF_SHEET_FORMATS[sheetFormat]
 
   return (
     <div className="p-4 space-y-6">
-      <div className="space-y-2">
+      {/* Erst den Bogen wählen, dann seine Eigenschaften — Format und
+          Auflage darunter beziehen sich immer auf den hier aktiven. */}
+      <DtfSheetList />
+
+      <div className="space-y-2 pt-2 border-t border-border">
         <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
           {t('sheetFormat')}
         </Label>

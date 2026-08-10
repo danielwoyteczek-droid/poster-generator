@@ -802,6 +802,15 @@
     "handleRotate": "Girar",
     "closeSheet": "Cerrar",
     "grid": "Cuadrícula en centímetros",
-    "gridHint": "Líneas finas cada centímetro, más marcadas cada 5 cm."
+    "gridHint": "Líneas finas cada centímetro, más marcadas cada 5 cm.",
+    "sheetLabel": "Hoja {index}",
+    "sheetTimes": "{count}×",
+    "sheetEmpty": "vacía",
+    "sheetAdd": "+ Hoja",
+    "sheetDuplicate": "Duplicar hoja",
+    "sheetRemove": "Quitar hoja {index}",
+    "sheetTotal": "{count} hojas en total",
+    "sheetsHeading": "Hojas",
+    "sheetMotifs": "{count} motivos"
   }
 }

@@ -42,6 +42,10 @@ export function DtfEditorLayout() {
         </Tabs>
       </div>
 
+      {/* Die Arbeitsfläche zeigt nur den Bogen. Die Bogen-Liste sitzt im
+          Reiter „Bogen" der Seitenleiste — bei einem Produkt mit
+          verbindlicher Druckfreigabe soll auf der Vorschaufläche so wenig
+          Bedienoberfläche wie möglich liegen. */}
       <DtfSheetCanvas />
     </div>
   )

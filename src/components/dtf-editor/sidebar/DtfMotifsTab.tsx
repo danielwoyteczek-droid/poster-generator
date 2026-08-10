@@ -12,7 +12,13 @@ import {
   DTF_MIN_DPI_WARNING,
   DTF_TARGET_DPI,
 } from '@/lib/dtf-constants'
-import { useDtfStore, elementHeightMm, elementDpi, type DtfMotif } from '@/hooks/useDtfStore'
+import {
+  useDtfStore,
+  activeSheetOf,
+  elementHeightMm,
+  elementDpi,
+  type DtfMotif,
+} from '@/hooks/useDtfStore'
 import { uploadDtfMotif, listDtfUploads, deleteDtfUpload } from '@/lib/dtf-upload'
 import { cn } from '@/lib/utils'
 
@@ -38,7 +44,7 @@ export function DtfMotifsTab() {
   const removeMotif = useDtfStore((s) => s.removeMotif)
   const placeMotif = useDtfStore((s) => s.placeMotif)
 
-  const elements = useDtfStore((s) => s.elements)
+  const elements = useDtfStore((s) => activeSheetOf(s).elements)
   const selectedId = useDtfStore((s) => s.selectedId)
   const updateElement = useDtfStore((s) => s.updateElement)
   const duplicateElement = useDtfStore((s) => s.duplicateElement)

@@ -802,6 +802,15 @@
     "handleRotate": "Drehen",
     "closeSheet": "Schließen",
     "grid": "Zentimeterraster",
-    "gridHint": "Feine Linien im Zentimetertakt, kräftigere alle 5 cm."
+    "gridHint": "Feine Linien im Zentimetertakt, kräftigere alle 5 cm.",
+    "sheetLabel": "Bogen {index}",
+    "sheetTimes": "{count}×",
+    "sheetEmpty": "leer",
+    "sheetAdd": "+ Bogen",
+    "sheetDuplicate": "Bogen duplizieren",
+    "sheetRemove": "Bogen {index} entfernen",
+    "sheetTotal": "{count} Bögen gesamt",
+    "sheetsHeading": "Bögen",
+    "sheetMotifs": "{count} Motive"
   }
 }

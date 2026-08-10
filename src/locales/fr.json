@@ -802,6 +802,15 @@
     "handleRotate": "Pivoter",
     "closeSheet": "Fermer",
     "grid": "Grille centimétrique",
-    "gridHint": "Lignes fines tous les centimètres, plus marquées tous les 5 cm."
+    "gridHint": "Lignes fines tous les centimètres, plus marquées tous les 5 cm.",
+    "sheetLabel": "Feuille {index}",
+    "sheetTimes": "{count}×",
+    "sheetEmpty": "vide",
+    "sheetAdd": "+ Feuille",
+    "sheetDuplicate": "Dupliquer la feuille",
+    "sheetRemove": "Supprimer la feuille {index}",
+    "sheetTotal": "{count} feuilles au total",
+    "sheetsHeading": "Feuilles",
+    "sheetMotifs": "{count} motifs"
   }
 }
