@@ -63,12 +63,15 @@ interface DtfState {
   sheetFormat: DtfSheetFormat
   /** Auflage: wie oft dieser Bogen gedruckt wird. */
   quantity: number
+  /** Zentimeterraster auf dem Bogen. Hilft beim Abschätzen von Größen. */
+  showGrid: boolean
   elements: DtfElement[]
   selectedId: string | null
   motifs: DtfMotif[]
 
   setSheetFormat: (format: DtfSheetFormat) => void
   setQuantity: (quantity: number) => void
+  setShowGrid: (show: boolean) => void
 
   setMotifs: (motifs: DtfMotif[]) => void
   addMotif: (motif: DtfMotif) => void
@@ -135,9 +138,65 @@ export function boundingBoxMm(el: DtfElement): { width: number; height: number }
   return { width: w * cos + h * sin, height: w * sin + h * cos }
 }
 
+/**
+ * Zwingt ein Element in den bedruckbaren Bereich — Bogen abzüglich des
+ * Sicherheitsabstands von 1 cm an allen vier Kanten.
+ *
+ * Bewusst hart begrenzt statt nur gewarnt: Ein Motiv, das über den Rand
+ * ragt, wird beim Druck abgeschnitten oder trifft den nicht bedruckbaren
+ * Rand des Druckers. Da der Kunde die Vorschau verbindlich freigibt, wäre
+ * eine Warnung, die man wegklicken kann, die schlechtere Lösung — sie
+ * verlagert einen vermeidbaren Fehler auf ihn.
+ *
+ * Zwei Stufen, in dieser Reihenfolge:
+ *  1. Größe deckeln, falls die Hüllbox breiter oder höher als die nutzbare
+ *     Fläche wäre. Rechnet mit der GEDREHTEN Hüllbox — ein um 45° gedrehtes
+ *     Quadrat braucht rund 1,41-mal seine Kantenlänge.
+ *  2. Mittelpunkt so verschieben, dass die Hüllbox vollständig innerhalb
+ *     liegt.
+ *
+ * Der Deckel wirkt auch beim Drehen: Wer ein randfüllendes Motiv dreht,
+ * bekommt es automatisch so weit verkleinert, dass es hineinpasst.
+ */
+export function clampElementToSheet(el: DtfElement, format: DtfSheetFormat): DtfElement {
+  const sheet = DTF_SHEET_FORMATS[format]
+  const m = DTF_SHEET_MARGIN_MM
+  const usableW = Math.max(1, sheet.widthMm - 2 * m)
+  const usableH = Math.max(1, sheet.heightMm - 2 * m)
+
+  let next = el
+
+  // 1. Größe deckeln. Die Hüllbox skaliert linear mit widthMm, der
+  //    Verkleinerungsfaktor lässt sich deshalb direkt ausrechnen.
+  const box = boundingBoxMm(next)
+  const overflow = Math.max(box.width / usableW, box.height / usableH)
+  if (overflow > 1) {
+    const capped = Math.max(DTF_MIN_ELEMENT_WIDTH_MM, next.widthMm / overflow)
+    next = { ...next, widthMm: capped }
+  }
+
+  // 2. Mittelpunkt in den erlaubten Bereich schieben.
+  const finalBox = boundingBoxMm(next)
+  const halfW = finalBox.width / 2
+  const halfH = finalBox.height / 2
+
+  let cx = next.xMm + next.widthMm / 2
+  let cy = next.yMm + elementHeightMm(next) / 2
+
+  cx = Math.min(Math.max(cx, m + halfW), sheet.widthMm - m - halfW)
+  cy = Math.min(Math.max(cy, m + halfH), sheet.heightMm - m - halfH)
+
+  return {
+    ...next,
+    xMm: cx - next.widthMm / 2,
+    yMm: cy - elementHeightMm(next) / 2,
+  }
+}
+
 const INITIAL = {
   sheetFormat: DTF_DEFAULT_SHEET_FORMAT,
   quantity: 1,
+  showGrid: true,
   elements: [] as DtfElement[],
   selectedId: null as string | null,
   motifs: [] as DtfMotif[],
@@ -146,9 +205,20 @@ const INITIAL = {
 export const useDtfStore = create<DtfState>((set, get) => ({
   ...INITIAL,
 
-  setSheetFormat: (sheetFormat) => set({ sheetFormat }),
+  // Formatwechsel zieht alle Motive nach: Beim Verkleinern rutschen sie in
+  // den neuen bedruckbaren Bereich und werden nötigenfalls verkleinert.
+  // Vorher wurden sie nur rot markiert — mit der harten Begrenzung wäre das
+  // inkonsequent, denn dann bliebe ausgerechnet der Formatwechsel der eine
+  // Weg, auf dem ein Motiv doch über den Rand geraten kann.
+  setSheetFormat: (sheetFormat) =>
+    set((s) => ({
+      sheetFormat,
+      elements: s.elements.map((e) => clampElementToSheet(e, sheetFormat)),
+    })),
 
   setQuantity: (quantity) => set({ quantity: Math.max(1, Math.round(quantity)) }),
+
+  setShowGrid: (showGrid) => set({ showGrid }),
 
   setMotifs: (motifs) => set({ motifs }),
 
@@ -187,18 +257,21 @@ export const useDtfStore = create<DtfState>((set, get) => ({
     set((s) => ({
       elements: [
         ...s.elements,
-        {
-          id,
-          uploadId: motif.id,
-          previewUrl: motif.previewUrl!,
-          sourceWidthPx: motif.widthPx,
-          sourceHeightPx: motif.heightPx,
-          xMm: (sheet.widthMm - widthMm) / 2,
-          yMm: (sheet.heightMm - heightMm) / 2,
-          widthMm,
-          rotationDeg: 0,
-          z: s.elements.reduce((max, e) => Math.max(max, e.z), 0) + 1,
-        },
+        clampElementToSheet(
+          {
+            id,
+            uploadId: motif.id,
+            previewUrl: motif.previewUrl!,
+            sourceWidthPx: motif.widthPx,
+            sourceHeightPx: motif.heightPx,
+            xMm: (sheet.widthMm - widthMm) / 2,
+            yMm: (sheet.heightMm - heightMm) / 2,
+            widthMm,
+            rotationDeg: 0,
+            z: s.elements.reduce((max, e) => Math.max(max, e.z), 0) + 1,
+          },
+          sheetFormat,
+        ),
       ],
       selectedId: id,
     }))
@@ -206,18 +279,21 @@ export const useDtfStore = create<DtfState>((set, get) => ({
 
   updateElement: (id, patch) =>
     set((s) => ({
-      elements: s.elements.map((e) =>
-        e.id === id
-          ? {
-              ...e,
-              ...patch,
-              widthMm:
-                patch.widthMm !== undefined
-                  ? Math.max(DTF_MIN_ELEMENT_WIDTH_MM, patch.widthMm)
-                  : e.widthMm,
-            }
-          : e,
-      ),
+      elements: s.elements.map((e) => {
+        if (e.id !== id) return e
+        const merged = {
+          ...e,
+          ...patch,
+          widthMm:
+            patch.widthMm !== undefined
+              ? Math.max(DTF_MIN_ELEMENT_WIDTH_MM, patch.widthMm)
+              : e.widthMm,
+        }
+        // Jede Änderung — Ziehen, Skalieren, Drehen, numerische Eingabe —
+        // läuft durch dieselbe Begrenzung. Damit gibt es keinen Weg, ein
+        // Motiv über den bedruckbaren Bereich hinaus zu bekommen.
+        return clampElementToSheet(merged, s.sheetFormat)
+      }),
     })),
 
   duplicateElement: (id) => {
@@ -231,13 +307,16 @@ export const useDtfStore = create<DtfState>((set, get) => ({
     set((s) => ({
       elements: [
         ...s.elements,
-        {
-          ...source,
-          id: copyId,
-          xMm: source.xMm + 5,
-          yMm: source.yMm + 5,
-          z: s.elements.reduce((max, e) => Math.max(max, e.z), 0) + 1,
-        },
+        clampElementToSheet(
+          {
+            ...source,
+            id: copyId,
+            xMm: source.xMm + 5,
+            yMm: source.yMm + 5,
+            z: s.elements.reduce((max, e) => Math.max(max, e.z), 0) + 1,
+          },
+          s.sheetFormat,
+        ),
       ],
       selectedId: copyId,
     }))

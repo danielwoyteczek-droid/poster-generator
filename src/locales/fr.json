@@ -800,6 +800,8 @@
     "selectHint": "Touchez un motif sur la feuille pour le modifier.",
     "handleResize": "Redimensionner",
     "handleRotate": "Pivoter",
-    "closeSheet": "Fermer"
+    "closeSheet": "Fermer",
+    "grid": "Grille centimétrique",
+    "gridHint": "Lignes fines tous les centimètres, plus marquées tous les 5 cm."
   }
 }

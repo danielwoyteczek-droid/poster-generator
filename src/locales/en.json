@@ -800,6 +800,8 @@
     "selectHint": "Tap artwork on the sheet to edit it.",
     "handleResize": "Resize",
     "handleRotate": "Rotate",
-    "closeSheet": "Close"
+    "closeSheet": "Close",
+    "grid": "Centimetre grid",
+    "gridHint": "Fine lines every centimetre, stronger ones every 5 cm."
   }
 }

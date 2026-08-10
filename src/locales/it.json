@@ -800,6 +800,8 @@
     "selectHint": "Tocca un motivo sul foglio per modificarlo.",
     "handleResize": "Ridimensiona",
     "handleRotate": "Ruota",
-    "closeSheet": "Chiudi"
+    "closeSheet": "Chiudi",
+    "grid": "Griglia in centimetri",
+    "gridHint": "Linee sottili ogni centimetro, più marcate ogni 5 cm."
   }
 }

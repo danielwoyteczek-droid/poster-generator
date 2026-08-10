@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { Switch } from '@/components/ui/switch'
 import { DTF_SHEET_FORMAT_OPTIONS, DTF_SHEET_FORMATS } from '@/lib/dtf-constants'
 import { useDtfStore } from '@/hooks/useDtfStore'
 import { cn } from '@/lib/utils'
@@ -23,6 +24,8 @@ export function DtfSheetTab() {
   const setSheetFormat = useDtfStore((s) => s.setSheetFormat)
   const quantity = useDtfStore((s) => s.quantity)
   const setQuantity = useDtfStore((s) => s.setQuantity)
+  const showGrid = useDtfStore((s) => s.showGrid)
+  const setShowGrid = useDtfStore((s) => s.setShowGrid)
 
   const sheet = DTF_SHEET_FORMATS[sheetFormat]
 
@@ -98,6 +101,16 @@ export function DtfSheetTab() {
           </Button>
         </div>
         <p className="text-xs text-muted-foreground">{t('quantityHint')}</p>
+      </div>
+
+      <div className="flex items-center justify-between gap-3 pt-2 border-t border-border">
+        <div className="space-y-0.5">
+          <Label htmlFor="dtf-grid" className="text-sm">
+            {t('grid')}
+          </Label>
+          <p className="text-xs text-muted-foreground">{t('gridHint')}</p>
+        </div>
+        <Switch id="dtf-grid" checked={showGrid} onCheckedChange={setShowGrid} />
       </div>
     </div>
   )

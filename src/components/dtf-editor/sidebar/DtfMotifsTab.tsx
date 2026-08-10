@@ -10,16 +10,9 @@ import { Progress } from '@/components/ui/progress'
 import {
   DTF_MAX_UPLOAD_BYTES,
   DTF_MIN_DPI_WARNING,
-  DTF_SHEET_FORMATS,
   DTF_TARGET_DPI,
 } from '@/lib/dtf-constants'
-import {
-  useDtfStore,
-  elementHeightMm,
-  elementDpi,
-  isOutsideSheet,
-  type DtfMotif,
-} from '@/hooks/useDtfStore'
+import { useDtfStore, elementHeightMm, elementDpi, type DtfMotif } from '@/hooks/useDtfStore'
 import { uploadDtfMotif, listDtfUploads, deleteDtfUpload } from '@/lib/dtf-upload'
 import { cn } from '@/lib/utils'
 
@@ -47,7 +40,6 @@ export function DtfMotifsTab() {
 
   const elements = useDtfStore((s) => s.elements)
   const selectedId = useDtfStore((s) => s.selectedId)
-  const sheetFormat = useDtfStore((s) => s.sheetFormat)
   const updateElement = useDtfStore((s) => s.updateElement)
   const duplicateElement = useDtfStore((s) => s.duplicateElement)
   const removeElement = useDtfStore((s) => s.removeElement)
@@ -284,15 +276,11 @@ export function DtfMotifsTab() {
             )}
           </div>
 
-          {isOutsideSheet(selected, sheetFormat) && (
-            <Alert variant="destructive">
-              <AlertDescription className="text-xs">
-                {t('outsideSheet', {
-                  format: DTF_SHEET_FORMATS[sheetFormat].label,
-                })}
-              </AlertDescription>
-            </Alert>
-          )}
+          {/* Kein „ragt über den Rand hinaus"-Hinweis mehr: Ziehen,
+              Skalieren, Drehen und Formatwechsel laufen alle durch
+              clampElementToSheet, das Motiv KANN den bedruckbaren Bereich
+              nicht verlassen. Ein Hinweis, der zum Verschieben rät, wäre
+              hier nur verwirrend. */}
 
           <div className="flex gap-2">
             <Button

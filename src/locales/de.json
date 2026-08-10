@@ -800,6 +800,8 @@
     "selectHint": "Tippe ein Motiv auf dem Bogen an, um es zu bearbeiten.",
     "handleResize": "Größe ändern",
     "handleRotate": "Drehen",
-    "closeSheet": "Schließen"
+    "closeSheet": "Schließen",
+    "grid": "Zentimeterraster",
+    "gridHint": "Feine Linien im Zentimetertakt, kräftigere alle 5 cm."
   }
 }

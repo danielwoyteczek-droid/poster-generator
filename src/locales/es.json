@@ -800,6 +800,8 @@
     "selectHint": "Toca un motivo en la hoja para editarlo.",
     "handleResize": "Cambiar tamaño",
     "handleRotate": "Girar",
-    "closeSheet": "Cerrar"
+    "closeSheet": "Cerrar",
+    "grid": "Cuadrícula en centímetros",
+    "gridHint": "Líneas finas cada centímetro, más marcadas cada 5 cm."
   }
 }

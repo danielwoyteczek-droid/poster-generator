@@ -1,14 +1,17 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import {
+  DTF_MIN_DPI_WARNING,
   DTF_MIN_ELEMENT_WIDTH_MM,
   DTF_SHEET_FORMATS,
   DTF_SHEET_MARGIN_MM,
 } from '@/lib/dtf-constants'
 import {
   useDtfStore,
+  boundingBoxMm,
+  elementDpi,
   elementHeightMm,
   isOutsideSheet,
   type DtfElement,
@@ -33,6 +36,17 @@ import { cn } from '@/lib/utils'
  * nehmen. Kein zusätzliches Paket.
  */
 
+/** Breite der Linealstreifen an Ober- und linker Kante, in Bildschirmpixeln. */
+const RULER_PX = 22
+
+/**
+ * Beschriftungsschritt in Zentimetern. Bei kleinem Maßstab würde alle 5 cm
+ * eine unlesbare Zahlenkolonne entstehen, dann wird auf 10 cm ausgedünnt.
+ */
+function labelStepCm(cmPx: number): number {
+  return cmPx * 5 >= 28 ? 5 : 10
+}
+
 type DragMode =
   | { kind: 'move'; id: string; startX: number; startY: number; origX: number; origY: number }
   | {
@@ -56,12 +70,14 @@ type DragMode =
 
 export function DtfSheetCanvas() {
   const t = useTranslations('dtfEditor')
+  const locale = useLocale()
   const containerRef = useRef<HTMLDivElement>(null)
   const sheetRef = useRef<HTMLDivElement>(null)
   const [pxPerMm, setPxPerMm] = useState(1)
   const dragRef = useRef<DragMode | null>(null)
 
   const sheetFormat = useDtfStore((s) => s.sheetFormat)
+  const showGrid = useDtfStore((s) => s.showGrid)
   const elements = useDtfStore((s) => s.elements)
   const selectedId = useDtfStore((s) => s.selectedId)
   const select = useDtfStore((s) => s.select)
@@ -69,6 +85,8 @@ export function DtfSheetCanvas() {
   const bringToFront = useDtfStore((s) => s.bringToFront)
 
   const sheet = DTF_SHEET_FORMATS[sheetFormat]
+  /** Bildschirmpixel je Zentimeter — Taktmaß des Rasters. */
+  const cmPx = pxPerMm * 10
 
   // Bogen in den verfügbaren Platz einpassen. Neu berechnet bei
   // Größenänderung des Fensters und bei Formatwechsel.
@@ -78,8 +96,10 @@ export function DtfSheetCanvas() {
 
     const fit = () => {
       const padding = 32
-      const availableW = el.clientWidth - padding * 2
-      const availableH = el.clientHeight - padding * 2
+      // Platz für die Lineale abziehen, sonst würde der Bogen sie aus dem
+      // sichtbaren Bereich schieben.
+      const availableW = el.clientWidth - padding * 2 - RULER_PX
+      const availableH = el.clientHeight - padding * 2 - RULER_PX
       if (availableW <= 0 || availableH <= 0) return
       setPxPerMm(Math.min(availableW / sheet.widthMm, availableH / sheet.heightMm))
     }
@@ -167,6 +187,14 @@ export function DtfSheetCanvas() {
 
   const sorted = [...elements].sort((a, b) => a.z - b.z)
 
+  // Eine Nachkommastelle reicht: Der Kunde soll die Druckgröße abschätzen,
+  // nicht auf Zehntelmillimeter planen. Locale-formatiert, damit im
+  // Deutschen ein Komma steht.
+  const cm = new Intl.NumberFormat(locale, {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  })
+
   return (
     <div
       ref={containerRef}
@@ -176,6 +204,68 @@ export function DtfSheetCanvas() {
         if (e.target === e.currentTarget) select(null)
       }}
     >
+      {/* Lineale rahmen den Bogen ein, statt in ihm zu liegen: Zahlen auf
+          der Arbeitsfläche würden mit den Motiven kollidieren, gerade dann,
+          wenn der Bogen voll ist. Raster im Bogen und Lineale außen hängen
+          am selben Schalter — beides gehört zusammen. */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: `${showGrid ? RULER_PX : 0}px auto`,
+          gridTemplateRows: `${showGrid ? RULER_PX : 0}px auto`,
+        }}
+      >
+        <div />
+
+        {showGrid && (
+          <div
+            className="relative select-none"
+            style={{ width: sheet.widthMm * pxPerMm, height: RULER_PX }}
+          >
+            {Array.from(
+              { length: Math.floor(sheet.widthMm / 10 / labelStepCm(cmPx)) },
+              (_, i) => (i + 1) * labelStepCm(cmPx),
+            ).map((valueCm) => (
+              <div
+                key={`rt-${valueCm}`}
+                className="absolute bottom-0 flex flex-col items-center"
+                style={{ left: valueCm * cmPx, transform: 'translateX(-50%)' }}
+              >
+                <span className="text-[10px] leading-none text-muted-foreground tabular-nums">
+                  {valueCm}
+                </span>
+                <span className="mt-0.5 block h-1.5 w-px bg-muted-foreground/50" />
+              </div>
+            ))}
+            <span className="absolute right-0 bottom-0 text-[10px] leading-none text-muted-foreground/70">
+              cm
+            </span>
+          </div>
+        )}
+
+        {showGrid && (
+          <div
+            className="relative select-none"
+            style={{ width: RULER_PX, height: sheet.heightMm * pxPerMm }}
+          >
+            {Array.from(
+              { length: Math.floor(sheet.heightMm / 10 / labelStepCm(cmPx)) },
+              (_, i) => (i + 1) * labelStepCm(cmPx),
+            ).map((valueCm) => (
+              <div
+                key={`rl-${valueCm}`}
+                className="absolute right-0 flex items-center"
+                style={{ top: valueCm * cmPx, transform: 'translateY(-50%)' }}
+              >
+                <span className="text-[10px] leading-none text-muted-foreground tabular-nums">
+                  {valueCm}
+                </span>
+                <span className="ml-0.5 block w-1.5 h-px bg-muted-foreground/50" />
+              </div>
+            ))}
+          </div>
+        )}
+
       <div
         ref={sheetRef}
         className="relative shadow-lg ring-1 ring-border"
@@ -194,6 +284,37 @@ export function DtfSheetCanvas() {
           if (e.target === e.currentTarget) select(null)
         }}
       >
+        {/* Zentimeterraster. Liegt über dem Karomuster und unter den
+            Motiven, damit es die Motive nicht überzeichnet.
+
+            Zwei Dichten: dünne Linien im Zentimetertakt, kräftigere alle
+            5 cm zur groben Orientierung. Unterhalb von 8 Bildschirmpixeln
+            je Zentimeter werden die feinen Linien ausgeblendet — bei einem
+            40x50-Bogen auf einem kleinen Fenster wären sie sonst ein
+            grauer Schleier statt einer Hilfe. */}
+        {showGrid && (
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              zIndex: 0,
+              backgroundImage: [
+                cmPx >= 8
+                  ? 'repeating-linear-gradient(to right, rgba(0,0,0,0.10) 0 1px, transparent 1px var(--dtf-cm))'
+                  : null,
+                cmPx >= 8
+                  ? 'repeating-linear-gradient(to bottom, rgba(0,0,0,0.10) 0 1px, transparent 1px var(--dtf-cm))'
+                  : null,
+                'repeating-linear-gradient(to right, rgba(0,0,0,0.22) 0 1px, transparent 1px var(--dtf-5cm))',
+                'repeating-linear-gradient(to bottom, rgba(0,0,0,0.22) 0 1px, transparent 1px var(--dtf-5cm))',
+              ]
+                .filter(Boolean)
+                .join(', '),
+              ['--dtf-cm' as string]: `${cmPx}px`,
+              ['--dtf-5cm' as string]: `${cmPx * 5}px`,
+            }}
+          />
+        )}
+
         {/* Sicherheitsabstand als Hilfslinie. Nicht bedruckbarer Rand des
             Druckers plus Puffer zum Zuschneiden. */}
         <div
@@ -304,6 +425,49 @@ export function DtfSheetCanvas() {
             </div>
           )
         })}
+
+        {/* Größenangaben in einer eigenen, NICHT gedrehten Ebene.
+            Innerhalb des Motiv-Containers würde die Schrift mitdrehen und
+            bei 180° auf dem Kopf stehen. Positioniert wird unterhalb der
+            gedrehten Hüllbox, damit die Angabe auch bei schräg gestellten
+            Motiven nicht im Bild liegt.
+
+            Die gedruckte Größe ist bei diesem Produkt die zentrale
+            Information — der Kunde kauft keinen Bildschirmentwurf, sondern
+            Zentimeter auf Folie. Deshalb an JEDEM Motiv, nicht nur am
+            ausgewählten. */}
+        {sorted.map((el) => {
+          const box = boundingBoxMm(el)
+          const cx = el.xMm + el.widthMm / 2
+          const cy = el.yMm + elementHeightMm(el) / 2
+          const dpi = elementDpi(el)
+          const lowDpi = dpi < DTF_MIN_DPI_WARNING
+          const isSelected = el.id === selectedId
+
+          return (
+            <div
+              key={`label-${el.id}`}
+              className={cn(
+                'absolute pointer-events-none whitespace-nowrap rounded px-1.5 py-0.5 text-[11px] font-medium leading-tight shadow-sm',
+                lowDpi
+                  ? 'bg-destructive text-destructive-foreground'
+                  : isSelected
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-white/90 text-foreground ring-1 ring-border',
+              )}
+              style={{
+                left: cx * pxPerMm,
+                top: (cy + box.height / 2) * pxPerMm + 6,
+                transform: 'translateX(-50%)',
+                zIndex: 1000 + el.z,
+              }}
+            >
+              {cm.format(el.widthMm / 10)} × {cm.format(elementHeightMm(el) / 10)} cm
+              {lowDpi && <span className="ml-1 opacity-90">· {dpi} dpi</span>}
+            </div>
+          )
+        })}
+        </div>
       </div>
     </div>
   )
