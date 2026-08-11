@@ -34,8 +34,21 @@ import {
  * den Warenkorb.
  */
 
-export interface DtfElement {
+/** Was Bild- und Textelemente gemeinsam haben. */
+interface DtfElementBase {
   id: string
+  /** Linke obere Ecke auf dem Bogen, in Millimetern. */
+  xMm: number
+  yMm: number
+  /** Gedruckte Breite in Millimetern. */
+  widthMm: number
+  rotationDeg: number
+  /** Stapelreihenfolge; höher liegt oben. */
+  z: number
+}
+
+export interface DtfImageElement extends DtfElementBase {
+  kind: 'image'
   /** Verweis auf die Zeile in `dtf_uploads`. */
   uploadId: string
   /** Signierte URL der Vorschau. Das Original fasst der Editor nie an. */
@@ -43,14 +56,39 @@ export interface DtfElement {
   /** Pixelmaße des ORIGINALS — Grundlage der dpi-Berechnung. */
   sourceWidthPx: number
   sourceHeightPx: number
-  /** Linke obere Ecke auf dem Bogen, in Millimetern. */
-  xMm: number
-  yMm: number
-  /** Gedruckte Breite in Millimetern. Die Höhe folgt dem Seitenverhältnis. */
-  widthMm: number
-  rotationDeg: number
-  /** Stapelreihenfolge; höher liegt oben. */
-  z: number
+}
+
+/**
+ * Textelement. Eigenschaften bewusst identisch zum `TextBlock` der anderen
+ * Editoren, damit sich die Bedienung gleich anfühlt — nur die Größe steht
+ * in Millimetern statt als Bruchteil der Posterbreite, wie alles hier.
+ *
+ * Die Höhe wird gemessen, nicht gerechnet: Sie hängt von Schrift, Zeilenzahl
+ * und Umbruch ab. Der Editor schreibt den gemessenen Wert zurück.
+ */
+export interface DtfTextElement extends DtfElementBase {
+  kind: 'text'
+  text: string
+  fontFamily: string
+  /** Schriftgröße in Millimetern — bei 10 mm ist ein Versal rund 7 mm hoch. */
+  fontSizeMm: number
+  color: string
+  align: 'left' | 'center' | 'right'
+  bold: boolean
+  uppercase: boolean
+  /** Laufweite als Vielfaches der Schriftgröße, wie bei den Textblöcken. */
+  letterSpacingEm: number
+  /** Gemessene Höhe in Millimetern. Vom Editor gesetzt. */
+  heightMm: number
+}
+
+export type DtfElement = DtfImageElement | DtfTextElement
+
+export function isImageElement(el: DtfElement): el is DtfImageElement {
+  return el.kind === 'image'
+}
+export function isTextElement(el: DtfElement): el is DtfTextElement {
+  return el.kind === 'text'
 }
 
 /** Ein hochgeladenes Motiv in der Ablage, noch nicht zwingend platziert. */
@@ -112,6 +150,8 @@ interface DtfState {
 
   /** Legt ein Motiv mittig auf den aktiven Bogen. */
   placeMotif: (motif: DtfMotif) => void
+  /** Legt ein neues Textelement mittig auf den aktiven Bogen. */
+  addTextElement: () => void
   updateElement: (id: string, patch: Partial<Omit<DtfElement, 'id'>>) => void
   duplicateElement: (id: string) => void
   removeElement: (id: string) => void
@@ -120,14 +160,24 @@ interface DtfState {
   reset: () => void
 }
 
-/** Höhe eines Elements aus Breite und Seitenverhältnis des Originals. */
+/**
+ * Höhe eines Elements. Bei Bildern aus dem Seitenverhältnis des Originals,
+ * bei Text aus der gemessenen Höhe — die hängt von Schrift und Umbruch ab
+ * und lässt sich nicht rechnen.
+ */
 export function elementHeightMm(el: DtfElement): number {
+  if (isTextElement(el)) return el.heightMm
   if (el.sourceWidthPx <= 0) return el.widthMm
   return (el.widthMm * el.sourceHeightPx) / el.sourceWidthPx
 }
 
-/** Effektive Auflösung bei der aktuell eingestellten Druckbreite. */
-export function elementDpi(el: DtfElement): number {
+/**
+ * Effektive Auflösung bei der aktuell eingestellten Druckbreite.
+ * Text hat keine — er wird erst beim Ablegen in den Warenkorb mit
+ * Druckauflösung gerastert und ist deshalb nie zu grob.
+ */
+export function elementDpi(el: DtfElement): number | null {
+  if (isTextElement(el)) return null
   return effectiveDpi(el.sourceWidthPx, el.widthMm)
 }
 
@@ -333,7 +383,7 @@ export const useDtfStore = create<DtfState>((set, get) => ({
       // nicht mehr gibt.
       sheets: s.sheets.map((sheet) => ({
         ...sheet,
-        elements: sheet.elements.filter((e) => e.uploadId !== id),
+        elements: sheet.elements.filter((e) => !(isImageElement(e) && e.uploadId === id)),
       })),
       selectedId: null,
     })),
@@ -366,6 +416,7 @@ export const useDtfStore = create<DtfState>((set, get) => ({
           clampElementToSheet(
             {
               id,
+              kind: 'image' as const,
               uploadId: motif.id,
               previewUrl: motif.previewUrl!,
               sourceWidthPx: motif.widthPx,
@@ -384,12 +435,58 @@ export const useDtfStore = create<DtfState>((set, get) => ({
     }))
   },
 
+  addTextElement: () => {
+    const state = get()
+    const sheet = activeSheetOf(state)
+    if (sheet.elements.length >= DTF_MAX_ELEMENTS_PER_SHEET) return
+
+    const def = DTF_SHEET_FORMATS[sheet.format]
+    const id = crypto.randomUUID()
+    // Startwerte bewusst gut sichtbar: 20 mm Schrift ist auf einem A4-Bogen
+    // etwa so hoch wie ein Daumen — gross genug, um sie sofort zu finden
+    // und anzufassen. Breite und Hoehe misst der Editor gleich nach.
+    const fontSizeMm = 20
+    const widthMm = def.widthMm / 2
+    const heightMm = fontSizeMm * 1.15
+
+    set((s) => ({
+      ...withActiveSheet(s, (sh) => ({
+        ...sh,
+        elements: [
+          ...sh.elements,
+          {
+            id,
+            kind: 'text' as const,
+            text: '',
+            fontFamily: 'Montserrat',
+            fontSizeMm,
+            color: '#1a1a1a',
+            align: 'center' as const,
+            bold: false,
+            uppercase: false,
+            letterSpacingEm: 0,
+            heightMm,
+            xMm: (def.widthMm - widthMm) / 2,
+            yMm: (def.heightMm - heightMm) / 2,
+            widthMm,
+            rotationDeg: 0,
+            z: sh.elements.reduce((max, e) => Math.max(max, e.z), 0) + 1,
+          },
+        ],
+      })),
+      selectedId: id,
+    }))
+  },
+
   updateElement: (id, patch) =>
     set((s) =>
       withActiveSheet(s, (sheet) => ({
         ...sheet,
         elements: sheet.elements.map((e) => {
           if (e.id !== id) return e
+          // `as DtfElement`: Der Patch ist absichtlich teilweise; der
+          // Elementtyp bleibt durch das Spread erhalten, TypeScript kann
+          // das bei einer Union aber nicht selbst nachvollziehen.
           const merged = {
             ...e,
             ...patch,
@@ -397,7 +494,7 @@ export const useDtfStore = create<DtfState>((set, get) => ({
               patch.widthMm !== undefined
                 ? Math.max(DTF_MIN_ELEMENT_WIDTH_MM, patch.widthMm)
                 : e.widthMm,
-          }
+          } as DtfElement
           // Jede Änderung — Ziehen, Skalieren, Drehen, numerische Eingabe —
           // läuft durch dieselbe Begrenzung.
           return clampElementToSheet(merged, sheet.format)

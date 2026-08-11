@@ -264,23 +264,25 @@ export function DtfMotifsTab() {
           {/* dpi: immer neutral sichtbar, damit der Kunde entscheiden kann.
               Genau EINE Warnung unterhalb der Schwelle — eine Ampel mit
               mehreren Stufen würde ständig anspringen und ignoriert. */}
+          {elementDpi(selected) !== null && (
           <div
             className={cn(
               'rounded-md px-3 py-2 text-xs',
-              elementDpi(selected) < DTF_MIN_DPI_WARNING
+              (elementDpi(selected) ?? 0) < DTF_MIN_DPI_WARNING
                 ? 'bg-destructive/10 text-destructive'
                 : 'bg-muted text-muted-foreground',
             )}
           >
             <div className="font-medium">
-              {t('dpiValue', { dpi: elementDpi(selected) })}
+              {t('dpiValue', { dpi: elementDpi(selected) ?? 0 })}
             </div>
-            {elementDpi(selected) < DTF_MIN_DPI_WARNING ? (
+            {(elementDpi(selected) ?? 0) < DTF_MIN_DPI_WARNING ? (
               <p className="mt-1">{t('dpiWarning', { min: DTF_MIN_DPI_WARNING })}</p>
             ) : (
               <p className="mt-1 opacity-80">{t('dpiTarget', { target: DTF_TARGET_DPI })}</p>
             )}
           </div>
+          )}
 
           {/* Kein „ragt über den Rand hinaus"-Hinweis mehr: Ziehen,
               Skalieren, Drehen und Formatwechsel laufen alle durch

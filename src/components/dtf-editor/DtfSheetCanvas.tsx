@@ -15,9 +15,11 @@ import {
   elementDpi,
   elementHeightMm,
   isOutsideSheet,
+  isTextElement,
   type DtfElement,
 } from '@/hooks/useDtfStore'
 import { cn } from '@/lib/utils'
+import { DtfTextRender } from './DtfTextRender'
 
 /**
  * PROJ-55: Der Transferbogen als Arbeitsfläche.
@@ -56,6 +58,8 @@ type DragMode =
       startX: number
       startY: number
       origWidthMm: number
+      /** Nur bei Text gesetzt — dort skaliert der Griff die Schriftgröße. */
+      origFontSizeMm?: number
       centerX: number
       centerY: number
       startDist: number
@@ -143,6 +147,15 @@ export function DtfSheetCanvas() {
         // mitdreht.
         const dist = Math.hypot(e.clientX - drag.centerX, e.clientY - drag.centerY)
         const factor = dist / Math.max(1, drag.startDist)
+        if (drag.origFontSizeMm !== undefined) {
+          // Bei Text ergibt sich die Breite aus dem gesetzten Text; am Griff
+          // zu ziehen ändert deshalb die Schriftgröße. Alles andere würde
+          // den Text stauchen statt vergrößern.
+          updateElement(drag.id, {
+            fontSizeMm: Math.max(2, drag.origFontSizeMm * factor),
+          } as Partial<DtfElement>)
+          return
+        }
         updateElement(drag.id, {
           widthMm: Math.max(DTF_MIN_ELEMENT_WIDTH_MM, drag.origWidthMm * factor),
         })
@@ -374,13 +387,17 @@ export function DtfSheetCanvas() {
                 })
               }}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={el.previewUrl}
-                alt=""
-                draggable={false}
-                className="w-full h-full object-fill pointer-events-none"
-              />
+              {isTextElement(el) ? (
+                <DtfTextRender element={el} pxPerMm={pxPerMm} />
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={el.previewUrl}
+                  alt=""
+                  draggable={false}
+                  className="w-full h-full object-fill pointer-events-none"
+                />
+              )}
 
               <div
                 className={cn(
@@ -409,6 +426,7 @@ export function DtfSheetCanvas() {
                         startX: e.clientX,
                         startY: e.clientY,
                         origWidthMm: el.widthMm,
+                        origFontSizeMm: isTextElement(el) ? el.fontSizeMm : undefined,
                         centerX: center.x,
                         centerY: center.y,
                         startDist: Math.hypot(e.clientX - center.x, e.clientY - center.y),
@@ -454,7 +472,9 @@ export function DtfSheetCanvas() {
           const cx = el.xMm + el.widthMm / 2
           const cy = el.yMm + elementHeightMm(el) / 2
           const dpi = elementDpi(el)
-          const lowDpi = dpi < DTF_MIN_DPI_WARNING
+          // Text hat keine Auflösung — er wird beim Ablegen mit
+          // Druckauflösung gerastert und kann nicht zu grob sein.
+          const lowDpi = dpi !== null && dpi < DTF_MIN_DPI_WARNING
           const isSelected = el.id === selectedId
 
           return (

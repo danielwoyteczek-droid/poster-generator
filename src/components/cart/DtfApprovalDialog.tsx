@@ -94,10 +94,15 @@ export function DtfApprovalDialog({
   // Kunde sie sehen kann, bevor er verbindlich freigibt.
   const lowDpi = sheets.flatMap(({ snapshot }, sheetIndex) =>
     snapshot.elements
-      .filter((el) => elementDpi(el) < DTF_MIN_DPI_WARNING)
+      // elementDpi liefert bei Text null — Text wird mit Druckauflösung
+      // gerastert und kann deshalb nicht zu grob sein.
+      .filter((el) => {
+        const dpi = elementDpi(el)
+        return dpi !== null && dpi < DTF_MIN_DPI_WARNING
+      })
       .map((el) => ({
         sheetIndex: sheetIndex + 1,
-        dpi: elementDpi(el),
+        dpi: elementDpi(el) ?? 0,
         widthCm: (el.widthMm / 10).toFixed(1),
         heightCm: (elementHeightMm(el) / 10).toFixed(1),
       })),

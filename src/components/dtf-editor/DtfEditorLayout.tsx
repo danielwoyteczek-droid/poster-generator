@@ -5,6 +5,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { DtfSheetTab } from './sidebar/DtfSheetTab'
 import { DtfMotifsTab } from './sidebar/DtfMotifsTab'
+import { DtfTextTab } from './sidebar/DtfTextTab'
 import { DtfSheetCanvas } from './DtfSheetCanvas'
 
 const TAB_TRIGGER_CN =
@@ -26,6 +27,9 @@ export function DtfEditorLayout() {
             <TabsTrigger value="motifs" className={TAB_TRIGGER_CN}>
               {t('tabMotifs')}
             </TabsTrigger>
+            <TabsTrigger value="text" className={TAB_TRIGGER_CN}>
+              {t('tabText')}
+            </TabsTrigger>
             <TabsTrigger value="sheet" className={TAB_TRIGGER_CN}>
               {t('tabSheet')}
             </TabsTrigger>
@@ -34,6 +38,9 @@ export function DtfEditorLayout() {
           <ScrollArea className="flex-1">
             <TabsContent value="motifs" className="mt-0">
               <DtfMotifsTab />
+            </TabsContent>
+            <TabsContent value="text" className="mt-0">
+              <DtfTextTab />
             </TabsContent>
             <TabsContent value="sheet" className="mt-0">
               <DtfSheetTab />

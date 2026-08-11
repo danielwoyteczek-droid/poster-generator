@@ -4,7 +4,7 @@ import {
   boundingBoxMm,
   elementHeightMm,
   elementDpi,
-  type DtfElement,
+  type DtfImageElement,
 } from './useDtfStore'
 import { DTF_SHEET_FORMATS, DTF_SHEET_MARGIN_MM } from '@/lib/dtf-constants'
 
@@ -18,9 +18,10 @@ import { DTF_SHEET_FORMATS, DTF_SHEET_MARGIN_MM } from '@/lib/dtf-constants'
 const A4 = DTF_SHEET_FORMATS.a4 // 210 × 297 mm
 const M = DTF_SHEET_MARGIN_MM // 10 mm
 
-function el(patch: Partial<DtfElement> = {}): DtfElement {
+function el(patch: Partial<DtfImageElement> = {}): DtfImageElement {
   return {
     id: 'e1',
+    kind: 'image' as const,
     uploadId: 'u1',
     previewUrl: 'blob:x',
     sourceWidthPx: 1000,
@@ -130,8 +131,8 @@ describe('elementDpi', () => {
   })
 
   it('halbiert sich bei doppelter Druckbreite', () => {
-    const a = elementDpi(el({ sourceWidthPx: 2000, widthMm: 100 }))
-    const b = elementDpi(el({ sourceWidthPx: 2000, widthMm: 200 }))
+    const a = elementDpi(el({ sourceWidthPx: 2000, widthMm: 100 }))!
+    const b = elementDpi(el({ sourceWidthPx: 2000, widthMm: 200 }))!
     expect(b).toBeCloseTo(a / 2, 0)
   })
 })

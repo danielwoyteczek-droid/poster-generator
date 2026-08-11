@@ -1,7 +1,7 @@
 'use client'
 
 import { DTF_SHEET_FORMATS, type DtfSheetFormat } from '@/lib/dtf-constants'
-import { elementHeightMm, type DtfElement } from '@/hooks/useDtfStore'
+import { elementHeightMm, isImageElement, type DtfElement } from '@/hooks/useDtfStore'
 
 /**
  * PROJ-55: Statische Bogenvorschau für Warenkorb und Freigabe-Dialog.
@@ -42,7 +42,11 @@ export function DtfSheetPreview({
         backgroundPosition: '0 0,0 5px,5px -5px,-5px 0',
       }}
     >
+      {/* Text ist zu diesem Zeitpunkt bereits gerastert und damit ein
+          Bildelement. Der Filter ist die Absicherung dagegen, dass ein
+          nicht gerastertes Textelement still verschwindet. */}
       {[...elements]
+        .filter(isImageElement)
         .sort((a, b) => a.z - b.z)
         .map((el) => (
           // eslint-disable-next-line @next/next/no-img-element

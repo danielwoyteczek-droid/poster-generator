@@ -1,7 +1,7 @@
 import { PDFDocument, degrees } from 'pdf-lib'
 import { createAdminClient } from './supabase-admin'
 import { DTF_BUCKET, DTF_SHEET_FORMATS, type DtfSheetFormat } from './dtf-constants'
-import { elementHeightMm, type DtfElement } from '@/hooks/useDtfStore'
+import { elementHeightMm, isImageElement, type DtfElement } from '@/hooks/useDtfStore'
 
 /**
  * PROJ-55 Phase 4: Druckfertige PDF aus einer Bogenbeschreibung.
@@ -61,7 +61,18 @@ export async function buildDtfSheetPdf(snapshot: DtfSheetSnapshot): Promise<Uint
   // Unterschied zwischen einer brauchbaren und einer riesigen PDF.
   const embedded = new Map<string, Awaited<ReturnType<typeof pdf.embedPng>>>()
 
-  const sorted = [...snapshot.elements].sort((a, b) => a.z - b.z)
+  // Textelemente werden beim Ablegen in den Warenkorb mit Druckauflösung
+  // gerastert und liegen ab dann als Bild vor. Taucht hier doch Text auf,
+  // ist die Rasterung ausgefallen — dann lieber laut scheitern als einen
+  // Bogen ohne den Text zu drucken.
+  const unrastered = snapshot.elements.filter((el) => !isImageElement(el))
+  if (unrastered.length > 0) {
+    throw new PrintFileError(
+      `${unrastered.length} Textelement(e) wurden nicht gerastert — Bogen nicht druckbar`,
+    )
+  }
+
+  const sorted = [...snapshot.elements].filter(isImageElement).sort((a, b) => a.z - b.z)
 
   for (const el of sorted) {
     let image = embedded.get(el.uploadId)

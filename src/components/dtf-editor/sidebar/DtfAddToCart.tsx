@@ -10,7 +10,15 @@ import { DTF_SHEET_FORMATS } from '@/lib/dtf-constants'
 import { formatPrice } from '@/lib/products'
 import { useProductCatalog, dtfSheetPriceFromCatalog } from '@/hooks/useProductCatalog'
 import { useCartStore } from '@/hooks/useCartStore'
-import { useDtfStore, totalPrintedSheets, type DtfSheet } from '@/hooks/useDtfStore'
+import {
+  useDtfStore,
+  totalPrintedSheets,
+  isTextElement,
+  type DtfSheet,
+  type DtfElement,
+} from '@/hooks/useDtfStore'
+import { rasterizeTextElement } from '@/lib/dtf-text-raster'
+import { uploadDtfBlob } from '@/lib/dtf-upload'
 
 /**
  * PROJ-55: Legt den gesamten Entwurf in den Warenkorb — jeden Bogen als
@@ -65,11 +73,56 @@ export function DtfAddToCart() {
     )
   }
 
-  function handleAdd() {
+  /**
+   * Textelemente in Bilder verwandeln, bevor der Bogen abgelegt wird.
+   *
+   * Ab hier ist Text für Vorschau, Warenkorb und Druckdatei schlicht ein
+   * Bild — kein zweiter Zeichenweg und keine Schrifteinbettung in der PDF.
+   * Vor allem: Vorschau und Druck können nicht auseinanderlaufen, weil
+   * beide dieselbe Rastergrafik zeigen.
+   */
+  async function rasterizeSheet(sheet: DtfSheet): Promise<DtfElement[]> {
+    const out: DtfElement[] = []
+    for (const el of sheet.elements) {
+      if (!isTextElement(el)) {
+        out.push(el)
+        continue
+      }
+      // Leere Textfelder fallen weg statt als unsichtbares Element in die
+      // Bestellung zu wandern.
+      if (!el.text.trim()) continue
+
+      const raster = await rasterizeTextElement(el)
+      const uploadId = await uploadDtfBlob(
+        raster.blob,
+        `text-${el.id}.png`,
+        { widthPx: raster.widthPx, heightPx: raster.heightPx },
+      )
+      out.push({
+        id: el.id,
+        kind: 'image',
+        uploadId,
+        previewUrl: URL.createObjectURL(raster.blob),
+        sourceWidthPx: raster.widthPx,
+        sourceHeightPx: raster.heightPx,
+        // Position und Drehung bleiben; die Größe kommt aus dem Raster,
+        // damit gedruckt wird, was im Editor stand.
+        xMm: el.xMm,
+        yMm: el.yMm,
+        widthMm: raster.widthMm,
+        rotationDeg: el.rotationDeg,
+        z: el.z,
+      })
+    }
+    return out
+  }
+
+  async function handleAdd() {
     setIsAdding(true)
     try {
-      filled.forEach((sheet, index) => {
+      for (const [index, sheet] of filled.entries()) {
         const unit = unitCents(sheet)!
+        const elements = await rasterizeSheet(sheet)
         const def = DTF_SHEET_FORMATS[sheet.format]
         addItem({
           productId: 'dtf',
@@ -90,11 +143,11 @@ export function DtfAddToCart() {
             kind: 'dtf-sheet',
             format: sheet.format,
             quantity: sheet.quantity,
-            elements: sheet.elements,
+            elements,
           },
           projectId: null,
         })
-      })
+      }
 
       toast.success(t('cartAdded', { count: filled.length }))
       // Entwurf zurücksetzen: Die Positionen tragen ihre eigene Kopie, ein
@@ -102,6 +155,8 @@ export function DtfAddToCart() {
       // nur den Eindruck erwecken, es täte es.
       reset()
       router.push('/cart')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t('cartAddFailed'))
     } finally {
       setIsAdding(false)
     }
@@ -120,7 +175,7 @@ export function DtfAddToCart() {
         <span className="font-semibold tabular-nums">{formatPrice(totalCents)}</span>
       </div>
 
-      <Button type="button" className="w-full" disabled={isAdding} onClick={handleAdd}>
+      <Button type="button" className="w-full" disabled={isAdding} onClick={() => void handleAdd()}>
         {isAdding ? t('cartAdding') : t('cartAdd')}
       </Button>
     </div>

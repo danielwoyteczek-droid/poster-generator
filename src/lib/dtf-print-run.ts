@@ -51,7 +51,9 @@ export async function generatePrintFilesForOrder(orderId: string): Promise<Print
   for (const item of items) {
     const snapshot = readSheetSnapshot(item)
     if (!snapshot) continue
-    for (const el of snapshot.elements) uploadIds.add(el.uploadId)
+    for (const el of snapshot.elements) {
+      if (el.kind === 'image') uploadIds.add(el.uploadId)
+    }
   }
   if (uploadIds.size > 0) {
     const { error: markErr } = await admin

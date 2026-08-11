@@ -155,6 +155,52 @@ export async function uploadDtfMotif(
   }
 }
 
+/**
+ * PROJ-55: Ein bereits fertiges Bild (etwa gerasterter Text) hochladen.
+ *
+ * Wie `uploadDtfMotif`, nur ohne Datei-Auswahl: Der Blob ist zugleich
+ * Original und Grundlage der Vorschau. Für gerasterten Text ist das
+ * richtig — er liegt ohnehin schon in Druckauflösung vor.
+ */
+export async function uploadDtfBlob(
+  blob: Blob,
+  filename: string,
+  dims: { widthPx: number; heightPx: number },
+): Promise<string> {
+  const res = await fetch('/api/dtf/uploads', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ filename, mimeType: 'image/png', byteSize: blob.size }),
+  })
+  if (!res.ok) {
+    const payload = await res.json().catch(() => ({}))
+    throw new DtfUploadError(payload.error ?? 'Upload konnte nicht angemeldet werden.')
+  }
+  const ticket = (await res.json()) as {
+    id: string
+    original: { uploadUrl: string }
+    preview: { uploadUrl: string }
+  }
+
+  // Original und Vorschau sind hier dieselbe Datei. Eine verkleinerte
+  // Fassung brächte nichts: Der Editor zeigt Text als echten Text, das Bild
+  // wird erst ab dem Warenkorb angezeigt.
+  await putToSignedUrl(ticket.original.uploadUrl, blob, 'image/png')
+  await putToSignedUrl(ticket.preview.uploadUrl, blob, 'image/png')
+
+  const done = await fetch(`/api/dtf/uploads/${ticket.id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ widthPx: dims.widthPx, heightPx: dims.heightPx }),
+  })
+  if (!done.ok) {
+    const payload = await done.json().catch(() => ({}))
+    throw new DtfUploadError(payload.error ?? 'Upload konnte nicht abgeschlossen werden.')
+  }
+
+  return ticket.id
+}
+
 /** Die eigene Motiv-Ablage mit frischen Vorschau-URLs. */
 export async function listDtfUploads(): Promise<DtfUpload[]> {
   const res = await fetch('/api/dtf/uploads')

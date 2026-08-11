@@ -6,10 +6,11 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Button } from '@/components/ui/button'
 import { DtfSheetTab } from '../sidebar/DtfSheetTab'
 import { DtfMotifsTab } from '../sidebar/DtfMotifsTab'
+import { DtfTextTab } from '../sidebar/DtfTextTab'
 import { DtfSheetCanvas } from '../DtfSheetCanvas'
 import { cn } from '@/lib/utils'
 
-type Tab = 'motifs' | 'sheet'
+type Tab = 'motifs' | 'text' | 'sheet'
 
 /**
  * PROJ-55: Mobiles Layout — Arbeitsfläche oben, ausklappbares Blatt unten.
@@ -32,7 +33,7 @@ export function MobileDtfEditorLayout() {
 
       <div className="shrink-0 border-t border-border bg-white">
         <div className="flex items-stretch h-11">
-          {(['motifs', 'sheet'] as const).map((key) => (
+          {(['motifs', 'text', 'sheet'] as const).map((key) => (
             <button
               key={key}
               type="button"
@@ -51,14 +52,14 @@ export function MobileDtfEditorLayout() {
                   : 'border-transparent text-muted-foreground',
               )}
             >
-              {key === 'motifs' ? t('tabMotifs') : t('tabSheet')}
+              {key === 'motifs' ? t('tabMotifs') : key === 'text' ? t('tabText') : t('tabSheet')}
             </button>
           ))}
         </div>
 
         {open && (
           <ScrollArea className="max-h-[50dvh]">
-            {tab === 'motifs' ? <DtfMotifsTab /> : <DtfSheetTab />}
+            {tab === 'motifs' ? <DtfMotifsTab /> : tab === 'text' ? <DtfTextTab /> : <DtfSheetTab />}
             <div className="p-4 pt-0">
               <Button
                 type="button"
