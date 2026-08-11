@@ -39,7 +39,7 @@
 | PROJ-23 | Design-System & Brand-Styling | Approved | [PROJ-23-design-system-brand-styling.md](PROJ-23-design-system-brand-styling.md) | 2026-04-24 |
 | PROJ-24 | Localized Storefront Content | Approved | [PROJ-24-localized-storefront-content.md](PROJ-24-localized-storefront-content.md) | 2026-04-25 |
 | PROJ-25 | Editor UX Consistency Pass | Planned | [PROJ-25-editor-ux-consistency.md](PROJ-25-editor-ux-consistency.md) | 2026-04-25 |
-| PROJ-26 | Versandkosten-Management | Architected | [PROJ-26-shipping-rate-management.md](PROJ-26-shipping-rate-management.md) | 2026-04-26 |
+| PROJ-26 | Versandkosten (2 Zonen, 3 Versandarten, Stripe-Tarife) | In Progress | [PROJ-26-shipping-rate-management.md](PROJ-26-shipping-rate-management.md) | 2026-04-26 |
 | PROJ-27 | Mobile Star-Map Editor | Deployed | [PROJ-27-mobile-star-map-editor.md](PROJ-27-mobile-star-map-editor.md) | 2026-04-26 |
 | PROJ-28 | Business Center | Approved | [PROJ-28-business-center.md](PROJ-28-business-center.md) | 2026-04-26 |
 | PROJ-29 | Anlass-Landing-Pages (SEO) | Approved | [PROJ-29-occasion-landing-pages.md](PROJ-29-occasion-landing-pages.md) | 2026-04-26 |
