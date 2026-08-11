@@ -2,10 +2,11 @@
 
 ## Status: In Progress
 **Created:** 2026-08-10
-**Last Updated:** 2026-08-10
+**Last Updated:** 2026-08-11
 
-> **Phase 1 (Upload-Fundament) ist gebaut.** Siehe „Implementierung" am Ende.
-> Editor, Warenkorb, Freigabe und Druckdatei stehen noch aus.
+> **Phasen 1–4 sind gebaut** — Upload, Editor, Kaufweg und Druckdateien.
+> Siehe „Implementierung" am Ende. Offen: Text auf dem Bogen, Bogen-Reiter im
+> Editor, Entwürfe speichern — und der Testdruck zur Spiegelung.
 
 ## Kontext
 
@@ -712,3 +713,85 @@ benutzbar, aber nicht bestellbar.
 es existiert keine `eslint.config.js`. Lint läuft also derzeit überhaupt
 nicht — unabhängig von PROJ-55, aber es heißt, dass Stilfehler im gesamten
 Projekt momentan unentdeckt bleiben.
+
+### Phase 3 — Kaufweg (2026-08-10/11)
+
+Produkte, Warenkorb, Freigabe-Dialog und Checkout. Der Kaufweg ist
+durchgängig: gestalten, ablegen, freigeben, bezahlen.
+
+Die Freigabe sitzt in einem **Dialog vor dem Checkout**, nicht als Schritt
+darin. Durch den Bestellablauf läuft jede Bestellung des Shops; ihn umzubauen
+wäre das größte vermeidbare Risiko gewesen. Warenkörbe ohne DTF sehen den
+Dialog nicht und nehmen exakt denselben Weg wie vorher — die einzige Änderung
+dort sind zwei zusätzliche Felder in einem Insert, der ohnehin passiert.
+
+Zusätzlich eine **serverseitige Schranke**: Der Dialog läuft im Browser, ein
+direkter Aufruf von `/api/checkout` könnte ihn umgehen. Da die Freigabe der
+rechtliche Kern des Produkts ist, lehnt die Route jeden Warenkorb mit
+DTF-Positionen ohne Freigabe ab.
+
+Preise: A4 4,99 €, A3 5,99 €, 40 × 50 6,99 €. Alle drei als `per_unit` in
+Stripe — die Auflage geht als Menge, damit der im Dashboard gepflegte
+Stückpreis maßgeblich bleibt.
+
+### Phase 4 — Druckdateien (2026-08-11)
+
+Nach Zahlungseingang entsteht pro DTF-Position eine PDF: Originalmaß,
+Transparenz erhalten, **ungespiegelt**.
+
+**Warum nicht der vorhandene Renderer.** Es gibt zwei — `renderPosterFromSnapshot`
+im Browser und den Headless-Worker aus PROJ-30. Beide **rastern**: Sie malen
+alles auf eine Fläche und erzeugen ein Bild. Für selbst gestaltete Poster ist
+das richtig, für Kundendateien ein Rückschritt — das Original wurde extra
+unangetastet gelassen, um es nicht flachzurechnen. Stattdessen bettet
+`dtf-print-file.ts` mit `pdf-lib` jedes Original unverändert ein, an Position
+und Größe aus der Bogenbeschreibung. Mehrfach platzierte Motive landen nur
+einmal in der Datei.
+
+Zwei Fallen beim Zeichnen, beide behandelt:
+
+- **PDF zählt von unten links, der Editor von oben links.** Die y-Achse wird
+  umgerechnet. Das ist eine Koordinatenumrechnung, keine Bildspiegelung.
+- **pdf-lib dreht um die linke untere Ecke, der Editor um die Mitte.** Ohne
+  Ausgleich läge ein gedrehtes Motiv woanders als in der Vorschau — und die
+  Vorschau ist das, was freigegeben wurde.
+
+**Aufräumschutz.** Beim Erzeugen werden die beteiligten Uploads auf
+`is_ordered = true` gesetzt, und zwar bevor die PDF gebaut wird. Ohne diesen
+Schritt hätte die 30-Tage-Regel die Originale gelöscht — ein Nachdruck vier
+Wochen später wäre unmöglich, und ein fehlgeschlagener Lauf nicht mehr
+wiederholbar.
+
+**Fehlerbehandlung.** Jede Position wird einzeln abgearbeitet und einzeln als
+fehlgeschlagen markiert; ein defektes Motiv auf Bogen 2 reißt Bogen 1 nicht
+mit. Fehler lassen den Webhook nicht scheitern — Stripe würde sonst erneut
+zustellen und die Bestellung mehrfach verarbeiten.
+
+**Neue Dateien**
+| Datei | Zweck |
+|---|---|
+| `supabase/migrations/20260811100000_proj55_dtf_print_files.sql` | Tabelle mit Status je Position |
+| `src/lib/dtf-print-file.ts` | PDF aus der Bogenbeschreibung |
+| `src/lib/dtf-print-run.ts` | Lauf über eine Bestellung, Aufräumschutz |
+| `src/app/api/admin/orders/[id]/dtf-print-files/route.ts` | Liste, Download, Wiederholen |
+| `src/components/admin/AdminDtfPrintFiles.tsx` | Anzeige in der Bestellansicht |
+
+**Mitgefixt:** Die Bestellansicht rendert automatisch PNG und PDF für jede
+Position. Bei einer DTF-Position wäre `renderPosterFromSnapshot` mit
+`posterType: 'dtf'` gescheitert — bei jedem Öffnen der Bestellung eine
+Fehlermeldung. DTF-Positionen werden dort jetzt übersprungen.
+
+#### Bekannte Grenze
+
+Die Erzeugung hängt im Stripe-Webhook, Zeitlimit 300 Sekunden. Bei mehreren
+50-MB-Originalen kann das eng werden. Bewusst so belassen, bis sich zeigt, ob
+es in der Praxis zum Problem wird; die Alternative wäre, den Lauf als Job in
+die PROJ-30-Warteschlange zu hängen — die Bau-Funktion bliebe dieselbe, nur
+der Auslöser wechselte.
+
+#### Noch offen
+
+- **Testdruck.** Die Annahme „RIP spiegelt selbst" ist unbestätigt. Bei
+  doppelter Spiegelung ist jeder Bogen Ausschuss.
+- **Text auf dem Bogen**, Bogen-Reiter im Editor und Entwürfe speichern —
+  bewusst aus dem ersten Wurf herausgehalten.

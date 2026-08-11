@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { formatPrice, getItemFallbackLabel, displayFormatLabel } from '@/lib/products'
+import { AdminDtfPrintFiles } from './AdminDtfPrintFiles'
 import { PRINT_FORMAT_OPTIONS, type PrintFormat } from '@/lib/print-formats'
 import {
   renderPosterFromSnapshot,
@@ -151,6 +152,12 @@ export function AdminOrderDetail({ orderId }: { orderId: string }) {
   useEffect(() => {
     if (!order) return
     order.items.forEach((item, idx) => {
+      // PROJ-55: DTF-Positionen überspringen. Sie haben kein Poster-Design,
+      // das sich rendern liesse — ihre Druckdatei entsteht serverseitig aus
+      // der Bogenbeschreibung (siehe AdminDtfPrintFiles). Ohne diese Prüfung
+      // würde renderPosterFromSnapshot bei jedem Öffnen der Bestellung
+      // scheitern und eine Fehlermeldung werfen.
+      if ((item.productId as string) === 'dtf') return
       const hasPng = exports.some((e) => e.item_index === idx && e.file_type === 'png')
       const hasPdf = exports.some((e) => e.item_index === idx && e.file_type === 'pdf')
       if (!hasPng || !hasPdf) {
@@ -263,6 +270,11 @@ export function AdminOrderDetail({ orderId }: { orderId: string }) {
           </div>
         </div>
       )}
+
+      {/* PROJ-55: Erscheint nur, wenn die Bestellung DTF-Positionen enthält.
+          Steht bewusst über den Artikeln — beim Fulfillment ist die
+          Druckdatei das Erste, was gebraucht wird. */}
+      <AdminDtfPrintFiles orderId={orderId} />
 
       <div className="rounded-xl bg-white border border-border">
         <h2 className="text-sm font-semibold text-foreground p-6 pb-3">Artikel</h2>
