@@ -839,5 +839,18 @@
     "back": "Back",
     "confirm": "Approve and pay",
     "submitting": "Redirecting …"
+  },
+  "shipping": {
+    "countryLabel": "Delivery country",
+    "shippingLabel": "Shipping",
+    "free": "free",
+    "freeReached": "Free shipping reached.",
+    "remainingToFree": "{amount} more for free shipping.",
+    "euFlatNote": "EU: flat rate regardless of cart contents.",
+    "method": {
+      "letter": "Letter",
+      "small_parcel": "Small parcel",
+      "parcel": "Parcel"
+    }
   }
 }

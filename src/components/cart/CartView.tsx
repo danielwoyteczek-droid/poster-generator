@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { useTranslatedLabel } from '@/lib/i18n-catalog'
 import { X, ShoppingCart, CreditCard, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -18,9 +18,13 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { VoucherInput } from './VoucherInput'
 import { DtfApprovalDialog, readDtfSnapshot } from './DtfApprovalDialog'
 import { DtfSheetPreview } from './DtfSheetPreview'
+import { ShippingSelector } from './ShippingSelector'
+import { quoteShipping, SHIPPING_COUNTRIES, type ShippingCountry } from '@/lib/shipping'
 
 export function CartView() {
   const t = useTranslations('cart')
+  const tShipping = useTranslations('shipping')
+  const locale = useLocale()
   const productI18n = useTranslatedLabel('products')
   const productLabel = (item: { productId: string; withFrame?: boolean }) =>
     productI18n(
@@ -49,7 +53,35 @@ export function CartView() {
   const discountCents = voucher
     ? Math.min(voucher.discountCents, subtotalCents)
     : 0
-  const totalCents = Math.max(0, subtotalCents - discountCents)
+  const discountedCents = Math.max(0, subtotalCents - discountCents)
+
+  /**
+   * PROJ-26: Lieferland. Vorbelegt aus der Locale — wer die Seite auf
+   * Französisch liest, liefert vermutlich nach Frankreich. Fällt auf
+   * Deutschland zurück, wenn die Locale kein beliefertes Land ergibt.
+   */
+  const [country, setCountry] = useState<ShippingCountry>(() => {
+    const guess = locale.toUpperCase()
+    return (SHIPPING_COUNTRIES as readonly string[]).includes(guess)
+      ? (guess as ShippingCountry)
+      : 'DE'
+  })
+
+  // Der Freibetrag prüft gegen den Wert VOR Rabatt. Sonst würde ein
+  // Gutschein zusätzlich den Versand finanzieren.
+  const shippingQuote = quoteShipping(
+    items.map((i) => ({
+      productId: i.productId,
+      format: i.format,
+      withFrame: i.withFrame,
+      quantity: i.quantity,
+    })),
+    country,
+    subtotalCents,
+  )
+
+  const shippingCents = shippingQuote?.cents ?? 0
+  const totalCents = discountedCents + shippingCents
 
   useEffect(() => { setHydrated(true) }, [])
 
@@ -140,6 +172,10 @@ export function CartView() {
           ? { code: voucher.code, promotionCodeId: voucher.promotionCodeId }
           : undefined,
         attribution: readAttributionCookie() ?? undefined,
+        // PROJ-26: Das Lieferland muss VOR dem Anlegen der Session
+        // feststehen — Stripe kann den Versandpreis später nicht mehr an
+        // die eingegebene Adresse anpassen.
+        shippingCountry: country,
       }
       const res = await fetch('/api/checkout', {
         method: 'POST',
@@ -317,14 +353,27 @@ export function CartView() {
               <span>−{formatPrice(discountCents)}</span>
             </div>
           )}
-          <div className="flex justify-between text-muted-foreground">
-            <span>{t('shipping')}</span>
-            <span>{t('shippingValue')}</span>
-          </div>
+          {/* PROJ-26: Bis hierher stand hier ein fester Text („kostenlos").
+              Jetzt der berechnete Betrag; bei reinen Downloads entfällt die
+              Zeile ganz. */}
+          {shippingQuote && shippingQuote.freeReason !== 'digital_only' && (
+            <div className="flex justify-between text-muted-foreground">
+              <span>{t('shipping')}</span>
+              <span>
+                {shippingCents === 0 ? tShipping('free') : formatPrice(shippingCents)}
+              </span>
+            </div>
+          )}
           <div className="border-t border-border pt-2 flex justify-between text-base font-semibold text-foreground">
             <span>{t('total')}</span>
             <span>{formatPrice(totalCents)}</span>
           </div>
+
+          <ShippingSelector
+            country={country}
+            onCountryChange={setCountry}
+            quote={shippingQuote}
+          />
         </div>
 
         <VoucherInput />

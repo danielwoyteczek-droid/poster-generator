@@ -839,5 +839,18 @@
     "back": "Retour",
     "confirm": "Valider et payer",
     "submitting": "Redirection …"
+  },
+  "shipping": {
+    "countryLabel": "Pays de livraison",
+    "shippingLabel": "Livraison",
+    "free": "offerte",
+    "freeReached": "Livraison offerte atteinte.",
+    "remainingToFree": "Encore {amount} pour la livraison offerte.",
+    "euFlatNote": "UE : forfait indépendant du contenu du panier.",
+    "method": {
+      "letter": "Lettre",
+      "small_parcel": "Petit colis",
+      "parcel": "Colis"
+    }
   }
 }

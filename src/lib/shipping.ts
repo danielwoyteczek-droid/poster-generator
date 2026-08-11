@@ -59,12 +59,12 @@ export const LETTER_MAX_A4_SHEETS = 10
  */
 export const SHIPPING_RATE_IDS: Record<ShippingZone, Partial<Record<ShippingMethod, string>>> = {
   domestic: {
-    letter: '',
-    small_parcel: '',
-    parcel: '',
+    letter: 'shr_1U3G8n36Wy7c8yXhtlrYa8KW',
+    small_parcel: 'shr_1U3G9o36Wy7c8yXhEqBRAEIx',
+    parcel: 'shr_1U3GAU36Wy7c8yXhZ9uCd9Is',
   },
   eu: {
-    parcel: '',
+    parcel: 'shr_1U3GAy36Wy7c8yXhbw368EMq',
   },
 }
 

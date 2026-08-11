@@ -839,5 +839,18 @@
     "back": "Zurück",
     "confirm": "Freigeben und bezahlen",
     "submitting": "Wird weitergeleitet …"
+  },
+  "shipping": {
+    "countryLabel": "Lieferland",
+    "shippingLabel": "Versand",
+    "free": "kostenlos",
+    "freeReached": "Versandkostenfrei erreicht.",
+    "remainingToFree": "Noch {amount} bis zum kostenfreien Versand.",
+    "euFlatNote": "EU-Ausland: Pauschale unabhängig vom Warenkorb.",
+    "method": {
+      "letter": "Brief",
+      "small_parcel": "Kleinpaket",
+      "parcel": "Paket"
+    }
   }
 }

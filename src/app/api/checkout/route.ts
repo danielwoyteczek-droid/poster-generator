@@ -8,6 +8,7 @@ import { getProductCatalog } from '@/lib/stripe-catalog'
 import { tierToStripeLineItems } from '@/lib/tier-expansion'
 import type { PrintFormat } from '@/lib/print-formats'
 import type { DtfSheetFormat } from '@/lib/dtf-constants'
+import { quoteShipping, SHIPPING_COUNTRIES, DOMESTIC_COUNTRY } from '@/lib/shipping'
 
 const CartItemSchema = z.object({
   productId: z.enum(['download', 'poster', 'dtf']),
@@ -68,6 +69,12 @@ const CheckoutBodySchema = z.object({
   items: z.array(CartItemSchema).min(1).max(20),
   digitalConsent: z.boolean().optional(),
   dtfApproval: DtfApprovalSchema.optional(),
+  /**
+   * PROJ-26: Lieferland aus der Warenkorb-Auswahl. Bestimmt Zone und
+   * Versandtarif. Muss hier ankommen, weil Stripe `shipping_options` beim
+   * Anlegen der Session festnagelt und die Adresse erst danach erfragt.
+   */
+  shippingCountry: z.enum(SHIPPING_COUNTRIES).optional(),
   attribution: AttributionSchema.optional(),
   /**
    * Active editor locale at checkout time (PROJ-20). Stored on the order
@@ -190,6 +197,38 @@ export async function POST(req: NextRequest) {
     )
   }
 
+  /**
+   * PROJ-26: Versandtarif bestimmen. Der Client hat dieselbe Rechnung schon
+   * für die Anzeige gemacht; hier läuft sie erneut, weil ein Betrag, den
+   * der Client berechnet, kein Betrag ist, auf den man sich verlassen kann.
+   *
+   * Fehlt die Stripe-ID, wird ohne Versandkosten fortgefahren statt die
+   * Bestellung abzubrechen: Eine Bestellung ohne Versandkosten ist ein
+   * kalkulierbarer Verlust, eine abgebrochene ein sicherer. Der Vorfall
+   * gehört aber ins Log.
+   */
+  const shippingCountry = parsed.data.shippingCountry ?? DOMESTIC_COUNTRY
+  const shippingQuote = hasPhysical
+    ? quoteShipping(
+        expanded.map((e) => ({
+          productId: e.productId,
+          format: e.format,
+          withFrame: e.withFrame,
+          quantity: e.quantity,
+        })),
+        shippingCountry,
+        // Wert VOR Rabatt — sonst würde ein Gutschein den Versand finanzieren.
+        totalCents,
+      )
+    : null
+  const shippingRateId = shippingQuote?.stripeShippingRateId ?? null
+  if (shippingQuote && shippingQuote.cents > 0 && !shippingRateId) {
+    console.warn('[checkout] no Stripe shipping rate configured', {
+      zone: shippingQuote.zone,
+      method: shippingQuote.method,
+    })
+  }
+
   // Pick locale from explicit body field, then NEXT_LOCALE cookie, then DE
   const cookieLocale = req.cookies.get('NEXT_LOCALE')?.value
   const locale = parsed.data.locale
@@ -273,8 +312,15 @@ export async function POST(req: NextRequest) {
     cancel_url: `${origin}/${locale}/cart`,
     customer_email: user?.email,
     allow_promotion_codes: hasCartVoucher ? undefined : true,
+    // PROJ-26: Adressabfrage auf das im Warenkorb gewählte Land beschränken,
+    // damit Gezahltes und Geliefertes zusammenpassen. Vorher standen hier
+    // fest DE/AT/CH und es wurden nie Versandkosten berechnet; die Schweiz
+    // ist wegen Zoll und Einfuhrumsatzsteuer nicht mehr dabei.
     shipping_address_collection: hasPhysical
-      ? { allowed_countries: ['DE', 'AT', 'CH'] }
+      ? { allowed_countries: [shippingCountry] }
+      : undefined,
+    shipping_options: shippingRateId
+      ? [{ shipping_rate: shippingRateId }]
       : undefined,
     metadata: { order_id: order.id },
   }

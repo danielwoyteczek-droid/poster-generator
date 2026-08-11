@@ -839,5 +839,18 @@
     "back": "Atrás",
     "confirm": "Aprobar y pagar",
     "submitting": "Redirigiendo …"
+  },
+  "shipping": {
+    "countryLabel": "País de entrega",
+    "shippingLabel": "Envío",
+    "free": "gratis",
+    "freeReached": "Envío gratuito alcanzado.",
+    "remainingToFree": "Faltan {amount} para el envío gratuito.",
+    "euFlatNote": "UE: tarifa plana independiente del carrito.",
+    "method": {
+      "letter": "Carta",
+      "small_parcel": "Paquete pequeño",
+      "parcel": "Paquete"
+    }
   }
 }
