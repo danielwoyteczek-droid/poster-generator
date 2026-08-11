@@ -820,5 +820,20 @@
     "cartNeedsMotif": "Lege mindestens ein Motiv auf einen Bogen, um zu bestellen.",
     "cartSkipsEmpty": "{count} leere Bögen werden nicht mitbestellt.",
     "cartUnavailable": "Für eines der gewählten Formate ist noch kein Preis hinterlegt. Bitte später erneut versuchen."
+  },
+  "dtfApproval": {
+    "title": "Druckfreigabe",
+    "intro": "Bitte prüfe deine Bögen. Genau so werden sie gedruckt — nach dem Bezahlen sind keine Änderungen mehr möglich.",
+    "sheetLabel": "Bogen {index}",
+    "quantity": "Auflage: {count}×",
+    "motifCount": "{count} Motive",
+    "lowDpiHeading": "{count} Motive mit niedriger Auflösung",
+    "lowDpiItem": "Bogen {sheet}: {width} × {height} cm bei {dpi} dpi",
+    "lowDpiHint": "Unter {min} dpi wird der Druck sichtbar unscharf. Du kannst trotzdem bestellen — dann drucken wir es genau so.",
+    "checkboxPrint": "Ich habe die Vorschau geprüft und gebe sie zum Druck frei. Mir ist bewusst, dass exakt diese Darstellung gedruckt wird.",
+    "checkboxRights": "Ich besitze die Rechte an den hochgeladenen Motiven oder bin berechtigt, sie drucken zu lassen.",
+    "back": "Zurück",
+    "confirm": "Freigeben und bezahlen",
+    "submitting": "Wird weitergeleitet …"
   }
 }

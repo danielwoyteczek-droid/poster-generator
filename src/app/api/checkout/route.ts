@@ -7,17 +7,29 @@ import { type ProductId } from '@/lib/products'
 import { getProductCatalog } from '@/lib/stripe-catalog'
 import { tierToStripeLineItems } from '@/lib/tier-expansion'
 import type { PrintFormat } from '@/lib/print-formats'
+import type { DtfSheetFormat } from '@/lib/dtf-constants'
 
 const CartItemSchema = z.object({
-  productId: z.enum(['download', 'poster']),
+  productId: z.enum(['download', 'poster', 'dtf']),
   /**
    * PROJ-48: only meaningful when productId='poster'. When true, the
    * checkout route expands the cart item to two Stripe line items
    * (poster_<fmt> + frame_markup_<fmt>).
    */
   withFrame: z.boolean().default(false),
-  format: z.enum(['a4', 'a3', 'a2']),
-  posterType: z.enum(['map', 'star-map', 'photo']),
+  /**
+   * PROJ-55: Poster rechnen nach Papierformat (a4 | a3 | a2), DTF nach
+   * Bogenmaß (a4 | a3 | 40x50). `productId` entscheidet, welche Bedeutung
+   * gilt — die Prüfung darauf passiert unten beim Bauen der Stripe-Zeilen.
+   */
+  format: z.enum(['a4', 'a3', 'a2', '40x50']),
+  posterType: z.enum(['map', 'star-map', 'photo', 'dtf']),
+  /**
+   * PROJ-55: Auflage. Poster sind immer Einzelstücke; DTF-Bögen können
+   * mehrfach gedruckt werden. Geht als Menge an Stripe, damit der
+   * hinterlegte Stückpreis maßgeblich bleibt.
+   */
+  quantity: z.number().int().min(1).max(99).default(1),
   title: z.string().min(1).max(200),
   projectId: z.string().uuid().nullable().optional(),
   snapshot: z.record(z.string(), z.unknown()),
@@ -41,9 +53,21 @@ const AttributionSchema = z.object({
   first_seen_at: z.string().datetime(),
 })
 
+/**
+ * PROJ-55: Druckfreigabe und Rechteinhaber-Bestätigung aus dem Dialog, der
+ * dem Checkout vorgeschaltet ist. Nur gesetzt, wenn der Warenkorb
+ * DTF-Positionen enthält — bei allen anderen Bestellungen fehlt das Feld
+ * und die Spalten auf `orders` bleiben NULL.
+ */
+const DtfApprovalSchema = z.object({
+  printApprovedAt: z.string().datetime(),
+  rightsConfirmedAt: z.string().datetime(),
+})
+
 const CheckoutBodySchema = z.object({
   items: z.array(CartItemSchema).min(1).max(20),
   digitalConsent: z.boolean().optional(),
+  dtfApproval: DtfApprovalSchema.optional(),
   attribution: AttributionSchema.optional(),
   /**
    * Active editor locale at checkout time (PROJ-20). Stored on the order
@@ -88,8 +112,9 @@ export async function POST(req: NextRequest) {
   type ExpandedItem = {
     productId: ProductId
     withFrame: boolean
-    format: PrintFormat
-    posterType: 'map' | 'star-map' | 'photo'
+    format: PrintFormat | DtfSheetFormat
+    posterType: 'map' | 'star-map' | 'photo' | 'dtf'
+    quantity: number
     title: string
     projectId?: string | null
     snapshot: Record<string, unknown>
@@ -100,13 +125,34 @@ export async function POST(req: NextRequest) {
   let expanded: ExpandedItem[]
   try {
     expanded = parsed.data.items.map((item) => {
-      const lineItems = tierToStripeLineItems(item.productId, item.withFrame, item.format)
+      // PROJ-55: DTF rechnet nach Bogenmaß und kennt keine Rahmen-Option,
+      // deshalb ein eigener Zweig statt einer Erweiterung der
+      // Tier-Expansion. Die Auflage geht als Menge an Stripe — so bleibt
+      // der im Dashboard gepflegte Stückpreis maßgeblich.
+      if (item.productId === 'dtf') {
+        const sheetFormat = item.format as DtfSheetFormat
+        const price = catalog.dtfSheets[sheetFormat]
+        if (!price) {
+          throw new Error(`No Stripe price configured for dtf/${item.format}`)
+        }
+        return {
+          ...item,
+          priceCents: price.unitAmount * item.quantity,
+          stripeLineItems: [
+            { stripePriceId: price.stripePriceId, quantity: item.quantity },
+          ],
+        }
+      }
+
+      const posterFormat = item.format as PrintFormat
+      const posterProduct = item.productId as Exclude<ProductId, 'dtf'>
+      const lineItems = tierToStripeLineItems(posterProduct, item.withFrame, posterFormat)
       const priceCents = lineItems.reduce((sum, li) => {
         const unitAmount =
-          catalog.products[item.productId]?.[item.format]?.stripePriceId === li.stripePriceId
-            ? (catalog.products[item.productId]?.[item.format]?.unitAmount ?? 0)
-            : catalog.frameMarkup[item.format]?.stripePriceId === li.stripePriceId
-            ? (catalog.frameMarkup[item.format]?.unitAmount ?? 0)
+          catalog.products[posterProduct]?.[posterFormat]?.stripePriceId === li.stripePriceId
+            ? (catalog.products[posterProduct]?.[posterFormat]?.unitAmount ?? 0)
+            : catalog.frameMarkup[posterFormat]?.stripePriceId === li.stripePriceId
+            ? (catalog.frameMarkup[posterFormat]?.unitAmount ?? 0)
             : 0
         return sum + unitAmount * li.quantity
       }, 0)
@@ -132,6 +178,18 @@ export async function POST(req: NextRequest) {
     )
   }
 
+  // PROJ-55: Der Freigabe-Dialog sitzt im Warenkorb, also im Client. Ohne
+  // diese Prüfung liesse er sich mit einem direkten Aufruf überspringen —
+  // und genau die Freigabe ist der rechtliche Kern des Produkts. Sie hier
+  // zu erzwingen, ist die einzige Stelle, an der sie nicht umgehbar ist.
+  const hasDtf = expanded.some((i) => i.productId === 'dtf')
+  if (hasDtf && !parsed.data.dtfApproval) {
+    return NextResponse.json(
+      { error: 'Druckfreigabe und Rechteinhaber-Bestätigung erforderlich' },
+      { status: 400 },
+    )
+  }
+
   // Pick locale from explicit body field, then NEXT_LOCALE cookie, then DE
   const cookieLocale = req.cookies.get('NEXT_LOCALE')?.value
   const locale = parsed.data.locale
@@ -145,6 +203,10 @@ export async function POST(req: NextRequest) {
     withFrame: e.withFrame,
     format: e.format,
     posterType: e.posterType,
+    // PROJ-55: Auflage mitschreiben. Ohne sie wüsste das Fulfillment nicht,
+    // wie oft ein Bogen gedruckt werden soll — der Gesamtpreis allein sagt
+    // es nicht, sobald sich Preise ändern.
+    quantity: e.quantity,
     title: e.title,
     projectId: e.projectId ?? null,
     snapshot: e.snapshot,
@@ -176,6 +238,10 @@ export async function POST(req: NextRequest) {
       landing_page: attribution?.landing_page ?? null,
       referrer: attribution?.referrer ?? null,
       attribution_at: attribution?.first_seen_at ?? null,
+      // PROJ-55: Druckfreigabe und Rechteinhaber-Bestätigung. Nur gesetzt,
+      // wenn der Warenkorb DTF enthielt und der Dialog durchlaufen wurde.
+      dtf_print_approved_at: parsed.data.dtfApproval?.printApprovedAt ?? null,
+      dtf_rights_confirmed_at: parsed.data.dtfApproval?.rightsConfirmedAt ?? null,
     })
     .select('id, access_token')
     .single()

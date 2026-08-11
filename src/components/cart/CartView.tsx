@@ -16,6 +16,7 @@ import { PRINT_FORMAT_OPTIONS, type PrintFormat } from '@/lib/print-formats'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { VoucherInput } from './VoucherInput'
+import { DtfApprovalDialog } from './DtfApprovalDialog'
 
 function formatLabel(format: string) {
   return PRINT_FORMAT_OPTIONS.find((f) => f.id === format)?.label ?? format.toUpperCase()
@@ -40,6 +41,8 @@ export function CartView() {
   const removeVoucher = useVoucherStore((s) => s.remove)
   const { frameMarkup } = useProductCatalog()
   const hasDigital = items.some((i) => i.productId === 'download')
+  const hasDtf = items.some((i) => i.productId === 'dtf')
+  const [approvalOpen, setApprovalOpen] = useState(false)
 
   // PROJ-48: discount-cents is a preview computed against the current cart.
   // If the voucher no longer applies (subtotal dropped below min_amount, or
@@ -91,7 +94,29 @@ export function CartView() {
     })()
   }, [hydrated, voucher, items, applyVoucher, removeVoucher])
 
-  const handleCheckout = async () => {
+  /**
+   * PROJ-55: Enthält der Warenkorb DTF-Positionen, schiebt sich vor den
+   * Checkout ein Freigabe-Dialog. Der Bestellablauf selbst bleibt
+   * unverändert — nach dem Bestätigen läuft exakt derselbe Aufruf wie
+   * bisher, nur um zwei Zeitstempel ergänzt. Ohne DTF im Warenkorb
+   * erscheint der Dialog nicht und der Weg ist identisch zu vorher.
+   */
+  const handleCheckoutClick = () => {
+    if (hasDigital && !digitalConsent) {
+      toast.error(t('digitalConsentRequired'))
+      return
+    }
+    if (hasDtf) {
+      setApprovalOpen(true)
+      return
+    }
+    void handleCheckout()
+  }
+
+  const handleCheckout = async (approval?: {
+    printApprovedAt: string
+    rightsConfirmedAt: string
+  }) => {
     if (hasDigital && !digitalConsent) {
       toast.error(t('digitalConsentRequired'))
       return
@@ -108,10 +133,12 @@ export function CartView() {
     })))
     try {
       const payload = {
-        items: items.map(({ productId, withFrame, format, posterType, title, snapshot, projectId }) => ({
-          productId, withFrame: !!withFrame, format, posterType, title, snapshot, projectId,
+        items: items.map(({ productId, withFrame, format, posterType, quantity, title, snapshot, projectId }) => ({
+          productId, withFrame: !!withFrame, format, posterType, quantity, title, snapshot, projectId,
         })),
         digitalConsent: hasDigital ? digitalConsent : undefined,
+        // PROJ-55: nur gesetzt, wenn der Freigabe-Dialog durchlaufen wurde.
+        dtfApproval: approval,
         voucher: voucher
           ? { code: voucher.code, promotionCodeId: voucher.promotionCodeId }
           : undefined,
@@ -287,7 +314,7 @@ export function CartView() {
         <Button
           className="w-full"
           size="lg"
-          onClick={handleCheckout}
+          onClick={handleCheckoutClick}
           disabled={isCheckingOut || (hasDigital && !digitalConsent)}
         >
           {isCheckingOut ? (
@@ -301,6 +328,22 @@ export function CartView() {
           {t('secureNote')}
         </p>
       </aside>
+
+      {/* PROJ-55: Erscheint nur bei DTF-Positionen. Bestätigt der Kunde,
+          läuft danach derselbe Checkout wie sonst — nur mit den beiden
+          Zeitstempeln im Aufruf. */}
+      {hasDtf && (
+        <DtfApprovalDialog
+          open={approvalOpen}
+          onOpenChange={setApprovalOpen}
+          items={items}
+          isSubmitting={isCheckingOut}
+          onConfirm={(approval) => {
+            setApprovalOpen(false)
+            void handleCheckout(approval)
+          }}
+        />
+      )}
     </div>
   )
 }

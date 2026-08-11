@@ -820,5 +820,20 @@
     "cartNeedsMotif": "Placez au moins un motif sur une feuille pour commander.",
     "cartSkipsEmpty": "{count} feuilles vides ne seront pas commandées.",
     "cartUnavailable": "Aucun prix n’est encore configuré pour l’un des formats choisis. Réessayez plus tard."
+  },
+  "dtfApproval": {
+    "title": "Bon à tirer",
+    "intro": "Vérifiez vos feuilles. Elles seront imprimées exactement ainsi — aucune modification n’est possible après le paiement.",
+    "sheetLabel": "Feuille {index}",
+    "quantity": "Exemplaires : {count}×",
+    "motifCount": "{count} motifs",
+    "lowDpiHeading": "{count} motifs en basse résolution",
+    "lowDpiItem": "Feuille {sheet} : {width} × {height} cm à {dpi} ppp",
+    "lowDpiHint": "En dessous de {min} ppp, l’impression devient visiblement floue. Vous pouvez commander malgré tout — nous imprimerons exactement ce qui est affiché.",
+    "checkboxPrint": "J’ai vérifié l’aperçu et j’en autorise l’impression. Je comprends que c’est exactement cela qui sera imprimé.",
+    "checkboxRights": "Je détiens les droits sur les motifs importés ou je suis autorisé à les faire imprimer.",
+    "back": "Retour",
+    "confirm": "Valider et payer",
+    "submitting": "Redirection …"
   }
 }

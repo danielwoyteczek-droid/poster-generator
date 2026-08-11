@@ -820,5 +820,20 @@
     "cartNeedsMotif": "Posiziona almeno un motivo su un foglio per ordinare.",
     "cartSkipsEmpty": "{count} fogli vuoti non verranno ordinati.",
     "cartUnavailable": "Per uno dei formati scelti non è ancora impostato un prezzo. Riprova più tardi."
+  },
+  "dtfApproval": {
+    "title": "Approvazione di stampa",
+    "intro": "Controlla i tuoi fogli. Verranno stampati esattamente così — dopo il pagamento non sono possibili modifiche.",
+    "sheetLabel": "Foglio {index}",
+    "quantity": "Copie: {count}×",
+    "motifCount": "{count} motivi",
+    "lowDpiHeading": "{count} motivi a bassa risoluzione",
+    "lowDpiItem": "Foglio {sheet}: {width} × {height} cm a {dpi} dpi",
+    "lowDpiHint": "Sotto i {min} dpi la stampa diventa visibilmente sfocata. Puoi comunque ordinare — stamperemo esattamente quanto mostrato.",
+    "checkboxPrint": "Ho controllato l’anteprima e ne autorizzo la stampa. So che verrà stampato esattamente questo.",
+    "checkboxRights": "Possiedo i diritti sui motivi caricati o sono autorizzato a farli stampare.",
+    "back": "Indietro",
+    "confirm": "Approva e paga",
+    "submitting": "Reindirizzamento …"
   }
 }
