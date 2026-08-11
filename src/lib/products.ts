@@ -1,5 +1,5 @@
-import type { PrintFormat } from './print-formats'
-import type { DtfSheetFormat } from './dtf-constants'
+import { PRINT_FORMAT_OPTIONS, type PrintFormat } from './print-formats'
+import { DTF_SHEET_FORMAT_OPTIONS, type DtfSheetFormat } from './dtf-constants'
 
 /**
  * PROJ-48 — Tier-Pricing-Refactor
@@ -123,6 +123,22 @@ export function isDtfPurchasable(): boolean {
   return (Object.keys(DTF_SHEET_PRICE_IDS) as DtfSheetFormat[]).every((f) =>
     Boolean(DTF_SHEET_PRICE_IDS[f]),
   )
+}
+
+/**
+ * Anzeigename eines Formats — kennt Poster- UND Bogenformate.
+ *
+ * Es gab drei identische Kopien dieses Helfers (Warenkorb, Bestellansicht,
+ * Admin), alle nur mit den Posterformaten. Ein DTF-Bogen wäre dort als
+ * „40X50" erschienen. Zusammengeführt, damit die nächste Formatergänzung
+ * nicht wieder an zwei Stellen vergessen wird.
+ */
+export function displayFormatLabel(format: string): string {
+  const poster = PRINT_FORMAT_OPTIONS.find((f) => f.id === format)
+  if (poster) return poster.label
+  const sheet = DTF_SHEET_FORMAT_OPTIONS.find((f) => f.id === format)
+  if (sheet) return sheet.label
+  return format.toUpperCase()
 }
 
 export function formatPrice(cents: number) {

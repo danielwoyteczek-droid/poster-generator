@@ -315,7 +315,11 @@
     "checkoutCta": "Checkout",
     "checkoutRedirecting": "Redirecting…",
     "checkoutFailed": "Checkout failed",
-    "secureNote": "Secure payment via Stripe. No registration required."
+    "secureNote": "Secure payment via Stripe. No registration required.",
+    "dtfPrint": "DTF print",
+    "dtfUnitPrice": "{price} per sheet",
+    "dtfMotifCount": "{count} items on the sheet",
+    "photoPoster": "Photo poster"
   },
   "editor": {
     "anpassen": "Customize",

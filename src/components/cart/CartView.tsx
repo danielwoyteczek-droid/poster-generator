@@ -11,16 +11,13 @@ import { useVoucherStore } from '@/hooks/useVoucherStore'
 import { useProductCatalog, frameMarkupFromCatalog } from '@/hooks/useProductCatalog'
 import { trackBeginCheckout } from '@/lib/analytics'
 import { readAttributionCookie } from '@/lib/attribution'
-import { formatPrice, getItemFallbackLabel, getItemLabelKey } from '@/lib/products'
+import { formatPrice, getItemFallbackLabel, getItemLabelKey, displayFormatLabel } from '@/lib/products'
 import { PRINT_FORMAT_OPTIONS, type PrintFormat } from '@/lib/print-formats'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { VoucherInput } from './VoucherInput'
-import { DtfApprovalDialog } from './DtfApprovalDialog'
-
-function formatLabel(format: string) {
-  return PRINT_FORMAT_OPTIONS.find((f) => f.id === format)?.label ?? format.toUpperCase()
-}
+import { DtfApprovalDialog, readDtfSnapshot } from './DtfApprovalDialog'
+import { DtfSheetPreview } from './DtfSheetPreview'
 
 export function CartView() {
   const t = useTranslations('cart')
@@ -197,21 +194,39 @@ export function CartView() {
             ? Math.max(0, item.priceCents - frameMarkupPrice.unitAmount)
             : item.priceCents
 
+          // PROJ-55: DTF-Positionen tragen keine fertige Bilddatei, sondern
+          // die Bogenbeschreibung. Sie wird hier aus denselben Daten
+          // gezeichnet wie im Editor und im Freigabe-Dialog.
+          const dtf = readDtfSnapshot(item)
+
           return (
           <div key={item.id} className="flex gap-4 p-4 rounded-xl bg-white border border-border">
-            <div className="w-24 h-32 shrink-0 rounded-md overflow-hidden bg-muted flex items-center justify-center">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={item.previewDataUrl}
-                alt={item.title}
-                className="w-full h-full object-cover"
-              />
-            </div>
+            {dtf ? (
+              <DtfSheetPreview format={dtf.format} elements={dtf.elements} widthPx={96} />
+            ) : (
+              <div className="w-24 h-32 shrink-0 rounded-md overflow-hidden bg-muted flex items-center justify-center">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={item.previewDataUrl}
+                  alt={item.title}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            )}
             <div className="flex-1 min-w-0 flex flex-col">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-xs text-muted-foreground/70 uppercase tracking-wider">
-                    {item.posterType === 'star-map' ? t('starPoster') : t('cityPoster')}
+                    {/* Foto-Poster liefen hier bisher unter „Stadtposter" —
+                        der Zweig kannte nur Stern und Sonst. Mit DTF als
+                        drittem Fall fiel es auf, also gleich mitkorrigiert. */}
+                    {item.posterType === 'star-map'
+                      ? t('starPoster')
+                      : item.posterType === 'photo'
+                        ? t('photoPoster')
+                        : item.posterType === 'dtf'
+                          ? t('dtfPrint')
+                          : t('cityPoster')}
                   </p>
                   <h3 className="text-sm font-semibold text-foreground truncate mt-0.5">{item.title}</h3>
                 </div>
@@ -231,12 +246,29 @@ export function CartView() {
                     {productI18n(
                       `${item.productId}Label`,
                       getItemFallbackLabel({ productId: item.productId, withFrame: false }),
-                    )} · {formatLabel(item.format)}
+                    )} · {displayFormatLabel(item.format)}
+                    {/* Auflage nur zeigen, wenn sie etwas aussagt. Bei
+                        Postern ist sie immer 1 und wäre nur Rauschen. */}
+                    {item.quantity > 1 && ` · ${item.quantity}×`}
                   </span>
                   <span className="text-foreground/80 font-medium shrink-0">
                     {formatPrice(baseCents)}
                   </span>
                 </div>
+                {dtf && item.quantity > 1 && (
+                  <div className="flex justify-between gap-2 text-muted-foreground/70">
+                    <span className="truncate">
+                      {t('dtfUnitPrice', {
+                        price: formatPrice(Math.round(item.priceCents / item.quantity)),
+                      })}
+                    </span>
+                  </div>
+                )}
+                {dtf && (
+                  <div className="text-muted-foreground/70">
+                    {t('dtfMotifCount', { count: dtf.elements.length })}
+                  </div>
+                )}
                 {frameMarkupPrice && (
                   <div className="flex justify-between gap-2 text-muted-foreground">
                     <span className="truncate">

@@ -315,7 +315,11 @@
     "voucherErrorNotApplicable": "Ce code ne s'applique pas aux articles de votre panier.",
     "voucherErrorCurrencyMismatch": "Le code n'est pas disponible dans la devise correspondante.",
     "voucherRateLimited": "Trop d'essais. Veuillez réessayer plus tard.",
-    "voucherGenericError": "Impossible de vérifier le code. Veuillez réessayer."
+    "voucherGenericError": "Impossible de vérifier le code. Veuillez réessayer.",
+    "dtfPrint": "Impression DTF",
+    "dtfUnitPrice": "{price} par feuille",
+    "dtfMotifCount": "{count} motifs sur la feuille",
+    "photoPoster": "Affiche photo"
   },
   "editor": {
     "anpassen": "Personnaliser",
