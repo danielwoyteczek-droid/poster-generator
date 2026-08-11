@@ -811,6 +811,14 @@
     "sheetRemove": "Quitar hoja {index}",
     "sheetTotal": "{count} hojas en total",
     "sheetsHeading": "Hojas",
-    "sheetMotifs": "{count} motivos"
+    "sheetMotifs": "{count} motivos",
+    "cartAdd": "Añadir al carrito",
+    "cartAdding": "Añadiendo …",
+    "cartAdded": "{count} hojas añadidas al carrito",
+    "cartSummary": "{sheets} hojas en {positions} artículos",
+    "cartItemTitle": "Hoja DTF {index} ({format})",
+    "cartNeedsMotif": "Coloca al menos un motivo en una hoja para pedir.",
+    "cartSkipsEmpty": "{count} hojas vacías no se pedirán.",
+    "cartUnavailable": "Todavía no hay precio configurado para uno de los formatos elegidos. Inténtalo más tarde."
   }
 }

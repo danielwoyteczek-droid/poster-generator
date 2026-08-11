@@ -811,6 +811,14 @@
     "sheetRemove": "Supprimer la feuille {index}",
     "sheetTotal": "{count} feuilles au total",
     "sheetsHeading": "Feuilles",
-    "sheetMotifs": "{count} motifs"
+    "sheetMotifs": "{count} motifs",
+    "cartAdd": "Ajouter au panier",
+    "cartAdding": "Ajout …",
+    "cartAdded": "{count} feuilles ajoutées au panier",
+    "cartSummary": "{sheets} feuilles en {positions} articles",
+    "cartItemTitle": "Feuille DTF {index} ({format})",
+    "cartNeedsMotif": "Placez au moins un motif sur une feuille pour commander.",
+    "cartSkipsEmpty": "{count} feuilles vides ne seront pas commandées.",
+    "cartUnavailable": "Aucun prix n’est encore configuré pour l’un des formats choisis. Réessayez plus tard."
   }
 }

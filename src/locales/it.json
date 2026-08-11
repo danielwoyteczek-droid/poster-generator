@@ -811,6 +811,14 @@
     "sheetRemove": "Rimuovi foglio {index}",
     "sheetTotal": "{count} fogli in totale",
     "sheetsHeading": "Fogli",
-    "sheetMotifs": "{count} motivi"
+    "sheetMotifs": "{count} motivi",
+    "cartAdd": "Aggiungi al carrello",
+    "cartAdding": "Aggiunta …",
+    "cartAdded": "{count} fogli aggiunti al carrello",
+    "cartSummary": "{sheets} fogli in {positions} voci",
+    "cartItemTitle": "Foglio DTF {index} ({format})",
+    "cartNeedsMotif": "Posiziona almeno un motivo su un foglio per ordinare.",
+    "cartSkipsEmpty": "{count} fogli vuoti non verranno ordinati.",
+    "cartUnavailable": "Per uno dei formati scelti non è ancora impostato un prezzo. Riprova più tardi."
   }
 }

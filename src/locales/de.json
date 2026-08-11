@@ -811,6 +811,14 @@
     "sheetRemove": "Bogen {index} entfernen",
     "sheetTotal": "{count} Bögen gesamt",
     "sheetsHeading": "Bögen",
-    "sheetMotifs": "{count} Motive"
+    "sheetMotifs": "{count} Motive",
+    "cartAdd": "In den Warenkorb",
+    "cartAdding": "Wird hinzugefügt …",
+    "cartAdded": "{count} Bögen im Warenkorb",
+    "cartSummary": "{sheets} Bögen in {positions} Positionen",
+    "cartItemTitle": "DTF-Bogen {index} ({format})",
+    "cartNeedsMotif": "Lege mindestens ein Motiv auf einen Bogen, um zu bestellen.",
+    "cartSkipsEmpty": "{count} leere Bögen werden nicht mitbestellt.",
+    "cartUnavailable": "Für eines der gewählten Formate ist noch kein Preis hinterlegt. Bitte später erneut versuchen."
   }
 }

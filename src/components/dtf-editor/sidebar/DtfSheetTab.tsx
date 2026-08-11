@@ -8,6 +8,7 @@ import { Switch } from '@/components/ui/switch'
 import { DTF_SHEET_FORMAT_OPTIONS, DTF_SHEET_FORMATS } from '@/lib/dtf-constants'
 import { useDtfStore, activeSheetOf } from '@/hooks/useDtfStore'
 import { DtfSheetList } from './DtfSheetList'
+import { DtfAddToCart } from './DtfAddToCart'
 import { cn } from '@/lib/utils'
 
 /**
@@ -117,6 +118,10 @@ export function DtfSheetTab() {
           <p className="text-xs text-muted-foreground">{t('gridHint')}</p>
         </div>
         <Switch id="dtf-grid" checked={showGrid} onCheckedChange={setShowGrid} />
+      </div>
+
+      <div className="pt-2 border-t border-border">
+        <DtfAddToCart />
       </div>
     </div>
   )

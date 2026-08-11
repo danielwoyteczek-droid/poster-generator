@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import type { ProductId } from '@/lib/products'
 import type { PrintFormat } from '@/lib/print-formats'
+import type { DtfSheetFormat } from '@/lib/dtf-constants'
 
 export interface CatalogPrice {
   stripePriceId: string
@@ -20,16 +21,21 @@ export interface CatalogProduct {
 
 export type FrameMarkupTable = Partial<Record<PrintFormat, CatalogPrice>>
 
+/** PROJ-55: Preis je DTF-Bogenformat, pro einzelnem Bogen. */
+export type DtfSheetTable = Partial<Record<DtfSheetFormat, CatalogPrice>>
+
 interface CatalogState {
   loading: boolean
   error: string | null
   products: CatalogProduct[]
   frameMarkup: FrameMarkupTable
+  dtfSheets: DtfSheetTable
 }
 
 interface CatalogResponse {
   products: CatalogProduct[]
   frameMarkup: FrameMarkupTable
+  dtfSheets: DtfSheetTable
 }
 
 let cachedPromise: Promise<CatalogResponse> | null = null
@@ -47,6 +53,7 @@ async function load(): Promise<CatalogResponse> {
       return {
         products: (data.products ?? []) as CatalogProduct[],
         frameMarkup: (data.frameMarkup ?? {}) as FrameMarkupTable,
+        dtfSheets: (data.dtfSheets ?? {}) as DtfSheetTable,
       }
     })
     .catch((err) => {
@@ -62,6 +69,7 @@ export function useProductCatalog(): CatalogState {
     error: null,
     products: [],
     frameMarkup: {},
+    dtfSheets: {},
   })
 
   useEffect(() => {
@@ -74,6 +82,7 @@ export function useProductCatalog(): CatalogState {
             error: null,
             products: res.products,
             frameMarkup: res.frameMarkup,
+            dtfSheets: res.dtfSheets,
           })
         }
       })
@@ -84,6 +93,7 @@ export function useProductCatalog(): CatalogState {
             error: err.message ?? 'Katalog konnte nicht geladen werden',
             products: [],
             frameMarkup: {},
+            dtfSheets: {},
           })
         }
       })
@@ -99,6 +109,14 @@ export function priceFromCatalog(
   format: PrintFormat,
 ): CatalogPrice | null {
   return products.find((p) => p.id === productId)?.formats[format] ?? null
+}
+
+/** PROJ-55: Preis eines einzelnen Bogens im gewaehlten Format. */
+export function dtfSheetPriceFromCatalog(
+  dtfSheets: DtfSheetTable,
+  format: DtfSheetFormat,
+): CatalogPrice | null {
+  return dtfSheets[format] ?? null
 }
 
 export function frameMarkupFromCatalog(

@@ -129,7 +129,9 @@ export function trackBeginCheckout(items: Array<{
   productId: string
   format: string
   priceCents: number
-  posterType: 'map' | 'star-map' | 'photo'
+  posterType: 'map' | 'star-map' | 'photo' | 'dtf'
+  /** PROJ-55: Auflage. Nur DTF kennt Mengen > 1; sonst 1. */
+  quantity?: number
 }>) {
   const gtmItems: EcommerceItem[] = items.map((i) => ({
     item_id: i.id,
@@ -138,11 +140,16 @@ export function trackBeginCheckout(items: Array<{
       i.posterType === 'star-map'
         ? 'Sternenposter'
         : i.posterType === 'photo'
-        ? 'Foto-Poster'
-        : 'Stadtposter',
+          ? 'Foto-Poster'
+          : i.posterType === 'dtf'
+            ? 'DTF-Transfer'
+            : 'Stadtposter',
     item_variant: `${i.productId}-${i.format}`,
-    price: i.priceCents / 100,
-    quantity: 1,
+    // priceCents ist der Gesamtpreis der Position. Für die Analyse wollen
+    // wir den Stückpreis, damit price × quantity wieder den Positionswert
+    // ergibt und Auswertungen nicht doppelt zählen.
+    price: i.priceCents / 100 / Math.max(1, i.quantity ?? 1),
+    quantity: Math.max(1, i.quantity ?? 1),
   }))
   const valueCents = items.reduce((sum, i) => sum + i.priceCents, 0)
   push({ ecommerce: null })

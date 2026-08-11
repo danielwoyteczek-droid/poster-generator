@@ -103,6 +103,7 @@ export function CartView() {
       productId: i.productId,
       format: i.format,
       priceCents: i.priceCents,
+      quantity: i.quantity,
       posterType: i.posterType,
     })))
     try {
