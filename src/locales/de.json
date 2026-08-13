@@ -841,7 +841,9 @@
     "textBold": "Fett",
     "textUppercase": "Versalien",
     "textLetterSpacing": "Laufweite ({value})",
-    "cartAddFailed": "Konnte nicht in den Warenkorb gelegt werden."
+    "cartAddFailed": "Konnte nicht in den Warenkorb gelegt werden.",
+    "cartAddAgain": "Erneut hinzufügen",
+    "cartAlreadyAdded": "Bereits im Warenkorb. Ein weiterer Klick legt eine zusätzliche Position an."
   },
   "dtfApproval": {
     "title": "Druckfreigabe",

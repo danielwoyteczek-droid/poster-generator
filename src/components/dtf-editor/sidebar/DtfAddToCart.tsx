@@ -41,12 +41,12 @@ export function DtfAddToCart() {
   const t = useTranslations('dtfEditor')
   const router = useRouter()
   const [isAdding, setIsAdding] = useState(false)
+  const [addedCount, setAddedCount] = useState(0)
 
   const { loading, dtfSheets: priceTable } = useProductCatalog()
   const addItem = useCartStore((s) => s.addItem)
 
   const sheets = useDtfStore((s) => s.sheets)
-  const reset = useDtfStore((s) => s.reset)
 
   const filled = sheets.filter((s) => s.elements.length > 0)
   const empty = sheets.length - filled.length
@@ -150,10 +150,12 @@ export function DtfAddToCart() {
       }
 
       toast.success(t('cartAdded', { count: filled.length }))
-      // Entwurf zurücksetzen: Die Positionen tragen ihre eigene Kopie, ein
-      // Weiterbearbeiten der Vorlage würde sie nicht mehr beeinflussen und
-      // nur den Eindruck erwecken, es täte es.
-      reset()
+      // Entwurf bewusst NICHT zurücksetzen. Die Warenkorb-Position trägt
+      // zwar eine eingefrorene Kopie, spätere Änderungen am Entwurf wandern
+      // also nicht mit — aber die Arbeit des Kunden zu löschen ist das
+      // deutlich größere Übel. Mit dem Zurück-Button steht sein Bogen wieder
+      // da, statt leer zu sein.
+      setAddedCount((n) => n + 1)
       router.push('/cart')
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t('cartAddFailed'))
@@ -175,8 +177,15 @@ export function DtfAddToCart() {
         <span className="font-semibold tabular-nums">{formatPrice(totalCents)}</span>
       </div>
 
+      {/* Nach dem Ablegen wechselt die Beschriftung: Ein zweiter Klick legt
+          eine WEITERE Position an, keine Aktualisierung der bestehenden.
+          Ohne den Hinweis entstehen unbeabsichtigte Dubletten. */}
+      {addedCount > 0 && (
+        <p className="text-xs text-muted-foreground">{t('cartAlreadyAdded')}</p>
+      )}
+
       <Button type="button" className="w-full" disabled={isAdding} onClick={() => void handleAdd()}>
-        {isAdding ? t('cartAdding') : t('cartAdd')}
+        {isAdding ? t('cartAdding') : addedCount > 0 ? t('cartAddAgain') : t('cartAdd')}
       </Button>
     </div>
   )

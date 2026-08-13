@@ -841,7 +841,9 @@
     "textBold": "Gras",
     "textUppercase": "Majuscules",
     "textLetterSpacing": "Interlettrage ({value})",
-    "cartAddFailed": "Impossible d’ajouter au panier."
+    "cartAddFailed": "Impossible d’ajouter au panier.",
+    "cartAddAgain": "Ajouter à nouveau",
+    "cartAlreadyAdded": "Déjà dans le panier. Un nouveau clic ajoute un article supplémentaire."
   },
   "dtfApproval": {
     "title": "Bon à tirer",

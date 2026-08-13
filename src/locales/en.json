@@ -841,7 +841,9 @@
     "textBold": "Bold",
     "textUppercase": "Uppercase",
     "textLetterSpacing": "Letter spacing ({value})",
-    "cartAddFailed": "Could not add to cart."
+    "cartAddFailed": "Could not add to cart.",
+    "cartAddAgain": "Add again",
+    "cartAlreadyAdded": "Already in the cart. Clicking again adds another item."
   },
   "dtfApproval": {
     "title": "Print approval",

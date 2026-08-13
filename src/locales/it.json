@@ -841,7 +841,9 @@
     "textBold": "Grassetto",
     "textUppercase": "Maiuscolo",
     "textLetterSpacing": "Spaziatura ({value})",
-    "cartAddFailed": "Impossibile aggiungere al carrello."
+    "cartAddFailed": "Impossibile aggiungere al carrello.",
+    "cartAddAgain": "Aggiungi di nuovo",
+    "cartAlreadyAdded": "Già nel carrello. Un altro clic aggiunge una voce in più."
   },
   "dtfApproval": {
     "title": "Approvazione di stampa",

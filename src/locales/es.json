@@ -841,7 +841,9 @@
     "textBold": "Negrita",
     "textUppercase": "Mayúsculas",
     "textLetterSpacing": "Espaciado ({value})",
-    "cartAddFailed": "No se pudo añadir al carrito."
+    "cartAddFailed": "No se pudo añadir al carrito.",
+    "cartAddAgain": "Añadir de nuevo",
+    "cartAlreadyAdded": "Ya está en el carrito. Otro clic añade un artículo adicional."
   },
   "dtfApproval": {
     "title": "Aprobación de impresión",
