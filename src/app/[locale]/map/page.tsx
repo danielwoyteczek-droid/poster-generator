@@ -5,6 +5,7 @@ import { EditorShell } from '@/components/editor/EditorShell'
 import { LandingNav } from '@/components/landing/LandingNav'
 import { PresetUrlApplier } from '@/components/editor/PresetUrlApplier'
 import { CityUrlApplier } from '@/components/editor/CityUrlApplier'
+import { AmazonOrderApplier } from '@/components/editor/AmazonOrderApplier'
 import { HeadlessEditorView } from '@/components/editor/HeadlessEditorView'
 import { EditorToolbar } from '@/components/editor/EditorToolbar'
 
@@ -44,6 +45,12 @@ export default async function MapPage({
       </Suspense>
       <Suspense fallback={null}>
         <CityUrlApplier />
+      </Suspense>
+      {/* PROJ-31: Admin öffnet eine Amazon-Bestellung im echten Editor.
+          Für alle anderen ein No-op — ohne ?amazon_order passiert nichts,
+          und die API antwortet Nicht-Admins mit 403. */}
+      <Suspense fallback={null}>
+        <AmazonOrderApplier />
       </Suspense>
       <EditorToolbar posterType="map" />
       <div className="flex-1 min-h-0">

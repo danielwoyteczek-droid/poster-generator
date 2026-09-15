@@ -32,7 +32,7 @@ const LS_KEYS: Record<PosterType, string> = {
  * the saved-poster format crystallises. Bumping any field here means an
  * additive migration to the loader below — drop nothing, only add.
  */
-function getConfig(posterType: PosterType): Record<string, unknown> {
+export function getConfig(posterType: PosterType): Record<string, unknown> {
   const editor = useEditorStore.getState()
   if (posterType === 'star-map') {
     const sm = useStarMapStore.getState()
