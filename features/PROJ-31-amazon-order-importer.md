@@ -9,8 +9,9 @@
 > steht ebenfalls (siehe *Umgesetzt* unten). Offen ist Phase 3: SKU→Preset,
 > Editor-Zustand, Auto-Render, Queue-Oberfläche.
 >
-> Für Phase 3 ist die Feldzuordnung Amazon → Preset entworfen und entschieden,
-> aber noch nicht gebaut — siehe *Entwurf: Feldzuordnung* unten.
+> Die Feldzuordnung Amazon → Preset ist gebaut (siehe *Umgesetzt — Feldzuordnung*
+> unten). Offen bleiben in Phase 3: Auto-Render, Druckdatei-Ablage und die
+> gemeinsame Queue mit Etsy.
 
 ## Dependencies
 - **Requires PROJ-8** (Design-Presets) — die Zuordnung Amazon-SKU → internes Preset bestimmt, welches Design gerendert wird.
@@ -98,13 +99,13 @@ petite-moment verkauft personalisierte Karten-Poster über Amazon Custom (SKU-Sc
 - [ ] Fehlende Pflichtfelder oder Werte, die nicht zum erwarteten Muster passen, führen zu „Prüfung nötig" — niemals zu stillem Überspringen
 
 ### Feldzuordnung Amazon → Preset
-- [ ] Je SKU ist hinterlegt, welches Anpassungsfeld welchen Textblock des Presets befüllt — die Zuordnung liegt in den Daten, nicht im Code
-- [ ] Je Zuordnung ist hinterlegt, was bei leerem Feld geschieht: automatisch, Preset-Text oder leer
-- [ ] Ein leer gelassenes Koordinatenfeld lässt den Koordinatenblock automatisch; ein ausgefülltes ersetzt ihn durch den Freitext des Käufers
-- [ ] Ein Textfeld ohne gepflegte Zuordnung schickt die Position in die Prüfung — es wird nicht der Reihe nach verteilt
-- [ ] Beim ersten Auftreten einer SKU schlägt das System eine Zuordnung vor; unbestätigt zählt sie als ungepflegt
-- [ ] Zeigt eine Zuordnung auf einen Block, den das Preset nicht mehr enthält, landet die Position in der Prüfung
-- [ ] Die Pflegemaske beschriftet die Textblöcke mit ihrem Preset-Text, nicht mit ihrer internen Kennung
+- [x] Je SKU ist hinterlegt, welches Anpassungsfeld welchen Textblock des Presets befüllt — die Zuordnung liegt in den Daten, nicht im Code
+- [x] Je Zuordnung ist hinterlegt, was bei leerem Feld geschieht: automatisch, Preset-Text oder leer
+- [x] Ein leer gelassenes Koordinatenfeld lässt den Koordinatenblock automatisch; ein ausgefülltes ersetzt ihn durch den Freitext des Käufers
+- [x] Ein Textfeld ohne gepflegte Zuordnung schickt die Position in die Prüfung — es wird nicht der Reihe nach verteilt
+- [x] Beim ersten Auftreten einer SKU schlägt das System eine Zuordnung vor; unbestätigt zählt sie als ungepflegt
+- [x] Zeigt eine Zuordnung auf einen Block, den das Preset nicht mehr enthält, landet die Position in der Prüfung
+- [x] Die Pflegemaske beschriftet die Textblöcke mit ihrem Preset-Text, nicht mit ihrer internen Kennung
 
 ### Ort und Editor-Zustand
 - [ ] Die Ortsangabe des Käufers wird über dieselbe Ortssuche aufgelöst, die im Editor hinter dem Suchfeld liegt
@@ -283,7 +284,7 @@ Eine echte Bestellung von der JTL-Zeile bis zur Druckdatei, Sentry-Anbindung, Fe
 
 ---
 
-## Entwurf: Feldzuordnung Amazon → Preset (entschieden 2026-09-15)
+## Feldzuordnung Amazon → Preset (entschieden und umgesetzt 2026-09-15)
 
 Gehört zu Phase 3. Die Frage dahinter: jedes Design bei Amazon hat eigene
 Anpassungsfelder, teils gleiche, teils andere. Damit eine importierte
@@ -382,6 +383,65 @@ Blockkennungen sind innerhalb eines Presets eindeutig — in allen 24
 Map-Presets geprüft, keine Dubletten. Stand heute: 10 SKU-Zeilen, davon 2
 einem Preset zugeordnet, 0 mit eigenem Schema. Die Pflege ist einmalig, nicht
 laufend.
+
+---
+
+## Umgesetzt (2026-09-15) — Feldzuordnung
+
+Der Entwurf oben, gebaut. Zwei Schritte, zwei Commits.
+
+### Auswertung und Anwendung
+
+- `src/lib/amazon/field-mapping.ts` — reine Funktionen: `readPresetBlocks`,
+  `checkMapping`, `planBlockActions`, `blockLabel`, `suggestTargets`. Keine
+  Datenbank, damit Auswertung und Editor-Route dieselbe Wahrheit lesen.
+- `personalization-parser.ts` — `target` und `whenEmpty` am Schemafeld.
+  Beide optional: „nicht gepflegt" bleibt ein eigener Zustand, und die
+  bestehenden Etsy-Schemata gelten unverändert weiter. Keine Migration, die
+  Spalte `personalization_schema` ist bereits JSONB.
+- `resolve.ts` — prüft die Zuordnung gegen die Blöcke des Presets und setzt
+  `pruefung`, wenn ein Textfeld kein Ziel hat oder ein Ziel ins Leere zeigt.
+- Editor-Route — baut Blockanweisungen statt einer Textreihenfolge.
+  `TEXT_ORDER` ist entfallen.
+- `AmazonOrderApplier` — wendet die Anweisungen über die Blockkennung an.
+  Ein Freitext auf einem Koordinatenblock setzt `isCoordinates: false`,
+  dieselbe Regel, die der Editor bei einer Handeingabe anwendet.
+
+### Pflege
+
+- `AdminAmazonSkuMapping.tsx` — die Maske. Auswahl je Textfeld: Zielblock
+  (beschriftet mit dem Preset-Text) und Leer-Regel. Das rohe JSON liegt
+  darunter unter „Erweitert" und bearbeitet denselben Entwurf, damit beide
+  Ansichten nicht auseinanderlaufen.
+- `suggestTargets` — Vorschlag in drei Stufen: Koordinatenfeld auf
+  Koordinatenblock, dann einander enthaltende Beschriftungen, dann der Rest
+  der Reihe nach. Die dritte Stufe ist geraten und wird in der Maske als
+  solche ausgewiesen. Der Vorschlag füllt nur den Entwurf.
+- Die SKU-Liste zeigt je Zeile, wie viele Textfelder noch kein Ziel haben.
+
+### Gepflegte Daten
+
+`LQ-30001-09`: `title` → `block-title`, `names` → `block-1789496636322`,
+`subline` → `block-coords` mit `whenEmpty: auto`.
+
+Der Auftrag, an dem der Fehler auffiel, ist damit richtig: Der Käufer hatte
+„Stadt und Koordinaten" mit `Forever <3` gefüllt; das fiel vorher unter den
+Tisch, weil das Preset nur zwei Blöcke ohne Koordinaten hat und die von Titel
+und Namen belegt waren.
+
+`LQ-30001-01` (Heart Love) bleibt bewusst ungepflegt — es liegt keine echte
+Bestellung vor, und ein geratenes Mapping ohne Bestätigung ist genau das, was
+diese Änderung verhindern soll.
+
+### Geprüft
+
+26 Unit-Tests in `field-mapping.test.ts` gegen die echten Blockkennungen von
+`AMZ_LQ-30001-09`; `vitest run src/` mit 292 Tests grün; `tsc --noEmit` ohne
+neue Fehler; Produktionsbuild übersetzt.
+
+**Nicht geprüft:** Die Maske ist für 375 px gebaut (die Zeilen stapeln unter
+`sm` auf eine Spalte), aber nicht am laufenden Gerät angesehen — die
+Admin-Seite liegt hinter dem Login, und es gibt keine E2E-Anmeldung im Repo.
 
 ---
 

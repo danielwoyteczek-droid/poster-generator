@@ -17,7 +17,17 @@
  * Auswertung (`resolve.ts`) und die Editor-Route dieselbe Wahrheit lesen.
  */
 
-import type { PersonalizationSchema, PersonalizationField } from '@/lib/etsy/personalization-parser'
+/**
+ * Das Wenige, das diese Brücke von einem Schemafeld wissen muss. Absichtlich
+ * schmaler als `PersonalizationField`: So kann auch die Pflegemaske ihren
+ * noch nicht durch Zod gelaufenen Entwurf hier durchschicken.
+ */
+export interface MappableField {
+  key: string
+  label: string
+  target?: string
+  whenEmpty?: 'preset' | 'auto' | 'leer'
+}
 
 /**
  * Schlüssel, die keinen Textblock befüllen: Sie bestimmen Kartenmitte,
@@ -31,7 +41,7 @@ export const RESERVED_NON_TEXT_KEYS: ReadonlySet<string> = new Set([
 ])
 
 /** Die Schemafelder, die einen Textblock des Presets befüllen sollen. */
-export function textFields(schema: PersonalizationSchema): PersonalizationField[] {
+export function textFields<T extends MappableField>(schema: readonly T[]): T[] {
   return schema.filter((f) => !RESERVED_NON_TEXT_KEYS.has(f.key))
 }
 
@@ -67,6 +77,17 @@ export function readPresetBlocks(configJson: unknown): PresetBlock[] {
   return out
 }
 
+/**
+ * Wie ein Textblock in der Pflegemaske heißen soll. Der Betreiber wählt,
+ * was er auf dem Poster sieht — `block-1789496636322` sagt ihm nichts.
+ */
+export function blockLabel(b: PresetBlock): string {
+  const text = b.text.replace(/\s+/g, ' ').trim()
+  if (text) return text.length > 40 ? `${text.slice(0, 40)}…` : text
+  if (b.isCoordinates) return b.label ?? 'Ort & Koordinaten (automatisch)'
+  return b.label ?? b.id
+}
+
 export interface MappingProblem {
   key: string
   /** Die Beschriftung, die der Betreiber bei Amazon sieht. */
@@ -87,7 +108,7 @@ export interface MappingProblem {
  *                   nicht mehr enthält (jemand hat das Preset geändert)
  */
 export function checkMapping(
-  schema: PersonalizationSchema,
+  schema: readonly MappableField[],
   blocks: PresetBlock[],
 ): MappingProblem[] {
   const ids = new Set(blocks.map((b) => b.id))
@@ -125,7 +146,7 @@ export interface DesignHint {
  * bereits als Mangel gemeldet und dürfen nichts befüllen.
  */
 export function planBlockActions(
-  schema: PersonalizationSchema,
+  schema: readonly MappableField[],
   parsed: Record<string, string | undefined>,
   blocks: PresetBlock[],
   hints: DesignHint[],
@@ -156,4 +177,99 @@ export function planBlockActions(
   }
 
   return actions
+}
+
+// ─── Vorschlag beim ersten Auftreten einer SKU ─────────────────────────────
+
+export interface TargetSuggestion {
+  key: string
+  target: string
+  whenEmpty: 'preset' | 'auto' | 'leer'
+  /** Woher der Vorschlag kommt — damit der Betreiber weiß, wie belastbar er ist. */
+  reason: 'koordinaten' | 'beschriftung' | 'reihenfolge'
+}
+
+/** Für den Vergleich zweier Beschriftungen: alles weg, was nur Schreibweise ist. */
+function normalizeLabel(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
+    .replace(/[^a-z0-9]/g, '')
+}
+
+/**
+ * Schlägt für jedes noch nicht zugeordnete Textfeld einen Block vor.
+ *
+ * Bewusst nur ein Vorschlag: Er wird nirgends selbsttätig gespeichert. Ein
+ * unbestätigter Vorschlag zählt weiter als ungepflegt, und die Bestellung
+ * geht in die Prüfung — sonst winkt man einen falschen Treffer durch und
+ * merkt es erst am gedruckten Poster.
+ *
+ * Drei Stufen, absteigend belastbar:
+ *  1. Spricht das Feld von Koordinaten, bekommt es den Koordinatenblock.
+ *  2. Beschriftungen, die einander enthalten, gehören zusammen.
+ *  3. Was übrig bleibt, wird der Reihe nach verteilt — das ist geraten und
+ *     wird als solches ausgewiesen.
+ */
+export function suggestTargets(
+  schema: readonly MappableField[],
+  blocks: PresetBlock[],
+): TargetSuggestion[] {
+  const offeneFelder = textFields(schema).filter((f) => !f.target)
+  const belegt = new Set(textFields(schema).map((f) => f.target).filter(Boolean) as string[])
+  const frei = () => blocks.filter((b) => !belegt.has(b.id))
+
+  const suggestions: TargetSuggestion[] = []
+  const nochOffen: MappableField[] = []
+
+  // 1. Koordinaten erkennen — das ist der einzige Fall, in dem die Bedeutung
+  //    des Blocks über seinen Typ eindeutig feststeht.
+  for (const f of offeneFelder) {
+    const spricht = /koordinat/i.test(f.label) || /koordinat|coords/i.test(f.key)
+    const block = spricht ? frei().find((b) => b.isCoordinates) : undefined
+    if (block) {
+      belegt.add(block.id)
+      suggestions.push({ key: f.key, target: block.id, whenEmpty: 'auto', reason: 'koordinaten' })
+    } else {
+      nochOffen.push(f)
+    }
+  }
+
+  // 2. Beschriftungen vergleichen.
+  const restlich: MappableField[] = []
+  for (const f of nochOffen) {
+    const feld = normalizeLabel(f.label)
+    const block = feld.length >= 3
+      ? frei().find((b) => {
+          const kandidat = normalizeLabel(b.label ?? '') || normalizeLabel(b.text)
+          return kandidat.length >= 3 && (kandidat.includes(feld) || feld.includes(kandidat))
+        })
+      : undefined
+    if (block) {
+      belegt.add(block.id)
+      suggestions.push({
+        key: f.key,
+        target: block.id,
+        whenEmpty: block.isCoordinates ? 'auto' : 'preset',
+        reason: 'beschriftung',
+      })
+    } else {
+      restlich.push(f)
+    }
+  }
+
+  // 3. Der Rest der Reihe nach — geraten, und so ausgewiesen.
+  for (const f of restlich) {
+    const block = frei()[0]
+    if (!block) break
+    belegt.add(block.id)
+    suggestions.push({
+      key: f.key,
+      target: block.id,
+      whenEmpty: block.isCoordinates ? 'auto' : 'preset',
+      reason: 'reihenfolge',
+    })
+  }
+
+  return suggestions
 }
