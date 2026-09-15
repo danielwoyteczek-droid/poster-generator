@@ -261,6 +261,12 @@ export function LandingNavClient({ occasionLinks = [] }: LandingNavClientProps) 
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
+                      <Link href="/private/admin/amazon/orders" className="cursor-pointer">
+                        <Package className="w-4 h-4 mr-2" />
+                        Amazon-Bestellungen
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
                       <Link href="/private/admin/amazon/skus" className="cursor-pointer">
                         <LayoutTemplate className="w-4 h-4 mr-2" />
                         Amazon-SKUs
