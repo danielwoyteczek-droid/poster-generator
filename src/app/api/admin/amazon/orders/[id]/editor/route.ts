@@ -16,6 +16,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { requireAdmin } from '@/lib/admin-auth'
 import { createAdminClient } from '@/lib/supabase-admin'
+import { FALLBACK_FONTS } from '@/lib/fonts'
 
 export interface EditorOverlay {
   /** Ortsname für das Suchfeld und die Textzeile. */
@@ -54,6 +55,16 @@ export interface EditorPayload {
 
 /** Reihenfolge, in der Käufertexte auf die Textblöcke des Presets gelegt werden. */
 const TEXT_ORDER = ['title', 'names', 'subline'] as const
+
+/**
+ * Schriftnamen für den Abgleich vereinheitlichen. Amazon liefert den Namen
+ * so, wie ihn der Käufer in der Auswahl gesehen hat („Caviar Dreams"); die
+ * Bibliothek führt denselben Schnitt unter seinem CSS-Namen
+ * („CaviarDreams"). Ohne diese Angleichung gälte die Schrift als unbekannt.
+ */
+function normalizeFamily(value: string): string {
+  return value.toLowerCase().replace(/[\s._-]/g, '')
+}
 
 function toFormat(value: string | undefined): 'a4' | 'a3' | 'a2' | null {
   if (!value) return null
@@ -108,13 +119,24 @@ export async function GET(
   // der Renderer nicht laden kann, darf nicht gesetzt werden — sie fiele
   // still auf etwas anderes zurück und das Poster sähe anders aus als
   // Amazons Vorschau, ohne dass es jemandem auffällt.
+  // Die Bibliothek ist die Summe aus den hochgeladenen Schriften und den fest
+  // eingebauten — genau die Menge, die auch der Editor anbietet (useFonts).
+  // Nur die Tabelle zu fragen hieße, die eingebauten als unbekannt zu melden.
+  // Der Wert der Map ist der Name, unter dem der Renderer die Schrift kennt.
   const wanted = [...new Set(hints.map((h) => h.fontFamily).filter(Boolean))] as string[]
-  const known = new Set<string>()
+  const known = new Map<string, string>()
   if (wanted.length > 0) {
-    const { data: fonts } = await supabase.from('fonts').select('family_name').limit(200)
-    for (const f of fonts ?? []) {
-      const name = f.family_name as string
-      if (wanted.some((w) => w.toLowerCase() === name.toLowerCase())) known.add(name.toLowerCase())
+    const { data: rows } = await supabase
+      .from('fonts')
+      .select('family_name')
+      .eq('status', 'published')
+      .limit(200)
+    const library = [
+      ...(rows ?? []).map((r) => r.family_name as string),
+      ...FALLBACK_FONTS.filter((f) => f.status === 'published').map((f) => f.family_name),
+    ]
+    for (const name of library) {
+      if (!known.has(normalizeFamily(name))) known.set(normalizeFamily(name), name)
     }
   }
 
@@ -126,8 +148,9 @@ export async function GET(
     const hint = hints.find((h) => h.textKeys.includes(key))
     let fontFamily: string | null = null
     if (hint?.fontFamily) {
-      if (known.has(hint.fontFamily.toLowerCase())) {
-        fontFamily = hint.fontFamily
+      const match = known.get(normalizeFamily(hint.fontFamily))
+      if (match) {
+        fontFamily = match
       } else {
         notes.push(
           `Schrift „${hint.fontFamily}" (${key}) ist nicht in der Bibliothek — Preset-Schrift bleibt stehen`,
