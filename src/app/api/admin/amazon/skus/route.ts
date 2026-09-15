@@ -13,6 +13,7 @@ import { z } from 'zod'
 import { requireAdmin } from '@/lib/admin-auth'
 import { createAdminClient } from '@/lib/supabase-admin'
 import { LQ_DEFAULT_SCHEMA, LQ_FIELD_KEYS } from '@/lib/amazon/sku-schema'
+import { readPresetBlocks, type PresetBlock } from '@/lib/amazon/field-mapping'
 
 export interface SkuRow {
   id: string
@@ -32,7 +33,14 @@ export interface SkuRow {
 
 export interface SkusResponse {
   items: SkuRow[]
-  presets: Array<{ id: string; name: string; poster_type: string; mask: string | null }>
+  presets: Array<{
+    id: string
+    name: string
+    poster_type: string
+    mask: string | null
+    /** Die Textblöcke des Presets — Auswahl für die Feldzuordnung. */
+    blocks: PresetBlock[]
+  }>
   default_schema: typeof LQ_DEFAULT_SCHEMA
   field_keys: Record<string, string>
 }
@@ -110,6 +118,7 @@ export async function GET() {
       name: p.name as string,
       poster_type: p.poster_type as string,
       mask: ((p.config_json as Record<string, unknown>)?.maskKey as string) ?? null,
+      blocks: readPresetBlocks(p.config_json),
     })),
     default_schema: LQ_DEFAULT_SCHEMA,
     field_keys: LQ_FIELD_KEYS,

@@ -9,6 +9,11 @@
  *
  * Der Schema-Editor ist bewusst eingeklappt. Für die meisten SKUs stimmt
  * das Standard-Schema; wer es aufklappt, will wirklich etwas ändern.
+ *
+ * Im aufgeklappten Bereich steht die Feldzuordnung als Maske
+ * (AdminAmazonSkuMapping) — das ist der Normalfall. Das rohe JSON darunter
+ * ist der Notausgang für alles, was die Maske nicht abdeckt (fallbacks,
+ * regex). Beide bearbeiten denselben Entwurf.
  */
 
 import { Fragment, useCallback, useEffect, useState } from 'react'
@@ -24,6 +29,12 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import { Card, CardContent } from '@/components/ui/card'
+import {
+  Collapsible, CollapsibleContent, CollapsibleTrigger,
+} from '@/components/ui/collapsible'
+import {
+  AdminAmazonSkuMapping, parseDraftFields, countUnmapped,
+} from './AdminAmazonSkuMapping'
 import type { SkuRow, SkusResponse } from '@/app/api/admin/amazon/skus/route'
 
 const NO_PRESET = '__none__'
@@ -237,39 +248,62 @@ export function AdminAmazonSkus() {
                         ? <span className="text-amber-700 dark:text-amber-400">eigenes</span>
                         : <span className="text-muted-foreground">Standard</span>}
                     </Button>
+                    {row.preset_id && unmappedCount(row, data) > 0 && (
+                      <Badge variant="destructive" className="mt-1 ml-2">
+                        {unmappedCount(row, data)} ohne Ziel
+                      </Badge>
+                    )}
                   </TableCell>
                 </TableRow>
 
                 {expanded === row.id && (
                   <TableRow>
                     <TableCell colSpan={5} className="bg-muted/40">
-                      <div className="py-2 space-y-3">
-                        <div className="text-sm text-muted-foreground">
-                          Legt fest, welches Amazon-Feld auf welches Poster-Element geht.
-                          <code className="mx-1 text-xs">label</code> ist die Kundenansicht bei Amazon,
-                          <code className="mx-1 text-xs">fallbacks</code> enthält Amazons internen Feldnamen —
-                          abgeglichen wird der interne Name zuerst, weil er eine Überarbeitung
-                          des Listing-Textes überlebt.
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          Zulässige Schlüssel:{' '}
-                          {Object.entries(data.field_keys).map(([k, beschreibung]) => (
-                            <span key={k} className="inline-block mr-3">
-                              <code className="text-foreground">{k}</code> — {beschreibung}
-                            </span>
-                          ))}
-                        </div>
-                        <Textarea
-                          value={schemaDraft}
-                          onChange={(e) => { setSchemaDraft(e.target.value); setSchemaError(null) }}
-                          rows={16}
-                          className="font-mono text-xs"
-                          spellCheck={false}
+                      <div className="py-2 space-y-4">
+                        <AdminAmazonSkuMapping
+                          draft={schemaDraft}
+                          onChange={(next) => { setSchemaDraft(next); setSchemaError(null) }}
+                          blocks={data.presets.find((p) => p.id === row.preset_id)?.blocks ?? []}
+                          presetName={row.preset_name}
+                          disabled={savingId === row.id}
                         />
+
+                        <Collapsible>
+                          <CollapsibleTrigger asChild>
+                            <Button variant="ghost" size="sm" className="text-muted-foreground -ml-2">
+                              <ChevronRight className="w-4 h-4 mr-1" />
+                              Erweitert: Schema als JSON
+                            </Button>
+                          </CollapsibleTrigger>
+                          <CollapsibleContent className="space-y-3 pt-2">
+                            <div className="text-sm text-muted-foreground">
+                              <code className="mr-1 text-xs">label</code> ist die Kundenansicht bei Amazon,
+                              <code className="mx-1 text-xs">fallbacks</code> enthält Amazons internen Feldnamen —
+                              abgeglichen wird der interne Name zuerst, weil er eine Überarbeitung
+                              des Listing-Textes überlebt.
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              Zulässige Schlüssel:{' '}
+                              {Object.entries(data.field_keys).map(([k, beschreibung]) => (
+                                <span key={k} className="inline-block mr-3">
+                                  <code className="text-foreground">{k}</code> — {beschreibung}
+                                </span>
+                              ))}
+                            </div>
+                            <Textarea
+                              value={schemaDraft}
+                              onChange={(e) => { setSchemaDraft(e.target.value); setSchemaError(null) }}
+                              rows={16}
+                              className="font-mono text-xs"
+                              spellCheck={false}
+                            />
+                          </CollapsibleContent>
+                        </Collapsible>
+
                         {schemaError && (
                           <p className="text-sm text-destructive">{schemaError}</p>
                         )}
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap gap-2">
                           <Button size="sm" onClick={() => void saveSchema(row)} disabled={savingId === row.id}>
                             <Check className="w-4 h-4 mr-2" />
                             Schema speichern
@@ -298,4 +332,18 @@ export function AdminAmazonSkus() {
       </div>
     </div>
   )
+}
+
+/**
+ * Wie viele Textfelder dieser SKU noch kein Ziel haben — sichtbar schon in
+ * der Liste, damit man nicht jede Zeile aufklappen muss, um zu sehen, wo
+ * Bestellungen hängenbleiben werden.
+ *
+ * Ohne eigenes Schema zählt das Standard-Schema; dessen Felder haben nie
+ * ein Ziel, weil Blockkennungen zum Preset gehören, nicht zum Standard.
+ */
+function unmappedCount(row: SkuRow, data: SkusResponse): number {
+  const schema = row.personalization_schema ?? data.default_schema
+  const fields = parseDraftFields(JSON.stringify(schema))
+  return fields ? countUnmapped(fields) : 0
 }

@@ -14,6 +14,8 @@ import {
   readPresetBlocks,
   checkMapping,
   planBlockActions,
+  suggestTargets,
+  blockLabel,
   textFields,
   type PresetBlock,
 } from './field-mapping'
@@ -173,5 +175,81 @@ describe('planBlockActions', () => {
   it('befüllt nichts, wenn das Ziel im Preset fehlt', () => {
     const verwaist = schema([{ key: 'title', label: 'Titel', target: 'block-geloescht' }])
     expect(planBlockActions(verwaist, { title: 'Unser Tag' }, BLOCKS, [])).toEqual([])
+  })
+})
+
+describe('blockLabel', () => {
+  it('nimmt den Preset-Text, weil der Betreiber den auf dem Poster sieht', () => {
+    expect(blockLabel(BLOCKS[0])).toBe('Wo alles begann…')
+  })
+
+  it('fällt bei einem leeren Koordinatenblock auf dessen Beschriftung zurück', () => {
+    expect(blockLabel(BLOCKS[2])).toBe('Ort & Koordinaten')
+  })
+
+  it('kürzt sehr lange Texte, statt die Auswahl zu sprengen', () => {
+    const lang = { id: 'b', isCoordinates: false, text: 'x'.repeat(80), label: null }
+    expect(blockLabel(lang)).toHaveLength(41)
+    expect(blockLabel(lang).endsWith('…')).toBe(true)
+  })
+})
+
+describe('suggestTargets', () => {
+  const ungepflegt = schema([
+    { key: 'location', label: 'Adresse für die Karte' },
+    { key: 'title', label: 'Wo alles begann' },
+    { key: 'names', label: 'Namen' },
+    { key: 'subline', label: 'Stadt und Koordinaten' },
+    { key: 'format', label: 'Größe des Posters' },
+  ])
+
+  it('gibt dem Koordinatenfeld den Koordinatenblock — samt Regel „automatisch"', () => {
+    const v = suggestTargets(ungepflegt, BLOCKS)
+    expect(v).toContainEqual({
+      key: 'subline',
+      target: 'block-coords',
+      whenEmpty: 'auto',
+      reason: 'koordinaten',
+    })
+  })
+
+  it('erkennt einander enthaltende Beschriftungen', () => {
+    const v = suggestTargets(ungepflegt, BLOCKS)
+    const titel = v.find((s) => s.key === 'title')
+    expect(titel).toMatchObject({ target: 'block-title', reason: 'beschriftung' })
+  })
+
+  it('weist geratene Vorschläge als solche aus', () => {
+    const v = suggestTargets(ungepflegt, BLOCKS)
+    const namen = v.find((s) => s.key === 'names')
+    expect(namen).toMatchObject({ target: 'block-1789496636322', reason: 'reihenfolge' })
+  })
+
+  it('schlägt nichts für bereits gepflegte Felder vor', () => {
+    expect(suggestTargets(GEPFLEGT, BLOCKS)).toEqual([])
+  })
+
+  it('belegt keinen Block doppelt', () => {
+    const v = suggestTargets(ungepflegt, BLOCKS)
+    expect(new Set(v.map((s) => s.target)).size).toBe(v.length)
+  })
+
+  it('schlägt nur so viel vor, wie es Blöcke gibt', () => {
+    const vieleFelder = schema([
+      { key: 'a', label: 'Eins' },
+      { key: 'b', label: 'Zwei' },
+      { key: 'c', label: 'Drei' },
+      { key: 'd', label: 'Vier' },
+    ])
+    expect(suggestTargets(vieleFelder, BLOCKS).length).toBe(BLOCKS.length)
+  })
+
+  it('beachtet ein schon belegtes Ziel und vergibt es nicht erneut', () => {
+    const halb = schema([
+      { key: 'title', label: 'Titel', target: 'block-title' },
+      { key: 'names', label: 'Namen' },
+    ])
+    const v = suggestTargets(halb, BLOCKS)
+    expect(v.map((s) => s.target)).not.toContain('block-title')
   })
 })
