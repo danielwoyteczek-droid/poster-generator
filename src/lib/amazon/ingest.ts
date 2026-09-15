@@ -29,6 +29,7 @@
 
 import { z } from 'zod'
 import { createAdminClient } from '@/lib/supabase-admin'
+import { resolveAndSave } from './resolve'
 
 export const STORAGE_BUCKET = 'amazon-custom'
 
@@ -398,15 +399,19 @@ async function processItem(
 
   // ── Neu ──────────────────────────────────────────────────────────────
   if (!existing) {
-    const { error } = await supabase.from('amazon_custom_orders').insert({
-      amazon_order_id: item.amazon_order_id,
-      order_item_id: item.order_item_id,
-      ...amazonFields,
-      customization: item.customization ?? {},
-      customization_item: customizationItem,
-      ingest_warnings: warnings,
-      queue_status: item.order_state === 'cancelled' ? 'storniert' : 'neu',
-    })
+    const { data: inserted, error } = await supabase
+      .from('amazon_custom_orders')
+      .insert({
+        amazon_order_id: item.amazon_order_id,
+        order_item_id: item.order_item_id,
+        ...amazonFields,
+        customization: item.customization ?? {},
+        customization_item: customizationItem,
+        ingest_warnings: warnings,
+        queue_status: item.order_state === 'cancelled' ? 'storniert' : 'neu',
+      })
+      .select('id, sku, order_state, printed_at, customization_item, ingest_warnings')
+      .single()
     if (error) {
       summary.failed += 1
       summary.errors.push({
@@ -416,6 +421,11 @@ async function processItem(
       return
     }
     summary.accepted += 1
+
+    // Gleich auflösen: SKU -> Preset, Felder gegen das Schema, Ort suchen.
+    // Schlägt das fehl, ist die Zeile trotzdem da — der Eingang ist das
+    // Wichtige, die Auflösung ist jederzeit wiederholbar.
+    await resolveQuietly(supabase, inserted, summary, item.order_item_id)
     return
   }
 
@@ -460,6 +470,62 @@ async function processItem(
     return
   }
   summary.accepted += 1
+
+  // Nur neu auflösen, wenn sich inhaltlich etwas geändert hat, das die
+  // Auswertung betrifft. Ein Storno hat die Zeile oben schon aus der Queue
+  // genommen; ein nachgereichtes Vorschaubild ändert am Poster nichts.
+  const brauchtNeuauswertung = changed.some((f) => f === 'sku' || f === 'order_state')
+  if (brauchtNeuauswertung && existing.printed_at === null) {
+    await resolveQuietly(
+      supabase,
+      {
+        id: existing.id,
+        sku: item.sku,
+        order_state: item.order_state,
+        printed_at: existing.printed_at,
+        customization_item: customizationItem,
+        ingest_warnings: warnings,
+      },
+      summary,
+      item.order_item_id,
+    )
+  }
+}
+
+/**
+ * Löst eine Position auf, ohne den Eingang scheitern zu lassen.
+ *
+ * Die Auflösung ruft eine fremde Schnittstelle auf (Ortssuche). Wenn die
+ * klemmt, soll die Bestellung trotzdem gespeichert bleiben — sie steht dann
+ * auf 'neu' und wird beim nächsten Anlauf ausgewertet.
+ */
+async function resolveQuietly(
+  supabase: ReturnType<typeof createAdminClient>,
+  row: {
+    id: string
+    sku: string
+    order_state: string
+    printed_at: string | null
+    customization_item: unknown
+    ingest_warnings?: string[] | null
+  },
+  summary: IngestSummary,
+  orderItemId: string,
+): Promise<void> {
+  try {
+    const r = await resolveAndSave(supabase, row)
+    if (!r.ok) {
+      summary.errors.push({
+        order_item_id: orderItemId,
+        message: `Aufgenommen, aber Auswertung fehlgeschlagen: ${r.error}`,
+      })
+    }
+  } catch (e) {
+    summary.errors.push({
+      order_item_id: orderItemId,
+      message: `Aufgenommen, aber Auswertung fehlgeschlagen: ${(e as Error).message}`,
+    })
+  }
 }
 
 // ─── Einstieg ──────────────────────────────────────────────────────────────
