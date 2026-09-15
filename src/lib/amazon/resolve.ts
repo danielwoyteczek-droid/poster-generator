@@ -19,6 +19,7 @@
 import type { createAdminClient } from '@/lib/supabase-admin'
 import { flattenCustomization, matchAmazonFields, extractDesignHints } from './customization'
 import { schemaOrDefault, parseCoords } from './sku-schema'
+import { readPresetBlocks, checkMapping } from './field-mapping'
 import { geocodeOnce } from './geocode'
 
 export type QueueStatus =
@@ -110,6 +111,17 @@ export async function resolveOrder(
 
   const schema = schemaOrDefault(mapping.personalization_schema)
 
+  // Zuordnung der Felder auf die Textblöcke des Presets prüfen. Ohne sie
+  // wüsste der Editor nicht, wohin ein Text gehört. Der frühere Rückfall —
+  // Texte der Reihe nach auf die Blöcke verteilen — hat genau deshalb still
+  // den falschen Block befüllt und ist ersatzlos entfallen.
+  const { data: presetRow } = await supabase
+    .from('presets')
+    .select('config_json')
+    .eq('id', mapping.preset_id)
+    .maybeSingle<{ config_json: unknown }>()
+  const mappingProblems = checkMapping(schema, readPresetBlocks(presetRow?.config_json))
+
   // ── Anpassungsfelder abgleichen ───────────────────────────────────────
   const flat = flattenCustomization(row.customization_item)
   if (flat.fields.length === 0) {
@@ -138,12 +150,20 @@ export async function resolveOrder(
     warnings.push(`Nicht zugeordnet: ${parse.unmatchedLines.join(' | ')}`)
   }
 
+  for (const p of mappingProblems) {
+    warnings.push(
+      p.kind === 'ohne_ziel'
+        ? `Feld „${p.label}" ist keinem Textblock des Designs zugeordnet`
+        : `Feld „${p.label}" zeigt auf den Textblock ${p.target}, den das Design nicht mehr enthält`,
+    )
+  }
+
   const out: ResolveOutcome = {
     ...base,
     preset_id: mapping.preset_id,
     parse_result: parse,
     design_hints: hints,
-    queue_status: parse.ok ? 'bereit' : 'pruefung',
+    queue_status: parse.ok && mappingProblems.length === 0 ? 'bereit' : 'pruefung',
   }
 
   // ── Ort auflösen ──────────────────────────────────────────────────────

@@ -17,6 +17,13 @@ import { z } from 'zod'
 import { requireAdmin } from '@/lib/admin-auth'
 import { createAdminClient } from '@/lib/supabase-admin'
 import { FALLBACK_FONTS } from '@/lib/fonts'
+import { schemaOrDefault } from '@/lib/amazon/sku-schema'
+import {
+  readPresetBlocks,
+  checkMapping,
+  planBlockActions,
+  type BlockAction,
+} from '@/lib/amazon/field-mapping'
 
 export interface EditorOverlay {
   /** Ortsname für das Suchfeld und die Textzeile. */
@@ -24,14 +31,15 @@ export interface EditorOverlay {
   lat: number | null
   lng: number | null
   printFormat: 'a4' | 'a3' | 'a2' | null
-  /** Texte in der Reihenfolge, in der sie auf Textblöcke gelegt werden. */
-  texts: Array<{
-    key: string
-    value: string
-    /** Nur gesetzt, wenn die Schrift in der Bibliothek vorhanden ist. */
-    fontFamily: string | null
-    color: string | null
-  }>
+  /**
+   * Was mit welchem Textblock des Presets geschehen soll — adressiert über
+   * die Blockkennung, nicht über die Reihenfolge. Blöcke ohne Eintrag
+   * bleiben, wie das Preset sie hat.
+   *
+   * Bei `kind: 'text'` ist `fontFamily` nur gesetzt, wenn die Schrift in der
+   * Bibliothek vorhanden ist.
+   */
+  blocks: BlockAction[]
   /** Was der Käufer bei Amazon gewählt hat, aber hier nicht vorliegt. */
   notes: string[]
 }
@@ -52,9 +60,6 @@ export interface EditorPayload {
   editor_state: unknown | null
   editor_state_saved_at: string | null
 }
-
-/** Reihenfolge, in der Käufertexte auf die Textblöcke des Presets gelegt werden. */
-const TEXT_ORDER = ['title', 'names', 'subline'] as const
 
 /**
  * Schriftnamen für den Abgleich vereinheitlichen. Amazon liefert den Namen
@@ -141,24 +146,38 @@ export async function GET(
   }
 
   const notes: string[] = []
-  const texts: EditorOverlay['texts'] = []
-  for (const key of TEXT_ORDER) {
-    const value = parsed[key]
-    if (!value) continue
-    const hint = hints.find((h) => h.textKeys.includes(key))
-    let fontFamily: string | null = null
-    if (hint?.fontFamily) {
-      const match = known.get(normalizeFamily(hint.fontFamily))
-      if (match) {
-        fontFamily = match
-      } else {
-        notes.push(
-          `Schrift „${hint.fontFamily}" (${key}) ist nicht in der Bibliothek — Preset-Schrift bleibt stehen`,
-        )
-      }
-    }
-    texts.push({ key, value, fontFamily, color: hint?.colorHex ?? null })
+
+  // Welches Anpassungsfeld welchen Textblock befüllt, steht je SKU in der
+  // Zuordnungstabelle — nicht hier im Code. Ein Feld ohne gepflegtes Ziel
+  // befüllt nichts; es wird gemeldet.
+  const { data: skuMapping } = await supabase
+    .from('amazon_sku_mappings')
+    .select('personalization_schema')
+    .eq('sku', order.sku as string)
+    .maybeSingle<{ personalization_schema: unknown }>()
+
+  const schema = schemaOrDefault(skuMapping?.personalization_schema)
+  const presetBlocks = readPresetBlocks(preset?.config_json)
+
+  for (const p of checkMapping(schema, presetBlocks)) {
+    notes.push(
+      p.kind === 'ohne_ziel'
+        ? `Feld „${p.label}" ist keinem Textblock des Designs zugeordnet — bleibt unbefüllt`
+        : `Feld „${p.label}" zeigt auf den Textblock ${p.target}, den das Design nicht mehr enthält`,
+    )
   }
+
+  // Schrift je Aktion gegen die Bibliothek prüfen. Was nicht geladen werden
+  // kann, wird nicht gesetzt — die Preset-Schrift bleibt stehen.
+  const blocks: BlockAction[] = planBlockActions(schema, parsed, presetBlocks, hints).map((a) => {
+    if (a.kind !== 'text' || !a.fontFamily) return a
+    const match = known.get(normalizeFamily(a.fontFamily))
+    if (match) return { ...a, fontFamily: match }
+    notes.push(
+      `Schrift „${a.fontFamily}" ist nicht in der Bibliothek — Preset-Schrift bleibt stehen`,
+    )
+    return { ...a, fontFamily: null }
+  })
 
   if (parsed.frame) notes.push(`Rahmen laut Bestellung: ${parsed.frame}`)
   if (!parsed.format) notes.push('Keine Größenangabe in der Bestellung')
@@ -187,7 +206,7 @@ export async function GET(
       lat: (order.map_lat as number) ?? null,
       lng: (order.map_lng as number) ?? null,
       printFormat: toFormat(parsed.format),
-      texts,
+      blocks,
       notes,
     },
     editor_state: order.editor_state ?? null,

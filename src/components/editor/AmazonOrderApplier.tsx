@@ -121,14 +121,13 @@ function applyStoredExtras(state: Record<string, unknown>) {
 /**
  * Legt die Angaben des Käufers über das Preset.
  *
- * Texte wandern der Reihe nach auf die Textblöcke des Presets — der erste
- * freie Block bekommt den Titel, der nächste die Namen, der nächste die
- * Freitextzeile. Koordinatenblöcke bleiben ausgespart, die füllt der
- * Renderer selbst aus der Kartenmitte.
+ * Jeder Text geht auf den Textblock, der für sein Anpassungsfeld hinterlegt
+ * ist — adressiert über die Blockkennung, nicht über die Reihenfolge. Welches
+ * Feld welchen Block befüllt, steht je SKU in der Zuordnungstabelle; die
+ * Editor-Route hat daraus bereits fertige Anweisungen gemacht.
  *
- * Diese Zuordnung ist eine Annahme und darf eine sein: der Betreiber sieht
- * das Ergebnis sofort auf dem Poster und schiebt es zurecht, falls es nicht
- * passt. Genau dafür ist der Editor da.
+ * Ein Feld ohne gepflegtes Ziel befüllt nichts. Der frühere Rückfall, Texte
+ * einfach der Reihe nach zu verteilen, hat still den falschen Block getroffen.
  */
 function applyOverlay(data: EditorPayload) {
   const { overlay } = data
@@ -148,33 +147,47 @@ function applyOverlay(data: EditorPayload) {
     useEditorStore.setState({ locationName: overlay.locationName })
   }
 
-  if (overlay.texts.length === 0) return
+  if (overlay.blocks.length === 0) return
 
   useEditorStore.setState((s) => {
-    const blocks = [...s.textBlocks]
-    const targets = blocks
-      .map((b, i) => ({ b, i }))
-      .filter(({ b }) => !b.isCoordinates)
+    const next: TextBlock[] = s.textBlocks.map((b) => {
+      const action = overlay.blocks.find((a) => a.target === b.id)
+      if (!action) return b
 
-    const next: TextBlock[] = [...blocks]
-    overlay.texts.forEach((t, n) => {
-      const target = targets[n]
-      if (!target) return
-      next[target.i] = {
-        ...next[target.i],
-        text: t.value,
-        ...(t.fontFamily ? { fontFamily: t.fontFamily } : {}),
-        ...(t.color ? { color: t.color } : {}),
+      if (action.kind === 'leer') {
+        // Auch die automatische Beschriftung abschalten, sonst füllt der
+        // Renderer den Block gleich wieder.
+        return { ...b, text: '', isCoordinates: false }
+      }
+
+      if (action.kind === 'auto') {
+        // Ein Koordinatenblock bleibt einer — der Renderer setzt Stadt und
+        // Koordinaten aus der Kartenmitte. Ein normaler Block bekommt den
+        // aufgelösten Ortsnamen.
+        return b.isCoordinates ? b : { ...b, text: overlay.locationName ?? b.text }
+      }
+
+      // Freitext des Käufers. Auf einem Koordinatenblock schaltet er die
+      // automatische Beschriftung ab — dieselbe Regel, die der Editor
+      // anwendet, wenn ein Mensch dort hineintippt.
+      return {
+        ...b,
+        text: action.value,
+        isCoordinates: false,
+        ...(action.fontFamily ? { fontFamily: action.fontFamily } : {}),
+        ...(action.color ? { color: action.color } : {}),
       }
     })
     return { textBlocks: next }
   })
 
-  const ueberzaehlig = overlay.texts.length -
-    useEditorStore.getState().textBlocks.filter((b) => !b.isCoordinates).length
-  if (ueberzaehlig > 0) {
+  // Sollte nicht vorkommen — die Route prüft die Ziele gegen dasselbe Preset.
+  // Falls doch, lieber laut als ein Text, der spurlos verschwindet.
+  const vorhanden = new Set(useEditorStore.getState().textBlocks.map((b) => b.id))
+  const verwaist = overlay.blocks.filter((a) => !vorhanden.has(a.target))
+  if (verwaist.length > 0) {
     toast.warning(
-      `${ueberzaehlig} Textzeile(n) aus der Bestellung haben im Preset keinen Platz — bitte Textblöcke ergänzen.`,
+      `${verwaist.length} Angabe(n) aus der Bestellung zeigen auf Textblöcke, die dieses Design nicht hat.`,
       { duration: 10000 },
     )
   }

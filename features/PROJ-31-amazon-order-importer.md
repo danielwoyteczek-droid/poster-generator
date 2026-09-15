@@ -8,6 +8,9 @@
 > liest JTL und schickt fertige Positionen. Der Eingang auf petite-moment
 > steht ebenfalls (siehe *Umgesetzt* unten). Offen ist Phase 3: SKU→Preset,
 > Editor-Zustand, Auto-Render, Queue-Oberfläche.
+>
+> Für Phase 3 ist die Feldzuordnung Amazon → Preset entworfen und entschieden,
+> aber noch nicht gebaut — siehe *Entwurf: Feldzuordnung* unten.
 
 ## Dependencies
 - **Requires PROJ-8** (Design-Presets) — die Zuordnung Amazon-SKU → internes Preset bestimmt, welches Design gerendert wird.
@@ -93,6 +96,15 @@ petite-moment verkauft personalisierte Karten-Poster über Amazon Custom (SKU-Sc
 - [ ] Alle Käuferangaben eines Auftrags werden erfasst: Texte, Auswahlfelder, Schrift und Farbe — je Textblock zugeordnet
 - [ ] Ein unbekannter Feldtyp blockiert den Import nicht, wird aber in der Queue sichtbar gemeldet
 - [ ] Fehlende Pflichtfelder oder Werte, die nicht zum erwarteten Muster passen, führen zu „Prüfung nötig" — niemals zu stillem Überspringen
+
+### Feldzuordnung Amazon → Preset
+- [ ] Je SKU ist hinterlegt, welches Anpassungsfeld welchen Textblock des Presets befüllt — die Zuordnung liegt in den Daten, nicht im Code
+- [ ] Je Zuordnung ist hinterlegt, was bei leerem Feld geschieht: automatisch, Preset-Text oder leer
+- [ ] Ein leer gelassenes Koordinatenfeld lässt den Koordinatenblock automatisch; ein ausgefülltes ersetzt ihn durch den Freitext des Käufers
+- [ ] Ein Textfeld ohne gepflegte Zuordnung schickt die Position in die Prüfung — es wird nicht der Reihe nach verteilt
+- [ ] Beim ersten Auftreten einer SKU schlägt das System eine Zuordnung vor; unbestätigt zählt sie als ungepflegt
+- [ ] Zeigt eine Zuordnung auf einen Block, den das Preset nicht mehr enthält, landet die Position in der Prüfung
+- [ ] Die Pflegemaske beschriftet die Textblöcke mit ihrem Preset-Text, nicht mit ihrer internen Kennung
 
 ### Ort und Editor-Zustand
 - [ ] Die Ortsangabe des Käufers wird über dieselbe Ortssuche aufgelöst, die im Editor hinter dem Suchfeld liegt
@@ -268,6 +280,108 @@ Ortsauflösung, Editor-Zustand aus Preset plus Käuferangaben, Schriftauflösung
 
 **Phase 4 — Erster Echtlauf** (1–2 Tage)
 Eine echte Bestellung von der JTL-Zeile bis zur Druckdatei, Sentry-Anbindung, Feinschliff an der Queue.
+
+---
+
+## Entwurf: Feldzuordnung Amazon → Preset (entschieden 2026-09-15)
+
+Gehört zu Phase 3. Die Frage dahinter: jedes Design bei Amazon hat eigene
+Anpassungsfelder, teils gleiche, teils andere. Damit eine importierte
+Bestellung fertig im Editor liegt, muss feststehen, welches Feld welchen
+Textblock des Presets befüllt.
+
+### Der Befund
+
+Die Zuordnung findet heute an zwei Stellen statt, und nur die erste ist
+richtig gebaut.
+
+**Stufe 1 — Amazon-Feld → interner Schlüssel.** `LQ_DEFAULT_SCHEMA` in
+`src/lib/amazon/sku-schema.ts`, je SKU überschreibbar über
+`amazon_sku_mappings.personalization_schema`. Kann bereits heute pro Design
+unterschiedliche Felder.
+
+**Stufe 2 — interner Schlüssel → Textblock.** Hart verdrahtet:
+`TEXT_ORDER = ['title', 'names', 'subline']` in der Editor-Route, verteilt
+positional im `AmazonOrderApplier` — der n-te Text auf den n-ten
+Nicht-Koordinaten-Block. Diese Stufe kennt das Preset nicht, sie zählt durch.
+
+Was daran bricht, am Beispiel von `LQ-30001-09`: Das Amazon-Feld „Stadt und
+Koordinaten" ist auf `subline` abgebildet. Der Applier überspringt
+Koordinatenblöcke vollständig. Das Preset `AMZ_LQ-30001-09` hat aber nur zwei
+Nicht-Koordinaten-Blöcke. Also füllen `title` und `names` diese beiden, und
+`subline` fällt hinten runter — der Freitext des Käufers landet nirgends.
+Bleibt das Feld leer, stimmt das Ergebnis nur zufällig: der Koordinatenblock
+bleibt dann eben unangetastet.
+
+### Die Lösung: das Ziel gehört ins Schema
+
+Jedes Schemafeld bekommt zwei Angaben dazu:
+
+```
+{ key: 'subline',
+  label: 'Stadt und Koordinaten',
+  target: 'block-coords',      ← welcher Textblock des Presets
+  whenEmpty: 'auto' }          ← was, wenn der Käufer nichts eingibt
+```
+
+Drei Leer-Regeln:
+
+| Regel | Verhalten bei leerem Feld |
+|---|---|
+| `auto` | Block bleibt wie im Preset — beim Koordinatenblock setzt der Renderer Stadt + Koordinaten |
+| `preset` | Der im Preset hinterlegte Text bleibt stehen |
+| `leer` | Block wird geleert |
+
+Der gefüllte Fall auf einem Koordinatenblock ist kein neues Konzept: Der
+Editor setzt schon heute `isCoordinates: false` und übernimmt den Text, wenn
+ein Mensch dort hineintippt (`TextTab.tsx`). Die Automatik tut dasselbe
+maschinell.
+
+### Zwei Entscheidungen
+
+**1. Kein positionaler Rückfall.** Ein Textfeld ohne gepflegtes Ziel schickt
+die Position in die Prüfung. Gerade das Durchzählen ist der Mechanismus, der
+heute still den falschen Block befüllt; als Netz behalten hieße, den Fehler zu
+konservieren. Einmal je SKU pflegen ist billiger als bei jeder Bestellung zu
+prüfen, ob es zufällig gepasst hat.
+
+**2. Vorschlag ja, Automatik nein.** Beim ersten Auftreten einer SKU schlägt
+das System eine Zuordnung nach Label-Ähnlichkeit vor. Ein unbestätigter
+Vorschlag zählt aber als ungepflegt — die Bestellung geht in die Prüfung, bis
+der Betreiber einmal bestätigt hat. Sonst winkt man einen falschen Vorschlag
+durch und merkt es erst am gedruckten Poster.
+
+### Pflege
+
+Nicht als JSON von Hand, sondern als Maske in der SKU-Verwaltung: links die
+Anpassungsfelder aus einer echten Bestellung, rechts ein Auswahlfeld mit den
+Textblöcken des zugeordneten Presets, dazu die Leer-Regel.
+
+```
+Amazon-Feld                    →  Textblock im Preset        Wenn leer
+──────────────────────────────────────────────────────────────────────────
+Titel                          →  [Wo alles begann…    ▾]   [Preset-Text ▾]
+Namen                          →  [Maria & Alex        ▾]   [Preset-Text ▾]
+Stadt und Koordinaten          →  [Ort & Koordinaten   ▾]   [Automatisch ▾]
+Adresse für die Karte          →  (Kartenmitte)              —
+Größe des Posters              →  (Postergröße)              —
+```
+
+Die Auswahlfelder zeigen den Preset-Text des Blocks, nicht seine Kennung
+(`block-1789496636322`) — der Betreiber wählt, was er auf dem Poster sieht.
+
+### Absicherung
+
+Beim Auswerten prüfen, ob jedes Ziel im Preset noch existiert. Wird ein Preset
+später geändert und ein Block fällt weg, muss die Position in `pruefung`
+landen statt still auf den falschen Block zu schreiben.
+
+### Was den Umfang klein hält
+
+Blockkennungen sind innerhalb eines Presets eindeutig — in allen 24
+Map-Presets geprüft, keine Dubletten. Stand heute: 10 SKU-Zeilen, davon 2
+einem Preset zugeordnet, 0 mit eigenem Schema. Die Pflege ist einmalig, nicht
+laufend.
 
 ---
 
