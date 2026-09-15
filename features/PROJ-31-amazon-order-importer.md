@@ -319,6 +319,46 @@ Nicht Teil dieses Schritts: SKU→Preset-Zuordnung, Auswertung von
 
 ---
 
+## Behoben (2026-09-15) — Schriftabgleich meldete bekannte Schriften als unbekannt
+
+Beim Öffnen einer Bestellung im Editor erschienen Hinweise wie *„Schrift
+‚Cathalia' (title) ist nicht in der Bibliothek — Preset-Schrift bleibt
+stehen"*, obwohl Cathalia und Caviar Dreams seit jeher im Editor stehen. Das
+Poster wäre mit der Preset-Schrift gedruckt worden und damit anders, als der
+Käufer es bei Amazon gesehen hat.
+
+Zwei Ursachen in `src/app/api/admin/amazon/orders/[id]/editor/route.ts`:
+
+- **Nur die halbe Bibliothek gefragt.** Der Abgleich las ausschließlich die
+  Tabelle `fonts`. Dort stehen aber nur die vom Admin über PROJ-47
+  hochgeladenen Schriften (aktuell drei). Die neun Stammschriften leben in
+  `FALLBACK_FONTS` in `src/lib/fonts.ts` plus den `@font-face`-Regeln in
+  `globals.css`; die für PROJ-47 vorgesehene Seed-Migration, die sie in die
+  Tabelle spiegeln sollte, existiert nicht. Der Editor selbst führt beide
+  Quellen korrekt zusammen (`useFonts`), diese Route tat es nicht — also galt
+  für Amazon-Bestellungen *jede* Stammschrift als unbekannt.
+- **Namen exakt verglichen.** Amazon liefert den Namen so, wie der Käufer ihn
+  gesehen hat („Caviar Dreams"), die Bibliothek führt den Schnitt unter seinem
+  CSS-Namen („CaviarDreams"). Der Vergleich ignorierte nur Groß- und
+  Kleinschreibung und scheiterte am Leerzeichen.
+
+Geändert: Die bekannte Menge entsteht jetzt aus Tabelle **und**
+`FALLBACK_FONTS`, verglichen wird über eine normalisierte Form (Leerzeichen,
+Punkte, Unter- und Bindestriche entfallen). Gesetzt wird der Name, unter dem
+der Renderer die Schrift kennt — nicht Amazons Schreibweise. Beiläufig
+mitgezogen: die Tabellenabfrage filtert nun auf `status = 'published'`, damit
+kein Entwurf gesetzt wird, den der Editor gar nicht anbietet.
+
+Gegen die echten Daten geprüft: die einzigen zwei Schriftwünsche im Bestand
+(„Cathalia", „Caviar Dreams") lösen auf `Cathalia` und `CaviarDreams` auf.
+
+Offen, aber nicht Teil dieses Fixes: Die PROJ-47-Phase-2-Seed-Migration fehlt
+weiterhin. Solange sie fehlt, ist `FALLBACK_FONTS` für die neun Stammschriften
+die einzige Wahrheit — jede weitere Stelle, die die Bibliothek prüft, muss
+beide Quellen lesen.
+
+---
+
 ## Anhang: verworfener Ursprungs-Scope (Stand 2026-04-28)
 
 Der ursprüngliche Entwurf holte Bestelldaten, Lieferadresse und Anpassungsdaten über die Selling Partner API und meldete den Versand dorthin zurück. Er setzte voraus: Identitätsverifizierung im Solution Provider Portal, ein ausgefülltes Lösungsanbieterprofil, freigegebene Rollen `Orders`, `Direct-to-Consumer Shipping` und `Product Listing`, Zugangsdaten samt Erneuerungs-Token, sowie Sandbox-Tests vor dem Produktivbetrieb. Dazu kamen Token-Bucket gegen die Rate-Limits, Wiederholungen mit wachsendem Abstand, verschlüsselte Lieferadressen, maskierte Protokolle und eine Löschfrist für Rohdaten.
