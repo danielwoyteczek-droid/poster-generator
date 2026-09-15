@@ -457,6 +457,12 @@ export function AdminAmazonOrders() {
                   </details>
 
                   <div className="flex flex-wrap gap-2 pt-2 border-t">
+                    <Button size="sm" asChild disabled={!detail.preset}>
+                      <a href={`/de/map?amazon_order=${detail.id}`}>
+                        <ExternalLink className="w-4 h-4 mr-2" />
+                        Im Editor öffnen
+                      </a>
+                    </Button>
                     <Button
                       variant="outline" size="sm" disabled={busy || Boolean(detail.printed_at)}
                       onClick={() => void act(detail.id, { action: 'reresolve' }, 'Neu ausgewertet')}
