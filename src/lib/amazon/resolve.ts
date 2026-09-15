@@ -39,7 +39,7 @@ export interface ResolveOutcome {
   map_lng: number | null
   map_place: string | null
   resolved_at: string
-  ingest_warnings: string[]
+  warnings: string[]
 }
 
 interface OrderRowForResolve {
@@ -75,7 +75,7 @@ export async function resolveOrder(
     map_lng: null,
     map_place: null,
     resolved_at: now,
-    ingest_warnings: warnings,
+    warnings,
   }
 
   if (row.order_state === 'cancelled') {
@@ -175,7 +175,7 @@ export async function resolveOrder(
     out.queue_status = 'pruefung'
   }
 
-  out.ingest_warnings = warnings
+  out.warnings = warnings
   return out
 }
 
@@ -193,14 +193,17 @@ export async function resolveAndSave(
   }
 
   const outcome = await resolveOrder(supabase, row, options)
-  const { ingest_warnings, ...rest } = outcome
+  const { warnings, ...rest } = outcome
 
   const { error } = await supabase
     .from('amazon_custom_orders')
     .update({
       ...rest,
-      // Warnungen des Eingangs bleiben erhalten, die der Auflösung kommen dazu.
-      ingest_warnings: [...(row.ingest_warnings ?? []), ...ingest_warnings],
+      // Vollständig ersetzen, nicht ergänzen: diese Hinweise beschreiben den
+      // Zustand nach DIESEM Lauf. Würden sie angehängt, stünde nach einer
+      // erfolgreichen Neuauswertung weiter da, was vorher gefehlt hat.
+      // Die Hinweise des Eingangs stehen getrennt in ingest_warnings.
+      resolve_warnings: warnings,
     })
     .eq('id', row.id)
     // Wettlauf mit einem parallelen Druck ausschliessen.
