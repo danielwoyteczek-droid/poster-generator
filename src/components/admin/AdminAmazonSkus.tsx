@@ -16,7 +16,6 @@ import { Loader2, ChevronDown, ChevronRight, RefreshCw, AlertTriangle, Check } f
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
