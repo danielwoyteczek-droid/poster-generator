@@ -1,214 +1,328 @@
-# PROJ-31: Amazon-Bestellungs-Importer (SP-API mit Amazon Custom)
+# PROJ-31: Amazon-Custom-Anpassungsdaten-Importer
 
-## Status: Planned
+## Status: In Progress
 **Created:** 2026-04-28
-**Last Updated:** 2026-04-28
+**Last Updated:** 2026-09-15
+
+> **Stand:** Phase 0 und 2 sind vom Abholer auf UMOI-SERVER erledigt — er
+> liest JTL und schickt fertige Positionen. Der Eingang auf petite-moment
+> steht ebenfalls (siehe *Umgesetzt* unten). Offen ist Phase 3: SKU→Preset,
+> Editor-Zustand, Auto-Render, Queue-Oberfläche.
 
 ## Dependencies
-- **Requires PROJ-10** (Admin-Bestellverwaltung) — importierte Amazon-Bestellungen landen als reguläre Bestellungen in der bestehenden Admin-Queue mit `source = 'amazon'`.
-- **Requires PROJ-8** (Design-Presets) — Mapping Amazon-SKU/ASIN → internes Preset bestimmt, welches Design für die Bestellung gerendert wird.
-- **Requires PROJ-30** (Preset-Render-Pipeline) — Auto-Render des fertigen Posters aus Editor-State, der aus Amazon Custom-Feldern gebaut wird.
-- **Requires PROJ-1** (Karten-Editor Core) — Editor-Konfiguration aus Custom-Feldern (Titel/Ort/Koordinaten) wird in den bestehenden Editor-State übersetzt.
-- **Requires PROJ-3** (Poster-Export) — finales PNG/PDF wird über die existierende Export-Pipeline generiert.
-- **Berührt PROJ-12** (Client-Order-Management) — Amazon-Bestellungen sind nicht Teil des Kunden-Logins (kein Self-Service-Zugriff für Amazon-Käufer), erscheinen aber im Operator-Backend.
+- **Requires PROJ-8** (Design-Presets) — die Zuordnung Amazon-SKU → internes Preset bestimmt, welches Design gerendert wird.
+- **Requires PROJ-30** (Preset-Render-Pipeline) — der Auto-Render nutzt denselben Headless-Editor-Mechanismus.
+- **Requires PROJ-1** (Karten-Editor Core) — die Käuferangaben werden in den bestehenden Editor-Zustand übersetzt.
+- **Requires PROJ-3** (Poster-Export) — die Druckdatei entsteht über die vorhandene Export-Pipeline.
+- **Requires PROJ-47** (Admin-Font-Verwaltung) — Amazon liefert die vom Käufer gewählte Schrift als Datei mit; sie wird gegen die Schriftbibliothek aufgelöst.
+- **Teilt Code mit PROJ-49** (Etsy-Integration) — gemeinsamer Personalisierungs-Parser, gemeinsame Prüf-Queue, gemeinsame Render-Stufe.
+- **Berührt PROJ-10** (Admin-Bestellverwaltung) *nicht* — Amazon-Bestellungen legen bewusst keine Zeilen in der internen Bestelltabelle an (Begründung unter Tech-Entscheidungen).
+
+---
+
+## Der Befund, der diese Spec verkleinert hat (2026-09-14)
+
+Die ursprüngliche Spec baute den Importer auf der Amazon **Selling Partner API** auf und galt als blockiert auf die Rollenfreigabe `Direct-to-Consumer Shipping`. **Dieser Blocker ist hinfällig.**
+
+Die Anpassungsdaten personalisierter Bestellungen sind ohne jede Rollenfreigabe erreichbar. Im FBM-Bestellbericht in Seller Central lassen sich unter *Bestellungen → Bestellberichte → Spalten hinzufügen → Benutzerdefinierte URLs* zwei Spalten aktivieren:
+
+| Spalte | Inhalt |
+|---|---|
+| `customized-url` | Link auf ein ZIP — per einfachem Abruf ohne Anmeldung erreichbar |
+| `customized-page` | Kurzlink auf die Amazon-Ansicht |
+
+Das ZIP enthält die Anpassungsdaten als JSON, dieselben Daten als XML, ein SVG mit dem Schriftzug und ein Vorschaubild. Dieselben Daten stehen in der JTL-Datenbank in `dbo.pf_amazon_bestellungpos`, Spalte `cCustomJson`.
+
+Verifiziert an drei echten Bestellungen aus zwei völlig verschiedenen Produktwelten.
+
+**Was JTL bereits übernimmt** — und damit aus dieser Spec herausfällt:
+
+| Ursprünglich geplant | Wer macht es real |
+|---|---|
+| Bestelldaten abrufen | JTL-eazyAuction |
+| Lieferadresse (PII-Rolle) | JTL, ist die Warenwirtschaft |
+| Versandrückmeldung an Amazon | JTL meldet Tracking zurück |
+| **Anpassungsdaten aufbereiten** | **das Einzige, was petite-moment beisteuert** |
+
+Damit entfallen: SP-API-Zugriff, Rollenanträge, Identitätsverifizierung im Solution Provider Portal, Sandbox-Strategie, Token-Rotation, Rate-Limit-Behandlung, PII-Verschlüsselung, Versandrückmeldung, Stornierungs-Abgleich.
+
+---
 
 ## Problem & Ziel
 
-petite-moment verkauft personalisierte Karten-Poster auf Amazon mit aktiviertem **Amazon Custom**-Programm: Käufer geben beim Checkout direkt im Amazon-Frontend ihre Personalisierungsdaten ein (Titel, Ort, Koordinaten). Aktuell läuft die Verarbeitung **vollständig manuell**:
+petite-moment verkauft personalisierte Karten-Poster über Amazon Custom (SKU-Schema `LQ-xx-xx`). Der Käufer gibt Titel, Ort, Namen, Format und Rahmen direkt im Amazon-Frontend ein. Heute liest der Betreiber diese Felder von Hand ab, tippt sie im Editor nach, wählt das passende Design und exportiert die Druckdatei — rund 5–10 Minuten pro Bestellung, mit Tippfehlerrisiko bei Ortsangaben.
 
-1. Operator loggt sich in Amazon Seller Central ein
-2. Sucht neue Bestellungen
-3. Liest pro Bestellung die Custom-Felder ab (Titel/Ort/Koordinaten)
-4. Wechselt zu petite-moment.com Editor
-5. Tippt die Daten manuell ein
-6. Wählt das passende Design-Preset basierend auf SKU
-7. Generiert Poster, exportiert PDF, druckt, versendet
-8. Markiert Bestellung in Amazon als versandt mit Tracking-Nummer
+**Ziel:** Kommt eine Bestellung mit SKU `LQ-xx-xx` herein, bereitet das Tool sie so weit vor, dass der Betreiber nur noch prüft und druckt.
 
-Das ist fehleranfällig (Tippfehler bei Koordinaten), zeitintensiv (~5–10 Min pro Bestellung) und blockiert Skalierung.
+## Scope
 
-**PROJ-31 automatisiert diesen End-to-End-Workflow** über die Amazon **Selling Partner API (SP-API)**:
+**Im Scope**
+- Zuordnung Amazon-SKU → internes Preset und Feld-Schema
+- Anpassungsdaten aus JTL abholen und auswerten
+- Editor-Zustand aus Preset plus Käuferangaben bauen
+- Poster automatisch rendern, Druckdatei ablegen
+- Prüf-Queue mit Status „Wartet auf Druck"
 
-```
-Amazon Custom-Bestellung
-    ↓
-SP-API Polling (alle 10–15 Min)
-    ↓
-Order-Daten + BuyerCustomizedInfo (ZIP mit JSON) + Lieferadresse (PII via RDT)
-    ↓
-SKU → Preset Mapping
-    ↓
-Editor-State Build (Preset-Defaults + Custom-Felder als Override)
-    ↓
-Auto-Render via PROJ-30 Pipeline → fertiges Poster-PDF
-    ↓
-Bestellung erscheint in PROJ-10 Admin-Queue (Status: "Awaiting Print")
-    ↓
-Operator druckt + verschickt → Versand wird zurück an Amazon gemeldet
-```
+**Außerhalb des Scope**
+- Jeglicher SP-API-Zugriff und jeder Rollenantrag
+- Versandrückmeldung an Amazon (macht JTL)
+- Lieferadressen und Bezahlvorgänge (macht JTL)
+- Nicht-Poster-Produkte der GmbH (z. B. Wärmflaschen) — der Importer ignoriert alles ohne `LQ-`-SKU
+- Weitere Marktplätze außer DE
 
 ## User Stories
-- Als Operator möchte ich, dass Amazon Custom-Bestellungen automatisch in meinem Admin-Backend (PROJ-10) erscheinen, damit ich nicht zwischen Seller Central und petite-moment.com wechseln muss.
-- Als Operator möchte ich pro Amazon-SKU/ASIN ein internes Design-Preset hinterlegen können, damit der Importer weiß, welches Design er für eine Bestellung rendern soll.
-- Als Operator möchte ich die Custom-Felder des Käufers (Titel, Ort, Koordinaten, ggf. Datum) automatisch ins Poster übernehmen lassen, ohne sie manuell abzutippen.
-- Als Operator möchte ich die Lieferadresse aus der Amazon-Bestellung im Versand-Workflow sehen, damit ich die Sendung adressieren kann.
-- Als Operator möchte ich den Versandstatus mit Tracking-Nummer an Amazon zurückmelden können, damit der Käufer in Amazon sein Tracking sieht und Amazon den Auftrag als erfüllt markiert.
-- Als Operator möchte ich, dass Bestellungen automatisch alle 10–15 Minuten synchronisiert werden, damit ich nicht manuell Knopf drücken muss.
-- Als Operator möchte ich bei Sync-Fehlern (API-Limit, fehlende SKU-Mapping, korrupte Custom-Daten) eine Benachrichtigung und einen klaren Status im Admin-UI sehen, damit ich gezielt nachverfolgen kann.
-- Als Operator möchte ich Bestellungen mit unbekannter SKU **nicht** automatisch verwerfen, sondern zur manuellen Bearbeitung in eine Pending-Liste bekommen.
-- Als Operator möchte ich neue Importer-Logik gegen die Sandbox-API testen können, bevor sie auf Production-Bestellungen losgelassen wird.
+- Als Betreiber möchte ich Amazon-Custom-Bestellungen fertig aufbereitet in einer Prüf-Queue vorfinden, statt sie in Seller Central abzulesen und im Editor nachzutippen.
+- Als Betreiber möchte ich pro Amazon-SKU einmal hinterlegen, welches Design sie meint und welches Amazon-Feld auf welches Poster-Element gehört.
+- Als Betreiber möchte ich vor dem Druck sehen, was der Importer aus den Käuferangaben gemacht hat, und einzelne Werte korrigieren können.
+- Als Betreiber möchte ich Bestellungen mit unbekannter SKU nicht verlieren, sondern als „Zuordnung fehlt" aufgelistet bekommen — mit der Möglichkeit, die Zuordnung nachzutragen und neu zu verarbeiten.
+- Als Betreiber möchte ich Etsy- und Amazon-Bestellungen an einem Ort prüfen, nicht auf zwei Seiten.
+- Als Betreiber möchte ich bei unklarer Ortsangabe eine Rückfrage statt einer falsch zentrierten Karte.
 
 ## Acceptance Criteria
 
-### Amazon SP-API Setup (extern, nicht im Code)
-- [ ] SPP-Identitätsverifizierung abgeschlossen (Gewerbeanmeldung + Ausweisdokument hochgeladen)
-- [ ] Lösungsanbieterprofil ausgefüllt (Firmen-Kontaktdaten, Datenschutz-Antworten)
-- [ ] Production-App im Solution Provider Portal angelegt
-- [ ] Roles approved:
-  - [ ] `Orders` (Standard-Bestelldaten)
-  - [ ] `Direct-to-Consumer Shipping` (PII / Lieferadresse)
-  - [ ] `Product Listing` (SKU-Daten)
-- [ ] LWA-Credentials (Client-ID, Client-Secret) sicher in `.env.local` und Vercel-Env-Variablen hinterlegt
-- [ ] Refresh-Token via Self-Authorize-Flow generiert und gespeichert
-- [ ] Sandbox-Zugriff getestet mit Test-Bestellungen
+### Zuordnung SKU → Design
+- [ ] Admin-Seite listet alle bekannten Amazon-SKUs, ungezuordnete zuerst
+- [ ] Pro SKU: Preset auswählbar, Feld-Schema pflegbar, Notizfeld
+- [ ] Unbekannte SKUs aus dem Import legen automatisch eine offene Zeile an, statt die Bestellung zu verwerfen
+- [ ] Nach nachgetragener Zuordnung lassen sich betroffene Bestellungen erneut verarbeiten
 
-### Datenmodell (Supabase)
-- [ ] Neue Tabelle `amazon_sku_mappings`:
-  - `id` (UUID)
-  - `amazon_sku` (Text, unique)
-  - `amazon_asin` (Text, optional)
-  - `marketplace_id` (Text — z. B. `A1PA6795UKMFR9` für DE)
-  - `preset_id` (FK → `presets`)
-  - `notes` (Text, optional)
-  - `created_at`, `updated_at`
-- [ ] Neue Tabelle `amazon_orders`:
-  - `id` (UUID)
-  - `amazon_order_id` (Text, unique)
-  - `marketplace_id` (Text)
-  - `purchase_date` (Timestamp)
-  - `status` (Enum: `pending_mapping` | `pending_render` | `imported` | `failed` | `manual_review`)
-  - `raw_order_payload` (JSONB) — vollständiges SP-API-Order-Objekt zur Nachverfolgung
-  - `customization_data` (JSONB) — geparste Custom-Felder
-  - `shipping_address` (JSONB, verschlüsselt) — PII, RDT-bezogen
-  - `internal_order_id` (FK → `orders`, nullable bis Import erfolgreich)
-  - `error_message` (Text, nullable)
-  - `imported_at`, `last_synced_at`
-- [ ] Erweiterung `orders` (PROJ-10) um:
-  - `source` (Enum: `amazon` | `shop` | `manual`, Default `shop`)
-  - `external_order_id` (Text, nullable) — z. B. Amazon-Order-ID
-- [ ] Tabelle `amazon_sync_runs`:
-  - `id`, `started_at`, `completed_at`, `orders_fetched` (Int), `orders_imported` (Int), `orders_failed` (Int), `error_log` (Text, nullable)
+### Abholung und Auswertung
+- [ ] Der Abholer erkennt neue Positionen mit `LQ-`-SKU und überspringt alle anderen
+- [ ] Anpassungsdaten werden gelesen, egal ob die JTL-Spalte das vollständige JSON oder nur einen Link darauf enthält
+- [ ] Eine bereits importierte Position wird nicht doppelt angelegt
+- [ ] Alle Käuferangaben eines Auftrags werden erfasst: Texte, Auswahlfelder, Schrift und Farbe — je Textblock zugeordnet
+- [ ] Ein unbekannter Feldtyp blockiert den Import nicht, wird aber in der Queue sichtbar gemeldet
+- [ ] Fehlende Pflichtfelder oder Werte, die nicht zum erwarteten Muster passen, führen zu „Prüfung nötig" — niemals zu stillem Überspringen
 
-### Importer-Logik (Backend)
-- [ ] Polling-Job läuft alle 10–15 Min via **Vercel Cron** oder **Supabase Edge Function Scheduler**
-- [ ] Pro Sync:
-  1. `getOrders` mit `LastUpdatedAfter = (last_sync_time - 5min Puffer)`
-  2. Pro Order: `getOrderItems` → bei Vorhandensein von `BuyerCustomizedInfo.CustomizedURL` → ZIP herunterladen → `customizationInfo.json` parsen
-  3. Restricted Data Token (RDT) via `Tokens API` anfordern für PII-Zugriff
-  4. `getOrderAddress` → Lieferadresse mit RDT abrufen
-  5. SKU → Preset-Mapping nachschlagen
-     - Mapping vorhanden: weiter zu Schritt 6
-     - Kein Mapping: Status `pending_mapping`, in Admin-UI sichtbar
-  6. Editor-State aus Preset-Default + Custom-Feld-Overrides bauen
-  7. Render-Job in PROJ-30 Pipeline anstoßen
-  8. Datensatz in `orders` anlegen mit `source = 'amazon'`, `external_order_id = amazon_order_id`
-  9. `amazon_orders.status = imported`, `internal_order_id` setzen
-- [ ] **Idempotenz**: Bestellung mit existierender `amazon_order_id` wird NICHT doppelt importiert
-- [ ] **Rate-Limits respektieren**: Orders 0.0167 req/s steady, max 20 burst — Token-Bucket-Implementierung im Client
-- [ ] **Retry-Logik**: Exponential Backoff bei 5xx und Throttling (429), max 3 Retries
-- [ ] **PII-Handling**: Lieferadresse verschlüsselt at rest in Supabase (z. B. via `pgcrypto`), niemals in Logs schreiben
+### Ort und Editor-Zustand
+- [ ] Die Ortsangabe des Käufers wird über dieselbe Ortssuche aufgelöst, die im Editor hinter dem Suchfeld liegt
+- [ ] Hat der Käufer zusätzlich Koordinaten eingetippt, schlagen diese den Textfund
+- [ ] Kein Treffer oder mehrdeutiger Treffer → „Prüfung nötig" statt falsch zentrierter Karte
+- [ ] Der Editor-Zustand entsteht aus dem Preset als Basis, die Käuferangaben überschreiben nur die dafür vorgesehenen Elemente
+- [ ] Die vom Käufer gewählte Schrift wird gegen die Schriftbibliothek aufgelöst; ist sie unbekannt, greift die Preset-Schrift und die Position wird markiert
+- [ ] Format- und Rahmenangabe des Käufers werden übernommen
 
-### SKU↔Preset-Mapping-UI
-- [ ] Neue Admin-Seite `/private/admin/amazon-skus`:
-  - Liste aller bekannten SKUs (eingelesen + manuell hinzugefügt)
-  - Suchfeld + Filter nach Mapping-Status
-  - Pro Zeile: SKU, ASIN, Marketplace, gemapptes Preset (Dropdown), Status
-  - "Neue Zuordnung anlegen"-Button
-  - Bulk-Import via CSV (analog PROJ-30)
+### Render und Prüf-Queue
+- [ ] Nach erfolgreicher Auswertung wird automatisch gerendert, ohne Zutun des Betreibers
+- [ ] Die Druckdatei ist aus der Queue herunterladbar; ein fehlgeschlagener Render ist einzeln wiederholbar
+- [ ] Die Queue zeigt Etsy- und Amazon-Bestellungen gemeinsam, mit Filter nach Quelle und Status
+- [ ] Detailansicht zeigt Vorschau, erkannte Felder mit Herkunft, Gestaltungsangaben und die Rohdaten
+- [ ] Einzelne Feldwerte sind korrigierbar; danach lässt sich neu rendern
+- [ ] Status „Wartet auf Druck" ist der Zustand, in dem eine Bestellung druckfertig auf den Betreiber wartet
+- [ ] Eine gedruckte Bestellung lässt sich abhaken und verschwindet aus der offenen Liste
 
-### Admin-UI für Bestellungs-Imports
-- [ ] Neue Admin-Seite `/private/admin/amazon-orders`:
-  - Letzter erfolgreicher Sync-Zeitpunkt + Status
-  - Tabelle aktueller/letzter Imports mit Status-Badge
-  - Drilldown pro Bestellung: Raw-Payload, Custom-Daten, Render-Status, internes Bestell-Link
-  - Manueller "Jetzt synchronisieren"-Knopf (Rate-limit-aware)
-  - Filter: nur fehlerhafte / nur manual_review / alle
-- [ ] Pending-Mapping-Sektion: Bestellungen, die wegen unbekannter SKU nicht importiert wurden — mit "SKU jetzt mappen + Reimport"-Action
-- [ ] Fehler-Liste: Imports mit `failed`-Status, Retry-Button pro Bestellung
+### Betrieb
+- [ ] Jeder Abholvorgang wird protokolliert: Zeitpunkt, gefundene, übernommene und fehlgeschlagene Positionen
+- [ ] Fehler landen mit Positionsbezug in Sentry
+- [ ] Das Zugangsgeheimnis des Abholers liegt ausschließlich in Umgebungsvariablen
+- [ ] Die JTL-Zugangsdaten verlassen den lokalen Abholer nicht
 
-### Versandrückmeldung an Amazon (Phase 2 — kann später)
-- [ ] Wenn interne Bestellung in PROJ-10 als `shipped` markiert wird → SP-API `submitFulfillmentData` Aufruf mit:
-  - Versanddatum
-  - Tracking-Nummer
-  - Carrier-Code
-- [ ] Bei Versand-Submit-Fehler: Operator-Benachrichtigung + manueller Retry möglich
+---
 
-### Error Handling & Monitoring
-- [ ] Strukturelle Fehler (Custom-Felder fehlen, ASIN unbekannt, Adresse leer) → Status `manual_review`, **nicht** stillschweigend skippen
-- [ ] Sentry-Integration: Sync-Fehler werden mit Order-ID + Schritt geloggt
-- [ ] Admin-Dashboard zeigt Sync-Health (Erfolgsquote letzter 24h)
-- [ ] Bei drei aufeinanderfolgenden fehlgeschlagenen Sync-Runs: E-Mail-Benachrichtigung an Operator
+## Tech Design (Solution Architect)
 
-### Sicherheit & Compliance
-- [ ] Refresh-Token niemals im Repo committen, nur in Vercel-Env
-- [ ] PII-Daten (Käufer-Name, Adresse) verschlüsselt in DB
-- [ ] Logs maskieren PII-Felder
-- [ ] Datenaufbewahrung: Amazon-Roh-Payloads nach 30 Tagen archivieren/löschen, sobald Bestellung erfüllt ist (DSGVO-Compliance)
-- [ ] Antworten zum Compliance-Fragebogen im SPP entsprechen den tatsächlichen technischen Maßnahmen
+### A) Der Weg einer Bestellung
 
-## Implementation Notes (vorläufig — wird in `/architecture` verfeinert)
+```
+JTL-Wawi-Datenbank (im Firmennetz)
+    |
+    |   Lokaler Abholer — ein Skript, das im Firmennetz läuft
+    |   · findet neue Positionen mit LQ-SKU
+    |   · holt die Anpassungsdaten (direkt oder über den hinterlegten Link)
+    v
+    |   Übergabe an petite-moment, mit gemeinsamem Geheimnis abgesichert
+    v
+Anpassungsdaten flach klopfen
+    |   Aus dem verschachtelten Amazon-Baum werden Felder mit Beschriftung,
+    |   Wert und Zugehörigkeit zu ihrem Textblock.
+    v
+SKU nachschlagen  ──── keine Zuordnung ──→  Queue: „Zuordnung fehlt"
+    |   Preset + Feld-Schema
+    v
+Felder gegen das Schema prüfen  ──── Pflichtfeld fehlt ──→  Queue: „Prüfung nötig"
+    |   Dieselbe Prüfstufe wie bei Etsy, dasselbe Ergebnisformat.
+    v
+Ort auflösen  ──── mehrdeutig / kein Treffer ──→  Queue: „Prüfung nötig"
+    v
+Editor-Zustand bauen
+    |   Preset als Basis, Käuferangaben als gezielte Überschreibungen.
+    v
+Rendern  ──── fehlgeschlagen ──→  Queue: „Render-Fehler", wiederholbar
+    v
+Queue: „Wartet auf Druck"  →  Betreiber prüft, druckt, hakt ab
+```
 
-### Tech-Stack-Vorschlag
-- **SP-API Client**: `amazon-sp-api` npm-Paket (offiziell unterstützt) oder direkter HTTP-Client mit AWS-SigV4
-- **Cron**: Vercel Cron (gratis im Pro-Tier) oder Supabase pg_cron (falls bereits eingerichtet)
-- **Encryption**: Supabase `pgcrypto`-Extension für PII-Felder
-- **Queue/Job**: Reuse PROJ-30 Pattern (`render_status`-Spalte als implizite Queue)
+### B) Was der Betreiber sieht
 
-### Sandbox-First-Strategie
-SP-API hat eine Sandbox mit deterministischen Test-Bestellungen. Vorgehen:
-1. Sandbox-App im SPP anlegen (geht **ohne** Identitätsprüfung)
-2. Importer komplett gegen Sandbox bauen + testen
-3. Erst wenn Production-Roles approved sind → ENV-Variable umstellen → live
+```
+Admin → Externe Bestellungen        (die heutige Etsy-Seite, erweitert)
+├── Kopfzeile
+│   ├── Letzter Abgleich je Quelle
+│   └── Filter: Alle · Etsy · Amazon
+├── Statusfilter
+│   └── Wartet auf Druck · Prüfung nötig · Zuordnung fehlt · Render-Fehler · Erledigt
+├── Tabelle
+│   └── Quelle · Bestellnummer · Datum · Status · Positionen · Detail
+└── Detailansicht einer Position
+    ├── Poster-Vorschau + Druckdatei herunterladen
+    ├── Erkannte Felder — Wert, aus welchem Amazon-Feld, korrigierbar
+    ├── Gestaltung — Schrift und Farbe je Textblock
+    ├── Rohdaten (aufklappbar, für Zweifelsfälle)
+    └── Aktionen: Neu rendern · Als gedruckt abhaken · Zuordnung nachtragen
 
-### Marktplatz-Scope
-- **MVP**: nur DE (`A1PA6795UKMFR9`)
-- **Später** (eigenes Feature-Ticket): AT (`A1C3SOZRARQ6R3`), FR (`A13V1IB3VIYZZH`), Multi-Marketplace-Sync
+Admin → Amazon-SKUs                 (neue Seite)
+├── Tabelle: SKU · ASIN · Preset · Schema gepflegt? · Bestellungen
+├── Unzugeordnete SKUs stehen oben
+└── Schema-Editor je SKU
+    └── Je Zeile: Amazon-Feldname · internes Element · Pflicht? · erlaubtes Muster
+```
 
-### Stornierungen / Status-Updates
-SP-API liefert Order-Status (`Pending`, `Unshipped`, `Shipped`, `Canceled`). Polling muss Status-Änderungen erkennen:
-- Neu storniert → interne Bestellung als `cancelled` markieren, Render-Job stoppen falls nicht fertig
-- Detail-Logik in `/architecture` festlegen
+### C) Welche Informationen gespeichert werden
 
-## Open Questions (für `/architecture`)
-1. **Cron-Plattform**: Vercel Cron vs. Supabase Edge Functions vs. dedizierter Worker (analog PROJ-30 render-worker)?
-2. **Auth-Modell für Refresh-Token-Rotation**: wo speichern, wie rotieren bei Bedarf?
-3. **Amazon-Bestellungen im Kunden-Frontend**: PROJ-12 (Client-Order-Management) zeigt aktuell Bestellungen, die mit dem petite-moment-Account verknüpft sind. Amazon-Käufer haben keinen petite-moment-Account → Amazon-Bestellungen bleiben Operator-only?
-4. **Rückerstattung / Refund-Flow**: Operator-initiierte Refunds via SP-API oder weiterhin manuell in Seller Central?
-5. **SKU-Mapping-Discovery**: bei einer neuen Amazon-SKU automatisch eine Pending-Zuordnung anlegen, oder Operator soll alle SKUs vorab pflegen?
-6. **Test-Strategie**: Mock-Layer für SP-API in Vitest, Sandbox in E2E?
+**Zuordnung je Amazon-SKU** *(neu)*
+Die SKU, optional die ASIN, der Marktplatz, welches Design gemeint ist, das Feld-Schema und ein Notizfeld. Das Feld-Schema beschreibt für jedes Amazon-Feld, auf welches Poster-Element es geht, ob es Pflicht ist und welchem Muster sein Wert folgen muss. Es hat dieselbe Form wie das Etsy-Schema und wird von derselben Prüfstufe gelesen.
+
+**Importierte Bestellposition** *(neu)*
+Amazon-Bestellnummer und Positionsnummer, SKU und ASIN, Kaufdatum, Status, die Rohdaten der Anpassung, die erkannten Felder, die Gestaltungsangaben je Textblock, der aufgelöste Ort, der erzeugte Editor-Zustand, der Verweis auf die Druckdatei, eine Fehlermeldung und Zeitstempel. Eine Zeile je Position — bei Etsy ist es eine Zeile je Bestellung mit Positionen darin, weil die Etsy-Schnittstelle so liefert; JTL liefert Positionen.
+
+**Druckdatei** *(neu, von beiden Quellen genutzt)*
+Speicherort, Zustand (in Arbeit, fertig, fehlgeschlagen), Fehlermeldung, Größe. Bewusst eine eigene Ablage statt eines Feldes in der Bestellzeile: Die Erzeugung kann scheitern und wiederholt werden, braucht also einen eigenen Zustand — dieselbe Überlegung wie bei den DTF-Druckdateien aus PROJ-55.
+
+**Abholprotokoll** *(vorhanden, um die Quelle erweitert)*
+Das Protokoll der Etsy-Abgleiche bekommt ein Feld für die Quelle und nimmt die Amazon-Läufe mit auf.
+
+**Keine Lieferadressen, keine Zahlungsdaten.** Sie werden weder abgeholt noch gespeichert — JTL hat sie. Damit hat diese Spec keine nennenswerte Datenschutz-Fläche, anders als der SP-API-Entwurf.
+
+### D) Tech-Entscheidungen, und warum
+
+**1. Ein lokaler Abholer statt eines Abrufs durch die Website.**
+Die JTL-Datenbank liegt im Firmennetz und ist von außen nicht erreichbar. Die Website kann sie also nicht abfragen, egal wie sie gebaut ist. Stattdessen läuft im Firmennetz ein Skript, das die Datenbank liest und das Ergebnis an eine Adresse der Website übergibt, abgesichert durch ein gemeinsames Geheimnis. Dasselbe Muster nutzt das Projekt bereits beim Render-Worker und beim Etsy-Abgleich. Nebeneffekt: Die Datenbank-Zugangsdaten bleiben im Firmennetz und landen nie beim Hoster.
+
+**2. Zwei Wege zu den Anpassungsdaten, automatisch gewählt.**
+Ob die JTL-Spalte das vollständige JSON oder nur einen Link darauf enthält, ist noch nicht bestätigt — das lässt sich nur mit Zugriff auf die Datenbank klären. Statt darauf zu warten, erkennt der Abholer beides: sieht der Inhalt nach Anpassungsdaten aus, nimmt er sie direkt; sieht er nach einem Link aus, lädt er das ZIP nach und liest die Daten daraus. Damit ist die offene Frage kein Blocker mehr, sondern nur noch eine Frage der Geschwindigkeit.
+
+**3. Die vollständige Quelle ist der Anpassungs-Baum, nicht die flache Zusammenfassung daneben.**
+Amazon legt die Daten zweimal ab: als verschachtelten Baum und als flache Liste. Die flache Liste ist bequemer, aber lückenhaft — sobald der Käufer den Schriftzug selbst verschiebt, schrumpft der Eintrag dort auf einen Bildverweis zusammen und der eingegebene Text fehlt. In zwei der drei geprüften Bestellungen ist genau das passiert. Ausgewertet wird deshalb der Baum.
+
+**4. Felder direkt zuordnen, nicht über einen Textumweg.**
+Naheliegend wäre, aus den Amazon-Feldern einen Text der Form „Beschriftung: Wert" zu bauen und ihn durch den vorhandenen Etsy-Parser zu schicken — der ist auf genau solche Freitexte ausgelegt. Das spart Code, verliert aber Information, weil der Etsy-Parser für unstrukturierte Käufereingaben gebaut ist und raten muss, wo es nach dem Umweg gar nichts mehr zu raten gäbe. Nachgemessen an den echten Bestellungen:
+
+| Fall | Eingabe | Ergebnis nach dem Textumweg |
+|---|---|---|
+| Wert enthält Bindestrich mit Leerzeichen | `Anna - Ben` | Feld geht verloren |
+| Zwei Felder mit gleicher Beschriftung | `Farbe` (Titel) + `Farbe` (Namen) | nur das erste überlebt |
+| Schrift und Farbe je Textblock | zwei Schriften, zwei Farben | Zuordnung zum Textblock weg |
+
+Der dritte Fall wiegt am schwersten: Bestellung 304 gestaltet Titel und Namen unterschiedlich — schwarz in einer Schrift, grau in einer anderen. Nach dem Textumweg ist nicht mehr entscheidbar, welche Farbe zu welchem Block gehört. Im Baum steht es.
+
+Stattdessen wird die Prüfstufe des vorhandenen Parsers — Beschriftungen abgleichen, Pflichtfelder prüfen, Muster prüfen, Ergebnis formen — als eigener Baustein herausgezogen. Etsy ruft sie weiter über den bisherigen Einstieg auf, unverändert in Verhalten und Signatur; Amazon ruft sie mit direkt zugeordneten Feldern auf. **Beide Quellen münden damit in dasselbe Ergebnisformat und denselben Prüf- und Render-Weg — es gibt keinen zweiten Review-Pfad.** Der Refactor ist klein und von den bestehenden Parser-Tests abgedeckt; er wird um Tests mit den anonymisierten echten Bestellungen ergänzt.
+
+Zugeordnet wird dabei nach dem internen Amazon-Feldnamen zuerst, der Käufer-Beschriftung danach. Der interne Name ist kurz und stabil; die Beschriftung ist der Text, den der Käufer liest, und ändert sich, sobald das Listing überarbeitet wird.
+
+**5. Ein Prüfplatz für beide Verkaufskanäle.**
+Die vorhandene Etsy-Bestellseite wird zur Queue für externe Bestellungen verallgemeinert, mit Filter nach Quelle. Getrennte Ablagen je Quelle, eine gemeinsame Oberfläche darüber. Das hält die laufende Etsy-Arbeit unangetastet, vermeidet zwei fast gleiche Seiten und gibt dem Etsy-Kanal die noch fehlenden Stufen — Render, Druckdatei, Freigabe — ohne Zusatzaufwand mit.
+
+**6. Das Design kommt aus dem Preset, der Käufer überschreibt nur Einzelheiten.**
+Layout, Farbwelt, Kartenstil und Textpositionen stehen im Preset. Aus der Bestellung kommen nur Titel, Namen, Ort, Format und Rahmen. So bleibt das Ergebnis gestalterisch konsistent, und eine neue Amazon-Variante ist eine Zeile in der Zuordnungstabelle statt Arbeit am Code.
+
+**7. Die Schriftwahl des Käufers wird aufgelöst, nicht ignoriert.**
+Amazon liefert zur gewählten Schrift die Schriftdatei mit — in Bestellung 304 sogar eine selbst hochgeladene. Der Importer sucht die Schrift in der Schriftbibliothek aus PROJ-47. Findet er sie, wird sie verwendet; findet er sie nicht, greift die Preset-Schrift und die Position wird markiert, damit der Betreiber die Schrift einmalig nachpflegen kann. Ohne diesen Schritt weicht das gedruckte Poster von der Vorschau ab, die der Käufer bei Amazon gesehen hat.
+
+**8. Amazon-Bestellungen legen keine Zeilen in der internen Bestelltabelle an.**
+Sie haben bei petite-moment weder Zahlung noch Lieferadresse noch Versandpflicht — JTL ist dort das führende System. Eine Bestellzeile ohne Geldfluss in der Bestellverwaltung wäre eine Zeile, die niemand fortführt. Der Druckauftrag lebt daher in der Queue für externe Bestellungen. Die Umsatzauswertung des Business Centers bleibt davon unberührt, weil sie ohnehin nur bezahlte Bestellungen zählt.
+
+**9. Ausgelöst wird der Abgleich vom Firmennetz aus, nicht nach Zeitplan in der Cloud.**
+Der Abholer kann als Aufgabe im Firmennetz regelmäßig laufen oder vom Betreiber gestartet werden. Ein Zeitplan beim Hoster ergibt keinen Sinn, weil die Datenquelle von dort nicht erreichbar ist.
+
+### E) Neue Abhängigkeiten
+
+- **Ein Treiber für Microsoft SQL Server** — JTL-Wawi speichert dort. Wird ausschließlich vom lokalen Abholer gebraucht, nicht von der Website.
+- Sonst nichts. ZIP-Lesen, Schema-Prüfung, Render und Ablage sind bereits im Projekt vorhanden.
+
+### F) Risiken und offene Punkte
+
+| Punkt | Wirkung | Umgang |
+|---|---|---|
+| Inhalt der JTL-Spalte `cCustomJson` unbestätigt | keine — beide Fälle werden behandelt | in Phase 0 nebenbei klären |
+| Spaltennamen in `pf_amazon_bestellungpos` unbekannt | die Abfrage des Abholers muss vor Ort geschrieben werden | Phase 0: Tabelle ansehen, Abfrage festlegen |
+| Ab wann die Anpassungsspalten gefüllt sind, ist unklar — die Seller-Central-Spalten wirken nicht rückwirkend | ältere Bestellungen bleiben manuell | Phase 0 misst es an echten Daten |
+| Meldet JTL den Versand tatsächlich an Amazon zurück? | wäre eine Lücke außerhalb dieser Spec | vom Betreiber zu bestätigen, keine Auswirkung auf den Bau |
+| Die Fixtures enthalten echte Kundendaten | dürfen so nicht ins Repository | vor Übernahme als Testdaten anonymisieren — Namen, Adresse und Koordinaten ersetzen, Struktur erhalten |
+| Amazon-Links auf die ZIPs könnten ablaufen | Nachladen schlüge fehl | Rohdaten werden beim Import gespeichert, nicht später nachgeladen |
+
+---
 
 ## Roadmap Phasen
-1. **Phase 1 — Setup & Sandbox** (1–2 Wochen, blockiert auf Approval)
-   - SPP-Verifizierung, Roles-Approval abwarten
-   - Sandbox-App anlegen
-   - Importer-Skeleton gegen Sandbox bauen (Polling, Order-Fetch, Custom-ZIP-Parsing)
-2. **Phase 2 — Mapping & Datenmodell** (3–5 Tage)
-   - Supabase-Tabellen anlegen
-   - SKU-Mapping-UI bauen
-   - Admin-Seite für Imports anlegen
-3. **Phase 3 — End-to-End Live** (3–5 Tage)
-   - Production-Credentials einbinden
-   - PROJ-30 Render-Pipeline anbinden
-   - Erster echter Bestellungs-Import
-4. **Phase 4 — Versand-Rückmeldung & Monitoring** (2–3 Tage)
-   - submitFulfillmentData
-   - Sentry-Alerts, Sync-Health-Dashboard
-5. **Phase 5 — Multi-Marketplace** (separates Ticket)
 
-## Aktueller Status (Stand 2026-04-28)
-- ✅ SPP-Migration vom alten Developer Central abgeschlossen
-- ✅ Email-Authentifizierung (`daniel.woyteczek@umoi.de`) durchgelaufen
-- ✅ Sandbox-App-Erstellung freigeschaltet
-- ⏳ **Identitätsverifizierung im Solution Provider Portal offen** (Gewerbeanmeldung + Ausweis hochladen)
-- ⏳ Lösungsanbieterprofil teilweise ausgefüllt — Compliance-Fragebogen offen
-- ⏳ Production-Roles noch nicht beantragt
+**Phase 0 — Datenquelle vor Ort klären** (ein halber Tag, im Firmennetz)
+Tabelle `pf_amazon_bestellungpos` ansehen, Spaltennamen und Inhalt von `cCustomJson` feststellen, Abfrage festlegen, ab wann Daten vorliegen. Ergebnis fließt in Phase 2.
+
+**Phase 1 — Auswertung und Zuordnung** (3–4 Tage)
+Baum-Auswertung mit Textblock-Bindung, herausgezogene Prüfstufe im Personalisierungs-Parser, Ablagen für SKU-Zuordnung und importierte Positionen, Admin-Seite für die SKU-Zuordnung. Tests gegen die anonymisierten echten Bestellungen.
+
+**Phase 2 — Abholer** (2–3 Tage)
+Lokales Skript gegen JTL, Übergabe-Adresse mit gemeinsamem Geheimnis, Idempotenz, Abholprotokoll.
+
+**Phase 3 — Editor-Zustand, Render und Queue** (4–5 Tage)
+Ortsauflösung, Editor-Zustand aus Preset plus Käuferangaben, Schriftauflösung über PROJ-47, Auto-Render, Druckdatei-Ablage, gemeinsame Queue mit Detailansicht und Korrekturmöglichkeit. Etsy erbt Render und Freigabe hier mit.
+
+**Phase 4 — Erster Echtlauf** (1–2 Tage)
+Eine echte Bestellung von der JTL-Zeile bis zur Druckdatei, Sentry-Anbindung, Feinschliff an der Queue.
+
+---
+
+## Umgesetzt (2026-09-15) — Eingang
+
+Der Abholer auf UMOI-SERVER war vor der Gegenseite fertig. Sein Vertrag steht
+in `docs/amazon-ingest/UEBERGABE-PETITE-MOMENT.md`, ein anonymisierter
+Beispiel-Rumpf daneben in `fixture-ingest-beispiel.json`.
+
+Gebaut:
+
+- `supabase/migrations/20260915000000_proj31_amazon_custom_orders.sql` —
+  Tabelle `amazon_custom_orders`, eine Zeile je Bestellposition, Unique auf
+  `(amazon_order_id, order_item_id)`.
+- `supabase/migrations/20260915000001_proj31_amazon_custom_storage_bucket.sql` —
+  privater Bucket `amazon-custom` für Vorschaubild, SVG und XML.
+- `src/lib/amazon/ingest.ts` — Aufnahme-Logik samt Dubletten-Entscheidung.
+- `src/app/api/amazon/ingest/route.ts` — Endpunkt, Bearer-Auth über
+  `AMAZON_INGEST_SECRET`.
+- `src/lib/amazon/ingest.test.ts` — 16 Tests auf die reinen Bausteine.
+
+Abweichungen vom Tabellenvorschlag aus Abschnitt 6 der Übergabe:
+
+- **`xml_path` ergänzt.** Die Übergabe nennt das XML verzichtbar, der
+  Vorschlag hatte keine Spalte dafür. Eine Spalte ist billiger als eine
+  weggeworfene Datei.
+- **`ingest_warnings` ergänzt.** Fehlende Assets, ein abgeleitetes
+  `customization_item` oder eine abweichende Längenangabe sollen sichtbar
+  sein, statt still zu verschwinden.
+- **`queue_status` ohne CHECK-Constraint.** Der Lebenszyklus wird in dieser
+  Spec gerade erst entworfen; ein Constraint hieße bei jedem neuen Zustand
+  eine Migration — und im Projekt ist jede Migration sofort produktiv. Die
+  bekannten Werte stehen im Spalten-Kommentar.
+
+Zwei Verhaltensentscheidungen, die in der Übergabe offen blieben:
+
+- **Ein Storno nimmt nur einen ungedruckten Auftrag aus der Queue.** Ist
+  `printed_at` gesetzt, wird zwar `order_state` aktualisiert, `queue_status`
+  aber nicht mehr angefasst — der Druck ist passiert, das soll die Queue nicht
+  nachträglich leugnen.
+- **Ein fehlendes Asset löscht nie ein vorhandenes.** Amazons ZIP ist nicht
+  immer erreichbar; ohne diese Regel verlöre ein Rückschau-Lauf das
+  Vorschaubild. Umgekehrt zählt ein nachgereichtes Asset als Änderung und
+  wird ergänzt.
+
+Nicht Teil dieses Schritts: SKU→Preset-Zuordnung, Auswertung von
+`customization_item`, Render, Queue-Oberfläche. Die Zeilen bleiben vorerst auf
+`queue_status = 'neu'` stehen.
+
+---
+
+## Anhang: verworfener Ursprungs-Scope (Stand 2026-04-28)
+
+Der ursprüngliche Entwurf holte Bestelldaten, Lieferadresse und Anpassungsdaten über die Selling Partner API und meldete den Versand dorthin zurück. Er setzte voraus: Identitätsverifizierung im Solution Provider Portal, ein ausgefülltes Lösungsanbieterprofil, freigegebene Rollen `Orders`, `Direct-to-Consumer Shipping` und `Product Listing`, Zugangsdaten samt Erneuerungs-Token, sowie Sandbox-Tests vor dem Produktivbetrieb. Dazu kamen Token-Bucket gegen die Rate-Limits, Wiederholungen mit wachsendem Abstand, verschlüsselte Lieferadressen, maskierte Protokolle und eine Löschfrist für Rohdaten.
+
+Davon war zum Zeitpunkt des Abbruchs erledigt: Migration vom alten Developer Central, E-Mail-Authentifizierung, Freischaltung der Sandbox-App-Erstellung. Offen und nie beantragt: Identitätsverifizierung, Compliance-Fragebogen, Produktiv-Rollen.
+
+Der Entwurf ist nicht gescheitert, sondern überflüssig geworden: Drei seiner vier Aufgaben erledigt JTL bereits, und die vierte ist ohne Schnittstelle erreichbar.

@@ -1,0 +1,782 @@
+{
+  "source": "jtl",
+  "collector_version": "1",
+  "items": [
+    {
+      "amazon_order_id": "111-2222222-3333333",
+      "order_item_id": "99999999999999",
+      "position": 1,
+      "sku": "LQ-30001-09",
+      "asin": "B0DZ161YB3",
+      "marketplace_id": "A1PA6795UKMFR9",
+      "purchase_date": "2026-09-14T20:38:38.000Z",
+      "quantity": 1,
+      "order_state": "open",
+      "jtl_position_id": 42818,
+      "customization": {
+        "status": 200,
+        "successful": true,
+        "data": {
+          "pageUrl": "https://amzn.eu/XXXXXXXX",
+          "orderCustomizationData": [
+            {
+              "orderId": "111-2222222-3333333",
+              "orderItemId": "99999999999999",
+              "merchantId": "AXXXXXXXXXXXXX",
+              "marketplaceId": "A1PA6795UKMFR9",
+              "asin": "B0DZ161YB3",
+              "title": "LabelQueen Wo alles begann - Personalisiertes Bild mit Koordinaten Karte Geschenk für Paare & Familie - Ideal als Jahrestag Geschenk für Ihn & Sie - Partner Geschenke Freundin (Puzzle)",
+              "quantity": 1,
+              "vendorCode": null,
+              "customizationData": {
+                "type": "PageContainerCustomization",
+                "children": [
+                  {
+                    "type": "PreviewContainerCustomization",
+                    "name": "Oberfläche 1",
+                    "label": "Heart",
+                    "children": [
+                      {
+                        "type": "FlatContainerCustomization",
+                        "children": [
+                          {
+                            "type": "FlatRatePriceDeltaContainerCustomization",
+                            "name": "Adressse",
+                            "label": "Daten 2",
+                            "children": [
+                              {
+                                "type": "TextCustomization",
+                                "label": "Adresse für die Karte",
+                                "inputValue": "Musterstraße 1 12345 Musterstadt"
+                              }
+                            ],
+                            "priceDelta": {
+                              "amount": 0
+                            }
+                          },
+                          {
+                            "type": "FlatRatePriceDeltaContainerCustomization",
+                            "name": "Koordinaten",
+                            "label": "Daten 1",
+                            "children": [
+                              {
+                                "type": "TextCustomization",
+                                "label": "Koordinaten (Falls die Adresse nicht eindeutig erkennbar ist) (Optional)",
+                                "inputValue": "(52.5200000, 13.4050000)"
+                              }
+                            ],
+                            "priceDelta": {
+                              "amount": 0
+                            }
+                          },
+                          {
+                            "type": "ContainerCustomization",
+                            "name": "Schrift",
+                            "label": "Text 1",
+                            "children": [
+                              {
+                                "type": "FontCustomization",
+                                "label": "Wo alles begann...",
+                                "fontSelection": {
+                                  "family": "Cathalia",
+                                  "fontUrl": "https://m.media-amazon.com/images/S/gestalt-fonts-eu-prod-eu-west-1/custom-fonts/A1PA6795UKMFR9/AXXXXXXXXXXXXX/9220dd87-e422-45e7-a0eb-b5affd96ec58.ttf"
+                                }
+                              },
+                              {
+                                "type": "ColorCustomization",
+                                "label": "Farbe",
+                                "colorSelection": {
+                                  "name": "Schwarz",
+                                  "value": "#000000",
+                                  "colorModel": "rgb"
+                                }
+                              },
+                              {
+                                "type": "ContainerCustomization",
+                                "children": [
+                                  {
+                                    "type": "PlacementContainerCustomization",
+                                    "name": "Text  \"Wo alles begann\"",
+                                    "label": "Texteingabe 3",
+                                    "children": [
+                                      {
+                                        "type": "FlatRatePriceDeltaContainerCustomization",
+                                        "children": [
+                                          {
+                                            "type": "TextCustomization",
+                                            "label": "Titel",
+                                            "inputValue": "Unser Anfang"
+                                          }
+                                        ],
+                                        "priceDelta": {
+                                          "amount": 0
+                                        }
+                                      }
+                                    ],
+                                    "dimension": {
+                                      "width": 258,
+                                      "height": 87
+                                    },
+                                    "position": {
+                                      "x": 68,
+                                      "y": 246
+                                    }
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "type": "ContainerCustomization",
+                            "name": "Name",
+                            "label": "Text 2",
+                            "children": [
+                              {
+                                "type": "FontCustomization",
+                                "label": "Namen",
+                                "fontSelection": {
+                                  "family": "Caviar Dreams",
+                                  "fontUrl": "https://m.media-amazon.com/images/S/gestalt-fonts-eu-prod-eu-west-1/custom-fonts/A1PA6795UKMFR9/AXXXXXXXXXXXXX/fe4c85ed-f3f2-464a-9b71-88ca48cd5875.ttf"
+                                }
+                              },
+                              {
+                                "type": "ColorCustomization",
+                                "label": "Farbe",
+                                "colorSelection": {
+                                  "name": "Grau",
+                                  "value": "#565656",
+                                  "colorModel": "rgb"
+                                }
+                              },
+                              {
+                                "type": "ContainerCustomization",
+                                "children": [
+                                  {
+                                    "type": "PlacementContainerCustomization",
+                                    "name": "Texteingabe 1",
+                                    "label": "Texteingabe 1",
+                                    "children": [
+                                      {
+                                        "type": "FlatRatePriceDeltaContainerCustomization",
+                                        "children": [
+                                          {
+                                            "type": "TextCustomization",
+                                            "label": "Namen",
+                                            "inputValue": "Anna & Ben"
+                                          }
+                                        ],
+                                        "priceDelta": {
+                                          "amount": 0
+                                        }
+                                      }
+                                    ],
+                                    "dimension": {
+                                      "width": 124,
+                                      "height": 23
+                                    },
+                                    "position": {
+                                      "x": 130,
+                                      "y": 315
+                                    }
+                                  },
+                                  {
+                                    "type": "PlacementContainerCustomization",
+                                    "name": "Texteingabe 2",
+                                    "label": "Texteingabe 2",
+                                    "children": [
+                                      {
+                                        "type": "FlatRatePriceDeltaContainerCustomization",
+                                        "children": [
+                                          {
+                                            "type": "TextCustomization",
+                                            "label": "Stadt und Koordinaten",
+                                            "inputValue": "Für immer"
+                                          }
+                                        ],
+                                        "priceDelta": {
+                                          "amount": 0
+                                        }
+                                      }
+                                    ],
+                                    "dimension": {
+                                      "width": 176,
+                                      "height": 16
+                                    },
+                                    "position": {
+                                      "x": 103,
+                                      "y": 350
+                                    }
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "type": "OptionCustomization",
+                            "name": "Größe A3/A4",
+                            "label": "Größe des Posters",
+                            "optionSelection": {
+                              "name": "DIN A4",
+                              "label": "DIN A4",
+                              "additionalCost": {
+                                "amount": 0
+                              }
+                            },
+                            "displayValue": "DIN A4"
+                          },
+                          {
+                            "type": "OptionCustomization",
+                            "name": "Drop-down-Option 2",
+                            "label": "Bilderrahmen A4",
+                            "optionSelection": {
+                              "name": "Weißer Rahmen",
+                              "label": "Weißer Rahmen",
+                              "additionalCost": {
+                                "amount": 5
+                              },
+                              "thumbnailImage": {
+                                "imageUrl": "https://m.media-amazon.com/images/S/gestalt-seller-images-prod-eu-west-1/A1PA6795UKMFR9/AXXXXXXXXXXXXX/1e809a47a20c87961b06f535d483f6f1.jpg",
+                                "dimension": {
+                                  "width": 400,
+                                  "height": 400
+                                }
+                              },
+                              "overlayImage": {
+                                "imageUrl": "https://m.media-amazon.com/images/S/gestalt-seller-images-prod-eu-west-1/A1PA6795UKMFR9/AXXXXXXXXXXXXX/8c6a806a0425616b8944bbc6321b62cc.png",
+                                "dimension": {
+                                  "width": 1500,
+                                  "height": 1500
+                                }
+                              }
+                            },
+                            "displayValue": "Weißer Rahmen"
+                          }
+                        ]
+                      }
+                    ],
+                    "baseImage": {
+                      "imageUrl": "https://m.media-amazon.com/images/S/gestalt-seller-images-prod-eu-west-1/A1PA6795UKMFR9/AXXXXXXXXXXXXX/094469b4f84b26db77180dd0e27f2c44.jpg",
+                      "dimension": {
+                        "width": 1500,
+                        "height": 1500
+                      }
+                    },
+                    "snapshot": {
+                      "imageName": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee.jpg",
+                      "dimension": {
+                        "width": 400,
+                        "height": 400
+                      }
+                    },
+                    "svg": "11111111-2222-3333-4444-555555555555.svg"
+                  }
+                ]
+              },
+              "customizationInfo": {
+                "version3.0": {
+                  "surfaces": [
+                    {
+                      "name": "Heart",
+                      "areas": [
+                        {
+                          "customizationType": "TextPrinting",
+                          "priceDelta": {
+                            "value": 0.0
+                          },
+                          "name": "Adressse",
+                          "label": "Adresse für die Karte",
+                          "text": "Musterstraße 1 12345 Musterstadt"
+                        },
+                        {
+                          "customizationType": "TextPrinting",
+                          "priceDelta": {
+                            "value": 0.0
+                          },
+                          "name": "Koordinaten",
+                          "label": "Koordinaten (Falls die Adresse nicht eindeutig erkennbar ist) (Optional)",
+                          "text": "(52.5200000, 13.4050000)"
+                        },
+                        {
+                          "customizationType": "TextPrinting",
+                          "colorName": "Schwarz",
+                          "fill": "#000000",
+                          "fontFamily": "Cathalia",
+                          "fontUrl": "https://m.media-amazon.com/images/S/gestalt-fonts-eu-prod-eu-west-1/custom-fonts/A1PA6795UKMFR9/AXXXXXXXXXXXXX/9220dd87-e422-45e7-a0eb-b5affd96ec58.ttf",
+                          "Dimensions": {
+                            "width": 258,
+                            "height": 87
+                          },
+                          "Position": {
+                            "x": 68,
+                            "y": 246
+                          },
+                          "priceDelta": {
+                            "value": 0.0
+                          },
+                          "name": "Text  \"Wo alles begann\"",
+                          "label": "Titel",
+                          "text": "Unser Anfang"
+                        },
+                        {
+                          "customizationType": "TextPrinting",
+                          "colorName": "Grau",
+                          "fill": "#565656",
+                          "fontFamily": "Caviar Dreams",
+                          "fontUrl": "https://m.media-amazon.com/images/S/gestalt-fonts-eu-prod-eu-west-1/custom-fonts/A1PA6795UKMFR9/AXXXXXXXXXXXXX/fe4c85ed-f3f2-464a-9b71-88ca48cd5875.ttf",
+                          "Dimensions": {
+                            "width": 124,
+                            "height": 23
+                          },
+                          "Position": {
+                            "x": 130,
+                            "y": 315
+                          },
+                          "priceDelta": {
+                            "value": 0.0
+                          },
+                          "name": "Texteingabe 1",
+                          "label": "Namen",
+                          "text": "Anna & Ben"
+                        },
+                        {
+                          "customizationType": "TextPrinting",
+                          "colorName": "Grau",
+                          "fill": "#565656",
+                          "fontFamily": "Caviar Dreams",
+                          "fontUrl": "https://m.media-amazon.com/images/S/gestalt-fonts-eu-prod-eu-west-1/custom-fonts/A1PA6795UKMFR9/AXXXXXXXXXXXXX/fe4c85ed-f3f2-464a-9b71-88ca48cd5875.ttf",
+                          "Dimensions": {
+                            "width": 176,
+                            "height": 16
+                          },
+                          "Position": {
+                            "x": 103,
+                            "y": 350
+                          },
+                          "priceDelta": {
+                            "value": 0.0
+                          },
+                          "name": "Texteingabe 2",
+                          "label": "Stadt und Koordinaten",
+                          "text": "Für immer"
+                        },
+                        {
+                          "customizationType": "Options",
+                          "name": "Größe A3/A4",
+                          "label": "Größe des Posters",
+                          "optionValue": "DIN A4",
+                          "priceDelta": {
+                            "value": 0.0
+                          },
+                          "optionImage": ""
+                        },
+                        {
+                          "customizationType": "Options",
+                          "name": "Drop-down-Option 2",
+                          "label": "Bilderrahmen A4",
+                          "optionValue": "Weißer Rahmen",
+                          "priceDelta": {
+                            "value": 5.0
+                          },
+                          "optionImage": "https://m.media-amazon.com/images/S/gestalt-seller-images-prod-eu-west-1/A1PA6795UKMFR9/AXXXXXXXXXXXXX/8c6a806a0425616b8944bbc6321b62cc.png"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "archiveUrl": "https://zme-caps.amazon.com/t/XXXXXXXX/XXXXXXXX/00"
+        },
+        "request_id": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "customization_item": {
+        "orderId": "111-2222222-3333333",
+        "orderItemId": "99999999999999",
+        "merchantId": "AXXXXXXXXXXXXX",
+        "marketplaceId": "A1PA6795UKMFR9",
+        "asin": "B0DZ161YB3",
+        "title": "LabelQueen Wo alles begann - Personalisiertes Bild mit Koordinaten Karte Geschenk für Paare & Familie - Ideal als Jahrestag Geschenk für Ihn & Sie - Partner Geschenke Freundin (Puzzle)",
+        "quantity": 1,
+        "vendorCode": null,
+        "customizationData": {
+          "type": "PageContainerCustomization",
+          "children": [
+            {
+              "type": "PreviewContainerCustomization",
+              "name": "Oberfläche 1",
+              "label": "Heart",
+              "children": [
+                {
+                  "type": "FlatContainerCustomization",
+                  "children": [
+                    {
+                      "type": "FlatRatePriceDeltaContainerCustomization",
+                      "name": "Adressse",
+                      "label": "Daten 2",
+                      "children": [
+                        {
+                          "type": "TextCustomization",
+                          "label": "Adresse für die Karte",
+                          "inputValue": "Musterstraße 1 12345 Musterstadt"
+                        }
+                      ],
+                      "priceDelta": {
+                        "amount": 0
+                      }
+                    },
+                    {
+                      "type": "FlatRatePriceDeltaContainerCustomization",
+                      "name": "Koordinaten",
+                      "label": "Daten 1",
+                      "children": [
+                        {
+                          "type": "TextCustomization",
+                          "label": "Koordinaten (Falls die Adresse nicht eindeutig erkennbar ist) (Optional)",
+                          "inputValue": "(52.5200000, 13.4050000)"
+                        }
+                      ],
+                      "priceDelta": {
+                        "amount": 0
+                      }
+                    },
+                    {
+                      "type": "ContainerCustomization",
+                      "name": "Schrift",
+                      "label": "Text 1",
+                      "children": [
+                        {
+                          "type": "FontCustomization",
+                          "label": "Wo alles begann...",
+                          "fontSelection": {
+                            "family": "Cathalia",
+                            "fontUrl": "https://m.media-amazon.com/images/S/gestalt-fonts-eu-prod-eu-west-1/custom-fonts/A1PA6795UKMFR9/AXXXXXXXXXXXXX/9220dd87-e422-45e7-a0eb-b5affd96ec58.ttf"
+                          }
+                        },
+                        {
+                          "type": "ColorCustomization",
+                          "label": "Farbe",
+                          "colorSelection": {
+                            "name": "Schwarz",
+                            "value": "#000000",
+                            "colorModel": "rgb"
+                          }
+                        },
+                        {
+                          "type": "ContainerCustomization",
+                          "children": [
+                            {
+                              "type": "PlacementContainerCustomization",
+                              "name": "Text  \"Wo alles begann\"",
+                              "label": "Texteingabe 3",
+                              "children": [
+                                {
+                                  "type": "FlatRatePriceDeltaContainerCustomization",
+                                  "children": [
+                                    {
+                                      "type": "TextCustomization",
+                                      "label": "Titel",
+                                      "inputValue": "Unser Anfang"
+                                    }
+                                  ],
+                                  "priceDelta": {
+                                    "amount": 0
+                                  }
+                                }
+                              ],
+                              "dimension": {
+                                "width": 258,
+                                "height": 87
+                              },
+                              "position": {
+                                "x": 68,
+                                "y": 246
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "ContainerCustomization",
+                      "name": "Name",
+                      "label": "Text 2",
+                      "children": [
+                        {
+                          "type": "FontCustomization",
+                          "label": "Namen",
+                          "fontSelection": {
+                            "family": "Caviar Dreams",
+                            "fontUrl": "https://m.media-amazon.com/images/S/gestalt-fonts-eu-prod-eu-west-1/custom-fonts/A1PA6795UKMFR9/AXXXXXXXXXXXXX/fe4c85ed-f3f2-464a-9b71-88ca48cd5875.ttf"
+                          }
+                        },
+                        {
+                          "type": "ColorCustomization",
+                          "label": "Farbe",
+                          "colorSelection": {
+                            "name": "Grau",
+                            "value": "#565656",
+                            "colorModel": "rgb"
+                          }
+                        },
+                        {
+                          "type": "ContainerCustomization",
+                          "children": [
+                            {
+                              "type": "PlacementContainerCustomization",
+                              "name": "Texteingabe 1",
+                              "label": "Texteingabe 1",
+                              "children": [
+                                {
+                                  "type": "FlatRatePriceDeltaContainerCustomization",
+                                  "children": [
+                                    {
+                                      "type": "TextCustomization",
+                                      "label": "Namen",
+                                      "inputValue": "Anna & Ben"
+                                    }
+                                  ],
+                                  "priceDelta": {
+                                    "amount": 0
+                                  }
+                                }
+                              ],
+                              "dimension": {
+                                "width": 124,
+                                "height": 23
+                              },
+                              "position": {
+                                "x": 130,
+                                "y": 315
+                              }
+                            },
+                            {
+                              "type": "PlacementContainerCustomization",
+                              "name": "Texteingabe 2",
+                              "label": "Texteingabe 2",
+                              "children": [
+                                {
+                                  "type": "FlatRatePriceDeltaContainerCustomization",
+                                  "children": [
+                                    {
+                                      "type": "TextCustomization",
+                                      "label": "Stadt und Koordinaten",
+                                      "inputValue": "Für immer"
+                                    }
+                                  ],
+                                  "priceDelta": {
+                                    "amount": 0
+                                  }
+                                }
+                              ],
+                              "dimension": {
+                                "width": 176,
+                                "height": 16
+                              },
+                              "position": {
+                                "x": 103,
+                                "y": 350
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "OptionCustomization",
+                      "name": "Größe A3/A4",
+                      "label": "Größe des Posters",
+                      "optionSelection": {
+                        "name": "DIN A4",
+                        "label": "DIN A4",
+                        "additionalCost": {
+                          "amount": 0
+                        }
+                      },
+                      "displayValue": "DIN A4"
+                    },
+                    {
+                      "type": "OptionCustomization",
+                      "name": "Drop-down-Option 2",
+                      "label": "Bilderrahmen A4",
+                      "optionSelection": {
+                        "name": "Weißer Rahmen",
+                        "label": "Weißer Rahmen",
+                        "additionalCost": {
+                          "amount": 5
+                        },
+                        "thumbnailImage": {
+                          "imageUrl": "https://m.media-amazon.com/images/S/gestalt-seller-images-prod-eu-west-1/A1PA6795UKMFR9/AXXXXXXXXXXXXX/1e809a47a20c87961b06f535d483f6f1.jpg",
+                          "dimension": {
+                            "width": 400,
+                            "height": 400
+                          }
+                        },
+                        "overlayImage": {
+                          "imageUrl": "https://m.media-amazon.com/images/S/gestalt-seller-images-prod-eu-west-1/A1PA6795UKMFR9/AXXXXXXXXXXXXX/8c6a806a0425616b8944bbc6321b62cc.png",
+                          "dimension": {
+                            "width": 1500,
+                            "height": 1500
+                          }
+                        }
+                      },
+                      "displayValue": "Weißer Rahmen"
+                    }
+                  ]
+                }
+              ],
+              "baseImage": {
+                "imageUrl": "https://m.media-amazon.com/images/S/gestalt-seller-images-prod-eu-west-1/A1PA6795UKMFR9/AXXXXXXXXXXXXX/094469b4f84b26db77180dd0e27f2c44.jpg",
+                "dimension": {
+                  "width": 1500,
+                  "height": 1500
+                }
+              },
+              "snapshot": {
+                "imageName": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee.jpg",
+                "dimension": {
+                  "width": 400,
+                  "height": 400
+                }
+              },
+              "svg": "11111111-2222-3333-4444-555555555555.svg"
+            }
+          ]
+        },
+        "customizationInfo": {
+          "version3.0": {
+            "surfaces": [
+              {
+                "name": "Heart",
+                "areas": [
+                  {
+                    "customizationType": "TextPrinting",
+                    "priceDelta": {
+                      "value": 0.0
+                    },
+                    "name": "Adressse",
+                    "label": "Adresse für die Karte",
+                    "text": "Musterstraße 1 12345 Musterstadt"
+                  },
+                  {
+                    "customizationType": "TextPrinting",
+                    "priceDelta": {
+                      "value": 0.0
+                    },
+                    "name": "Koordinaten",
+                    "label": "Koordinaten (Falls die Adresse nicht eindeutig erkennbar ist) (Optional)",
+                    "text": "(52.5200000, 13.4050000)"
+                  },
+                  {
+                    "customizationType": "TextPrinting",
+                    "colorName": "Schwarz",
+                    "fill": "#000000",
+                    "fontFamily": "Cathalia",
+                    "fontUrl": "https://m.media-amazon.com/images/S/gestalt-fonts-eu-prod-eu-west-1/custom-fonts/A1PA6795UKMFR9/AXXXXXXXXXXXXX/9220dd87-e422-45e7-a0eb-b5affd96ec58.ttf",
+                    "Dimensions": {
+                      "width": 258,
+                      "height": 87
+                    },
+                    "Position": {
+                      "x": 68,
+                      "y": 246
+                    },
+                    "priceDelta": {
+                      "value": 0.0
+                    },
+                    "name": "Text  \"Wo alles begann\"",
+                    "label": "Titel",
+                    "text": "Unser Anfang"
+                  },
+                  {
+                    "customizationType": "TextPrinting",
+                    "colorName": "Grau",
+                    "fill": "#565656",
+                    "fontFamily": "Caviar Dreams",
+                    "fontUrl": "https://m.media-amazon.com/images/S/gestalt-fonts-eu-prod-eu-west-1/custom-fonts/A1PA6795UKMFR9/AXXXXXXXXXXXXX/fe4c85ed-f3f2-464a-9b71-88ca48cd5875.ttf",
+                    "Dimensions": {
+                      "width": 124,
+                      "height": 23
+                    },
+                    "Position": {
+                      "x": 130,
+                      "y": 315
+                    },
+                    "priceDelta": {
+                      "value": 0.0
+                    },
+                    "name": "Texteingabe 1",
+                    "label": "Namen",
+                    "text": "Anna & Ben"
+                  },
+                  {
+                    "customizationType": "TextPrinting",
+                    "colorName": "Grau",
+                    "fill": "#565656",
+                    "fontFamily": "Caviar Dreams",
+                    "fontUrl": "https://m.media-amazon.com/images/S/gestalt-fonts-eu-prod-eu-west-1/custom-fonts/A1PA6795UKMFR9/AXXXXXXXXXXXXX/fe4c85ed-f3f2-464a-9b71-88ca48cd5875.ttf",
+                    "Dimensions": {
+                      "width": 176,
+                      "height": 16
+                    },
+                    "Position": {
+                      "x": 103,
+                      "y": 350
+                    },
+                    "priceDelta": {
+                      "value": 0.0
+                    },
+                    "name": "Texteingabe 2",
+                    "label": "Stadt und Koordinaten",
+                    "text": "Für immer"
+                  },
+                  {
+                    "customizationType": "Options",
+                    "name": "Größe A3/A4",
+                    "label": "Größe des Posters",
+                    "optionValue": "DIN A4",
+                    "priceDelta": {
+                      "value": 0.0
+                    },
+                    "optionImage": ""
+                  },
+                  {
+                    "customizationType": "Options",
+                    "name": "Drop-down-Option 2",
+                    "label": "Bilderrahmen A4",
+                    "optionValue": "Weißer Rahmen",
+                    "priceDelta": {
+                      "value": 5.0
+                    },
+                    "optionImage": "https://m.media-amazon.com/images/S/gestalt-seller-images-prod-eu-west-1/A1PA6795UKMFR9/AXXXXXXXXXXXXX/8c6a806a0425616b8944bbc6321b62cc.png"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      },
+      "customization_source": "jtl_column",
+      "assets": {
+        "preview_jpg": {
+          "filename": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee.jpg",
+          "content_base64": "/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==",
+          "bytes": 160
+        },
+        "svg": {
+          "filename": "11111111-2222-3333-4444-555555555555.svg",
+          "content_base64": "PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMjAwIiBoZWlnaHQ9IjMyMDAiIHZpZXdCb3g9IjAgMCA0MDAgNDAwIj48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgZmlsbD0iI2VlZSIvPjx0ZXh0IHg9IjIwMCIgeT0iMjAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjE2Ij5QbGF0emhhbHRlcjwvdGV4dD48L3N2Zz4=",
+          "bytes": 254
+        },
+        "xml": {
+          "filename": "99999999999999.xml",
+          "content_base64": "PGRhdGE+PG1hcmtldHBsYWNlSWQ+QTFQQTY3OTVVS01GUjk8L21hcmtldHBsYWNlSWQ+PHF1YW50aXR5PjE8L3F1YW50aXR5PjxvcmRlcklkPjExMS0yMjIyMjIyLTMzMzMzMzM8L29yZGVySWQ+PCEtLSBnZWt1ZXJ6dGUgUGxhdHpoYWx0ZXItRmFzc3VuZyAtLT48L2RhdGE+",
+          "bytes": 156
+        }
+      },
+      "archive_url": "https://zme-caps.amazon.com/t/XXXXXXXX/XXXXXXXX/00",
+      "page_url": "https://amzn.eu/XXXXXXXX",
+      "latest_ship_at": null
+    }
+  ]
+}
