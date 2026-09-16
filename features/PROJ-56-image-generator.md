@@ -1,6 +1,6 @@
 # PROJ-56: Image Generator (Galerie-/Mockup-Bilder pro Preset)
 
-## Status: Planned
+## Status: Architected
 **Created:** 2026-09-16
 **Last Updated:** 2026-09-16
 
@@ -126,7 +126,157 @@ Preset „Berlin"  +  Mockups [Wand-Rahmen, Closeup (+ Overlay „Pfeil")]
 <!-- Sections below are added by subsequent skills -->
 
 ## Tech Design (Solution Architect)
-_To be added by /architecture_
+
+**Stand:** 2026-09-16 · Entscheidung Operator: *Schnellweg + Worker*
+
+### Ausgangslage (was heute schon da ist)
+
+| Baustein | Heute | Nutzen für PROJ-56 |
+|---|---|---|
+| Poster-Render | Nur im GitHub-Actions-Worker (Headless-Browser). Start nur per Knopf, ~2–3 Min. Anlaufzeit | Bleibt der einzige Ort, an dem Poster gerendert werden |
+| Worker-Auslöser | Admin-Knopf ruft GitHub „workflow_dispatch" | Wird künftig **vom Generator selbst** aufgerufen |
+| Lokales Compositing | Bildbibliothek `sharp`, läuft im Worker **und** in Admin-Endpunkten | Kann direkt auf dem Server laufen → Schnellweg |
+| Dynamic Mockups | Nur im Worker, Ergebnis landet in den Marketing-Renders des Presets | Generator ruft DM **eigenständig** auf, ohne die Marketing-Renders anzufassen |
+| Farbklone | PROJ-53 legt pro Palette einen Entwurfs-Preset-Klon an; die Klone tauchen in der Admin-Preset-Übersicht auf | Gleiches Prinzip, aber als verborgene Farbvariante |
+| Annotation-Upload | An ein Listing-Image-Set-Item gebunden, muss pixelgenau zur Mockup-Größe passen | Wird zur eigenständigen Overlay-Bibliothek |
+| Status-Anzeige | Admin-Seiten fragen alle 3–4 s den Status ab | Gleiches Muster für die Galerie |
+
+### A) Seitenaufbau
+
+```
+Admin-Menü „Image Generator"  ─┐
+Preset-Übersicht „Bilder generieren" ─┴─►  /private/admin/image-generator?preset=<id>
+
+Image-Generator-Seite
++-- Kopfzeile: Titel, kurze Erklärung
++-- 1 · Preset
+|   +-- Ohne Auswahl: Preset-Suche (Dialog mit Raster: Vorschaubild, Name, Produkttyp)
+|   +-- Mit Auswahl: Leiste mit Vorschaubild, Name, Ausrichtung, „Ändern"
++-- 2 · Mockups
+|   +-- Vorlagen-Leiste: „Vorlage laden ▾" · „Als Vorlage speichern"
+|   +-- Gewählte Mockups (geordnete Liste)
+|   |   +-- Eintrag: Nr. · Thumbnail · Name · Overlay-Feld (+ / Vorschau / ×) · ↑↓ · entfernen
+|   |   +-- Hinweis „nicht verfügbar" bei gelöschten/unpassenden Einträgen aus Vorlage
+|   +-- Mockup-Raster (Kacheln mit Thumbnail; Klick fügt hinzu; unpassende Ausrichtung deaktiviert)
++-- Overlay-Dialog
+|   +-- Bibliothek (Raster, gefiltert auf Ausrichtung) · PNG hochladen · Name vergeben
++-- 3 · Weitere Farben (eingeklappt; nur für Karten-Presets)
+|   +-- Paletten-Chips mit Farbfeldern, Mehrfachauswahl
++-- Erstellen-Leiste
+|   +-- „N Bilder werden erzeugt" · Knopf „Erstellen" · Bestätigung ab > 40 Bildern
++-- Galerie dieses Presets
+    +-- Werkzeugleiste: „ZIP herunterladen"
+    +-- Gruppe pro Farbe (Grundfarbe zuerst)
+        +-- Bildkachel: Vorschau/Platzhalter · Status (wartet / wird erstellt / fertig / fehlgeschlagen / veraltet)
+            · Lightbox · Löschen · „Erneut versuchen"
+    +-- Leerer Zustand
+```
+
+Alle Bausteine sind vorhandene shadcn/ui-Komponenten (Dialog, Command für die Suche, Collapsible, Card, Badge, Progress, AlertDialog, Tooltip, Select, Skeleton). Die Seite folgt dem bestehenden Admin-Seiten-Muster (Admin-Check, Nav, Inhalt).
+
+### B) Datenmodell (in Worten)
+
+**Galerie-Bild** (ein Eintrag = ein Bild und gleichzeitig sein Auftrag)
+- Basis-Preset
+- Farbe: leer = Grundfarbe des Presets, sonst eine Palette
+- Mockup
+- Overlay (optional)
+- Position (Reihenfolge innerhalb der Farbe)
+- Status: wartet · wird erstellt · fertig · fehlgeschlagen, plus Fehlertext
+- Bild-Adresse, Breite, Höhe, Zeitpunkt der Erstellung
+- „Veraltet" wird nicht gespeichert, sondern angezeigt, wenn das Preset nach der Erstellung geändert wurde
+- **Eindeutig pro Kombination** Preset + Farbe + Mockup + Overlay → erneutes Erstellen ersetzt statt zu duplizieren
+
+**Overlay** (Bibliothek)
+- Name, Ausrichtung (hoch/quer), Bild-Adresse, Breite, Höhe, erstellt am
+- Wird beim Compositing auf die Größe des jeweiligen Mockups skaliert → ein Overlay passt zu allen Mockups gleicher Ausrichtung
+
+**Vorlage**
+- Name (eindeutig)
+- Geordnete Liste von Einträgen: Mockup + optionales Overlay
+- Einträge verweisen per ID. Ist ein Mockup/Overlay später gelöscht, bleibt der Eintrag stehen und wird als „nicht mehr verfügbar" angezeigt (kein stilles Wegfallen)
+
+**Farbvariante eines Presets** (Erweiterung bestehender Presets)
+- Presets erhalten einen optionalen Verweis „Farbvariante von Preset X" plus die Palette
+- Pro Basis-Preset × Palette existiert höchstens eine Farbvariante; sie wird wiederverwendet und bei Änderungen am Basis-Preset aktualisiert
+- Farbvarianten sind immer Entwurf, erscheinen nie im Shop und werden in der Admin-Preset-Übersicht ausgeblendet
+
+**Mockup-Ausrichtung**: kein neues Feld. Lokale Mockups gelten als passend, wenn sie ein Overlay für die Ausrichtung des Presets haben. Dynamic-Mockups-Mockups haben keine Ausrichtung und gelten für beide als passend.
+
+**Speicherort:** Supabase-Datenbank (drei neue Tabellen + ein Verweis-Feld an Presets), Zugriff nur Admin/Service. Bilder im bestehenden öffentlichen Bucket `preset-renders` unter einem eigenen Ordner `image-generator/`, Overlays im bestehenden Bucket `mockup-overlays` unter `image-overlays/`.
+
+### C) Ablauf beim Klick auf „Erstellen"
+
+```
+Klick „Erstellen"
+   │
+   ▼
+1. Server legt/aktualisiert Galerie-Bild-Einträge (Status „wartet")
+   └─ für Zusatzfarben: Farbvariante anlegen/aktualisieren → Poster-Render „ausstehend"
+   └─ Grundfarbe ohne fertiges oder mit veraltetem Poster → Poster-Render „ausstehend"
+   │
+   ▼
+2. SCHNELLWEG (sofort, auf dem Server, mit Zeitbudget unter dem 60-s-Limit)
+   Bilder, deren Poster fertig ist UND deren Mockup lokal ist
+   → Compositing (+ Overlay) → hochladen → „fertig"
+   │
+   ▼
+3. Rest vorhanden? (Poster fehlt, Dynamic Mockups, Zeitbudget aufgebraucht)
+   → Worker automatisch anstoßen – aber nur, wenn keiner schon läuft/wartet
+   │
+   ▼
+4. WORKER
+   a) rendert ausstehende Poster (bestehende Logik)
+   b) arbeitet danach wartende Galerie-Bilder ab:
+      lokal → Compositing · Dynamic Mockups → eigener DM-Aufruf → Overlay drüber
+   c) Poster-Render fehlgeschlagen → abhängige Bilder „fehlgeschlagen" mit Grund
+   │
+   ▼
+5. Seite fragt alle ~4 s den Status ab (nur solange etwas offen ist)
+   → Kacheln füllen sich, auch nach Verlassen und Wiederkommen
+```
+
+**Wichtig:** Schnellweg und Worker nutzen **dieselbe** Compositing-Routine. Es gibt keine zweite Logik, nur zwei Orte, an denen sie läuft. Ein Bild wird vor der Bearbeitung „reserviert", damit Schnellweg und Worker nie dasselbe Bild doppelt erzeugen. Hängengebliebene Reservierungen setzt der Worker nach 10 Minuten zurück (wie heute bei Presets).
+
+### D) Technische Entscheidungen (mit Begründung)
+
+| Entscheidung | Warum |
+|---|---|
+| **Schnellweg auf dem Server + Worker für den Rest** | Häufigster Fall (Preset schon gerendert, lokale Mockups) ist in Sekunden fertig. Poster-Render braucht einen Headless-Browser und bleibt dort, wo er heute schon zuverlässig läuft. |
+| **Generator stößt den Worker selbst an** | Erfüllt „ein Klick, kein Worker-Knopf". Doppel-Anstöße werden verhindert, indem vorher geprüft wird, ob schon ein Lauf aktiv ist oder wartet. |
+| **Galerie-Bild = Auftrag** (keine separate Job-Tabelle) | Folgt dem bewährten Muster im Projekt (Status direkt am Datensatz, wie Presets, Compositions, City-Renders). Eine Tabelle weniger, Galerie und Fortschritt sind dieselbe Ansicht. |
+| **Dynamic Mockups direkt im Generator-Auftrag statt über die Marketing-Renders** | Würde der Generator DM-Mockups an das Preset hängen, tauchten die Bilder in Render-Library und Landing-Pages auf, was die Spec ausdrücklich ausschließt. |
+| **Farbvarianten als verborgene Preset-Klone** | Der Worker kann nur Presets rendern. Der Klon-Ansatz ist in PROJ-53 erprobt (Farben fest eingebacken, damit der Headless-Render sie sicher trifft). Neu: Verweis auf das Basis-Preset, damit Klone wiederverwendet und in der Übersicht ausgeblendet werden. |
+| **Zusatzfarben in V1 nur für Karten-Presets** | Karten haben eine Paletten-Bibliothek (PROJ-22), aus der man wählen kann. Sternenkarten haben zwar auch Farben (Poster-Hintergrund, Himmel, Sterne + Aquarell-Texturen), aber als freie Farbwähler ohne benannte Farbschemata. Dafür müsste erst eine Auswahl an Sternen-Farbschemata angelegt werden → späterer Schritt. Foto-Poster: Farbvarianten ergeben fachlich keinen Sinn. Der Bereich „Weitere Farben" wird bei Sternen- und Foto-Presets nicht angezeigt. |
+| **Overlays werden auf Mockup-Größe skaliert** | Heute muss ein Overlay pixelgenau zum Mockup passen, dann wäre eine Bibliothek über Mockups hinweg praktisch nutzlos. Skalierung macht Overlays wiederverwendbar. Voraussetzung: gleiches Seitenverhältnis, sonst Warnung beim Zuweisen. |
+| **Nur A4-Poster als Grundlage** | Mockups zeigen das Poster verkleinert; A4 ist bereits der Standard der Listing-Pipeline und spart Renderzeit. |
+| **Altbestand unangetastet** | Listing-Image-Sets und Etsy-Listings behalten ihre Tabellen und Endpunkte. Der Generator teilt nur die Compositing-Grundfunktion. |
+
+### E) Server-Schnittstellen (Überblick, alle Admin-only)
+- **Generator-Zustand eines Presets** lesen: Preset-Infos, Galerie-Bilder mit Status, passende Mockups, Overlays, Paletten
+- **Erstellen**: Auswahl übergeben → Einträge anlegen, Schnellweg, Worker anstoßen
+- **Galerie-Bild** löschen / erneut versuchen
+- **ZIP** aller Galerie-Bilder eines Presets
+- **Overlays**: auflisten, hochladen, umbenennen, löschen
+- **Vorlagen**: auflisten, speichern/überschreiben, umbenennen, löschen
+- **Worker-Skript**: neuer Arbeitsschritt „Galerie-Bilder" nach dem Poster-Render
+- **Admin-Preset-Übersicht**: Farbvarianten ausblenden, Link „Bilder generieren" pro Preset (Raster- und Listenansicht)
+- **Admin-Menü**: Eintrag „Image Generator"
+
+### F) Betroffener geteilter Code (Cross-Cutting)
+- **Render-Worker** (`scripts/render-worker.ts`): neuer Schritt; Presets, Compositions und City-Renders müssen danach unverändert weiterlaufen → Regressionstest aller drei.
+- **Lokaler Compositor** (`src/lib/local-mockup-processor.ts`): Overlay-Skalierung kommt hinzu. Nutzer: Worker-Marketing-Renders (PROJ-30/52), Mockup-Test-Render, Listing-Image-Sets (PROJ-54). Skalierung nur für den Generator aktivieren, damit bestehende Ausgaben bitgleich bleiben.
+- **Admin-Preset-Liste** (`/api/admin/presets` + `AdminPresetsList`): Filter auf Farbvarianten. PROJ-53-Klone sind davon nicht betroffen (die haben keinen Verweis).
+
+### G) Abhängigkeiten (Pakete)
+- **Keine neuen Pakete.** `sharp` (Compositing) und `jszip` (ZIP) sind bereits im Einsatz.
+- Empfehlung: `sharp` explizit in `package.json` aufnehmen. Es wird heute schon direkt importiert, kommt aber nur indirekt über Next.js ins Projekt.
+
+### H) Risiken & offene Punkte
+- **Anlaufzeit Worker (~2–3 Min.)** bei Zusatzfarben/Dynamic Mockups bleibt. Die Galerie zeigt deshalb „wartet auf Render-Worker" statt eines Spinners ohne Erklärung.
+- **GitHub-Actions-Minuten:** Automatisches Anstoßen erhöht die Zahl der Läufe. Doppel-Schutz begrenzt das auf einen Lauf gleichzeitig.
+- **DM-Kontingent:** Jeder DM-Mockup × Farbe ist ein kostenpflichtiger DM-Aufruf; die Bildanzahl vor dem Klick macht das sichtbar.
+- **Mockups ohne Thumbnail** zeigen einen Platzhalter mit Hinweis „Test-Render in Mockup-Sets ausführen".
 
 ## QA Test Results
 _To be added by /qa_
