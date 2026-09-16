@@ -484,7 +484,13 @@ async function renderPosterPng(
   // Photo presets carry no geo state — skip location params entirely so the
   // headless bridge takes the no-location code path. Map and star-map
   // presets continue to send lat/lng/zoom for the location override.
-  if (preset.poster_type !== 'photo') {
+  // Presets with a saved camera (lat/lng in config, PROJ-8 since 2026-05-07)
+  // are rendered exactly as designed — the headless bridge applies the preset
+  // camera itself. Overriding with the marker position moved the map centre
+  // onto the pin whenever the pin was not in the middle.
+  const hasSavedCamera =
+    typeof preset.config_json?.lat === 'number' && typeof preset.config_json?.lng === 'number'
+  if (preset.poster_type !== 'photo' && !hasSavedCamera) {
     const loc = resolveLocation(preset)
     params.set('lat', String(loc.lat))
     params.set('lng', String(loc.lng))
