@@ -1,6 +1,6 @@
 # PROJ-56: Image Generator (Galerie-/Mockup-Bilder pro Preset)
 
-## Status: Architected
+## Status: In Progress
 **Created:** 2026-09-16
 **Last Updated:** 2026-09-16
 
@@ -277,6 +277,78 @@ Klick „Erstellen"
 - **GitHub-Actions-Minuten:** Automatisches Anstoßen erhöht die Zahl der Läufe. Doppel-Schutz begrenzt das auf einen Lauf gleichzeitig.
 - **DM-Kontingent:** Jeder DM-Mockup × Farbe ist ein kostenpflichtiger DM-Aufruf; die Bildanzahl vor dem Klick macht das sichtbar.
 - **Mockups ohne Thumbnail** zeigen einen Platzhalter mit Hinweis „Test-Render in Mockup-Sets ausführen".
+
+## Implementation Notes
+
+### Frontend (2026-09-16)
+
+**Seite:** [/private/admin/image-generator](src/app/private/admin/image-generator/page.tsx), Preset per `?preset=<id>` (Deep-Link, Reload-fest).
+
+**Komponenten** in [src/components/admin/image-generator/](src/components/admin/image-generator/):
+- `AdminImageGenerator` — Schritte 1–3, Galerie, feste Erstellen-Leiste unten (Bildanzahl, übersprungene Einträge, Bestätigung ab 40 Bildern)
+- `PresetPickerDialog` — Suche + Typ-Filter (Tabs), Raster mit Vorschaubild
+- `MockupSelection` — geordnete Auswahlliste (↑↓, Duplizieren für zweites Overlay, Entfernen) + Mockup-Kacheln mit Positionsnummern; unpassende Ausrichtung deaktiviert; Probleme aus Vorlagen („nicht mehr verfügbar") und doppelte Kombinationen gelb markiert und beim Erstellen übersprungen
+- `OverlayPickerDialog` — Bibliothek gefiltert auf Ausrichtung, Upload mit Name landet direkt in der Bibliothek und wird zugewiesen
+- `TemplateBar` — Laden, Speichern (Namenskollision → Überschreiben-Dialog), Überschreiben, Umbenennen, Löschen
+- `ExtraColorsSection` — Collapsible mit Paletten-Chips, nur bei Karten-Presets
+- `GeneratorGallery` — Gruppen je Farbe, Status-Kacheln (wartet auf Poster-Render / Worker, wird erstellt, fehlgeschlagen mit Grund), „veraltet"-Badge, Lightbox, Löschen, Erneut versuchen, ZIP-Link
+
+**Logik:** [src/lib/image-generator/](src/lib/image-generator/) — `types.ts` (Vertrag mit den Endpunkten), `api.ts` (Client), `helpers.ts` (Kompatibilität, Zählung, Duplikate, veraltet, Gruppierung, Dateinamen; 12 Unit-Tests). Hook [useImageGeneratorState](src/hooks/useImageGeneratorState.ts) lädt den Zustand und fragt alle 4 s ab, solange Bilder offen sind.
+
+**Einstiege:** Admin-Menü „Image Generator" ([LandingNavClient.tsx](src/components/landing/LandingNavClient.tsx)); Link-Icon „Bilder generieren" pro Preset in Raster- und Listenansicht ([AdminPresetsList.tsx](src/components/admin/AdminPresetsList.tsx)).
+
+**Erwartete Endpunkte (für /backend)** — alle Admin-only, Formen siehe `types.ts`:
+| Methode | Pfad | Zweck |
+|---|---|---|
+| GET | `/api/admin/image-generator/presets/[presetId]` | `{ preset, images }` — `preset.orientation` aus `config_json`, Bilder inkl. `waiting_for` |
+| POST | `/api/admin/image-generator/presets/[presetId]/generate` | Body `{ entries, palette_ids }` → `{ images, completed_now, worker_triggered }` |
+| GET | `/api/admin/image-generator/presets/[presetId]/zip` | ZIP, Dateinamen über `buildImageFileName` |
+| DELETE | `/api/admin/image-generator/images/[imageId]` | Bild löschen |
+| POST | `/api/admin/image-generator/images/[imageId]/retry` | `{ image }` — auch für veraltete Bilder |
+| GET / POST (multipart `file`, `name`, `orientation`) | `/api/admin/image-generator/overlays` | `{ overlays }` / `{ overlay }` |
+| GET / POST | `/api/admin/image-generator/templates` | `{ templates }` / `{ template }` |
+| PATCH / DELETE | `/api/admin/image-generator/templates/[id]` | `{ template }` / `{ ok }` |
+
+Bestehend und genutzt: `GET /api/admin/presets?status=all` (Farbvarianten dort ausfiltern!), `GET /api/admin/mockup-sets`, `GET /api/admin/palettes?status=published`.
+
+**Abweichungen / Entscheidungen im Build:**
+- Klick auf eine Mockup-Kachel fügt hinzu bzw. entfernt; ist ein Mockup mehrfach gewählt (verschiedene Overlays), wird nur gezielt in der Liste entfernt, damit kein Overlay-Eintrag verloren geht.
+- „Erneut versuchen" erscheint auch bei veralteten Bildern („Neu erzeugen").
+- Zusatzfarben werden beim Preset-Wechsel geleert, die Mockup-Auswahl bleibt erhalten (praktisch für mehrere Presets hintereinander).
+
+### Backend (2026-09-16)
+
+**Migration** [20260916100000_proj56_image_generator.sql](supabase/migrations/20260916100000_proj56_image_generator.sql) — rein additiv:
+- `presets.color_variant_of` + `color_variant_palette_id` (verborgene Farbvarianten, eindeutig pro Basis × Palette, Cascade beim Löschen des Basis-Presets)
+- `image_generator_images` — Bild = Auftrag; `UNIQUE NULLS NOT DISTINCT (preset_id, palette_id, mockup_set_id, overlay_id)`; `source_preset_id` (Basis oder Farbvariante), `base_config_hash` für „veraltet"
+- `image_overlays`, `image_generator_templates` (Name case-insensitive eindeutig, `entries` als JSON ohne Fremdschlüssel)
+- RLS an, keine Policies → nur Service-Role (Muster wie `preset_renders`)
+
+**Bibliothek** [src/lib/image-generator/](src/lib/image-generator/):
+- `process.ts` — Bildbau-Routine für Schnellweg **und** Worker (nur relative Importe): Poster-Zustand der Quelle, atomare Reservierung (`pending → rendering`), Compositing lokal (`composeLocalMockup`) bzw. Dynamic Mockups direkt, Overlay per `fit: contain` auf Canvas-Größe skaliert, Upload `preset-renders/image-generator/<preset>/<bild>.jpg`, Reclaim hängender Reservierungen
+- `server.ts` — Zustand, Erstellen (Validierung, Quellen sicherstellen, Upsert, Schnellweg mit 40-s-Budget, Worker-Anstoß), Erneut versuchen, Löschen, ZIP
+- `config-hash.ts` — Hash mit sortierten Schlüsseln; `palette-bake.ts` — Palette einbacken (jetzt auch von PROJ-53 genutzt)
+- [src/lib/render-worker-trigger.ts](src/lib/render-worker-trigger.ts) — GitHub-Dispatch mit `skipIfActive` (kein zweiter Lauf, wenn einer wartet/läuft); der bestehende Knopf „Worker starten" nutzt ihn ohne diese Option
+
+**Endpunkte** unter `/api/admin/image-generator/` wie in der Tabelle oben; alle Admin-only, Zod auf Schreibzugriffen, `.limit()` auf Listen. Overlay-Upload prüft wie Mockup-Overlays (PNG ≤ 5 MB, 800–4000 px) und zusätzlich auf Transparenz.
+
+**Render-Worker** ([scripts/render-worker.ts](scripts/render-worker.ts)):
+- schreibt nach jedem Format-Render `render_inputs_hash_<format>` = Konfigurations-Hash
+- neuer Schritt 1b nach den Presets: nächstes Galerie-Bild mit fertigem Poster erzeugen; fehlgeschlagenes/fehlendes Poster → Bild „fehlgeschlagen", veraltetes Poster → A4 neu anstoßen
+- Reclaim gibt auch hängende Galerie-Bilder nach 10 Min. frei
+
+**Geteilter Code / Cross-Cutting:**
+- `GET /api/admin/presets` blendet Farbvarianten aus; `bulk-render` fasst sie nicht an
+- `POST /api/admin/etsy-listings/[id]/render` (PROJ-53) nutzt `bakePaletteIntoConfig` statt eigener Kopie — Verhalten unverändert (Tests)
+- `POST /api/admin/render-worker/trigger` nutzt die ausgelagerte Trigger-Funktion — Antworten unverändert
+
+**Entscheidungen im Build:**
+- **„Veraltet" über Konfigurations-Hash statt `updated_at`**: `updated_at` ändert sich auch beim Veröffentlichen/Taggen. Poster ohne gespeicherten Hash (alle Renders vor PROJ-56) gelten als aktuell.
+- **Farbvarianten rendern nur A4**: A3/A2 werden beim Anlegen auf `done` gesetzt, weil der Worker sonst jedes Preset mit offenem Format endlos abholt.
+- **Basis-Preset neu rendern** (fehlt, fehlgeschlagen, veraltet) nutzt die normale Pipeline → dabei entstehen auch seine Marketing-Mockups neu (bei DM: Kontingent).
+- Overlay-Umbenennen/-Löschen gibt es als Endpunkt noch nicht (Oberfläche bietet es nicht an).
+
+**Tests:** 43 Unit-/Integrationstests für PROJ-56 (Helfer, Hash, Palette, Poster-Zustand, Overlay-Skalierung, Schnellweg-Auswahl, Endpunkte Generate/Vorlagen/Overlays inkl. 401/403/400/409). Gesamte Vitest-Suite: 335 Tests grün.
 
 ## QA Test Results
 _To be added by /qa_

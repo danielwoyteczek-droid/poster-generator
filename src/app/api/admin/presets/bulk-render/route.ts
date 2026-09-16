@@ -56,7 +56,8 @@ export async function POST(req: NextRequest) {
   }
 
   // Build query — explicit IDs take precedence over filters.
-  let query = admin.from('presets').update(updates)
+  // PROJ-56: Farbvarianten rendern nur A4 und nur auf Anstoß des Image Generators
+  let query = admin.from('presets').update(updates).is('color_variant_of', null)
 
   if (parsed.data.ids) {
     query = query.in('id', parsed.data.ids)
