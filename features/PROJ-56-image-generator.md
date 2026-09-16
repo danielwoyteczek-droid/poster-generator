@@ -1,6 +1,6 @@
 # PROJ-56: Image Generator (Galerie-/Mockup-Bilder pro Preset)
 
-## Status: In Progress
+## Status: Deployed
 **Created:** 2026-09-16
 **Last Updated:** 2026-09-16
 
@@ -354,4 +354,10 @@ Bestehend und genutzt: `GET /api/admin/presets?status=all` (Farbvarianten dort a
 _To be added by /qa_
 
 ## Deployment
-_To be added by /deploy_
+
+**Deployed:** 2026-09-16 · PR #15 (zusammen mit #13 Render-Ausschnitt-Fix PROJ-30 und #14 Kreisform PROJ-1) · Vercel Production grün
+
+- Migration `20260916100000_proj56_image_generator.sql` war vorab live angewendet und per Spalten-Query verifiziert.
+- Absicherung auf Wunsch des Operators: Vercel-Preview-Builds aller drei PRs grün, **kein vollständiges `/qa`**. Offen für QA: Zusatzfarben end-to-end, Overlay-Upload, Vorlagen im Browser, 375-px-Ansicht.
+- Live-Smoke-Test: Seite leitet ohne Login auf `/de/login`, Endpunkt `/api/admin/image-generator/templates` antwortet 401.
+- Worker: Der GitHub-Render-Worker läuft auf `main` und kennt den Galerie-Bild-Schritt ab diesem Deploy.
