@@ -39,7 +39,7 @@
 | PROJ-23 | Design-System & Brand-Styling | Approved | [PROJ-23-design-system-brand-styling.md](PROJ-23-design-system-brand-styling.md) | 2026-04-24 |
 | PROJ-24 | Localized Storefront Content | Approved | [PROJ-24-localized-storefront-content.md](PROJ-24-localized-storefront-content.md) | 2026-04-25 |
 | PROJ-25 | Editor UX Consistency Pass | Planned | [PROJ-25-editor-ux-consistency.md](PROJ-25-editor-ux-consistency.md) | 2026-04-25 |
-| PROJ-26 | Versandkosten-Management | Architected | [PROJ-26-shipping-rate-management.md](PROJ-26-shipping-rate-management.md) | 2026-04-26 |
+| PROJ-26 | Versandkosten (2 Zonen, 3 Versandarten, Stripe-Tarife) | In Progress | [PROJ-26-shipping-rate-management.md](PROJ-26-shipping-rate-management.md) | 2026-04-26 |
 | PROJ-27 | Mobile Star-Map Editor | Deployed | [PROJ-27-mobile-star-map-editor.md](PROJ-27-mobile-star-map-editor.md) | 2026-04-26 |
 | PROJ-28 | Business Center | Approved | [PROJ-28-business-center.md](PROJ-28-business-center.md) | 2026-04-26 |
 | PROJ-29 | Anlass-Landing-Pages (SEO) | Approved | [PROJ-29-occasion-landing-pages.md](PROJ-29-occasion-landing-pages.md) | 2026-04-26 |
@@ -68,10 +68,11 @@
 | PROJ-52 | Local-Mockup-Provider (sharp-Compositing neben Dynamic Mockups) | In Progress | [PROJ-52-local-mockup-provider.md](PROJ-52-local-mockup-provider.md) | 2026-05-27 |
 | PROJ-53 | Etsy Mass-Listing-Generator (Paletten-Varianten-Matrix + Vela-CSV) | Planned | [PROJ-53-etsy-mass-listing-generator.md](PROJ-53-etsy-mass-listing-generator.md) | 2026-05-31 |
 | PROJ-54 | Listing-Image-Sets (Etsy-Bild-Vorlagen pro Produkttyp) | In Progress | [PROJ-54-listing-image-sets.md](PROJ-54-listing-image-sets.md) | 2026-06-02 |
+| PROJ-55 | DTF-Print-Editor (Kunden-Motive auf Transferbogen) | In Progress | [PROJ-55-dtf-print-editor.md](PROJ-55-dtf-print-editor.md) | 2026-08-10 |
 
 <!-- Add features above this line -->
 
-## Next Available ID: PROJ-55
+## Next Available ID: PROJ-56
 
 ## Recommended Build Order
 1. **PROJ-1** — Karten-Editor Core (Fundament der App)

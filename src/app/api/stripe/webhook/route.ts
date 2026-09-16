@@ -4,6 +4,16 @@ import { stripe } from '@/lib/stripe'
 import { createAdminClient } from '@/lib/supabase-admin'
 import { sendOrderConfirmation, sendAdminNewOrderNotification } from '@/lib/email'
 import { dispatchB2BWebhookEvent, isB2BCheckoutSession } from '@/lib/b2b-webhook-handlers'
+import { generatePrintFilesForOrder } from '@/lib/dtf-print-run'
+
+export const runtime = 'nodejs'
+/**
+ * PROJ-55: Die Erzeugung der DTF-Druckdateien lädt Originale von bis zu
+ * 50 MB und baut daraus PDFs — das dauert länger als die Standardgrenze.
+ * Schlägt es trotzdem ins Zeitlimit, bleibt die Zeile auf 'failed' und
+ * lässt sich aus der Bestellansicht wiederholen.
+ */
+export const maxDuration = 300
 
 export async function POST(req: NextRequest) {
   try {
@@ -136,6 +146,28 @@ export async function POST(req: NextRequest) {
             console.error('[webhook] project lock failed:', lockErr)
           } else {
             console.log('[webhook] locked projects:', projectIds)
+          }
+        }
+      }
+
+      // PROJ-55: Druckdateien für DTF-Positionen erzeugen. Bewusst hier und
+      // nicht in einem eigenen Job: Der Betreiber soll die PDF vorfinden,
+      // wenn er die Bestellung öffnet.
+      //
+      // Fehler dürfen den Webhook NICHT scheitern lassen — Stripe würde
+      // sonst erneut zustellen und die Bestellung mehrfach verarbeiten. Ein
+      // fehlgeschlagener Lauf hinterlässt eine Zeile mit Status 'failed'
+      // und lässt sich aus der Bestellansicht wiederholen.
+      if (updated?.id) {
+        const hasDtf = (updated.items as Array<{ productId?: string }> | null)?.some(
+          (i) => i.productId === 'dtf',
+        )
+        if (hasDtf) {
+          try {
+            const run = await generatePrintFilesForOrder(updated.id)
+            console.log('[webhook] dtf print files:', run)
+          } catch (err) {
+            console.error('[webhook] dtf print file generation failed:', err)
           }
         }
       }

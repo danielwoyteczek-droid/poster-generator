@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import { useCartStore } from '@/hooks/useCartStore'
 import { useVoucherStore } from '@/hooks/useVoucherStore'
 import { trackPurchase, hashedEmail } from '@/lib/analytics'
-import { formatPrice, getItemFallbackLabel, getItemLabelKey } from '@/lib/products'
+import { formatPrice, getItemFallbackLabel, getItemLabelKey, displayFormatLabel } from '@/lib/products'
 import { PRINT_FORMAT_OPTIONS, type PrintFormat } from '@/lib/print-formats'
 import {
   renderPosterFromSnapshot,
@@ -55,10 +55,6 @@ interface Props {
   orderId: string
   token: string
   showSuccessBanner: boolean
-}
-
-function formatLabel(id: string) {
-  return PRINT_FORMAT_OPTIONS.find((f) => f.id === id)?.label ?? id.toUpperCase()
 }
 
 export function OrderView({ orderId, token, showSuccessBanner }: Props) {
@@ -315,7 +311,7 @@ export function OrderView({ orderId, token, showSuccessBanner }: Props) {
                     </p>
                     <h3 className="text-sm font-semibold text-foreground truncate mt-0.5">{item.title}</h3>
                     <p className="text-xs text-muted-foreground mt-1">
-                      {productLabel(item)} · {formatLabel(item.format)} · {formatPrice(item.priceCents)}
+                      {productLabel(item)} · {displayFormatLabel(item.format)} · {formatPrice(item.priceCents)}
                     </p>
                   </div>
 

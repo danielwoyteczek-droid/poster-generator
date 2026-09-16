@@ -103,6 +103,8 @@ function CustomerProductView({ printFormat }: { printFormat: PrintFormat }) {
         withFrame: selection.withFrame,
         format: printFormat,
         posterType: 'photo',
+        // Poster sind Einzelstücke; die Auflage gibt es nur bei DTF.
+        quantity: 1,
         title,
         priceCents: selection.priceCents,
         previewDataUrl,

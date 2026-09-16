@@ -16,6 +16,9 @@ export async function GET() {
     return NextResponse.json({
       products,
       frameMarkup: catalog.frameMarkup,
+      // PROJ-55: Preise je DTF-Bogenformat. Leer, solange die Price-IDs in
+      // products.ts fehlen — der Editor blendet dann den Kaufknopf aus.
+      dtfSheets: catalog.dtfSheets,
     })
   } catch (err) {
     console.error('Failed to load product catalog:', err)

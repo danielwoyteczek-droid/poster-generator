@@ -2,8 +2,17 @@ import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import type { ProductId } from '@/lib/products'
 import type { PrintFormat } from '@/lib/print-formats'
+import type { DtfSheetFormat } from '@/lib/dtf-constants'
 
-export type PosterType = 'map' | 'star-map' | 'photo'
+export type PosterType = 'map' | 'star-map' | 'photo' | 'dtf'
+
+/**
+ * PROJ-55: Formate im Warenkorb. Poster rechnen nach Papierformat
+ * (a4 | a3 | a2), DTF nach Bogenmaß (a4 | a3 | 40x50). Die Überschneidung
+ * bei A4 und A3 ist zufällig — deshalb die Vereinigung statt einer
+ * gemeinsamen Liste. `productId` entscheidet, welche Bedeutung gilt.
+ */
+export type CartFormat = PrintFormat | DtfSheetFormat
 
 export interface CartItem {
   id: string
@@ -15,8 +24,15 @@ export interface CartItem {
    * consistent without re-fetching the catalog on each render.
    */
   withFrame: boolean
-  format: PrintFormat
+  format: CartFormat
   posterType: PosterType
+  /**
+   * PROJ-55: Auflage. Für Poster und Downloads immer 1 — jede Position ist
+   * dort ein Einzelstück. Für DTF die Anzahl identischer Bögen; sie geht
+   * als Menge an Stripe, damit eine Preisänderung im Dashboard sofort für
+   * alle Auflagen greift.
+   */
+  quantity: number
   title: string
   /**
    * Total price for this cart item in cents, including frame markup if
@@ -39,9 +55,11 @@ interface CartStore {
   totalCents: () => number
 }
 
-interface LegacyCartItem extends Omit<CartItem, 'productId' | 'withFrame'> {
+interface LegacyCartItem extends Omit<CartItem, 'productId' | 'withFrame' | 'quantity'> {
   productId: 'download' | 'poster' | 'frame'
   withFrame?: boolean
+  /** Fehlt in Körben von vor PROJ-55 — die Migration setzt 1. */
+  quantity?: number
 }
 
 export const useCartStore = create<CartStore>()(
@@ -63,7 +81,11 @@ export const useCartStore = create<CartStore>()(
     }),
     {
       name: 'poster-cart',
-      version: 1,
+      // PROJ-55: auf 2 gehoben, weil CartItem.quantity dazugekommen ist.
+      // Ohne Versionssprung liefe die Migration nicht und Bestandskörbe
+      // hätten quantity=undefined — der Checkout würde dann eine Menge
+      // ohne Wert an Stripe schicken.
+      version: 2,
       storage: createJSONStorage(() => localStorage),
       // PROJ-48: migrate legacy carts where productId could be 'frame'.
       // Legacy 'frame' items were bundle SKUs (Poster + Rahmen + Download);
@@ -76,14 +98,18 @@ export const useCartStore = create<CartStore>()(
         }
         const state = persisted as { items?: LegacyCartItem[] }
         const items: CartItem[] = (state.items ?? []).map((legacy) => {
+          // PROJ-55: Bestandspositionen sind Einzelstücke. Ohne diesen
+          // Standardwert ginge quantity=undefined in den Checkout.
+          const quantity = legacy.quantity ?? 1
           if (legacy.productId === 'frame') {
             const { productId: _drop, withFrame: _drop2, ...rest } = legacy
             void _drop
             void _drop2
-            return { ...rest, productId: 'poster' as const, withFrame: true }
+            return { ...rest, quantity, productId: 'poster' as const, withFrame: true }
           }
           return {
             ...legacy,
+            quantity,
             productId: legacy.productId,
             withFrame: legacy.withFrame ?? false,
           }

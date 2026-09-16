@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { useTranslatedLabel } from '@/lib/i18n-catalog'
 import { X, ShoppingCart, CreditCard, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -11,18 +11,20 @@ import { useVoucherStore } from '@/hooks/useVoucherStore'
 import { useProductCatalog, frameMarkupFromCatalog } from '@/hooks/useProductCatalog'
 import { trackBeginCheckout } from '@/lib/analytics'
 import { readAttributionCookie } from '@/lib/attribution'
-import { formatPrice, getItemFallbackLabel, getItemLabelKey } from '@/lib/products'
+import { formatPrice, getItemFallbackLabel, getItemLabelKey, displayFormatLabel } from '@/lib/products'
 import { PRINT_FORMAT_OPTIONS, type PrintFormat } from '@/lib/print-formats'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { VoucherInput } from './VoucherInput'
-
-function formatLabel(format: string) {
-  return PRINT_FORMAT_OPTIONS.find((f) => f.id === format)?.label ?? format.toUpperCase()
-}
+import { DtfApprovalDialog, readDtfSnapshot } from './DtfApprovalDialog'
+import { DtfSheetPreview } from './DtfSheetPreview'
+import { ShippingSelector } from './ShippingSelector'
+import { quoteShipping, SHIPPING_COUNTRIES, type ShippingCountry } from '@/lib/shipping'
 
 export function CartView() {
   const t = useTranslations('cart')
+  const tShipping = useTranslations('shipping')
+  const locale = useLocale()
   const productI18n = useTranslatedLabel('products')
   const productLabel = (item: { productId: string; withFrame?: boolean }) =>
     productI18n(
@@ -40,6 +42,8 @@ export function CartView() {
   const removeVoucher = useVoucherStore((s) => s.remove)
   const { frameMarkup } = useProductCatalog()
   const hasDigital = items.some((i) => i.productId === 'download')
+  const hasDtf = items.some((i) => i.productId === 'dtf')
+  const [approvalOpen, setApprovalOpen] = useState(false)
 
   // PROJ-48: discount-cents is a preview computed against the current cart.
   // If the voucher no longer applies (subtotal dropped below min_amount, or
@@ -49,7 +53,35 @@ export function CartView() {
   const discountCents = voucher
     ? Math.min(voucher.discountCents, subtotalCents)
     : 0
-  const totalCents = Math.max(0, subtotalCents - discountCents)
+  const discountedCents = Math.max(0, subtotalCents - discountCents)
+
+  /**
+   * PROJ-26: Lieferland. Vorbelegt aus der Locale — wer die Seite auf
+   * Französisch liest, liefert vermutlich nach Frankreich. Fällt auf
+   * Deutschland zurück, wenn die Locale kein beliefertes Land ergibt.
+   */
+  const [country, setCountry] = useState<ShippingCountry>(() => {
+    const guess = locale.toUpperCase()
+    return (SHIPPING_COUNTRIES as readonly string[]).includes(guess)
+      ? (guess as ShippingCountry)
+      : 'DE'
+  })
+
+  // Der Freibetrag prüft gegen den Wert VOR Rabatt. Sonst würde ein
+  // Gutschein zusätzlich den Versand finanzieren.
+  const shippingQuote = quoteShipping(
+    items.map((i) => ({
+      productId: i.productId,
+      format: i.format,
+      withFrame: i.withFrame,
+      quantity: i.quantity,
+    })),
+    country,
+    subtotalCents,
+  )
+
+  const shippingCents = shippingQuote?.cents ?? 0
+  const totalCents = discountedCents + shippingCents
 
   useEffect(() => { setHydrated(true) }, [])
 
@@ -91,7 +123,29 @@ export function CartView() {
     })()
   }, [hydrated, voucher, items, applyVoucher, removeVoucher])
 
-  const handleCheckout = async () => {
+  /**
+   * PROJ-55: Enthält der Warenkorb DTF-Positionen, schiebt sich vor den
+   * Checkout ein Freigabe-Dialog. Der Bestellablauf selbst bleibt
+   * unverändert — nach dem Bestätigen läuft exakt derselbe Aufruf wie
+   * bisher, nur um zwei Zeitstempel ergänzt. Ohne DTF im Warenkorb
+   * erscheint der Dialog nicht und der Weg ist identisch zu vorher.
+   */
+  const handleCheckoutClick = () => {
+    if (hasDigital && !digitalConsent) {
+      toast.error(t('digitalConsentRequired'))
+      return
+    }
+    if (hasDtf) {
+      setApprovalOpen(true)
+      return
+    }
+    void handleCheckout()
+  }
+
+  const handleCheckout = async (approval?: {
+    printApprovedAt: string
+    rightsConfirmedAt: string
+  }) => {
     if (hasDigital && !digitalConsent) {
       toast.error(t('digitalConsentRequired'))
       return
@@ -103,18 +157,25 @@ export function CartView() {
       productId: i.productId,
       format: i.format,
       priceCents: i.priceCents,
+      quantity: i.quantity,
       posterType: i.posterType,
     })))
     try {
       const payload = {
-        items: items.map(({ productId, withFrame, format, posterType, title, snapshot, projectId }) => ({
-          productId, withFrame: !!withFrame, format, posterType, title, snapshot, projectId,
+        items: items.map(({ productId, withFrame, format, posterType, quantity, title, snapshot, projectId }) => ({
+          productId, withFrame: !!withFrame, format, posterType, quantity, title, snapshot, projectId,
         })),
         digitalConsent: hasDigital ? digitalConsent : undefined,
+        // PROJ-55: nur gesetzt, wenn der Freigabe-Dialog durchlaufen wurde.
+        dtfApproval: approval,
         voucher: voucher
           ? { code: voucher.code, promotionCodeId: voucher.promotionCodeId }
           : undefined,
         attribution: readAttributionCookie() ?? undefined,
+        // PROJ-26: Das Lieferland muss VOR dem Anlegen der Session
+        // feststehen — Stripe kann den Versandpreis später nicht mehr an
+        // die eingegebene Adresse anpassen.
+        shippingCountry: country,
       }
       const res = await fetch('/api/checkout', {
         method: 'POST',
@@ -169,21 +230,39 @@ export function CartView() {
             ? Math.max(0, item.priceCents - frameMarkupPrice.unitAmount)
             : item.priceCents
 
+          // PROJ-55: DTF-Positionen tragen keine fertige Bilddatei, sondern
+          // die Bogenbeschreibung. Sie wird hier aus denselben Daten
+          // gezeichnet wie im Editor und im Freigabe-Dialog.
+          const dtf = readDtfSnapshot(item)
+
           return (
           <div key={item.id} className="flex gap-4 p-4 rounded-xl bg-white border border-border">
-            <div className="w-24 h-32 shrink-0 rounded-md overflow-hidden bg-muted flex items-center justify-center">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={item.previewDataUrl}
-                alt={item.title}
-                className="w-full h-full object-cover"
-              />
-            </div>
+            {dtf ? (
+              <DtfSheetPreview format={dtf.format} elements={dtf.elements} widthPx={96} />
+            ) : (
+              <div className="w-24 h-32 shrink-0 rounded-md overflow-hidden bg-muted flex items-center justify-center">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={item.previewDataUrl}
+                  alt={item.title}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            )}
             <div className="flex-1 min-w-0 flex flex-col">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-xs text-muted-foreground/70 uppercase tracking-wider">
-                    {item.posterType === 'star-map' ? t('starPoster') : t('cityPoster')}
+                    {/* Foto-Poster liefen hier bisher unter „Stadtposter" —
+                        der Zweig kannte nur Stern und Sonst. Mit DTF als
+                        drittem Fall fiel es auf, also gleich mitkorrigiert. */}
+                    {item.posterType === 'star-map'
+                      ? t('starPoster')
+                      : item.posterType === 'photo'
+                        ? t('photoPoster')
+                        : item.posterType === 'dtf'
+                          ? t('dtfPrint')
+                          : t('cityPoster')}
                   </p>
                   <h3 className="text-sm font-semibold text-foreground truncate mt-0.5">{item.title}</h3>
                 </div>
@@ -203,12 +282,29 @@ export function CartView() {
                     {productI18n(
                       `${item.productId}Label`,
                       getItemFallbackLabel({ productId: item.productId, withFrame: false }),
-                    )} · {formatLabel(item.format)}
+                    )} · {displayFormatLabel(item.format)}
+                    {/* Auflage nur zeigen, wenn sie etwas aussagt. Bei
+                        Postern ist sie immer 1 und wäre nur Rauschen. */}
+                    {item.quantity > 1 && ` · ${item.quantity}×`}
                   </span>
                   <span className="text-foreground/80 font-medium shrink-0">
                     {formatPrice(baseCents)}
                   </span>
                 </div>
+                {dtf && item.quantity > 1 && (
+                  <div className="flex justify-between gap-2 text-muted-foreground/70">
+                    <span className="truncate">
+                      {t('dtfUnitPrice', {
+                        price: formatPrice(Math.round(item.priceCents / item.quantity)),
+                      })}
+                    </span>
+                  </div>
+                )}
+                {dtf && (
+                  <div className="text-muted-foreground/70">
+                    {t('dtfMotifCount', { count: dtf.elements.length })}
+                  </div>
+                )}
                 {frameMarkupPrice && (
                   <div className="flex justify-between gap-2 text-muted-foreground">
                     <span className="truncate">
@@ -257,14 +353,27 @@ export function CartView() {
               <span>−{formatPrice(discountCents)}</span>
             </div>
           )}
-          <div className="flex justify-between text-muted-foreground">
-            <span>{t('shipping')}</span>
-            <span>{t('shippingValue')}</span>
-          </div>
+          {/* PROJ-26: Bis hierher stand hier ein fester Text („kostenlos").
+              Jetzt der berechnete Betrag; bei reinen Downloads entfällt die
+              Zeile ganz. */}
+          {shippingQuote && shippingQuote.freeReason !== 'digital_only' && (
+            <div className="flex justify-between text-muted-foreground">
+              <span>{t('shipping')}</span>
+              <span>
+                {shippingCents === 0 ? tShipping('free') : formatPrice(shippingCents)}
+              </span>
+            </div>
+          )}
           <div className="border-t border-border pt-2 flex justify-between text-base font-semibold text-foreground">
             <span>{t('total')}</span>
             <span>{formatPrice(totalCents)}</span>
           </div>
+
+          <ShippingSelector
+            country={country}
+            onCountryChange={setCountry}
+            quote={shippingQuote}
+          />
         </div>
 
         <VoucherInput />
@@ -286,7 +395,7 @@ export function CartView() {
         <Button
           className="w-full"
           size="lg"
-          onClick={handleCheckout}
+          onClick={handleCheckoutClick}
           disabled={isCheckingOut || (hasDigital && !digitalConsent)}
         >
           {isCheckingOut ? (
@@ -300,6 +409,22 @@ export function CartView() {
           {t('secureNote')}
         </p>
       </aside>
+
+      {/* PROJ-55: Erscheint nur bei DTF-Positionen. Bestätigt der Kunde,
+          läuft danach derselbe Checkout wie sonst — nur mit den beiden
+          Zeitstempeln im Aufruf. */}
+      {hasDtf && (
+        <DtfApprovalDialog
+          open={approvalOpen}
+          onOpenChange={setApprovalOpen}
+          items={items}
+          isSubmitting={isCheckingOut}
+          onConfirm={(approval) => {
+            setApprovalOpen(false)
+            void handleCheckout(approval)
+          }}
+        />
+      )}
     </div>
   )
 }

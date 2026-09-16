@@ -39,9 +39,16 @@ interface Props {
   onAddToCart: (selection: TierSelection) => void
 }
 
-const TIER_ORDER: ProductId[] = ['download', 'poster']
+/**
+ * Nur die Poster-Stufen. DTF (PROJ-55) taucht hier bewusst nicht auf: Es
+ * wird nicht aus einem Poster-Editor heraus gewählt, sondern im eigenen
+ * DTF-Editor gestaltet und dort in den Warenkorb gelegt.
+ */
+type TierProductId = Exclude<ProductId, 'dtf'>
 
-const TIER_ICONS: Record<ProductId, React.ReactNode> = {
+const TIER_ORDER: TierProductId[] = ['download', 'poster']
+
+const TIER_ICONS: Record<TierProductId, React.ReactNode> = {
   download: <DownloadIcon className="w-5 h-5" />,
   poster: <ImageIcon className="w-5 h-5" />,
 }
