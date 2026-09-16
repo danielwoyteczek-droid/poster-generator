@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from '@/i18n/navigation'
 import { useLocale } from 'next-intl'
 import Image from 'next/image'
-import { Loader2, LayoutTemplate, Pencil, Eye, EyeOff, Trash2, Plus, Link as LinkIcon, Copy, Globe, Tag, X as XIcon, LayoutGrid, List, RefreshCw, AlertCircle, Clock, CheckCircle2, Image as ImageIcon, Rocket } from 'lucide-react'
+import { Loader2, LayoutTemplate, Pencil, Eye, EyeOff, Trash2, Plus, Link as LinkIcon, Copy, Globe, Tag, X as XIcon, LayoutGrid, List, RefreshCw, AlertCircle, Clock, CheckCircle2, Image as ImageIcon, Rocket, Images } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
@@ -1167,6 +1167,16 @@ export function AdminPresetsList() {
                   >
                     <ImageIcon className="w-3.5 h-3.5" />
                   </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 text-muted-foreground/70 hover:text-foreground"
+                    asChild
+                  >
+                    <Link href={`/private/admin/image-generator?preset=${preset.id}`} title="Bilder generieren" aria-label={`Bilder für ${preset.name} generieren`}>
+                      <Images className="w-3.5 h-3.5" />
+                    </Link>
+                  </Button>
                   {preset.status === 'published' && (
                     <Button
                       variant="ghost"
@@ -1347,6 +1357,11 @@ export function AdminPresetsList() {
                 <div className="shrink-0 flex gap-0.5">
                   <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground/70 hover:text-foreground" onClick={() => editPreset(preset)} title="Im Editor bearbeiten">
                     <LayoutTemplate className="w-3.5 h-3.5" />
+                  </Button>
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground/70 hover:text-foreground" asChild>
+                    <Link href={`/private/admin/image-generator?preset=${preset.id}`} title="Bilder generieren" aria-label={`Bilder für ${preset.name} generieren`}>
+                      <Images className="w-3.5 h-3.5" />
+                    </Link>
                   </Button>
                   <Button
                     variant="ghost"

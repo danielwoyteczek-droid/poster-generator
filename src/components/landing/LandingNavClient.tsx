@@ -249,6 +249,12 @@ export function LandingNavClient({ occasionLinks = [] }: LandingNavClientProps) 
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
+                      <Link href="/private/admin/image-generator" className="cursor-pointer">
+                        <ImageIcon className="w-4 h-4 mr-2" />
+                        Image Generator
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
                       <Link href="/private/admin/etsy-listings" className="cursor-pointer">
                         <LayoutTemplate className="w-4 h-4 mr-2" />
                         Etsy Mass-Listings

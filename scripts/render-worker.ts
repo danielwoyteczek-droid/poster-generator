@@ -26,6 +26,8 @@ import { renderMockup, fetchCompositeBuffer, DynamicMockupsApiError } from '../s
 import { composeLocalMockup, type SlotRect as LocalSlotRect } from '../src/lib/local-mockup-processor'
 import { FEATURED_STYLES, type FeaturedStyle } from '../src/lib/featured-styles'
 import { HEADLESS_TOKEN_HEADER } from '../src/lib/headless-render'
+import { configHash } from '../src/lib/image-generator/config-hash'
+import { processNextOpenImage, reclaimStaleImages } from '../src/lib/image-generator/process'
 
 loadEnv({ path: '.env.local' })
 
@@ -389,6 +391,8 @@ async function renderAndStoreFormatPreview(
     [`render_completed_at_${format}`]: new Date().toISOString(),
     [`preview_image_url_${format}`]: url,
     [`render_error_${format}`]: null,
+    // PROJ-56: Konfiguration, für die dieses Poster gilt → Image Generator erkennt veraltete Poster
+    [`render_inputs_hash_${format}`]: configHash(preset.config_json),
   }).eq('id', preset.id)
 
   return posterBuffer
@@ -1196,6 +1200,12 @@ async function main() {
         } catch (err) {
           logErr(`Reclaim error: ${err instanceof Error ? err.message : err}`)
         }
+        try {
+          const n = await reclaimStaleImages(supabase, STALE_RENDER_THRESHOLD_MIN)
+          if (n > 0) log(`Reclaimed ${n} image-generator image(s)`)
+        } catch (err) {
+          logErr(`Image-Generator reclaim error: ${err instanceof Error ? err.message : err}`)
+        }
         lastReclaimAt = Date.now()
       }
 
@@ -1223,6 +1233,16 @@ async function main() {
           logErr(`✗ "${claimedPreset.name}": ${msg}`)
         }
         continue
+      }
+
+      // 1b. PROJ-56: Image-Generator-Bilder, deren Poster fertig ist
+      try {
+        if (await processNextOpenImage(supabase, log)) {
+          consecutiveEmptyPolls = 0
+          continue
+        }
+      } catch (err) {
+        logErr(`Image-Generator error: ${err instanceof Error ? err.message : err}`)
       }
 
       // 2. Dann Compositions versuchen
