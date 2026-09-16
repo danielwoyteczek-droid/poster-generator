@@ -216,13 +216,21 @@ function BridgeImpl({
           }
         })
       } else if (typeof url.searchParams.get('preset') === 'string') {
-        // Kein Lat/Lng übergeben, aber Preset geladen → Preset-Zoom dennoch
-        // in viewState propagieren, damit der Offscreen-Render ihn nutzt.
+        // Kein Lat/Lng übergeben, aber Preset geladen → die gespeicherte
+        // Kamera des Presets (Mitte + Zoom) in viewState übernehmen, damit der
+        // Offscreen-Render genau den Editor-Ausschnitt zeigt. Im Editor
+        // übernimmt das MapPreview; headless gibt es keine MapPreview.
         useEditorStore.setState((state) => {
-          if (state.pendingCenter?.zoom == null) return state
+          const pc = state.pendingCenter
+          if (!pc) return state
           return {
             ...state,
-            viewState: { ...state.viewState, zoom: state.pendingCenter.zoom },
+            viewState: {
+              ...state.viewState,
+              lat: pc.lat ?? state.viewState.lat,
+              lng: pc.lng ?? state.viewState.lng,
+              zoom: pc.zoom ?? state.viewState.zoom,
+            },
             pendingCenter: null,
           }
         })
