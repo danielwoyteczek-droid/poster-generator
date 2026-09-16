@@ -10,27 +10,19 @@
  * Kartenausschnitt sitzt daneben. Deshalb dieselbe Oberfläche wie für
  * Kunden, statt einer zweiten, schlechteren Nachbildung im Admin.
  *
- * Ablauf:
- *   1. Preset anwenden (die Grundlage, wie bei jedem Deep-Link)
- *   2. Angaben des Käufers darüberlegen — Ort, Texte, Format
- *   3. Leiste einblenden, über die der angepasste Zustand zurückgeht
- *
- * Wurde die Bestellung schon einmal von Hand angepasst, gewinnt der
- * gespeicherte Zustand: eine Handkorrektur soll nicht bei jedem Öffnen
- * wieder von der Automatik überschrieben werden.
+ * Das Übersetzen der Bestellung in den Editor-Zustand liegt in
+ * `@/lib/amazon/apply-order-to-editor` — dieselbe Funktion, aus der die
+ * Vorschau in der Prüf-Queue ihr Bild baut. Hier bleibt nur, was der Editor
+ * zusätzlich tut: laden, melden, und die Leiste einblenden, über die der
+ * angepasste Zustand zurückgeht.
  */
 
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
-import { applyPreset } from '@/lib/apply-preset'
-import { useEditorStore, type TextBlock } from '@/hooks/useEditorStore'
-import { invalidateCustomMasksCache } from '@/hooks/useCustomMasks'
-import type { PrintFormat } from '@/lib/print-formats'
+import { applyOrderToEditor } from '@/lib/amazon/apply-order-to-editor'
 import type { EditorPayload } from '@/app/api/admin/amazon/orders/[id]/editor/route'
 import { AmazonOrderBar } from './AmazonOrderBar'
-
-const VALID_FORMATS: ReadonlySet<string> = new Set(['a4', 'a3', 'a2'])
 
 export function AmazonOrderApplier() {
   const searchParams = useSearchParams()
@@ -60,34 +52,24 @@ export function AmazonOrderApplier() {
       }
       if (cancelled) return
 
-      if (!data.preset) {
-        toast.error('Dieser SKU ist noch kein Design zugeordnet.')
-        setPayload(data)
-        return
-      }
-
-      invalidateCustomMasksCache()
-
-      // Schon einmal von Hand angepasst? Dann gewinnt dieser Zustand.
-      if (data.editor_state) {
-        applyPreset(
-          { poster_type: 'map', config_json: data.editor_state as Record<string, unknown> },
-          { mode: 'full' },
-        )
-        applyStoredExtras(data.editor_state as Record<string, unknown>)
-        toast.success('Zuletzt gespeicherte Anpassung geladen')
-        setPayload(data)
-        return
-      }
-
-      // Sonst: Preset als Grundlage, Käuferangaben darüber.
-      applyPreset(
-        { poster_type: 'map', config_json: (data.preset.config_json ?? {}) as Record<string, unknown> },
-        { mode: 'full' },
-      )
-      applyOverlay(data)
-      toast.success(`Bestellung ${data.order.amazon_order_id} geladen`)
+      const result = applyOrderToEditor(data)
       setPayload(data)
+
+      if (result.mode === 'kein_preset') {
+        toast.error('Dieser SKU ist noch kein Design zugeordnet.')
+        return
+      }
+      if (result.mode === 'gespeichert') {
+        toast.success('Zuletzt gespeicherte Anpassung geladen')
+      } else {
+        toast.success(`Bestellung ${data.order.amazon_order_id} geladen`)
+      }
+      if (result.orphans > 0) {
+        toast.warning(
+          `${result.orphans} Angabe(n) aus der Bestellung zeigen auf Textblöcke, die dieses Design nicht hat.`,
+          { duration: 10000 },
+        )
+      }
     })()
 
     return () => { cancelled = true }
@@ -95,100 +77,4 @@ export function AmazonOrderApplier() {
 
   if (!payload) return null
   return <AmazonOrderBar payload={payload} />
-}
-
-/** Felder, die `applyPreset` nicht anfasst, aus einem gespeicherten Zustand holen. */
-function applyStoredExtras(state: Record<string, unknown>) {
-  const store = useEditorStore.getState()
-  const fmt = state.printFormat
-  if (typeof fmt === 'string' && VALID_FORMATS.has(fmt)) {
-    store.setPrintFormat(fmt as PrintFormat)
-  }
-  const view = state.viewState as { lat?: number; lng?: number; zoom?: number } | undefined
-  if (view && typeof view.lat === 'number' && typeof view.lng === 'number') {
-    useEditorStore.setState((s) => ({
-      // Fehlt der Zoom im gespeicherten Zustand, den aktuellen behalten —
-      // lieber der bisherige Ausschnitt als ein Sprung auf Weltansicht.
-      pendingCenter: {
-        lat: view.lat!,
-        lng: view.lng!,
-        zoom: typeof view.zoom === 'number' ? view.zoom : s.viewState.zoom,
-      },
-    }))
-  }
-}
-
-/**
- * Legt die Angaben des Käufers über das Preset.
- *
- * Jeder Text geht auf den Textblock, der für sein Anpassungsfeld hinterlegt
- * ist — adressiert über die Blockkennung, nicht über die Reihenfolge. Welches
- * Feld welchen Block befüllt, steht je SKU in der Zuordnungstabelle; die
- * Editor-Route hat daraus bereits fertige Anweisungen gemacht.
- *
- * Ein Feld ohne gepflegtes Ziel befüllt nichts. Der frühere Rückfall, Texte
- * einfach der Reihe nach zu verteilen, hat still den falschen Block getroffen.
- */
-function applyOverlay(data: EditorPayload) {
-  const { overlay } = data
-  const store = useEditorStore.getState()
-
-  if (overlay.printFormat && VALID_FORMATS.has(overlay.printFormat)) {
-    store.setPrintFormat(overlay.printFormat as PrintFormat)
-  }
-
-  if (typeof overlay.lat === 'number' && typeof overlay.lng === 'number') {
-    useEditorStore.setState((s) => ({
-      pendingCenter: { lat: overlay.lat!, lng: overlay.lng!, zoom: s.viewState.zoom },
-      locationName: overlay.locationName ?? s.locationName,
-      marker: { ...s.marker, lat: overlay.lat!, lng: overlay.lng!, enabled: true },
-    }))
-  } else if (overlay.locationName) {
-    useEditorStore.setState({ locationName: overlay.locationName })
-  }
-
-  if (overlay.blocks.length === 0) return
-
-  useEditorStore.setState((s) => {
-    const next: TextBlock[] = s.textBlocks.map((b) => {
-      const action = overlay.blocks.find((a) => a.target === b.id)
-      if (!action) return b
-
-      if (action.kind === 'leer') {
-        // Auch die automatische Beschriftung abschalten, sonst füllt der
-        // Renderer den Block gleich wieder.
-        return { ...b, text: '', isCoordinates: false }
-      }
-
-      if (action.kind === 'auto') {
-        // Ein Koordinatenblock bleibt einer — der Renderer setzt Stadt und
-        // Koordinaten aus der Kartenmitte. Ein normaler Block bekommt den
-        // aufgelösten Ortsnamen.
-        return b.isCoordinates ? b : { ...b, text: overlay.locationName ?? b.text }
-      }
-
-      // Freitext des Käufers. Auf einem Koordinatenblock schaltet er die
-      // automatische Beschriftung ab — dieselbe Regel, die der Editor
-      // anwendet, wenn ein Mensch dort hineintippt.
-      return {
-        ...b,
-        text: action.value,
-        isCoordinates: false,
-        ...(action.fontFamily ? { fontFamily: action.fontFamily } : {}),
-        ...(action.color ? { color: action.color } : {}),
-      }
-    })
-    return { textBlocks: next }
-  })
-
-  // Sollte nicht vorkommen — die Route prüft die Ziele gegen dasselbe Preset.
-  // Falls doch, lieber laut als ein Text, der spurlos verschwindet.
-  const vorhanden = new Set(useEditorStore.getState().textBlocks.map((b) => b.id))
-  const verwaist = overlay.blocks.filter((a) => !vorhanden.has(a.target))
-  if (verwaist.length > 0) {
-    toast.warning(
-      `${verwaist.length} Angabe(n) aus der Bestellung zeigen auf Textblöcke, die dieses Design nicht hat.`,
-      { duration: 10000 },
-    )
-  }
 }

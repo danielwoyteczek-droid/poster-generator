@@ -328,27 +328,50 @@ export function AdminAmazonOrders() {
                   )}
 
                   <div className="grid md:grid-cols-2 gap-6">
-                    <div>
-                      <h3 className="text-sm font-medium mb-2">Amazons Vorschau</h3>
-                      {detail.preview_url ? (
-                        <img
-                          src={detail.preview_url}
-                          alt="Vorschau von Amazon"
-                          className="w-full rounded-md border bg-white"
+                    <div className="space-y-4">
+                      <div>
+                        <h3 className="text-sm font-medium mb-2">Unser Poster</h3>
+                        {/*
+                          Eigene Seite im Rahmen statt Bild aus dem Speicher: Das
+                          Poster wird beim Ansehen gebaut, kann also nicht veralten,
+                          wenn sich Zuordnung oder Preset ändern. Der Rahmen hält
+                          außerdem den Editor-Store aus dieser Oberfläche heraus.
+                          `key` erzwingt einen frischen Aufbau je Bestellung.
+                        */}
+                        <iframe
+                          key={detail.id}
+                          src={`/private/admin/amazon/orders/${detail.id}/vorschau`}
+                          title="Vorschau des Posters dieser Bestellung"
+                          className="w-full aspect-[1/1.414] rounded-md border bg-white"
                         />
-                      ) : (
-                        <p className="text-sm text-muted-foreground">Kein Bild geliefert.</p>
-                      )}
-                      {detail.page_url && (
-                        <a
-                          href={detail.page_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs underline text-muted-foreground mt-2 inline-flex items-center gap-1"
-                        >
-                          Bei Amazon ansehen <ExternalLink className="w-3 h-3" />
-                        </a>
-                      )}
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Aus den Angaben des Käufers gebaut — dasselbe Bild, das der
+                          Editor zeigt. Die Druckdatei entsteht erst bei der Freigabe.
+                        </p>
+                      </div>
+
+                      <div>
+                        <h3 className="text-sm font-medium mb-2">Amazons Vorschau</h3>
+                        {detail.preview_url ? (
+                          <img
+                            src={detail.preview_url}
+                            alt="Vorschau von Amazon"
+                            className="w-full rounded-md border bg-white"
+                          />
+                        ) : (
+                          <p className="text-sm text-muted-foreground">Kein Bild geliefert.</p>
+                        )}
+                        {detail.page_url && (
+                          <a
+                            href={detail.page_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs underline text-muted-foreground mt-2 inline-flex items-center gap-1"
+                          >
+                            Bei Amazon ansehen <ExternalLink className="w-3 h-3" />
+                          </a>
+                        )}
+                      </div>
                     </div>
 
                     <div className="space-y-4">
