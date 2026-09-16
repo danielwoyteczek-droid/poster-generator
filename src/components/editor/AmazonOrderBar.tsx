@@ -26,6 +26,7 @@ export function AmazonOrderBar({ payload }: { payload: EditorPayload }) {
   const [savedAt, setSavedAt] = useState<string | null>(payload.editor_state_saved_at)
   const [showPreview, setShowPreview] = useState(false)
   const gedruckt = Boolean(payload.order.printed_at)
+  const storniert = payload.order.order_state === 'cancelled'
 
   const uebernehmen = async () => {
     setSaving(true)
@@ -62,6 +63,16 @@ export function AmazonOrderBar({ payload }: { payload: EditorPayload }) {
           <span className="text-xs text-amber-900/70 dark:text-amber-200/70">
             {payload.order.sku}
           </span>
+          {payload.order.quantity > 1 && (
+            <span className="text-xs font-medium text-amber-950 dark:text-amber-100">
+              {payload.order.quantity} Stück
+            </span>
+          )}
+          {storniert && (
+            <span className="text-xs font-medium text-destructive">
+              Bei Amazon storniert
+            </span>
+          )}
 
           {savedAt && (
             <span className="text-xs text-amber-900/70 dark:text-amber-200/70">
@@ -87,11 +98,11 @@ export function AmazonOrderBar({ payload }: { payload: EditorPayload }) {
                 Zurück zur Liste
               </a>
             </Button>
-            <Button size="sm" onClick={() => void uebernehmen()} disabled={saving || gedruckt}>
+            <Button size="sm" onClick={() => void uebernehmen()} disabled={saving || gedruckt || storniert}>
               {saving
                 ? <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 : <Check className="w-4 h-4 mr-2" />}
-              {gedruckt ? 'Bereits gedruckt' : 'Anpassung übernehmen'}
+              {storniert ? 'Storniert' : gedruckt ? 'Bereits gedruckt' : 'Anpassung übernehmen'}
             </Button>
           </div>
 

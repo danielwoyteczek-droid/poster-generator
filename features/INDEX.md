@@ -44,7 +44,7 @@
 | PROJ-28 | Business Center | Approved | [PROJ-28-business-center.md](PROJ-28-business-center.md) | 2026-04-26 |
 | PROJ-29 | Anlass-Landing-Pages (SEO) | Approved | [PROJ-29-occasion-landing-pages.md](PROJ-29-occasion-landing-pages.md) | 2026-04-26 |
 | PROJ-30 | Preset-Render-Pipeline | Approved | [PROJ-30-preset-render-pipeline.md](PROJ-30-preset-render-pipeline.md) | 2026-04-27 |
-| PROJ-31 | Amazon-Custom-Anpassungsdaten-Importer | In Progress | [PROJ-31-amazon-order-importer.md](PROJ-31-amazon-order-importer.md) | 2026-04-28 |
+| PROJ-31 | Amazon-Custom-Anpassungsdaten-Importer | In Review | [PROJ-31-amazon-order-importer.md](PROJ-31-amazon-order-importer.md) | 2026-04-28 |
 | PROJ-32 | Foto-Poster-Editor | In Progress | [PROJ-32-photo-poster-editor.md](PROJ-32-photo-poster-editor.md) | 2026-04-29 |
 | PROJ-33 | Saisonaler Marketing-Kalender | Architected | [PROJ-33-seasonal-marketing-calendar.md](PROJ-33-seasonal-marketing-calendar.md) | 2026-04-29 |
 | PROJ-34 | Star-Map Aquarell-Texturen | Deployed | [PROJ-34-starmap-textures.md](PROJ-34-starmap-textures.md) | 2026-04-30 |

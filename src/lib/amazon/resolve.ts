@@ -13,12 +13,18 @@
  * nach oder korrigiert er ein Schema, laufen die betroffenen Positionen
  * erneut durch, ohne dass der Abholer etwas neu schicken muss.
  *
+ * Handkorrekturen aus der Queue liegen getrennt in `field_corrections` und
+ * werden bei jedem Lauf über die erkannten Werte gelegt. Stünden sie nur im
+ * Ergebnis, löschte die nächste Auswertung sie still.
+ *
  * Fasst niemals eine Position an, die schon gedruckt ist.
  */
 
 import type { createAdminClient } from '@/lib/supabase-admin'
-import { flattenCustomization, matchAmazonFields, extractDesignHints } from './customization'
+import { flattenCustomization, matchAmazonFields, extractDesignHints, type DesignHint } from './customization'
 import { schemaOrDefault, parseCoords } from './sku-schema'
+import { finalizeParse, type ParseResult, type PersonalizationSchema } from '@/lib/etsy/personalization-parser'
+import { loadFontLibrary, normalizeFamily } from './fonts'
 import { readPresetBlocks, checkMapping } from './field-mapping'
 import { geocodeOnce } from './geocode'
 
@@ -50,9 +56,41 @@ interface OrderRowForResolve {
   printed_at: string | null
   customization_item: unknown
   ingest_warnings?: string[] | null
+  /** Liest `resolveAndSave` selbst frisch aus der Zeile. */
+  field_corrections?: Record<string, string> | null
 }
 
 type Supa = ReturnType<typeof createAdminClient>
+
+/**
+ * Legt die Handkorrekturen über das Ergebnis des Abgleichs und prüft danach
+ * neu. So kann eine Korrektur auch ein fehlendes Pflichtfeld nachtragen und
+ * die Position aus der Prüfung holen. Eine leere Korrektur zählt als
+ * „bewusst leer" und bleibt stehen — zurücknehmen heißt, den Schlüssel zu
+ * entfernen.
+ */
+export function applyCorrections(
+  parse: ParseResult,
+  corrections: Record<string, string> | null | undefined,
+  schema: PersonalizationSchema,
+): ParseResult {
+  const entries = Object.entries(corrections ?? {}).filter(([, v]) => typeof v === 'string')
+  if (entries.length === 0) return parse
+  const parsed = { ...parse.parsed }
+  for (const [key, value] of entries) parsed[key] = value
+  const matchedAs = parse.ok ? { ...parse.matchedAs } : {}
+  for (const [key] of entries) delete matchedAs[key]
+  return finalizeParse(parsed, matchedAs, parse.unmatchedLines, schema)
+}
+
+/** Schriften aus den Gestaltungsangaben, die der Renderer nicht kennt. */
+export function unknownFonts(hints: DesignHint[], library: Map<string, string>): string[] {
+  const missing = new Set<string>()
+  for (const h of hints) {
+    if (h.fontFamily && !library.has(normalizeFamily(h.fontFamily))) missing.add(h.fontFamily)
+  }
+  return [...missing]
+}
 
 /**
  * Wertet eine Position aus, ohne sie zu schreiben. Getrennt gehalten, damit
@@ -135,7 +173,11 @@ export async function resolveOrder(
     warnings.push(`Unbekannte Feldtypen: ${flat.unknownTypes.join(', ')}`)
   }
 
-  const parse = matchAmazonFields(flat.fields, schema)
+  const parse = applyCorrections(
+    matchAmazonFields(flat.fields, schema),
+    row.field_corrections,
+    schema,
+  )
   const hints = extractDesignHints(flat.fields, parse)
 
   if (!parse.ok) {
@@ -158,12 +200,25 @@ export async function resolveOrder(
     )
   }
 
+  // Eine Schrift, die der Renderer nicht laden kann, ersetzt der Editor
+  // durch die des Presets. Das Poster sähe dann anders aus als Amazons
+  // Vorschau — also prüfen lassen, statt es als druckfertig zu melden.
+  const fontsMissing = hints.some((h) => h.fontFamily)
+    ? unknownFonts(hints, await loadFontLibrary(supabase))
+    : []
+  for (const font of fontsMissing) {
+    warnings.push(
+      `Schrift „${font}" ist nicht in der Bibliothek — das Poster nutzt die Preset-Schrift. Schrift in der Font-Verwaltung nachpflegen oder bewusst freigeben.`,
+    )
+  }
+
   const out: ResolveOutcome = {
     ...base,
     preset_id: mapping.preset_id,
     parse_result: parse,
     design_hints: hints,
-    queue_status: parse.ok && mappingProblems.length === 0 ? 'bereit' : 'pruefung',
+    queue_status:
+      parse.ok && mappingProblems.length === 0 && fontsMissing.length === 0 ? 'bereit' : 'pruefung',
   }
 
   // ── Ort auflösen ──────────────────────────────────────────────────────
@@ -212,7 +267,29 @@ export async function resolveAndSave(
     return { ok: true, status: 'uebersprungen' }
   }
 
-  const outcome = await resolveOrder(supabase, row, options)
+  // Korrekturen und Handfreigabe immer frisch lesen: der Aufrufer kennt
+  // womöglich einen älteren Stand der Zeile.
+  const { data: manual } = await supabase
+    .from('amazon_custom_orders')
+    .select('field_corrections, editor_state_saved_at')
+    .eq('id', row.id)
+    .maybeSingle<{ field_corrections: Record<string, string> | null; editor_state_saved_at: string | null }>()
+
+  const outcome = await resolveOrder(
+    supabase,
+    { ...row, field_corrections: manual?.field_corrections ?? null },
+    options,
+  )
+
+  // Wer die Bestellung im Editor angepasst und übernommen hat, hat sie
+  // geprüft. Der gespeicherte Zustand hat Vorrang vor der Automatik — also
+  // darf eine spätere Neuauswertung sie nicht zurück in die Prüfung werfen.
+  // Die Hinweise bleiben sichtbar.
+  if (manual?.editor_state_saved_at && outcome.queue_status === 'pruefung') {
+    outcome.queue_status = 'bereit'
+    outcome.warnings.unshift('Im Editor angepasst und freigegeben — die Hinweise darunter betreffen nur die automatische Auswertung')
+  }
+
   const { warnings, ...rest } = outcome
 
   const { error } = await supabase

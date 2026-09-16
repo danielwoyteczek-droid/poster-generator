@@ -15,9 +15,11 @@
  * (`applyOrderToEditor`), die der Editor benutzt. Was hier steht, steht
  * gleich auch im Editor.
  *
- * Die Druckdatei entsteht weiterhin erst auf Freigabe. Eine hochauflösende
- * Datei, die vor der Prüfung herumliegt, lädt dazu ein, die falsche zu
- * greifen.
+ * Die Druckdatei entsteht erst auf Freigabe: der Knopf dafür ist nur bei
+ * druckfertigen Bestellungen aktiv. Sie wird hier im selben Store gebaut,
+ * aus dem das Vorschaubild stammt — mit demselben Export wie im Editor —
+ * und direkt heruntergeladen, nicht gespeichert. Eine hochauflösende Datei,
+ * die vor der Prüfung herumliegt, lädt dazu ein, die falsche zu greifen.
  *
  * Läuft als eigene Seite unter /private/admin/amazon/orders/[id]/vorschau
  * und wird von der Queue in einem Rahmen eingebettet. Der eigene
@@ -26,7 +28,8 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Loader2, AlertTriangle, RefreshCw } from 'lucide-react'
+import { Loader2, AlertTriangle, RefreshCw, Download } from 'lucide-react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { useMapExport } from '@/hooks/useMapExport'
 import { useEditorStore } from '@/hooks/useEditorStore'
@@ -44,11 +47,11 @@ const READY_DELAY_MS = 1500
 type Status =
   | { kind: 'laedt' }
   | { kind: 'rendert' }
-  | { kind: 'fertig'; src: string; hinweis: string | null }
+  | { kind: 'fertig'; src: string; hinweis: string | null; order: EditorPayload['order'] }
   | { kind: 'fehler'; text: string }
 
 export function AmazonOrderPreview({ orderId }: { orderId: string }) {
-  const { renderPreview } = useMapExport()
+  const { renderPreview, exportPDF, isExporting } = useMapExport()
   const [status, setStatus] = useState<Status>({ kind: 'laedt' })
   const [versuch, setVersuch] = useState(0)
 
@@ -101,6 +104,7 @@ export function AmazonOrderPreview({ orderId }: { orderId: string }) {
           kind: 'fertig',
           src,
           hinweis: hinweisText(result),
+          order: data.order,
         })
       } catch (e) {
         if (!abgebrochen) setStatus({ kind: 'fehler', text: (e as Error).message })
@@ -111,6 +115,26 @@ export function AmazonOrderPreview({ orderId }: { orderId: string }) {
   }, [orderId, versuch])
 
   const neu = useCallback(() => setVersuch((v) => v + 1), [])
+
+  const druckdatei = async (order: EditorPayload['order']) => {
+    const format = useEditorStore.getState().printFormat
+    const ok = await exportPDF(format, `amazon-${order.amazon_order_id}-${order.order_item_id}-${format}`)
+    if (!ok) {
+      toast.error('Druckdatei konnte nicht erzeugt werden — bitte erneut versuchen.')
+      return
+    }
+    try {
+      await fetch(`/api/admin/amazon/orders/${order.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'print_file_created' }),
+      })
+      // Die Queue drumherum zeigt, wann die Datei entstand.
+      window.parent?.postMessage({ type: 'amazon-print-file', id: order.id }, window.location.origin)
+    } catch {
+      // Die Datei ist da; nur der Vermerk fehlt. Kein Grund für eine Fehlermeldung.
+    }
+  }
 
   if (status.kind === 'fehler') {
     return (
@@ -144,17 +168,48 @@ export function AmazonOrderPreview({ orderId }: { orderId: string }) {
         alt="Vorschau des Posters dieser Bestellung"
         className="min-h-0 flex-1 object-contain"
       />
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-xs text-muted-foreground">
-          {status.hinweis ?? 'Aus den Angaben des Käufers erzeugt.'}
-        </p>
-        <Button variant="ghost" size="sm" onClick={neu}>
+      <p className="text-xs text-muted-foreground">
+        {status.hinweis ?? 'Aus den Angaben des Käufers erzeugt.'}
+      </p>
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <Button variant="ghost" size="sm" onClick={neu} disabled={isExporting}>
           <RefreshCw className="mr-2 h-4 w-4" />
           Neu bauen
         </Button>
+        {status.order.order_state === 'cancelled' ? (
+          <span className="text-xs text-destructive">
+            Bei Amazon storniert — keine Druckdatei
+          </span>
+        ) : freigegeben(status.order) ? (
+          <>
+            {status.order.quantity > 1 && (
+              <span className="text-xs font-medium">{status.order.quantity} Stück drucken</span>
+            )}
+            <Button size="sm" onClick={() => void druckdatei(status.order)} disabled={isExporting}>
+              {isExporting
+                ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                : <Download className="mr-2 h-4 w-4" />}
+              Druckdatei (PDF)
+            </Button>
+          </>
+        ) : (
+          <span className="text-xs text-muted-foreground">
+            Druckdatei erst, wenn die Bestellung druckfertig ist
+          </span>
+        )}
       </div>
     </div>
   )
+}
+
+/**
+ * Druckfertig oder schon gedruckt (Nachdruck). Alles andere ist ungeprüft.
+ * Eine stornierte Bestellung ist nie freigegeben, auch wenn sie vor dem
+ * Storno schon gedruckt war.
+ */
+function freigegeben(order: EditorPayload['order']): boolean {
+  if (order.order_state === 'cancelled') return false
+  return order.queue_status === 'bereit' || Boolean(order.printed_at)
 }
 
 function hinweisText(result: { mode: string; orphans?: number }): string | null {
