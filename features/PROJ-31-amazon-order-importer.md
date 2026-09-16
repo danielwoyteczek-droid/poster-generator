@@ -10,8 +10,14 @@
 > Editor-Zustand, Auto-Render, Queue-Oberfläche.
 >
 > Die Feldzuordnung Amazon → Preset ist gebaut (siehe *Umgesetzt — Feldzuordnung*
-> unten). Offen bleiben in Phase 3: Auto-Render, Druckdatei-Ablage und die
-> gemeinsame Queue mit Etsy.
+> unten), ebenso die Vorschau in der Prüf-Queue.
+>
+> Der erste Echtlauf (Phase 4) ist am 2026-09-15 gelaufen: Bestellung
+> `305-5531288-7707506` lief von der JTL-Zeile bis zum fertigen Poster durch.
+>
+> Offen bleiben: die Druckdatei bei Freigabe (siehe *Entschieden — Auto-Render*),
+> die gemeinsame Queue mit Etsy, und die Zuordnung der neun noch ungepflegten
+> SKUs — Letzteres ist Dateneingabe, keine Entwicklung.
 
 ## Dependencies
 - **Requires PROJ-8** (Design-Presets) — die Zuordnung Amazon-SKU → internes Preset bestimmt, welches Design gerendert wird.
@@ -116,10 +122,10 @@ petite-moment verkauft personalisierte Karten-Poster über Amazon Custom (SKU-Sc
 - [ ] Format- und Rahmenangabe des Käufers werden übernommen
 
 ### Render und Prüf-Queue
-- [ ] Nach erfolgreicher Auswertung wird automatisch gerendert, ohne Zutun des Betreibers
-- [ ] Die Druckdatei ist aus der Queue herunterladbar; ein fehlgeschlagener Render ist einzeln wiederholbar
+- [x] ~~Nach erfolgreicher Auswertung wird automatisch gerendert~~ → **verworfen 2026-09-15**, ersetzt durch: die Detailansicht zeigt das Poster beim Ansehen, ohne gespeicherten Render (Begründung unter *Entschieden — Auto-Render*)
+- [ ] Die Druckdatei entsteht bei der Freigabe und ist aus der Queue herunterladbar; ein fehlgeschlagener Render ist einzeln wiederholbar
 - [ ] Die Queue zeigt Etsy- und Amazon-Bestellungen gemeinsam, mit Filter nach Quelle und Status
-- [ ] Detailansicht zeigt Vorschau, erkannte Felder mit Herkunft, Gestaltungsangaben und die Rohdaten
+- [x] Detailansicht zeigt Vorschau, erkannte Felder mit Herkunft, Gestaltungsangaben und die Rohdaten
 - [ ] Einzelne Feldwerte sind korrigierbar; danach lässt sich neu rendern
 - [ ] Status „Wartet auf Druck" ist der Zustand, in dem eine Bestellung druckfertig auf den Betreiber wartet
 - [ ] Eine gedruckte Bestellung lässt sich abhaken und verschwindet aus der offenen Liste
@@ -383,6 +389,113 @@ Blockkennungen sind innerhalb eines Presets eindeutig — in allen 24
 Map-Presets geprüft, keine Dubletten. Stand heute: 10 SKU-Zeilen, davon 2
 einem Preset zugeordnet, 0 mit eigenem Schema. Die Pflege ist einmalig, nicht
 laufend.
+
+---
+
+## Entschieden (2026-09-15) — Auto-Render und Druckdatei
+
+Der ursprüngliche Plan war: nach erfolgreicher Auswertung automatisch die
+Druckdatei rendern und ablegen. **Das wird nicht gebaut.**
+
+Der Einwand des Betreibers: Ob ein Design wirklich passt, entscheidet ohnehin
+ein Mensch — ein langer Name bricht um, ein Kartenausschnitt sitzt daneben.
+Eine Druckdatei, die vor dieser Prüfung entsteht, ist doppelt unerwünscht:
+sie kostet Rechenzeit für etwas, das vielleicht verworfen wird, und sie liegt
+danach herum und lädt dazu ein, die falsche Datei zu greifen.
+
+Die Trennung, auf die es hinausläuft:
+
+| | Wann | Wozu |
+|---|---|---|
+| **Vorschau** | beim Ansehen der Bestellung | macht die Prüfung zum Blick statt zum Klickweg |
+| **Druckdatei** | erst auf die Freigabe des Betreibers | hochauflösend, und nur für das, was wirklich gedruckt wird |
+
+Der Mensch bleibt also in der Schleife — er prüft nur an einem Bild statt an
+einem Editor-Ladevorgang.
+
+**Was dadurch entfällt:** Render-Worker-Anbindung für Bestellungen,
+Speicherplatz für Vorschaubilder, Spalten für Render-Status und -Fehler, ein
+Wiederhol-Knopf für fehlgeschlagene Vorschau-Renders, und die Frage, was mit
+einem gespeicherten Bild geschieht, wenn sich Zuordnung oder Preset danach
+ändern. Die Vorschau kann nicht veralten, weil es sie zwischen zwei Blicken
+nicht gibt.
+
+---
+
+## Umgesetzt (2026-09-15) — Vorschau in der Prüf-Queue
+
+- `src/lib/amazon/apply-order-to-editor.ts` — die Übersetzung Bestellung →
+  Editor-Zustand, herausgezogen aus `AmazonOrderApplier`. Sie lag dort als
+  einzige Kopie; jetzt lesen Editor und Vorschau dieselbe Funktion. Zwei
+  Kopien wären auseinandergelaufen, und dann zeigte die Vorschau etwas
+  anderes als der Editor — genau das Vertrauen, auf dem die Prüfung beruht,
+  wäre dahin. Meldungen an den Benutzer macht sie nicht: was passiert ist,
+  kommt als Rückgabewert zurück, und die beiden Aufrufer machen daraus, was
+  zu ihnen passt.
+- `AmazonOrderPreview.tsx` — lädt die Bestellung, wendet sie an, wartet auf
+  Schriften plus denselben Puffer wie der Headless-Render (1500 ms) und baut
+  das Bild über `useMapExport().renderPreview()`. Dasselbe `renderPreview()`,
+  aus dem auch die Druckdatei entsteht, also zeigt die Vorschau das Poster
+  und keine Nachbildung. Das Format kommt aus dem Zustand *nach* dem
+  Anwenden — eine A3-Bestellung als A4 zu rendern zeigte den falschen
+  Ausschnitt.
+- `/private/admin/amazon/orders/[id]/vorschau` — nackte Admin-Seite, die die
+  Queue in einem Rahmen einbettet. Der eigene Seitenaufruf ist Absicht: Der
+  Editor-Store, den die Vorschau befüllt, bleibt darin und färbt nicht auf
+  die Admin-Oberfläche ab. Beim Schließen ist er mitsamt Zustand weg.
+- `AdminAmazonOrders.tsx` — „Unser Poster" steht in der Detailansicht über
+  „Amazons Vorschau". Beide nebeneinander beantworten die eigentliche Frage:
+  Passt das, was wir drucken, zu dem, was der Käufer bestellt hat?
+
+Kein Worker, kein Speicherplatz, keine Migration, keine neue Spalte.
+
+### Behoben dabei — die Vorschau zeigte den Ort des Presets
+
+Beim ersten Ansehen stand auf dem Bild nicht der Ort der Bestellung, sondern
+der des Presets.
+
+Der Grund: `applyPreset` und `applyOverlay` schreiben die Zielposition nach
+`pendingCenter`. Das ist kein Zustand, sondern ein **Auftrag an die Karte** —
+im Editor liest MapLibre ihn, fährt dorthin und schreibt das Ergebnis nach
+`viewState`. Die Vorschau hat keine Karte, also führte den Auftrag niemand
+aus, und `renderPreview()` baute sein Bild aus dem unveränderten `viewState`.
+Derselbe Stolperstein, den der Headless-Render von PROJ-30 schon kennt: auch
+er schreibt `viewState` direkt (`HeadlessRenderBridge`).
+
+Behoben mit `commitPendingCenter()` in `apply-order-to-editor.ts` — führt den
+offenen Auftrag selbst aus, für Aufrufer ohne Karte. Der Editor ruft sie
+nicht auf; dort gehört das Fahren der Karte.
+
+**Zweiter Fund, derselbe Ort — trifft auch den Editor:** `applyOverlay` setzte
+`pendingCenter.zoom` aus `viewState.zoom`. Unmittelbar davor hatte
+`applyPreset` den Preset-Zoom nach `pendingCenter` geschrieben, und die Karte
+hatte ihn noch nicht gelesen — beide Aufrufe laufen synchron hintereinander.
+Der Überschreiber griff damit auf den Zoom von *vorher* zurück und warf den
+Preset-Ausschnitt weg. Jetzt gewinnt `pendingCenter.zoom`.
+
+### Geprüft
+
+`tsc --noEmit` ohne neue Fehler (die zwei bestehenden liegen in
+`upload-overlay/route.test.ts` und `useMobileSheet.test.ts` und sind
+PROJ-31-fremd); `vitest run src/` mit 292 Tests grün; Produktionsbuild
+übersetzt, die Route steht im Manifest.
+
+Am angemeldeten Browser nachgesehen: Die Detailansicht zeigt das Poster, und
+der Ort ist der der Bestellung.
+
+**Nicht geprüft:** der Editor-Pfad nach dem Zoom-Fix. `applyOverlay` ist
+geteilter Code — was die Vorschau richtig macht, ändert auch, mit welchem
+Ausschnitt eine Bestellung im Editor aufgeht. Beim nächsten „Im Editor
+öffnen" mit ansehen.
+
+**Keine Unit-Tests:** Kein bestehender Test im Repo fasst den Editor-Store an.
+Das Gerüst dafür aufzubauen wäre mehr Arbeit als die Änderung selbst; die
+Prüfung ist hier der Blick auf das Bild.
+
+**Offen, falls die Vorschau zu lange braucht:** Sie baut die Karte bei jedem
+Öffnen neu. Bei einer Bestellung ist das unerheblich; wenn die Queue länger
+wird und das Warten stört, wäre ein zwischengespeichertes Bild der nächste
+Schritt — dann aber mit der Frage, wie es erkennt, dass es veraltet ist.
 
 ---
 
