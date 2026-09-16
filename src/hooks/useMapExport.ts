@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useLocale } from 'next-intl'
 import { useEditorStore, type TextBlock, type ViewState, type MarkerState, type SecondMapState, type ShapeConfigState } from '@/hooks/useEditorStore'
 import { composeMaskSvg, composeFrameSvg, composeFullbleedMaskSvg, composeSplitSeamSvg, composeSplitMaskHalfSvg, parseShapeSvg, svgToDataUrl, hasAnyFrame } from '@/lib/mask-composer'
-import { PRINT_FORMATS, effectiveDimensions, type PrintFormat } from '@/lib/print-formats'
+import { PRINT_FORMATS, effectiveDimensions, effectiveLogicalCanvas, type PrintFormat } from '@/lib/print-formats'
 import { MAP_MASKS, type MapMaskKey } from '@/lib/map-masks'
 import { resolveMask } from '@/hooks/useCustomMasks'
 import { getCoordinatesText } from '@/components/editor/TextBlockOverlay'
@@ -531,8 +531,20 @@ export async function buildPosterCanvas(
     return out
   }
 
-  const previewW = viewState.viewportWidth > 0 ? viewState.viewportWidth : 500
-  const previewH = viewState.viewportHeight > 0 ? viewState.viewportHeight : Math.round(previewW * (H / W))
+  // Map extent = zoom × preview size. The live editor (and every saved
+  // snapshot) carries the size of the map container, which since PROJ-37 sits
+  // on the format's fixed logical canvas. Without a live editor (headless
+  // worker render) fall back to that same logical map area — the former
+  // 500px fallback rendered a tighter crop than the editor and the export.
+  const logical = effectiveLogicalCanvas(format, store.orientation ?? 'portrait')
+  const previewW = viewState.viewportWidth > 0
+    ? viewState.viewportWidth
+    : Math.round(mapTargetW * (logical.width / W))
+  const previewH = viewState.viewportHeight > 0
+    ? viewState.viewportHeight
+    : viewState.viewportWidth > 0
+      ? Math.round(previewW * (H / W))
+      : Math.round(mapTargetH * (logical.height / H))
 
   await ensureFontsLoaded(textBlocks)
 
