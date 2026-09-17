@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase-admin'
 import { HEADLESS_TOKEN_HEADER, validateHeadlessToken } from '@/lib/headless-render'
+import { refreshPresetPhotoUrls } from '@/lib/preset-photo-urls'
 
 export async function GET(
   req: NextRequest,
@@ -27,5 +28,6 @@ export async function GET(
   const { data, error } = await query.single()
 
   if (error || !data) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-  return NextResponse.json({ preset: data })
+  const config_json = await refreshPresetPhotoUrls(admin, data.config_json)
+  return NextResponse.json({ preset: { ...data, config_json } })
 }
