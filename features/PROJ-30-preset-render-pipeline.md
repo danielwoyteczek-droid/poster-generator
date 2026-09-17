@@ -1144,6 +1144,16 @@ Die Admin-Render-Library ([AdminRenderLibrary.tsx](src/components/admin/AdminRen
 
 **Bekannte Rest-Punkte (nicht durch den Fix verursacht):** Presets ohne gespeicherten Ort (Pink London, Dark Heart) rendern am Rückfall-Ort Berlin; ältere Presets ohne Kartenmitte, deren Marker nicht zum Design passt (Madrid (FR), Heart Love, Euer Moment), müssen im Editor neu gespeichert werden. Split-Foto fehlt im Render („Erster Kuss", „Euer Moment") und die Schrift „Ashley Southine Reg" lädt headless nicht — eigene Bugs. City-Renders (PROJ-42, Stand Mai ohne Pin) nach Merge neu rendern.
 
+### Bugfix 2026-09-17: DB-Paletten rendern headless als mint
+
+**Symptom:** „Herz Klassiker" (Palette `weiss-weiss`) war im Editor-Vorschaubild schwarz-weiß, im Headless-Render und damit in der Image-Generator-Grundfarbe (PROJ-56) mint.
+
+**Ursache:** Paletten, die nur in der DB existieren (`weiss-weiss`, `blue-water`), löst `resolvePalette` über den Client-Cache aus `useMapPalettes` auf. Den wärmt nur die Palettenauswahl in der Sidebar — der Headless-Editor mountet sie nicht, also Rückfall auf `MAP_PALETTES[0]` (mint). Farbvarianten waren nicht betroffen (Farben per `bakePaletteIntoConfig` eingebacken).
+
+**Fix:** [petite-style-loader.ts](src/lib/petite-style-loader.ts) `buildPetiteStyle` lädt im Browser vor dem Auflösen einmalig die DB-Paletten (`loadMapPalettes()` in [useMapPalettes.ts](src/hooks/useMapPalettes.ts)); bei Fetch-Fehler bleibt der bisherige Rückfall. Geteilter Pfad für Editor-Vorschau, Hochzeits-Slots, PNG/PDF-Export, Admin-Paletten-Vorschau und alle Headless-Renders.
+
+**Verifikation:** Lokaler Headless-Render mit Render-Token schwarz-weiß. Nach Deploy (PR #16) Herz Klassiker, Heart_Etsy und New York neu gerendert (A4/A3/A2 + Mockups) sowie die drei Grundfarben-Galeriebilder von Herz Klassiker neu erzeugt — Farben korrekt.
+
 ## QA Test Results
 _To be added by /qa_
 
