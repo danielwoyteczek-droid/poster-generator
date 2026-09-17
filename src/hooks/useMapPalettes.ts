@@ -56,6 +56,15 @@ export function invalidateMapPalettesCache() {
 }
 
 /**
+ * Load the DB palette set (once) and warm the cache. For non-React consumers
+ * that must not render before admin-managed palettes are known — e.g. the
+ * headless preset render, which mounts no palette picker.
+ */
+export function loadMapPalettes(): Promise<MapPalette[]> {
+  return loadOnce()
+}
+
+/**
  * Returns the warm palette cache synchronously (or null if not yet loaded).
  * Intended for non-React consumers like the style loader and export pipeline
  * — they still work without it, but benefit from the admin-edited set when
