@@ -56,10 +56,16 @@ export function resolveFontFamily(cssFamily: string): string {
  * letters silently fall back to the system font if we don't await
  * this — which makes the download look different from the live
  * preview, the worst kind of WYSIWYG break.
+ *
+ * Only the primary family is loaded. The resolved next/font value is a list
+ * like `Anton, "Anton Fallback"`, and the fallback face is `local(Arial)` —
+ * on systems without Arial (Linux render worker, Android) loading the whole
+ * list rejects with "NetworkError" and aborts the export.
  */
 export async function ensureMaskFontLoaded(maskFontFamily: string): Promise<void> {
   await document.fonts.ready
-  await document.fonts.load(`400 100px ${maskFontFamily}`)
+  const primary = maskFontFamily.split(',')[0].trim()
+  await document.fonts.load(`400 100px ${primary}`)
 }
 
 /**
