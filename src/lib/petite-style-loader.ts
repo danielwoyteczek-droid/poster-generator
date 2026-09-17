@@ -126,6 +126,17 @@ export async function extractPaletteFromLayout(layoutId: string): Promise<MapPal
 export async function buildPetiteStyle(opts: PetiteStyleOptions): Promise<unknown> {
   const base = await fetchLayoutStyle(opts.layoutId)
   const withKey = injectApiKey(base, opts.apiKey)
+  // Admin-managed palettes (e.g. "weiss-weiss") only exist in the DB. Without
+  // a warm cache resolvePalette falls back to MAP_PALETTES[0] (mint) — which
+  // is what happened in the headless preset render, where no palette picker
+  // mounts. Await the palette fetch first; on failure the fallback stays.
+  if (typeof window !== 'undefined' && opts.paletteId !== 'original' && opts.paletteId !== 'custom') {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { loadMapPalettes } = require('@/hooks/useMapPalettes') as typeof import('@/hooks/useMapPalettes')
+      await loadMapPalettes()
+    } catch { /* ignore and use fallback */ }
+  }
   const palette = resolvePalette(opts.paletteId, opts.customPaletteBase, opts.customPalette)
   return transformStyle(withKey as Parameters<typeof transformStyle>[0], {
     palette,
