@@ -5,6 +5,7 @@ import { useMapExport } from '@/hooks/useMapExport'
 import { useStarMapExport } from '@/hooks/useStarMapExport'
 import { usePhotoExport } from '@/hooks/usePhotoExport'
 import { useEditorStore } from '@/hooks/useEditorStore'
+import { ensureFontsRegistered } from '@/hooks/useFonts'
 import type { PrintFormat } from '@/lib/print-formats'
 
 type RenderPosterPngFn = (opts?: { format?: PrintFormat }) => Promise<string>
@@ -237,7 +238,13 @@ function BridgeImpl({
       }
       } // end of skipLocationOverride else-block
 
-      // 3. Fonts laden
+      // 3. Fonts laden. Admin-Fonts (PROJ-47) registriert sonst nur der
+      //    Font-Picker der Sidebar — headless gibt es den nicht.
+      try {
+        await ensureFontsRegistered()
+      } catch {
+        // Fallback-Fonts aus globals.css bleiben nutzbar
+      }
       try {
         if (typeof document !== 'undefined' && document.fonts?.ready) {
           await document.fonts.ready
