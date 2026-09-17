@@ -1152,7 +1152,19 @@ Die Admin-Render-Library ([AdminRenderLibrary.tsx](src/components/admin/AdminRen
 
 **Fix:** [petite-style-loader.ts](src/lib/petite-style-loader.ts) `buildPetiteStyle` lädt im Browser vor dem Auflösen einmalig die DB-Paletten (`loadMapPalettes()` in [useMapPalettes.ts](src/hooks/useMapPalettes.ts)); bei Fetch-Fehler bleibt der bisherige Rückfall. Geteilter Pfad für Editor-Vorschau, Hochzeits-Slots, PNG/PDF-Export, Admin-Paletten-Vorschau und alle Headless-Renders.
 
-**Verifikation:** Lokaler Headless-Render mit Render-Token schwarz-weiß. Nach Deploy (PR #16) Herz Klassiker, Heart_Etsy und New York neu gerendert (A4/A3/A2 + Mockups) sowie die drei Grundfarben-Galeriebilder von Herz Klassiker neu erzeugt — Farben korrekt.
+**Verifikation (Paletten):** Lokaler Headless-Render mit Render-Token schwarz-weiß. Nach Deploy (PR #16) Herz Klassiker, Heart_Etsy und New York neu gerendert (A4/A3/A2 + Mockups) sowie die drei Grundfarben-Galeriebilder von Herz Klassiker neu erzeugt — Farben korrekt.
+
+### Bugfix 2026-09-17: Preset-Fotos fehlen, Admin-Fonts falsch, Foto-Poster-Render bricht ab
+
+Behebt die oben als Rest-Punkte genannten Bugs „Split-Foto fehlt im Render" und „Ashley Southine Reg lädt headless nicht".
+
+**1. Fotos fehlen (Erster Kuss, Euer Moment, Muttertag mit Fotos):** Presets speicherten die 7-Tage-signierte Upload-URL aus `photo-upload.ts` — seit Mai abgelaufen. Betraf Headless-Render und Kunden-Editor. Fix: [preset-photo-urls.ts](src/lib/preset-photo-urls.ts) signiert alle im Preset referenzierten `user-photos`-Pfade bei jedem Abruf neu (`/api/presets`, `/api/presets/[id]`, `/api/admin/presets/[id]`). Nur Pfade aus dem Preset selbst werden signiert. (PR #18)
+
+**2. Falsche Schrift (Admin-Fonts, PROJ-47):** Nur der Font-Picker der Sidebar registrierte DB-Fonts. Fix: [HeadlessRenderBridge.tsx](src/components/editor/HeadlessRenderBridge.tsx) ruft vor dem Ready-Signal `ensureFontsRegistered()` aus [useFonts.ts](src/hooks/useFonts.ts). (PR #18)
+
+**3. Foto-Poster-Render „NetworkError" nur im GitHub-Worker:** `ensureMaskFontLoaded` lud die next/font-Liste `Anton, "Anton Fallback"`; die Fallback-Face ist `local(Arial)`. Ohne Arial (Linux-Runner, vermutlich Android-Kunden beim Export) lehnt `document.fonts.load` die ganze Liste ab. Fix: nur die primäre Familie laden ([photo-mask-render.ts](src/lib/photo-mask-render.ts), wirkt auch auf `poster-from-snapshot`). Im Browser nachgestellt. (PR #19)
+
+**Verifikation:** Lokale Headless-Renders von Erster Kuss und Muttertag mit Fotos. Nach Deploy Erster Kuss, Euer Moment und Muttertag mit Fotos per GitHub-Worker neu gerendert — Fotos und Script-Fonts vorhanden.
 
 ## QA Test Results
 _To be added by /qa_
