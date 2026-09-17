@@ -84,6 +84,17 @@ export function invalidateFontsCache(): void {
 }
 
 /**
+ * Load the catalogue and register every font right away (not at idle time).
+ * For renderers without a font picker — e.g. the headless preset render —
+ * where admin-uploaded fonts would otherwise never reach `document.fonts`
+ * and canvas text falls back to a system font.
+ */
+export async function ensureFontsRegistered(): Promise<void> {
+  const list = await loadOnce()
+  await registerFonts(list)
+}
+
+/**
  * Synchronous read of the warm cache — for non-React consumers (e.g. export
  * pipelines that want to enumerate fonts without triggering a fetch).
  * Returns null until the first hook mount has resolved.
