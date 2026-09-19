@@ -1,8 +1,8 @@
 # PROJ-31: Amazon-Custom-Anpassungsdaten-Importer
 
-## Status: In Review
+## Status: Approved
 **Created:** 2026-04-28
-**Last Updated:** 2026-09-16
+**Last Updated:** 2026-09-19
 
 > **Stand:** Phase 0 und 2 sind vom Abholer auf UMOI-SERVER erledigt — er
 > liest JTL und schickt fertige Positionen. Der Eingang auf petite-moment
@@ -905,3 +905,134 @@ geprüft, aus demselben Grund. Laut Code stapelt die Detailansicht unter
 - `tsc --noEmit` ohne neue Fehler; `vitest run src/` 301 grün; PROJ-31-E2E 14 grün
 - **Produktionsbuild nicht bestätigt:** bricht ab, auch ohne die Änderungen dieser Sitzung — dem Rechner fehlt Arbeitsspeicher (Webpack: „process out of memory", knapp 3 von 16 GB frei; der seit dem Vorabend laufende Dev-Server hält gut 2 GB). Vor dem Merge mit beendetem Dev-Server wiederholen
 - Die Behebungen selbst sind nicht im Browser geprüft (keine Admin-Anmeldung im Test) und brauchen den Nachtest per `/qa`
+
+---
+
+## QA Nachtest (2026-09-19)
+
+**Getestet:** 2026-09-19 · Branch `feat/proj31-order-preview` (HEAD `8e9754a`), PR #12
+**Anlass:** Der Lauf vom 2026-09-16 endete mit zwei offenen Punkten — die Behebungen
+von BUG-1 und BUG-2 waren ungeprüft, und der Produktionsbuild ließ sich auf dem
+Rechner nicht bestätigen.
+
+### Was dieser Lauf geprüft hat
+
+| Prüfung | Ergebnis |
+|---|---|
+| `npx tsc --noEmit` | Keine Fehler in PROJ-31-Code. Übrig bleiben die zwei bekannten, fremden Testdateien (`upload-overlay/route.test.ts`, `useMobileSheet.test.ts`) |
+| `vitest run src/` | 301 Tests grün; `src/lib/amazon` + `src/hooks` einzeln 91 grün |
+| PROJ-31-E2E (chromium) | 14 von 14 grün — Zugriffsschutz der Admin-Endpunkte, Login-Weiterleitung der Seiten, Eingang ohne/mit falschem/leerem Geheimnis, nur POST |
+| Gesamte E2E-Suite (chromium), zweimal | 41 grün, 1 Fehler — **vorbestehend**, siehe unten |
+| Produktionsbuild | **Bestätigt über Vercel** (PR #12, Check grün auf `8e9754a`). Lokal nicht reproduzierbar: `next build` bricht mit Segfault ab, wie schon am 2026-09-16 (Rechner, nicht Code) |
+| Supabase-Security-Advisors | Keine neuen Befunde. `amazon_custom_orders`, `amazon_ingest_runs`, `amazon_sku_mappings`: RLS an, je eine Policy — live per Katalogabfrage verifiziert |
+
+### Behebungen von BUG-1 und BUG-2 — nachgeprüft (Code, nicht Browser)
+
+- **Handkorrekturen überleben die Neuauswertung.** `resolveAndSave` liest
+  `field_corrections` bewusst frisch aus der Zeile, statt der Zeile des Aufrufers zu
+  trauen — die PATCH-Route übergibt eine Zeile von *vor* dem Schreiben, das ist also
+  kein veralteter Stand, sondern abgefangen. `applyCorrections` legt die Korrekturen
+  über das Ergebnis und ruft `finalizeParse` erneut auf, womit eine Korrektur auch ein
+  fehlendes Pflichtfeld nachtragen kann.
+- **Nach einer Ortskorrektur wird neu geocodiert.** `options.geocode !== false` —
+  der Standard ist Suchen, die PATCH-Route übergibt keine Option. Die im Kommentar
+  behauptete Wirkung tritt also tatsächlich ein.
+- **Schriftabgleich** (`fonts.ts`) vereint hochgeladene (PROJ-47) und eingebaute
+  Schriften und normalisiert die Namen; 3 Unit-Tests.
+
+### Cross-Cutting-Prüfung
+
+Der ursprüngliche Verdacht, der Zoom-Fix betreffe alle Editoren, hat sich **nicht**
+bestätigt: `applyOverlay` ist modulprivat in `src/lib/amazon/apply-order-to-editor.ts`
+und wird nur von `applyOrderToEditor` aufgerufen (Editor-Übernahme und Vorschau der
+Queue). Kein anderer Editor liest diese Funktion.
+
+Geteilt ist genau eine Datei: [useMapExport.ts](src/hooks/useMapExport.ts). Die
+Änderung ist abwärtskompatibel — `exportPNG`/`exportPDF` bekommen einen **optionalen**
+Dateinamen und geben jetzt `boolean` statt `void` zurück. Alle bestehenden Aufrufer
+(`ExportTab`, `PreviewTriggerButton`, `SaveAsPresetButton`, `HeadlessRenderBridge`)
+rufen ohne den neuen Parameter auf und werten den Rückgabewert nicht aus. Die Zwillinge
+`useStarMapExport` und `usePhotoExport` sind unverändert; sie brauchen den Dateinamen
+nicht, weil Amazon-Poster immer Karten-Poster sind.
+
+### Neue Befunde
+
+#### BUG-7: `npm test` ist unbrauchbar — Vitest greift die Playwright-Tests mit auf
+- **Severity:** Medium
+- **Steps to Reproduce:**
+  1. `npm test` ausführen (so dokumentiert in `CLAUDE.md`)
+  2. Expected: die Unit-/Integrationstests laufen
+  3. Actual: 301 Tests grün, aber **8 Testdateien scheitern** mit
+     „Playwright Test did not expect test.describe() to be called here" — `vitest.config.ts`
+     schränkt `include` nicht ein, also zieht `vitest run` auch `tests/*.spec.ts` ein
+- **Wirkung:** Der dokumentierte Befehl endet immer mit Exit-Code 1. Echte Regressionen
+  gehen im Rauschen unter, und jeder Entwickler muss wissen, dass `vitest run src/`
+  gemeint ist
+- **Vorbestehend:** ja, auf `main` genauso — dieser PR legt nur eine weitere Spec-Datei dazu
+- **Priority:** Fix in next sprint — `include: ['src/**/*.test.{ts,tsx}']` in `vitest.config.ts`
+
+#### BUG-8: Die Herkunft eines erkannten Feldes wird nirgends angezeigt
+- **Severity:** Low
+- **Beobachtung:** Das Akzeptanzkriterium „Detailansicht zeigt … erkannte Felder mit
+  Herkunft" ist als erfüllt markiert. `matchedAs` (Beschriftung, die der Käufer getippt
+  hat, und ob der Treffer über die Beschriftung oder über die Position kam) steht zwar im
+  Typ von `AdminAmazonOrders`, wird aber an keiner Stelle gerendert. Gezeigt werden Wert,
+  „(korrigiert)", fehlende Pflichtfelder und nicht zugeordnete Zeilen
+- **Dazu:** Rettet eine Korrektur eine zuvor gescheiterte Auswertung, geht `matchedAs`
+  ganz verloren (`parse.ok ? { ...parse.matchedAs } : {}`) — `ParseFailure` trägt das Feld
+  nicht. Heute ohne sichtbare Wirkung, weil die Oberfläche es ohnehin nicht zeigt
+- **Priority:** Nice to have — entweder anzeigen oder das Kriterium ehrlich abstufen
+
+#### BUG-9: `print_file_created` prüft den Zustand der Bestellung nicht
+- **Severity:** Low
+- **Steps to Reproduce:** Als Admin `PATCH /api/admin/amazon/orders/<id>` mit
+  `{"action":"print_file_created"}` auf eine stornierte oder ungeprüfte Bestellung
+- **Actual:** `rendered_at` wird gesetzt, als wäre eine Druckdatei entstanden. Die
+  Oberfläche verhindert das sauber (`freigegeben()` schließt storniert aus und verlangt
+  `bereit` oder bereits gedruckt), die Schnittstelle selbst nicht — anders als
+  `mark_printed`, das storniert mit 409 abweist
+- **Wirkung:** gering, nur Admins erreichbar, nur ein Vermerk
+- **Priority:** Nice to have
+
+### Nicht von PROJ-31 verursacht
+
+- **PROJ-39-E2E „Gallery: clicking a pill swaps the image without navigating away"
+  scheitert** — auf `main` genauso, also vorbestehend. Das Bild bleibt auf
+  `/brand/logo_1200x300.svg` stehen, was auf fehlende Preset-Renders in der
+  Entwicklungsumgebung hindeutet. Gehört zu PROJ-39, nicht hierher
+- **PROJ-37-E2E „switching to A3 changes the rendered map canvas size"** fiel im ersten
+  Volllauf aus, war im Einzellauf und im zweiten Volllauf grün: Flake unter Parallellast
+  (6 Worker), kein Befund
+
+### Weiterhin offen aus dem Lauf vom 2026-09-16
+
+BUG-3 (Ortskorrektur ohne Wirkung bei ausgefülltem Koordinatenfeld), BUG-4 (Sortierung
+ohne Versandfrist), BUG-5 (`page_url` ungeprüft als `href`) und BUG-6 (keine
+`frame-ancestors`-Header) — alle vier im Code nachgesehen und unverändert vorhanden,
+alle Low.
+
+### Die Grenze dieses Laufs
+
+Unverändert gegenüber dem 2026-09-16: **Queue, SKU-Verwaltung, Vorschau und Druckdatei
+sind nicht im Browser bedient worden.** Das Repo hat keine E2E-Anmeldung, und Dev und
+Prod teilen sich eine Datenbank. Cross-Browser (Firefox, Safari) und die Breiten
+375/768/1440 px sind aus demselben Grund ungeprüft — für die neue Vorschau-Seite steht
+die Prüfung bei 375 px damit noch aus.
+
+Der Kernablauf — Bestellung ansehen, Vorschau bauen lassen, freigeben, PDF ziehen —
+ist damit weiterhin nur über den Code bewertet.
+
+### Summary
+
+- **Acceptance Criteria:** 30 von 31 erfüllt, 1 bewusst zurückgestellt (gemeinsame Queue
+  mit Etsy); BUG-8 stellt die Erfüllung eines weiteren teilweise in Frage
+- **Bugs Found:** 3 neu (0 critical, 0 high, 1 medium, 2 low), davon 1 vorbestehend aus
+  der Testkonfiguration; 4 Low aus dem Vorlauf weiterhin offen
+- **Security:** Pass — Eingang mit längengeprüftem `timingSafeEqual` und Bearer-Zwang,
+  alle Admin-Endpunkte hinter `requireAdmin`, `postMessage` mit Origin-Prüfung,
+  RLS live verifiziert, keine neuen Advisor-Befunde
+- **Regression:** keine durch diesen PR verursachte
+- **Production Ready:** JA im Sinne der Regel (keine Critical/High)
+- **Recommendation:** Mergen ist vertretbar. Vor dem Abhaken als „Deployed" sollte der
+  Betreiber den Kernablauf einmal selbst bedienen — eine angemeldete Sitzung ist das
+  Einzige, was dieser Test strukturell nicht leisten kann
