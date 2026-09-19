@@ -348,6 +348,12 @@ Bestehend und genutzt: `GET /api/admin/presets?status=all` (Farbvarianten dort a
 - **Basis-Preset neu rendern** (fehlt, fehlgeschlagen, veraltet) nutzt die normale Pipeline → dabei entstehen auch seine Marketing-Mockups neu (bei DM: Kontingent).
 - Overlay-Umbenennen/-Löschen gibt es als Endpunkt noch nicht (Oberfläche bietet es nicht an).
 
+**Nachtrag 2026-09-18: Galerie-Bilder in der Render-Bibliothek.** Auf Operator-Wunsch zeigt `/private/admin/render-library` jetzt beide Quellen in einem Raster: `preset_renders` (Marketing-Renders des Workers) und `image_generator_images`. Umgesetzt in [api/admin/renders/route.ts](src/app/api/admin/renders/route.ts) + [AdminRenderLibrary.tsx](src/components/admin/AdminRenderLibrary.tsx):
+- Neuer Filter **Quelle** (Alle / Marketing-Render / Image Generator); der Variante-Filter (Desktop/Mobile) blendet Generator-Bilder aus, weil sie keine Variante haben.
+- Generator-IDs werden als `gen:<uuid>` ausgeliefert, damit Auswahl und Löschen über beide Tabellen eindeutig bleiben. DELETE räumt Storage-Datei (`storage_path`) und Zeile ab.
+- Kachel-Badge zeigt bei Generator-Bildern Farbe (+ Overlay) statt `desktop`/`mobile`, z. B. „Grundfarbe + Top Qualität (links)".
+- Keine Datenmigration, keine Änderung an der Galerie im Image Generator — dieselben Dateien, nur zusätzlich sichtbar.
+
 **Tests:** 43 Unit-/Integrationstests für PROJ-56 (Helfer, Hash, Palette, Poster-Zustand, Overlay-Skalierung, Schnellweg-Auswahl, Endpunkte Generate/Vorlagen/Overlays inkl. 401/403/400/409). Gesamte Vitest-Suite: 335 Tests grün.
 
 ## QA Test Results

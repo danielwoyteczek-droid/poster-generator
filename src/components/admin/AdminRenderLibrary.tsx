@@ -29,9 +29,13 @@ interface RenderItem {
   id: string
   preset_id: string
   mockup_set_id: string
-  variant: 'desktop' | 'mobile'
+  /** null bei Image-Generator-Bildern — die kennen keine Desktop/Mobile-Variante. */
+  variant: 'desktop' | 'mobile' | null
   image_url: string
-  rendered_at: string
+  rendered_at: string | null
+  source: 'worker' | 'generator'
+  /** Nur Generator: Farbe (+ Overlay) statt der Variante. */
+  label?: string
   preset: {
     id: string
     name: string
@@ -55,6 +59,7 @@ export function AdminRenderLibrary() {
   const [filterVariant, setFilterVariant] = useState<'all' | 'desktop' | 'mobile'>('all')
   const [filterOccasion, setFilterOccasion] = useState<string>('all')
   const [filterLocale, setFilterLocale] = useState<string>('all')
+  const [filterSource, setFilterSource] = useState<'all' | 'worker' | 'generator'>('all')
   const [searchQuery, setSearchQuery] = useState('')
 
   const [lightbox, setLightbox] = useState<RenderItem | null>(null)
@@ -69,6 +74,7 @@ export function AdminRenderLibrary() {
       if (filterVariant !== 'all') params.set('variant', filterVariant)
       if (filterOccasion !== 'all') params.set('occasion', filterOccasion)
       if (filterLocale !== 'all') params.set('locale', filterLocale)
+      if (filterSource !== 'all') params.set('source', filterSource)
       if (searchQuery.trim()) params.set('q', searchQuery.trim())
 
       const res = await fetch(`/api/admin/renders?${params.toString()}`)
@@ -82,7 +88,7 @@ export function AdminRenderLibrary() {
     } finally {
       setLoading(false)
     }
-  }, [filterMockupSet, filterVariant, filterOccasion, filterLocale, searchQuery])
+  }, [filterMockupSet, filterVariant, filterOccasion, filterLocale, filterSource, searchQuery])
 
   useEffect(() => { fetchRenders() }, [fetchRenders])
 
@@ -131,17 +137,21 @@ export function AdminRenderLibrary() {
     setFilterVariant('all')
     setFilterOccasion('all')
     setFilterLocale('all')
+    setFilterSource('all')
     setSearchQuery('')
   }
 
   const hasActiveFilters =
-    filterMockupSet !== 'all' || filterVariant !== 'all' ||
+    filterMockupSet !== 'all' || filterVariant !== 'all' || filterSource !== 'all' ||
     filterOccasion !== 'all' || filterLocale !== 'all' || searchQuery.trim() !== ''
+
+  /** Kurzer Text auf der Kachel: Worker-Variante oder Generator-Farbe. */
+  const itemLabel = (r: RenderItem) => (r.source === 'generator' ? r.label ?? 'Generator' : r.variant)
 
   return (
     <div className="space-y-6">
       <div className="bg-white rounded-lg border p-4 space-y-3">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
           <div className="md:col-span-2">
             <label className="block text-xs font-medium text-muted-foreground mb-1">Suche</label>
             <div className="relative">
@@ -175,6 +185,18 @@ export function AdminRenderLibrary() {
               <option value="all">Alle</option>
               <option value="desktop">Desktop</option>
               <option value="mobile">Mobile</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">Quelle</label>
+            <select
+              value={filterSource}
+              onChange={(e) => setFilterSource(e.target.value as 'all' | 'worker' | 'generator')}
+              className="block w-full h-9 px-2 rounded-md border border-border bg-background text-sm"
+            >
+              <option value="all">Alle</option>
+              <option value="worker">Marketing-Render</option>
+              <option value="generator">Image Generator</option>
             </select>
           </div>
           <div>
@@ -285,12 +307,19 @@ export function AdminRenderLibrary() {
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={r.image_url}
-                    alt={`${r.preset.name} – ${r.mockup_set?.name ?? 'Mockup'} ${r.variant}`}
+                    alt={`${r.preset.name} – ${r.mockup_set?.name ?? 'Mockup'} ${itemLabel(r) ?? ''}`}
                     className="w-full h-full object-contain"
                     loading="lazy"
                   />
-                  <span className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded text-[10px] font-medium bg-white/90 backdrop-blur capitalize">
-                    {r.variant}
+                  <span
+                    className={`absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded text-[10px] font-medium backdrop-blur max-w-[85%] truncate ${
+                      r.source === 'generator'
+                        ? 'bg-primary/90 text-primary-foreground'
+                        : 'bg-white/90 capitalize'
+                    }`}
+                    title={itemLabel(r) ?? ''}
+                  >
+                    {itemLabel(r)}
                   </span>
                 </button>
                 <div className="absolute top-1.5 left-1.5">
@@ -338,7 +367,7 @@ export function AdminRenderLibrary() {
         <DialogContent className="max-w-4xl">
           <DialogHeader>
             <DialogTitle>
-              {lightbox?.preset.name} — {lightbox?.mockup_set?.name} ({lightbox?.variant})
+              {lightbox?.preset.name} — {lightbox?.mockup_set?.name} ({lightbox ? itemLabel(lightbox) : ''})
             </DialogTitle>
           </DialogHeader>
           {lightbox && (
