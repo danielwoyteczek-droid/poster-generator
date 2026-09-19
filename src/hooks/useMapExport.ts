@@ -980,7 +980,10 @@ export function useMapExport() {
   const { viewState, styleId, paletteId, customPaletteBase, customPalette, streetLabelsVisible, placeLabelsVisible, posterDarkMode, maskKey, geoBoundary, marker, secondMarker, secondMap, shapeConfig, textBlocks, locationName, photos, splitMode, splitPhoto, splitPhotoZone, layoutId, innerMarginMm, decorationSvgUrl, decorationVisible, orientation } =
     useEditorStore()
 
-  const run = async (format: PrintFormat, type: 'png' | 'pdf') => {
+  // PROJ-31: `filename` und der Rückgabewert kommen von der Amazon-Queue, die
+  // die Druckdatei nach der Bestellnummer benennt und nur einen gelungenen
+  // Export festhält. Ohne Angabe bleibt alles wie im Editor.
+  const run = async (format: PrintFormat, type: 'png' | 'pdf', filenameOverride?: string): Promise<boolean> => {
     setIsExporting(true)
     setError(null)
     try {
@@ -989,7 +992,7 @@ export function useMapExport() {
       }
       const canvas = await buildPosterCanvas(format, snapshot)
       const pngBlob = await canvasToBlob(canvas)
-      const filename = `${slugify(locationName)}-poster`
+      const filename = filenameOverride ?? `${slugify(locationName)}-poster`
 
       if (type === 'png') {
         const url = URL.createObjectURL(pngBlob)
@@ -1015,8 +1018,10 @@ export function useMapExport() {
         a.click()
         URL.revokeObjectURL(url)
       }
+      return true
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Export fehlgeschlagen')
+      return false
     } finally {
       setIsExporting(false)
     }
@@ -1050,8 +1055,8 @@ export function useMapExport() {
   }
 
   return {
-    exportPNG: (format: PrintFormat) => run(format, 'png'),
-    exportPDF: (format: PrintFormat) => run(format, 'pdf'),
+    exportPNG: (format: PrintFormat, filename?: string) => run(format, 'png', filename),
+    exportPDF: (format: PrintFormat, filename?: string) => run(format, 'pdf', filename),
     renderPreview,
     isExporting,
     error,

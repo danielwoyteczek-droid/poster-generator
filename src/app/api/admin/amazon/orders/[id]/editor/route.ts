@@ -16,7 +16,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { requireAdmin } from '@/lib/admin-auth'
 import { createAdminClient } from '@/lib/supabase-admin'
-import { FALLBACK_FONTS } from '@/lib/fonts'
+import { loadFontLibrary, normalizeFamily } from '@/lib/amazon/fonts'
 import { schemaOrDefault } from '@/lib/amazon/sku-schema'
 import {
   readPresetBlocks,
@@ -51,6 +51,10 @@ export interface EditorPayload {
     order_item_id: string
     sku: string
     queue_status: string
+    /** Amazons Bestellzustand. 'cancelled' sperrt Übernahme und Druckdatei. */
+    order_state: string
+    /** Wie viele Poster zu drucken sind. */
+    quantity: number
     printed_at: string | null
     preview_url: string | null
   }
@@ -59,16 +63,6 @@ export interface EditorPayload {
   /** Zuvor von Hand gespeicherter Zustand. Hat Vorrang vor der Überlagerung. */
   editor_state: unknown | null
   editor_state_saved_at: string | null
-}
-
-/**
- * Schriftnamen für den Abgleich vereinheitlichen. Amazon liefert den Namen
- * so, wie ihn der Käufer in der Auswahl gesehen hat („Caviar Dreams"); die
- * Bibliothek führt denselben Schnitt unter seinem CSS-Namen
- * („CaviarDreams"). Ohne diese Angleichung gälte die Schrift als unbekannt.
- */
-function normalizeFamily(value: string): string {
-  return value.toLowerCase().replace(/[\s._-]/g, '')
 }
 
 function toFormat(value: string | undefined): 'a4' | 'a3' | 'a2' | null {
@@ -93,7 +87,7 @@ export async function GET(
   const { data: order, error } = await supabase
     .from('amazon_custom_orders')
     .select(
-      'id, amazon_order_id, order_item_id, sku, queue_status, printed_at, preset_id, parse_result, design_hints, map_lat, map_lng, map_place, preview_path, editor_state, editor_state_saved_at',
+      'id, amazon_order_id, order_item_id, sku, queue_status, order_state, quantity, printed_at, preset_id, parse_result, design_hints, map_lat, map_lng, map_place, preview_path, editor_state, editor_state_saved_at',
     )
     .eq('id', id)
     .maybeSingle()
@@ -128,22 +122,9 @@ export async function GET(
   // eingebauten — genau die Menge, die auch der Editor anbietet (useFonts).
   // Nur die Tabelle zu fragen hieße, die eingebauten als unbekannt zu melden.
   // Der Wert der Map ist der Name, unter dem der Renderer die Schrift kennt.
-  const wanted = [...new Set(hints.map((h) => h.fontFamily).filter(Boolean))] as string[]
-  const known = new Map<string, string>()
-  if (wanted.length > 0) {
-    const { data: rows } = await supabase
-      .from('fonts')
-      .select('family_name')
-      .eq('status', 'published')
-      .limit(200)
-    const library = [
-      ...(rows ?? []).map((r) => r.family_name as string),
-      ...FALLBACK_FONTS.filter((f) => f.status === 'published').map((f) => f.family_name),
-    ]
-    for (const name of library) {
-      if (!known.has(normalizeFamily(name))) known.set(normalizeFamily(name), name)
-    }
-  }
+  // Nur laden, wenn der Käufer überhaupt eine Schrift gewählt hat.
+  const wanted = hints.some((h) => h.fontFamily)
+  const known = wanted ? await loadFontLibrary(supabase) : new Map<string, string>()
 
   const notes: string[] = []
 
@@ -197,6 +178,8 @@ export async function GET(
       order_item_id: order.order_item_id as string,
       sku: order.sku as string,
       queue_status: order.queue_status as string,
+      order_state: order.order_state as string,
+      quantity: (order.quantity as number) ?? 1,
       printed_at: (order.printed_at as string) ?? null,
       preview_url: previewUrl,
     },
@@ -250,6 +233,22 @@ export async function PUT(
   }
 
   const supabase = createAdminClient()
+
+  // Eine stornierte Bestellung darf nicht über die Übernahme wieder
+  // druckfertig werden — sonst steht sie in der offenen Liste und die
+  // Druckdatei ist freigeschaltet.
+  const { data: current } = await supabase
+    .from('amazon_custom_orders')
+    .select('order_state')
+    .eq('id', id)
+    .maybeSingle<{ order_state: string }>()
+  if (current?.order_state === 'cancelled') {
+    return NextResponse.json(
+      { error: 'Die Bestellung ist bei Amazon storniert — Änderungen wurden nicht übernommen.' },
+      { status: 409 },
+    )
+  }
+
   const { data, error } = await supabase
     .from('amazon_custom_orders')
     .update({
@@ -262,6 +261,8 @@ export async function PUT(
     .eq('id', id)
     // Eine gedruckte Position wird nicht mehr veraendert.
     .is('printed_at', null)
+    // Zweite Sperre gegen einen Storno, der zwischen Lesen und Schreiben kam.
+    .neq('order_state', 'cancelled')
     .select('id, queue_status, editor_state_saved_at')
     .maybeSingle()
 
@@ -270,7 +271,7 @@ export async function PUT(
   }
   if (!data) {
     return NextResponse.json(
-      { error: 'Nicht gefunden oder bereits gedruckt — Änderungen wurden nicht übernommen.' },
+      { error: 'Nicht gefunden, bereits gedruckt oder storniert — Änderungen wurden nicht übernommen.' },
       { status: 409 },
     )
   }

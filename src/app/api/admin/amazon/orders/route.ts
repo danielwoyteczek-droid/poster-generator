@@ -53,6 +53,14 @@ export interface AmazonOrdersResponse {
   total: number
   status_counts: Record<string, number>
   last_ingest_at: string | null
+  /** Letzter Aufruf des Abholers, auch ohne neue Position. */
+  last_run: {
+    received_at: string
+    items_received: number
+    items_accepted: number
+    items_duplicate: number
+    items_failed: number
+  } | null
 }
 
 export async function GET(request: Request) {
@@ -126,6 +134,13 @@ export async function GET(request: Request) {
     .limit(1)
     .maybeSingle()
 
+  const { data: lauf } = await supabase
+    .from('amazon_ingest_runs')
+    .select('received_at, items_received, items_accepted, items_duplicate, items_failed')
+    .order('received_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
   const items: AmazonOrderRow[] = (rows ?? []).map((r) => {
     const parse = r.parse_result as { ok?: boolean; parsed?: Record<string, string> } | null
     return {
@@ -158,6 +173,7 @@ export async function GET(request: Request) {
     total: items.length,
     status_counts: counts,
     last_ingest_at: (letzter?.first_seen_at as string) ?? null,
+    last_run: (lauf as AmazonOrdersResponse['last_run']) ?? null,
   }
   return NextResponse.json(response)
 }

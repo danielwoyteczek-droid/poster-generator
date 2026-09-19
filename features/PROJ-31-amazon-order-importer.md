@@ -1,17 +1,28 @@
 # PROJ-31: Amazon-Custom-Anpassungsdaten-Importer
 
-## Status: In Progress
+## Status: Approved
 **Created:** 2026-04-28
-**Last Updated:** 2026-09-15
+**Last Updated:** 2026-09-19
 
 > **Stand:** Phase 0 und 2 sind vom Abholer auf UMOI-SERVER erledigt — er
 > liest JTL und schickt fertige Positionen. Der Eingang auf petite-moment
-> steht ebenfalls (siehe *Umgesetzt* unten). Offen ist Phase 3: SKU→Preset,
-> Editor-Zustand, Auto-Render, Queue-Oberfläche.
+> steht ebenfalls (siehe *Umgesetzt* unten). Phase 3 ist gebaut, bis auf die
+> gemeinsame Queue mit Etsy; der Auto-Render ist bewusst entfallen.
 >
 > Die Feldzuordnung Amazon → Preset ist gebaut (siehe *Umgesetzt — Feldzuordnung*
-> unten). Offen bleiben in Phase 3: Auto-Render, Druckdatei-Ablage und die
-> gemeinsame Queue mit Etsy.
+> unten), ebenso die Vorschau in der Prüf-Queue.
+>
+> Der erste Echtlauf (Phase 4) ist am 2026-09-15 gelaufen: Bestellung
+> `305-5531288-7707506` lief von der JTL-Zeile bis zum fertigen Poster durch.
+>
+> Am 2026-09-16 nachgezogen: Druckdatei bei Freigabe, Handkorrekturen, die
+> eine Neuauswertung überleben, Schriftprüfung in der Auswertung,
+> Abholprotokoll und Sentry (siehe *Umgesetzt — Druckdatei, Korrekturen,
+> Betrieb*).
+>
+> Offen bleiben: die gemeinsame Queue mit Etsy (bewusst zurückgestellt) und
+> die Zuordnung der neun noch ungepflegten SKUs — Letzteres ist
+> Dateneingabe, keine Entwicklung.
 
 ## Dependencies
 - **Requires PROJ-8** (Design-Presets) — die Zuordnung Amazon-SKU → internes Preset bestimmt, welches Design gerendert wird.
@@ -84,19 +95,25 @@ petite-moment verkauft personalisierte Karten-Poster über Amazon Custom (SKU-Sc
 
 ## Acceptance Criteria
 
+> **Abgleich gegen den Code am 2026-09-16.** `[x]` = gebaut und im Code
+> nachgesehen, `[ ]` = fehlt. *Teilweise* steht dabei, wenn ein Teil fehlt.
+> Kriterien, die den Abholer auf UMOI-SERVER betreffen, sind nach dem
+> Übergabe-Vertrag (`docs/amazon-ingest/`) und dem Echtlauf vom 2026-09-15
+> bewertet — der Abholer-Code liegt nicht in diesem Repo.
+
 ### Zuordnung SKU → Design
-- [ ] Admin-Seite listet alle bekannten Amazon-SKUs, ungezuordnete zuerst
-- [ ] Pro SKU: Preset auswählbar, Feld-Schema pflegbar, Notizfeld
-- [ ] Unbekannte SKUs aus dem Import legen automatisch eine offene Zeile an, statt die Bestellung zu verwerfen
-- [ ] Nach nachgetragener Zuordnung lassen sich betroffene Bestellungen erneut verarbeiten
+- [x] Admin-Seite listet alle bekannten Amazon-SKUs, ungezuordnete zuerst
+- [x] Pro SKU: Preset auswählbar, Feld-Schema pflegbar, Notizfeld — Notiz seit 2026-09-16 im aufgeklappten Bereich bearbeitbar
+- [x] Unbekannte SKUs aus dem Import legen automatisch eine offene Zeile an, statt die Bestellung zu verwerfen
+- [x] Nach nachgetragener Zuordnung lassen sich betroffene Bestellungen erneut verarbeiten — Speichern einer SKU wertet ihre wartenden Positionen neu aus
 
 ### Abholung und Auswertung
-- [ ] Der Abholer erkennt neue Positionen mit `LQ-`-SKU und überspringt alle anderen
-- [ ] Anpassungsdaten werden gelesen, egal ob die JTL-Spalte das vollständige JSON oder nur einen Link darauf enthält
-- [ ] Eine bereits importierte Position wird nicht doppelt angelegt
-- [ ] Alle Käuferangaben eines Auftrags werden erfasst: Texte, Auswahlfelder, Schrift und Farbe — je Textblock zugeordnet
-- [ ] Ein unbekannter Feldtyp blockiert den Import nicht, wird aber in der Queue sichtbar gemeldet
-- [ ] Fehlende Pflichtfelder oder Werte, die nicht zum erwarteten Muster passen, führen zu „Prüfung nötig" — niemals zu stillem Überspringen
+- [x] Der Abholer erkennt neue Positionen mit `LQ-`-SKU und überspringt alle anderen
+- [x] Anpassungsdaten werden gelesen, egal ob die JTL-Spalte das vollständige JSON oder nur einen Link darauf enthält — `customization_source` `jtl_column` / `downloaded_zip`
+- [x] Eine bereits importierte Position wird nicht doppelt angelegt
+- [x] Alle Käuferangaben eines Auftrags werden erfasst: Texte, Auswahlfelder, Schrift und Farbe — je Textblock zugeordnet
+- [x] Ein unbekannter Feldtyp blockiert den Import nicht, wird aber in der Queue sichtbar gemeldet
+- [x] Fehlende Pflichtfelder oder Werte, die nicht zum erwarteten Muster passen, führen zu „Prüfung nötig" — niemals zu stillem Überspringen
 
 ### Feldzuordnung Amazon → Preset
 - [x] Je SKU ist hinterlegt, welches Anpassungsfeld welchen Textblock des Presets befüllt — die Zuordnung liegt in den Daten, nicht im Code
@@ -108,27 +125,27 @@ petite-moment verkauft personalisierte Karten-Poster über Amazon Custom (SKU-Sc
 - [x] Die Pflegemaske beschriftet die Textblöcke mit ihrem Preset-Text, nicht mit ihrer internen Kennung
 
 ### Ort und Editor-Zustand
-- [ ] Die Ortsangabe des Käufers wird über dieselbe Ortssuche aufgelöst, die im Editor hinter dem Suchfeld liegt
-- [ ] Hat der Käufer zusätzlich Koordinaten eingetippt, schlagen diese den Textfund
-- [ ] Kein Treffer oder mehrdeutiger Treffer → „Prüfung nötig" statt falsch zentrierter Karte
-- [ ] Der Editor-Zustand entsteht aus dem Preset als Basis, die Käuferangaben überschreiben nur die dafür vorgesehenen Elemente
-- [ ] Die vom Käufer gewählte Schrift wird gegen die Schriftbibliothek aufgelöst; ist sie unbekannt, greift die Preset-Schrift und die Position wird markiert
-- [ ] Format- und Rahmenangabe des Käufers werden übernommen
+- [x] Die Ortsangabe des Käufers wird über dieselbe Ortssuche aufgelöst, die im Editor hinter dem Suchfeld liegt — MapTiler, `geocode.ts`
+- [x] Hat der Käufer zusätzlich Koordinaten eingetippt, schlagen diese den Textfund
+- [x] Kein Treffer oder mehrdeutiger Treffer → „Prüfung nötig" statt falsch zentrierter Karte
+- [x] Der Editor-Zustand entsteht aus dem Preset als Basis, die Käuferangaben überschreiben nur die dafür vorgesehenen Elemente
+- [x] Die vom Käufer gewählte Schrift wird gegen die Schriftbibliothek aufgelöst; ist sie unbekannt, greift die Preset-Schrift und die Position wird markiert — seit 2026-09-16 prüft auch die Auswertung und setzt „Prüfen"
+- [x] Format- und Rahmenangabe des Käufers werden übernommen — Format in den Editor-Zustand; der Rahmen ist keine Postereigenschaft, sondern Versandinfo, und steht als „Mit Rahmen" in der Detailansicht
 
 ### Render und Prüf-Queue
-- [ ] Nach erfolgreicher Auswertung wird automatisch gerendert, ohne Zutun des Betreibers
-- [ ] Die Druckdatei ist aus der Queue herunterladbar; ein fehlgeschlagener Render ist einzeln wiederholbar
-- [ ] Die Queue zeigt Etsy- und Amazon-Bestellungen gemeinsam, mit Filter nach Quelle und Status
-- [ ] Detailansicht zeigt Vorschau, erkannte Felder mit Herkunft, Gestaltungsangaben und die Rohdaten
-- [ ] Einzelne Feldwerte sind korrigierbar; danach lässt sich neu rendern
-- [ ] Status „Wartet auf Druck" ist der Zustand, in dem eine Bestellung druckfertig auf den Betreiber wartet
-- [ ] Eine gedruckte Bestellung lässt sich abhaken und verschwindet aus der offenen Liste
+- [x] ~~Nach erfolgreicher Auswertung wird automatisch gerendert~~ → **verworfen 2026-09-15**, ersetzt durch: die Detailansicht zeigt das Poster beim Ansehen, ohne gespeicherten Render (Begründung unter *Entschieden — Auto-Render*)
+- [x] Die Druckdatei entsteht bei der Freigabe und ist aus der Queue herunterladbar; ein fehlgeschlagener Render ist einzeln wiederholbar — PDF direkt aus der Vorschau, nur bei druckfertigen oder gedruckten Bestellungen; bei Fehler erneut klicken
+- [ ] Die Queue zeigt Etsy- und Amazon-Bestellungen gemeinsam, mit Filter nach Quelle und Status — **zurückgestellt 2026-09-16:** Etsy läuft ohne API über den CSV-Import, das Zusammenlegen bringt im Alltag gerade wenig. Die Amazon-Queue hat den Statusfilter
+- [x] Detailansicht zeigt Vorschau, erkannte Felder mit Herkunft, Gestaltungsangaben und die Rohdaten
+- [x] Einzelne Feldwerte sind korrigierbar; danach lässt sich neu rendern — die drei beim Abgleich gefundenen Mängel sind am 2026-09-16 behoben
+- [x] Status „Wartet auf Druck" ist der Zustand, in dem eine Bestellung druckfertig auf den Betreiber wartet — heißt im Code `bereit`, in der Oberfläche „Druckfertig"
+- [x] Eine gedruckte Bestellung lässt sich abhaken und verschwindet aus der offenen Liste — mit „Doch nicht gedruckt" als Rücknahme
 
 ### Betrieb
-- [ ] Jeder Abholvorgang wird protokolliert: Zeitpunkt, gefundene, übernommene und fehlgeschlagene Positionen
-- [ ] Fehler landen mit Positionsbezug in Sentry
-- [ ] Das Zugangsgeheimnis des Abholers liegt ausschließlich in Umgebungsvariablen
-- [ ] Die JTL-Zugangsdaten verlassen den lokalen Abholer nicht
+- [x] Jeder Abholvorgang wird protokolliert: Zeitpunkt, gefundene, übernommene und fehlgeschlagene Positionen — `amazon_ingest_runs`, in der Queue als „Letzter Abgleich"
+- [x] Fehler landen mit Positionsbezug in Sentry — Tag `amazon_order_item_id`, ohne Käufereingaben
+- [x] Das Zugangsgeheimnis des Abholers liegt ausschließlich in Umgebungsvariablen — `AMAZON_INGEST_SECRET`
+- [x] Die JTL-Zugangsdaten verlassen den lokalen Abholer nicht
 
 ---
 
@@ -386,6 +403,200 @@ laufend.
 
 ---
 
+## Entschieden (2026-09-15) — Auto-Render und Druckdatei
+
+Der ursprüngliche Plan war: nach erfolgreicher Auswertung automatisch die
+Druckdatei rendern und ablegen. **Das wird nicht gebaut.**
+
+Der Einwand des Betreibers: Ob ein Design wirklich passt, entscheidet ohnehin
+ein Mensch — ein langer Name bricht um, ein Kartenausschnitt sitzt daneben.
+Eine Druckdatei, die vor dieser Prüfung entsteht, ist doppelt unerwünscht:
+sie kostet Rechenzeit für etwas, das vielleicht verworfen wird, und sie liegt
+danach herum und lädt dazu ein, die falsche Datei zu greifen.
+
+Die Trennung, auf die es hinausläuft:
+
+| | Wann | Wozu |
+|---|---|---|
+| **Vorschau** | beim Ansehen der Bestellung | macht die Prüfung zum Blick statt zum Klickweg |
+| **Druckdatei** | erst auf die Freigabe des Betreibers | hochauflösend, und nur für das, was wirklich gedruckt wird |
+
+Der Mensch bleibt also in der Schleife — er prüft nur an einem Bild statt an
+einem Editor-Ladevorgang.
+
+**Was dadurch entfällt:** Render-Worker-Anbindung für Bestellungen,
+Speicherplatz für Vorschaubilder, Spalten für Render-Status und -Fehler, ein
+Wiederhol-Knopf für fehlgeschlagene Vorschau-Renders, und die Frage, was mit
+einem gespeicherten Bild geschieht, wenn sich Zuordnung oder Preset danach
+ändern. Die Vorschau kann nicht veralten, weil es sie zwischen zwei Blicken
+nicht gibt.
+
+---
+
+## Umgesetzt (2026-09-16) — Druckdatei, Korrekturen, Betrieb
+
+Nach dem Abgleich der Abnahmekriterien gegen den Code. Entscheidungen des
+Betreibers dazu: Druckdatei im Browser erzeugen und direkt laden, ohne
+Ablage; gemeinsame Queue mit Etsy zurückstellen.
+
+### Druckdatei bei Freigabe
+
+- `AmazonOrderPreview.tsx` — Knopf „Druckdatei (PDF)" unter dem
+  Vorschaubild. Gebaut wird im selben Store, aus dem das Bild stammt, mit
+  `exportPDF` — demselben Export wie im Editor. Aktiv nur bei `bereit` oder
+  bereits gedruckt (Nachdruck); sonst steht dort, dass erst geprüft wird.
+  Dateiname `amazon-<Bestellung>-<Position>-<Format>.pdf`.
+- Nach dem Laden hält `PATCH print_file_created` den Zeitpunkt in der
+  vorhandenen Spalte `rendered_at` fest; die Queue zeigt ihn an. Die Datei
+  selbst wird nicht gespeichert.
+- `useMapExport` — `exportPNG`/`exportPDF` nehmen optional einen Dateinamen
+  und melden zurück, ob der Export gelang. **Geteilter Code:** einziger
+  weiterer Aufrufer ist `ExportTab.tsx` (Karten-Editor), der beides nicht
+  nutzt und unverändert läuft.
+
+### Korrekturen, die eine Neuauswertung überleben
+
+Beim Abgleich gefunden: Eine Korrektur schrieb direkt in `parse_result`,
+und jede Neuauswertung — auch das Speichern der SKU-Zuordnung — ersetzte
+das vollständig. Die Korrektur war still weg.
+
+- Migration `20260916000000_proj31_amazon_corrections_and_runs.sql` —
+  Spalte `field_corrections`. `resolveAndSave` liest sie frisch und legt sie
+  mit `applyCorrections` über das Ergebnis des Abgleichs, danach wird neu
+  geprüft. Damit holt ein nachgetragenes Pflichtfeld die Position aus der
+  Prüfung, und ein korrigierter Ort wird neu gesucht.
+- `PATCH correct_field` / `reset_field` — speichern bzw. entfernen die
+  Korrektur und werten sofort neu aus.
+- Queue — zeigt alle Felder des Schemas, nicht nur die erkannten, markiert
+  fehlende Pflichtfelder, bietet „Zurücknehmen" an. Die Vorschau lädt nach
+  einer Änderung neu. Ist die Bestellung im Editor angepasst, steht dort,
+  dass Korrekturen das Poster nicht mehr ändern.
+- **Mitbehoben:** Eine im Editor übernommene Bestellung (`editor_state`)
+  fiel beim nächsten Speichern der SKU zurück in „Prüfen". Jetzt bleibt sie
+  druckfertig; die Hinweise der Automatik bleiben sichtbar.
+
+### Schrift in der Auswertung
+
+`src/lib/amazon/fonts.ts` hält den Abgleich gegen die Bibliothek, den
+vorher nur die Editor-Route kannte. Die Auswertung nutzt ihn jetzt auch:
+eine unbekannte Schrift ergibt einen Hinweis und „Prüfen". Freigeben lässt
+sich die Bestellung dann über „Im Editor öffnen → Anpassung übernehmen".
+Im Bestand ändert das nichts — die einzigen zwei Schriftwünsche sind bekannt.
+
+### Betrieb
+
+- Tabelle `amazon_ingest_runs` — ein Eintrag je Aufruf des Abholers, auch
+  ohne neue Position. Die Queue zeigt „Letzter Abgleich" mit Anzahl der
+  Fehlschläge; vorher war nur die jüngste neue Bestellung sichtbar.
+- Sentry — Fehler einzelner Positionen als Meldung mit Tag
+  `amazon_order_item_id`, ohne Käufereingaben. Ein fehlschlagender
+  Protokolleintrag geht ebenfalls an Sentry, kippt aber die Antwort an den
+  Abholer nicht.
+- SKU-Verwaltung — Notiz bearbeitbar, ohne die wartenden Bestellungen neu
+  auszuwerten.
+
+### Geprüft
+
+`tsc --noEmit` ohne neue Fehler; `vitest run src/` mit 301 Tests grün,
+davon 9 neu in `resolve.test.ts`; Produktionsbuild übersetzt. Migration
+angewendet und Spalte sowie Tabelle per Abfrage bestätigt.
+
+**Nicht geprüft:** alles im Browser. Die Admin-Seiten liegen hinter dem
+Login, und es gibt keine E2E-Anmeldung. Vor dem Merge von Hand ansehen:
+Druckdatei an einer druckfertigen Bestellung laden und das PDF mit der
+Vorschau vergleichen; ein Feld korrigieren, dann „Neu auswerten" — die
+Korrektur muss stehen bleiben. `npm run lint` lief nicht, weil ESLint 9
+keine `eslint.config.*` findet — das betrifft das ganze Repo.
+
+### Beim Abgleich gefunden, nicht behoben
+
+`renderPreview()` in `useMapExport` gibt `placeLabelsVisible` und `locale`
+nicht an den Renderer weiter, der Export (`run`) schon. Blendet ein Preset
+Ortsnamen aus, zeigt die Vorschau sie trotzdem, die Druckdatei nicht.
+Heute ohne Wirkung: keins der 24 Karten-Presets blendet sie aus. Nicht
+angefasst, weil `renderPreview` auch die Preset-Renders von PROJ-30 und die
+Vorschaubilder beim Preset-Speichern baut — eine Änderung dort gehört durch
+`/qa` für diese Features.
+
+---
+
+## Umgesetzt (2026-09-15) — Vorschau in der Prüf-Queue
+
+- `src/lib/amazon/apply-order-to-editor.ts` — die Übersetzung Bestellung →
+  Editor-Zustand, herausgezogen aus `AmazonOrderApplier`. Sie lag dort als
+  einzige Kopie; jetzt lesen Editor und Vorschau dieselbe Funktion. Zwei
+  Kopien wären auseinandergelaufen, und dann zeigte die Vorschau etwas
+  anderes als der Editor — genau das Vertrauen, auf dem die Prüfung beruht,
+  wäre dahin. Meldungen an den Benutzer macht sie nicht: was passiert ist,
+  kommt als Rückgabewert zurück, und die beiden Aufrufer machen daraus, was
+  zu ihnen passt.
+- `AmazonOrderPreview.tsx` — lädt die Bestellung, wendet sie an, wartet auf
+  Schriften plus denselben Puffer wie der Headless-Render (1500 ms) und baut
+  das Bild über `useMapExport().renderPreview()`. Dasselbe `renderPreview()`,
+  aus dem auch die Druckdatei entsteht, also zeigt die Vorschau das Poster
+  und keine Nachbildung. Das Format kommt aus dem Zustand *nach* dem
+  Anwenden — eine A3-Bestellung als A4 zu rendern zeigte den falschen
+  Ausschnitt.
+- `/private/admin/amazon/orders/[id]/vorschau` — nackte Admin-Seite, die die
+  Queue in einem Rahmen einbettet. Der eigene Seitenaufruf ist Absicht: Der
+  Editor-Store, den die Vorschau befüllt, bleibt darin und färbt nicht auf
+  die Admin-Oberfläche ab. Beim Schließen ist er mitsamt Zustand weg.
+- `AdminAmazonOrders.tsx` — „Unser Poster" steht in der Detailansicht über
+  „Amazons Vorschau". Beide nebeneinander beantworten die eigentliche Frage:
+  Passt das, was wir drucken, zu dem, was der Käufer bestellt hat?
+
+Kein Worker, kein Speicherplatz, keine Migration, keine neue Spalte.
+
+### Behoben dabei — die Vorschau zeigte den Ort des Presets
+
+Beim ersten Ansehen stand auf dem Bild nicht der Ort der Bestellung, sondern
+der des Presets.
+
+Der Grund: `applyPreset` und `applyOverlay` schreiben die Zielposition nach
+`pendingCenter`. Das ist kein Zustand, sondern ein **Auftrag an die Karte** —
+im Editor liest MapLibre ihn, fährt dorthin und schreibt das Ergebnis nach
+`viewState`. Die Vorschau hat keine Karte, also führte den Auftrag niemand
+aus, und `renderPreview()` baute sein Bild aus dem unveränderten `viewState`.
+Derselbe Stolperstein, den der Headless-Render von PROJ-30 schon kennt: auch
+er schreibt `viewState` direkt (`HeadlessRenderBridge`).
+
+Behoben mit `commitPendingCenter()` in `apply-order-to-editor.ts` — führt den
+offenen Auftrag selbst aus, für Aufrufer ohne Karte. Der Editor ruft sie
+nicht auf; dort gehört das Fahren der Karte.
+
+**Zweiter Fund, derselbe Ort — trifft auch den Editor:** `applyOverlay` setzte
+`pendingCenter.zoom` aus `viewState.zoom`. Unmittelbar davor hatte
+`applyPreset` den Preset-Zoom nach `pendingCenter` geschrieben, und die Karte
+hatte ihn noch nicht gelesen — beide Aufrufe laufen synchron hintereinander.
+Der Überschreiber griff damit auf den Zoom von *vorher* zurück und warf den
+Preset-Ausschnitt weg. Jetzt gewinnt `pendingCenter.zoom`.
+
+### Geprüft
+
+`tsc --noEmit` ohne neue Fehler (die zwei bestehenden liegen in
+`upload-overlay/route.test.ts` und `useMobileSheet.test.ts` und sind
+PROJ-31-fremd); `vitest run src/` mit 292 Tests grün; Produktionsbuild
+übersetzt, die Route steht im Manifest.
+
+Am angemeldeten Browser nachgesehen: Die Detailansicht zeigt das Poster, und
+der Ort ist der der Bestellung.
+
+**Nicht geprüft:** der Editor-Pfad nach dem Zoom-Fix. `applyOverlay` ist
+geteilter Code — was die Vorschau richtig macht, ändert auch, mit welchem
+Ausschnitt eine Bestellung im Editor aufgeht. Beim nächsten „Im Editor
+öffnen" mit ansehen.
+
+**Keine Unit-Tests:** Kein bestehender Test im Repo fasst den Editor-Store an.
+Das Gerüst dafür aufzubauen wäre mehr Arbeit als die Änderung selbst; die
+Prüfung ist hier der Blick auf das Bild.
+
+**Offen, falls die Vorschau zu lange braucht:** Sie baut die Karte bei jedem
+Öffnen neu. Bei einer Bestellung ist das unerheblich; wenn die Queue länger
+wird und das Warten stört, wäre ein zwischengespeichertes Bild der nächste
+Schritt — dann aber mit der Frage, wie es erkennt, dass es veraltet ist.
+
+---
+
 ## Umgesetzt (2026-09-15) — Feldzuordnung
 
 Der Entwurf oben, gebaut. Zwei Schritte, zwei Commits.
@@ -540,3 +751,288 @@ Der ursprüngliche Entwurf holte Bestelldaten, Lieferadresse und Anpassungsdaten
 Davon war zum Zeitpunkt des Abbruchs erledigt: Migration vom alten Developer Central, E-Mail-Authentifizierung, Freischaltung der Sandbox-App-Erstellung. Offen und nie beantragt: Identitätsverifizierung, Compliance-Fragebogen, Produktiv-Rollen.
 
 Der Entwurf ist nicht gescheitert, sondern überflüssig geworden: Drei seiner vier Aufgaben erledigt JTL bereits, und die vierte ist ohne Schnittstelle erreichbar.
+
+---
+
+## QA Test Results
+
+**Tested:** 2026-09-16
+**App URL:** http://localhost:3000 (Dev, gegen die gemeinsame Dev/Prod-Datenbank)
+**Tester:** QA Engineer (AI)
+
+### Wie getestet wurde — und die Grenze
+
+Die Admin-Oberflächen liegen hinter dem Login, und das Repo hat keine
+E2E-Anmeldung. **Queue, SKU-Verwaltung, Vorschau und Druckdatei sind daher
+nicht im Browser bedient worden.** Bewertet wurden sie über den Code, über
+einen lesenden Probelauf der Auswertung gegen die echte Bestellung
+`305-5531288-7707506` (ohne Schreiben, ohne Ortssuche) und über den
+Zugriffsschutz von außen. Einen Aufruf des Eingangs mit gültigem Geheimnis
+gab es bewusst nicht — Dev schreibt in die Produktionsdatenbank.
+
+Cross-Browser (Firefox, Safari) und die Breiten 375/768/1440 px: nicht
+geprüft, aus demselben Grund. Laut Code stapelt die Detailansicht unter
+`md` einspaltig, und die Tabelle scrollt waagerecht.
+
+### Acceptance Criteria Status
+
+#### AC-1: Zuordnung SKU → Design
+- [x] Ungezuordnete SKUs stehen oben (Sortierung in `GET /api/admin/amazon/skus`)
+- [x] Preset, Feld-Schema, Notiz pflegbar (Code; Notiz speichert ohne Neuauswertung)
+- [x] Unbekannte SKU legt offene Zeile an (Code, `resolve.ts`)
+- [x] Nachgetragene Zuordnung wertet wartende Positionen neu aus (Code, `resolveBySku`)
+
+#### AC-2: Abholung und Auswertung
+- [x] `LQ-`-Filter, JSON-oder-Link, Dubletten: laut Abholer-Vertrag und Echtlauf; Dublettenlogik zusätzlich in `ingest.test.ts`
+- [x] Käuferangaben je Textblock: Probelauf liefert alle 7 Felder, Werte identisch zum gespeicherten Ergebnis (nur die Schlüsselreihenfolge weicht ab, JSONB sortiert um)
+- [x] Unbekannter Feldtyp → Hinweis, kein Abbruch (Code)
+- [x] Fehlendes Pflichtfeld → „Prüfen": Probelauf mit geleertem Ort ergibt `pruefung` und „Pflichtfelder fehlen: location"
+
+#### AC-3: Feldzuordnung Amazon → Preset
+- [x] Alle 7 Kriterien — 26 Unit-Tests in `field-mapping.test.ts` grün
+
+#### AC-4: Ort und Editor-Zustand
+- [x] Ortssuche, Koordinaten schlagen Text, mehrdeutig → Prüfung (Code)
+- [x] Preset als Basis, gezielte Überschreibung (Code, geteilte `applyOrderToEditor`)
+- [x] Unbekannte Schrift → Prüfung: 3 Unit-Tests; im Bestand ohne Wirkung, beide Schriften der echten Bestellung sind bekannt
+- [x] Format übernommen, Rahmen als Hinweis „Mit Rahmen" (Code)
+
+#### AC-5: Render und Prüf-Queue
+- [x] Druckdatei bei Freigabe — **nur Code geprüft**, keine PDF erzeugt
+- [ ] Gemeinsame Queue mit Etsy — bewusst zurückgestellt (Entscheidung 2026-09-16), kein Fehler
+- [x] Detailansicht mit Vorschau, Feldern, Gestaltung, Rohdaten (Code; Vorschau am 2026-09-15 im Browser gesehen)
+- [x] Korrektur überlebt Neuauswertung: Probelauf mit Korrektur `names` ergibt den korrigierten Wert und `bereit`; 6 Unit-Tests
+- [x] „Druckfertig" als Wartezustand, „Gedruckt" nimmt aus der offenen Liste (Code)
+- [x] ~~BUG: siehe BUG-1 — eine stornierte Bestellung kann wieder druckfertig werden~~ → behoben 2026-09-16, Nachtest offen
+
+#### AC-6: Betrieb
+- [x] Abholprotokoll `amazon_ingest_runs` (Tabelle bestätigt; kein echter Lauf seit der Migration)
+- [x] Sentry mit Positionsbezug (Code)
+- [x] Geheimnis nur in Umgebungsvariablen, in `.env.local.example` dokumentiert
+- [x] JTL-Zugangsdaten bleiben lokal (Architektur)
+
+### Edge Cases Status
+
+#### EC-1: Stornierte Bestellung
+- [x] Storno vor dem Druck setzt `storniert`; Probelauf bestätigt, dass die Auswertung `storniert` hält
+- [x] ~~BUG: Editor-Übernahme, „Doch nicht gedruckt" und „Gedruckt" prüfen den Storno nicht (BUG-1)~~ → behoben 2026-09-16
+
+#### EC-2: Bestellung mit Menge > 1
+- [x] ~~BUG: Die Queue zeigt die Menge nirgends (BUG-2)~~ → behoben 2026-09-16
+
+#### EC-3: Korrektur des Orts bei eingetippten Koordinaten
+- [ ] BUG: Korrektur greift nicht, ohne Hinweis (BUG-3)
+
+#### EC-4: Handfreigabe im Editor, danach SKU gespeichert
+- [x] Bleibt druckfertig, Hinweise bleiben sichtbar (Code)
+
+#### EC-5: Leere Korrektur auf einem Pflichtfeld
+- [x] Zählt als fehlend → Prüfung (Unit-Test und Probelauf)
+
+### Security Audit Results
+- [x] Ohne Anmeldung: alle vier Lese-Endpunkte 401, alle Schreibaktionen (PATCH/PUT) 401 — 14 E2E-Tests in `tests/PROJ-31-amazon-order-importer.spec.ts`
+- [x] Admin-Seiten und Vorschau leiten ohne Anmeldung zum Login
+- [x] Eingang: fehlendes, falsches und leeres Bearer-Token → 401; GET → 405; Vergleich zeitkonstant
+- [x] Öffentlicher Supabase-Schlüssel: kein Lesen aus `amazon_custom_orders`, `amazon_sku_mappings`, `amazon_ingest_runs`; kein Schreiben ins Protokoll (401); Bucket `amazon-custom` weder listbar noch öffentlich abrufbar
+- [x] Supabase Security Advisor: keine Befunde zu PROJ-31-Tabellen
+- [x] Keine Käufereingaben in Sentry-Meldungen; Rohdaten nur in der Admin-Detailansicht; React escaped alle Werte
+- [x] `postMessage` zwischen Vorschau und Queue auf die eigene Origin beschränkt
+- [ ] Low: `page_url` vom Abholer wird ungeprüft als Link gesetzt (BUG-5)
+- [ ] Low, seitenweit: kein `X-Frame-Options`/`frame-ancestors` (BUG-6)
+- [x] Rate-Limiting am Eingang: keins — hinter dem Geheimnis vertretbar
+
+### Regression
+- [x] `vitest run src/`: 301 Tests grün
+- [x] Playwright Chromium: 41 bestanden, 22 übersprungen, 1 fehlgeschlagen — `PROJ-39 … clicking a pill swaps the image`. **Nicht durch PROJ-31:** schlägt auch ohne die Änderungen dieser Sitzung fehl (der Test greift das Logo statt eines Galeriebilds)
+- [x] Geteilter Code `useMapExport`: `ExportTab` ruft `exportPNG`/`exportPDF` ohne die neuen optionalen Angaben auf — unverändert; `renderPreview` nicht angefasst
+- [x] Produktionsbuild übersetzt
+
+### Bugs Found
+
+#### BUG-1: Stornierte Bestellung kann wieder druckfertig und gedruckt werden
+- **Severity:** Medium
+- **Steps to Reproduce:**
+  1. Eine Bestellung wird bei Amazon storniert → Queue zeigt „Storniert"
+  2. Filter „Storniert" → Detail → „Im Editor öffnen" → „Anpassung übernehmen"
+  3. Expected: abgelehnt oder zumindest Warnung, Status bleibt „Storniert"
+  4. Actual: `PUT …/editor` setzt `queue_status = 'bereit'` ohne Blick auf `order_state` — die Bestellung steht als druckfertig in der offenen Liste, und die Druckdatei ist freigeschaltet
+- **Gleiches Muster:** „Gedruckt" (`mark_printed`) ist bei stornierten Bestellungen klickbar; „Doch nicht gedruckt" (`unmark_printed`) setzt immer `bereit`, auch wenn die Bestellung inzwischen storniert ist
+- **Priority:** Fix before deployment — eine stornierte Bestellung zu drucken kostet Material und Versand
+- **Status: Behoben 2026-09-16.** `PUT …/editor` lehnt stornierte Bestellungen mit 409 ab (Vorabprüfung plus `order_state <> cancelled` im Update gegen einen Storno dazwischen). `mark_printed` lehnt ab; `unmark_printed` setzt bei Storno `storniert` statt `bereit`. Oberfläche: roter Hinweis „Bei Amazon storniert — nicht drucken", kein „Gedruckt"-Knopf, keine Druckdatei (auch nicht als Nachdruck), „Anpassung übernehmen" im Editor gesperrt
+
+#### BUG-2: Bestellmenge ist in der Queue unsichtbar
+- **Severity:** Low (vom Betreiber herabgestuft 2026-09-16: rund 95 % der Bestellungen sind 1 Stück)
+- **Steps to Reproduce:**
+  1. Käufer bestellt dasselbe personalisierte Poster zweimal (`quantity = 2`)
+  2. Queue und Detailansicht öffnen
+  3. Expected: Menge sichtbar, zumindest wenn > 1
+  4. Actual: `quantity` steht in der API-Antwort, wird aber weder in der Tabelle noch in der Detailansicht angezeigt — gedruckt wird ein Poster
+- **Priority:** Fix before deployment
+- **Status: Behoben 2026-09-16.** Ab 2 Stück: Badge „N Stück" in der Tabelle, „N Stück drucken" im Kopf der Detailansicht und neben dem Druckdatei-Knopf, „N Stück" in der Editor-Leiste
+
+#### BUG-3: Ortskorrektur wirkt nicht, wenn der Käufer Koordinaten angegeben hat
+- **Severity:** Low
+- **Steps to Reproduce:**
+  1. Bestellung mit ausgefülltem Koordinatenfeld
+  2. In der Detailansicht „Adresse für die Karte" korrigieren
+  3. Expected: Karte zeigt den korrigierten Ort, oder ein Hinweis, dass die Koordinaten Vorrang haben
+  4. Actual: Koordinaten schlagen den Ort (so spezifiziert), die Kartenmitte bleibt — ohne Hinweis. Workaround: Koordinatenfeld mitkorrigieren
+- **Priority:** Fix in next sprint
+
+#### BUG-4: Arbeitsliste sortiert neueste zuerst, ohne Versandfrist
+- **Severity:** Low
+- **Steps to Reproduce:** Queue öffnen. Sortiert wird nach `purchase_date` absteigend; `latest_ship_at` wird nicht angezeigt. Der Index der Migration ist für „älteste zuerst" angelegt, und eine Arbeitsliste arbeitet man in der Regel nach Frist ab
+- **Priority:** Nice to have
+
+#### BUG-5: `page_url` wird ungeprüft als Link gesetzt
+- **Severity:** Low
+- **Steps to Reproduce:** Der Abholer liefert `page_url` als freien String (max. 2000 Zeichen), die Detailansicht rendert ihn als `href`. Ein `javascript:`-Link wäre klickbar. Setzt einen kompromittierten Abholer voraus
+- **Priority:** Nice to have — im Ingest-Schema auf `https://` beschränken
+
+#### BUG-6: Seiten sind fremd einbettbar (seitenweit, nicht PROJ-31-spezifisch)
+- **Severity:** Low
+- **Beobachtung:** Weder `next.config.ts` noch die Middleware setzen `X-Frame-Options` oder `frame-ancestors`, obwohl `.claude/rules/security.md` `DENY` vorsieht. Für PROJ-31 wichtig: `DENY` würde die eingebettete Vorschau brechen — beim Nachziehen `SAMEORIGIN` bzw. `frame-ancestors 'self'` wählen
+- **Priority:** Fix in next sprint, zusammen mit den Security-Headern aus `/deploy`
+
+### Summary
+- **Acceptance Criteria:** 32 von 34 erfüllt; 1 bewusst zurückgestellt (Etsy-Queue), 1 durch BUG-1 eingeschränkt (seither behoben)
+- **Bugs Found:** 6 total (0 critical, 0 high, 1 medium, 5 low; BUG-2 vom Betreiber auf Low gesetzt) — BUG-1 und BUG-2 am 2026-09-16 behoben, 4 Low offen
+- **Security:** Pass — Zugriffsschutz von außen und über den öffentlichen Schlüssel dicht; zwei Low-Befunde
+- **Production Ready:** Formal ja (keine Critical/High) — **empfohlen: noch nicht**
+- **Recommendation:** Erst BUG-1 und BUG-2 beheben, dann die Druckdatei einmal im Browser erzeugen und mit der Vorschau vergleichen. Solange der Kernablauf nie bedient wurde, kann dort ein High-Fehler liegen, den dieser Test nicht sehen konnte
+
+### Nach der Behebung von BUG-1 und BUG-2 (2026-09-16)
+- `tsc --noEmit` ohne neue Fehler; `vitest run src/` 301 grün; PROJ-31-E2E 14 grün
+- **Produktionsbuild nicht bestätigt:** bricht ab, auch ohne die Änderungen dieser Sitzung — dem Rechner fehlt Arbeitsspeicher (Webpack: „process out of memory", knapp 3 von 16 GB frei; der seit dem Vorabend laufende Dev-Server hält gut 2 GB). Vor dem Merge mit beendetem Dev-Server wiederholen
+- Die Behebungen selbst sind nicht im Browser geprüft (keine Admin-Anmeldung im Test) und brauchen den Nachtest per `/qa`
+
+---
+
+## QA Nachtest (2026-09-19)
+
+**Getestet:** 2026-09-19 · Branch `feat/proj31-order-preview` (HEAD `8e9754a`), PR #12
+**Anlass:** Der Lauf vom 2026-09-16 endete mit zwei offenen Punkten — die Behebungen
+von BUG-1 und BUG-2 waren ungeprüft, und der Produktionsbuild ließ sich auf dem
+Rechner nicht bestätigen.
+
+### Was dieser Lauf geprüft hat
+
+| Prüfung | Ergebnis |
+|---|---|
+| `npx tsc --noEmit` | Keine Fehler in PROJ-31-Code. Übrig bleiben die zwei bekannten, fremden Testdateien (`upload-overlay/route.test.ts`, `useMobileSheet.test.ts`) |
+| `vitest run src/` | 301 Tests grün; `src/lib/amazon` + `src/hooks` einzeln 91 grün |
+| PROJ-31-E2E (chromium) | 14 von 14 grün — Zugriffsschutz der Admin-Endpunkte, Login-Weiterleitung der Seiten, Eingang ohne/mit falschem/leerem Geheimnis, nur POST |
+| Gesamte E2E-Suite (chromium), zweimal | 41 grün, 1 Fehler — **vorbestehend**, siehe unten |
+| Produktionsbuild | **Bestätigt über Vercel** (PR #12, Check grün auf `8e9754a`). Lokal nicht reproduzierbar: `next build` bricht mit Segfault ab, wie schon am 2026-09-16 (Rechner, nicht Code) |
+| Supabase-Security-Advisors | Keine neuen Befunde. `amazon_custom_orders`, `amazon_ingest_runs`, `amazon_sku_mappings`: RLS an, je eine Policy — live per Katalogabfrage verifiziert |
+
+### Behebungen von BUG-1 und BUG-2 — nachgeprüft (Code, nicht Browser)
+
+- **Handkorrekturen überleben die Neuauswertung.** `resolveAndSave` liest
+  `field_corrections` bewusst frisch aus der Zeile, statt der Zeile des Aufrufers zu
+  trauen — die PATCH-Route übergibt eine Zeile von *vor* dem Schreiben, das ist also
+  kein veralteter Stand, sondern abgefangen. `applyCorrections` legt die Korrekturen
+  über das Ergebnis und ruft `finalizeParse` erneut auf, womit eine Korrektur auch ein
+  fehlendes Pflichtfeld nachtragen kann.
+- **Nach einer Ortskorrektur wird neu geocodiert.** `options.geocode !== false` —
+  der Standard ist Suchen, die PATCH-Route übergibt keine Option. Die im Kommentar
+  behauptete Wirkung tritt also tatsächlich ein.
+- **Schriftabgleich** (`fonts.ts`) vereint hochgeladene (PROJ-47) und eingebaute
+  Schriften und normalisiert die Namen; 3 Unit-Tests.
+
+### Cross-Cutting-Prüfung
+
+Der ursprüngliche Verdacht, der Zoom-Fix betreffe alle Editoren, hat sich **nicht**
+bestätigt: `applyOverlay` ist modulprivat in `src/lib/amazon/apply-order-to-editor.ts`
+und wird nur von `applyOrderToEditor` aufgerufen (Editor-Übernahme und Vorschau der
+Queue). Kein anderer Editor liest diese Funktion.
+
+Geteilt ist genau eine Datei: [useMapExport.ts](src/hooks/useMapExport.ts). Die
+Änderung ist abwärtskompatibel — `exportPNG`/`exportPDF` bekommen einen **optionalen**
+Dateinamen und geben jetzt `boolean` statt `void` zurück. Alle bestehenden Aufrufer
+(`ExportTab`, `PreviewTriggerButton`, `SaveAsPresetButton`, `HeadlessRenderBridge`)
+rufen ohne den neuen Parameter auf und werten den Rückgabewert nicht aus. Die Zwillinge
+`useStarMapExport` und `usePhotoExport` sind unverändert; sie brauchen den Dateinamen
+nicht, weil Amazon-Poster immer Karten-Poster sind.
+
+### Neue Befunde
+
+#### BUG-7: `npm test` ist unbrauchbar — Vitest greift die Playwright-Tests mit auf
+- **Severity:** Medium
+- **Steps to Reproduce:**
+  1. `npm test` ausführen (so dokumentiert in `CLAUDE.md`)
+  2. Expected: die Unit-/Integrationstests laufen
+  3. Actual: 301 Tests grün, aber **8 Testdateien scheitern** mit
+     „Playwright Test did not expect test.describe() to be called here" — `vitest.config.ts`
+     schränkt `include` nicht ein, also zieht `vitest run` auch `tests/*.spec.ts` ein
+- **Wirkung:** Der dokumentierte Befehl endet immer mit Exit-Code 1. Echte Regressionen
+  gehen im Rauschen unter, und jeder Entwickler muss wissen, dass `vitest run src/`
+  gemeint ist
+- **Vorbestehend:** ja, auf `main` genauso — dieser PR legt nur eine weitere Spec-Datei dazu
+- **Priority:** Fix in next sprint — `include: ['src/**/*.test.{ts,tsx}']` in `vitest.config.ts`
+
+#### BUG-8: Die Herkunft eines erkannten Feldes wird nirgends angezeigt
+- **Severity:** Low
+- **Beobachtung:** Das Akzeptanzkriterium „Detailansicht zeigt … erkannte Felder mit
+  Herkunft" ist als erfüllt markiert. `matchedAs` (Beschriftung, die der Käufer getippt
+  hat, und ob der Treffer über die Beschriftung oder über die Position kam) steht zwar im
+  Typ von `AdminAmazonOrders`, wird aber an keiner Stelle gerendert. Gezeigt werden Wert,
+  „(korrigiert)", fehlende Pflichtfelder und nicht zugeordnete Zeilen
+- **Dazu:** Rettet eine Korrektur eine zuvor gescheiterte Auswertung, geht `matchedAs`
+  ganz verloren (`parse.ok ? { ...parse.matchedAs } : {}`) — `ParseFailure` trägt das Feld
+  nicht. Heute ohne sichtbare Wirkung, weil die Oberfläche es ohnehin nicht zeigt
+- **Priority:** Nice to have — entweder anzeigen oder das Kriterium ehrlich abstufen
+
+#### BUG-9: `print_file_created` prüft den Zustand der Bestellung nicht
+- **Severity:** Low
+- **Steps to Reproduce:** Als Admin `PATCH /api/admin/amazon/orders/<id>` mit
+  `{"action":"print_file_created"}` auf eine stornierte oder ungeprüfte Bestellung
+- **Actual:** `rendered_at` wird gesetzt, als wäre eine Druckdatei entstanden. Die
+  Oberfläche verhindert das sauber (`freigegeben()` schließt storniert aus und verlangt
+  `bereit` oder bereits gedruckt), die Schnittstelle selbst nicht — anders als
+  `mark_printed`, das storniert mit 409 abweist
+- **Wirkung:** gering, nur Admins erreichbar, nur ein Vermerk
+- **Priority:** Nice to have
+
+### Nicht von PROJ-31 verursacht
+
+- **PROJ-39-E2E „Gallery: clicking a pill swaps the image without navigating away"
+  scheitert** — auf `main` genauso, also vorbestehend. Das Bild bleibt auf
+  `/brand/logo_1200x300.svg` stehen, was auf fehlende Preset-Renders in der
+  Entwicklungsumgebung hindeutet. Gehört zu PROJ-39, nicht hierher
+- **PROJ-37-E2E „switching to A3 changes the rendered map canvas size"** fiel im ersten
+  Volllauf aus, war im Einzellauf und im zweiten Volllauf grün: Flake unter Parallellast
+  (6 Worker), kein Befund
+
+### Weiterhin offen aus dem Lauf vom 2026-09-16
+
+BUG-3 (Ortskorrektur ohne Wirkung bei ausgefülltem Koordinatenfeld), BUG-4 (Sortierung
+ohne Versandfrist), BUG-5 (`page_url` ungeprüft als `href`) und BUG-6 (keine
+`frame-ancestors`-Header) — alle vier im Code nachgesehen und unverändert vorhanden,
+alle Low.
+
+### Die Grenze dieses Laufs
+
+Unverändert gegenüber dem 2026-09-16: **Queue, SKU-Verwaltung, Vorschau und Druckdatei
+sind nicht im Browser bedient worden.** Das Repo hat keine E2E-Anmeldung, und Dev und
+Prod teilen sich eine Datenbank. Cross-Browser (Firefox, Safari) und die Breiten
+375/768/1440 px sind aus demselben Grund ungeprüft — für die neue Vorschau-Seite steht
+die Prüfung bei 375 px damit noch aus.
+
+Der Kernablauf — Bestellung ansehen, Vorschau bauen lassen, freigeben, PDF ziehen —
+ist damit weiterhin nur über den Code bewertet.
+
+### Summary
+
+- **Acceptance Criteria:** 30 von 31 erfüllt, 1 bewusst zurückgestellt (gemeinsame Queue
+  mit Etsy); BUG-8 stellt die Erfüllung eines weiteren teilweise in Frage
+- **Bugs Found:** 3 neu (0 critical, 0 high, 1 medium, 2 low), davon 1 vorbestehend aus
+  der Testkonfiguration; 4 Low aus dem Vorlauf weiterhin offen
+- **Security:** Pass — Eingang mit längengeprüftem `timingSafeEqual` und Bearer-Zwang,
+  alle Admin-Endpunkte hinter `requireAdmin`, `postMessage` mit Origin-Prüfung,
+  RLS live verifiziert, keine neuen Advisor-Befunde
+- **Regression:** keine durch diesen PR verursachte
+- **Production Ready:** JA im Sinne der Regel (keine Critical/High)
+- **Recommendation:** Mergen ist vertretbar. Vor dem Abhaken als „Deployed" sollte der
+  Betreiber den Kernablauf einmal selbst bedienen — eine angemeldete Sitzung ist das
+  Einzige, was dieser Test strukturell nicht leisten kann

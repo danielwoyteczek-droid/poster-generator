@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Card, CardContent } from '@/components/ui/card'
+import { parseFrame } from '@/lib/amazon/sku-schema'
 import type {
   AmazonOrderRow, AmazonOrdersResponse, AmazonQueueStatus,
 } from '@/app/api/admin/amazon/orders/route'
@@ -98,6 +99,10 @@ interface OrderDetail {
   ingest_warnings: string[]
   resolve_warnings: string[]
   printed_at: string | null
+  rendered_at: string | null
+  editor_state_saved_at: string | null
+  field_corrections: Record<string, string>
+  schema_fields: Array<{ key: string; label: string; required: boolean }>
   customization_item: unknown
 }
 
@@ -109,6 +114,9 @@ export function AdminAmazonOrders() {
   const [detailLoading, setDetailLoading] = useState(false)
   const [busy, setBusy] = useState(false)
   const [edits, setEdits] = useState<Record<string, string>>({})
+  // Neu setzen, wenn sich die Angaben ändern — der Rahmen lädt die Vorschau
+  // sonst nicht neu, weil die Bestellung dieselbe bleibt.
+  const [previewVersion, setPreviewVersion] = useState(0)
 
   const load = useCallback(async (status: string) => {
     setLoading(true)
@@ -139,6 +147,22 @@ export function AdminAmazonOrders() {
     }
   }
 
+  const refreshDetail = useCallback(async (id: string) => {
+    const fresh = await fetch(`/api/admin/amazon/orders/${id}`)
+    if (fresh.ok) setDetail(await fresh.json())
+  }, [])
+
+  // Die Vorschau im Rahmen meldet, wenn sie eine Druckdatei erzeugt hat.
+  useEffect(() => {
+    const onMessage = (e: MessageEvent) => {
+      if (e.origin !== window.location.origin) return
+      const msg = e.data as { type?: string; id?: string } | null
+      if (msg?.type === 'amazon-print-file' && msg.id) void refreshDetail(msg.id)
+    }
+    window.addEventListener('message', onMessage)
+    return () => window.removeEventListener('message', onMessage)
+  }, [refreshDetail])
+
   const act = async (id: string, body: Record<string, unknown>, note: string) => {
     setBusy(true)
     try {
@@ -152,8 +176,11 @@ export function AdminAmazonOrders() {
       toast.success(json.status ? `${note} — jetzt „${STATUS_LABEL[json.status] ?? json.status}"` : note)
       await load(filter)
       if (detail?.id === id) {
-        const fresh = await fetch(`/api/admin/amazon/orders/${id}`)
-        if (fresh.ok) setDetail(await fresh.json())
+        await refreshDetail(id)
+        setEdits({})
+        if (body.action !== 'mark_printed' && body.action !== 'unmark_printed') {
+          setPreviewVersion((v) => v + 1)
+        }
       }
     } catch (e) {
       toast.error((e as Error).message)
@@ -216,8 +243,16 @@ export function AdminAmazonOrders() {
           )
         })}
         <div className="ml-auto flex items-center gap-3">
-          <span className="text-xs text-muted-foreground">
-            Letzter Eingang: {datum(data.last_ingest_at)}
+          <span className="text-xs text-muted-foreground" title={
+            data.last_run
+              ? `${data.last_run.items_received} geliefert · ${data.last_run.items_accepted} übernommen · ${data.last_run.items_duplicate} unverändert · ${data.last_run.items_failed} fehlgeschlagen`
+              : undefined
+          }>
+            Letzter Abgleich: {data.last_run ? datum(data.last_run.received_at) : '—'}
+            {data.last_run && data.last_run.items_failed > 0 && (
+              <span className="text-destructive"> · {data.last_run.items_failed} fehlgeschlagen</span>
+            )}
+            <span className="hidden sm:inline"> · Letzte neue Bestellung: {datum(data.last_ingest_at)}</span>
           </span>
           <Button variant="outline" size="sm" onClick={() => void load(filter)} disabled={loading}>
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
@@ -253,6 +288,11 @@ export function AdminAmazonOrders() {
                   <TableCell className="font-mono text-xs">
                     {row.amazon_order_id}
                     <div className="text-muted-foreground mt-0.5">Pos. {row.position}</div>
+                    {row.quantity > 1 && (
+                      // Nicht zu übersehen: sonst wird ein Poster gedruckt, wo
+                      // der Käufer mehrere bezahlt hat.
+                      <Badge className="mt-1">{row.quantity} Stück</Badge>
+                    )}
                   </TableCell>
                   <TableCell className="text-sm">
                     <div className="font-mono text-xs">{row.sku}</div>
@@ -312,6 +352,16 @@ export function AdminAmazonOrders() {
                   {detail.asin && ` · ${detail.asin}`}
                   {detail.preset && ` · Design: ${detail.preset.name}`}
                 </DialogDescription>
+                {(detail.quantity > 1 || detail.order_state === 'cancelled') && (
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {detail.quantity > 1 && (
+                      <Badge>{detail.quantity} Stück drucken</Badge>
+                    )}
+                    {detail.order_state === 'cancelled' && (
+                      <Badge variant="destructive">Bei Amazon storniert — nicht drucken</Badge>
+                    )}
+                  </div>
+                )}
               </DialogHeader>
 
               <ScrollArea className="max-h-[70vh] pr-4">
@@ -328,67 +378,134 @@ export function AdminAmazonOrders() {
                   )}
 
                   <div className="grid md:grid-cols-2 gap-6">
-                    <div>
-                      <h3 className="text-sm font-medium mb-2">Amazons Vorschau</h3>
-                      {detail.preview_url ? (
-                        <img
-                          src={detail.preview_url}
-                          alt="Vorschau von Amazon"
-                          className="w-full rounded-md border bg-white"
+                    <div className="space-y-4">
+                      <div>
+                        <h3 className="text-sm font-medium mb-2">Unser Poster</h3>
+                        {/*
+                          Eigene Seite im Rahmen statt Bild aus dem Speicher: Das
+                          Poster wird beim Ansehen gebaut, kann also nicht veralten,
+                          wenn sich Zuordnung oder Preset ändern. Der Rahmen hält
+                          außerdem den Editor-Store aus dieser Oberfläche heraus.
+                          `key` erzwingt einen frischen Aufbau je Bestellung.
+                        */}
+                        <iframe
+                          key={`${detail.id}-${previewVersion}`}
+                          src={`/private/admin/amazon/orders/${detail.id}/vorschau`}
+                          title="Vorschau des Posters dieser Bestellung"
+                          className="w-full aspect-[1/1.414] rounded-md border bg-white"
                         />
-                      ) : (
-                        <p className="text-sm text-muted-foreground">Kein Bild geliefert.</p>
-                      )}
-                      {detail.page_url && (
-                        <a
-                          href={detail.page_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs underline text-muted-foreground mt-2 inline-flex items-center gap-1"
-                        >
-                          Bei Amazon ansehen <ExternalLink className="w-3 h-3" />
-                        </a>
-                      )}
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Aus den Angaben des Käufers gebaut — dasselbe Bild, das der
+                          Editor zeigt. Die Druckdatei entsteht erst bei der Freigabe.
+                          {detail.rendered_at && (
+                            <span className="block mt-1">
+                              Druckdatei zuletzt erzeugt: {datum(detail.rendered_at)}
+                            </span>
+                          )}
+                        </p>
+                      </div>
+
+                      <div>
+                        <h3 className="text-sm font-medium mb-2">Amazons Vorschau</h3>
+                        {detail.preview_url ? (
+                          <img
+                            src={detail.preview_url}
+                            alt="Vorschau von Amazon"
+                            className="w-full rounded-md border bg-white"
+                          />
+                        ) : (
+                          <p className="text-sm text-muted-foreground">Kein Bild geliefert.</p>
+                        )}
+                        {detail.page_url && (
+                          <a
+                            href={detail.page_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs underline text-muted-foreground mt-2 inline-flex items-center gap-1"
+                          >
+                            Bei Amazon ansehen <ExternalLink className="w-3 h-3" />
+                          </a>
+                        )}
+                      </div>
                     </div>
 
                     <div className="space-y-4">
                       <div>
                         <h3 className="text-sm font-medium mb-2">Erkannte Angaben</h3>
+                        {detail.editor_state_saved_at && (
+                          <p className="text-xs text-amber-700 dark:text-amber-400 mb-2">
+                            Im Editor angepasst ({datum(detail.editor_state_saved_at)}). Das
+                            Poster zeigt diesen Stand — Korrekturen hier ändern es nicht mehr,
+                            dafür im Editor öffnen.
+                          </p>
+                        )}
+                        {parseFrame(detail.parse_result?.parsed?.frame).withFrame && (
+                          <p className="text-sm mb-2">
+                            <Badge variant="outline">Mit Rahmen</Badge>{' '}
+                            <span className="text-muted-foreground">
+                              {detail.parse_result?.parsed?.frame}
+                            </span>
+                          </p>
+                        )}
                         <div className="space-y-2">
-                          {Object.entries(detail.parse_result?.parsed ?? {}).map(([k, v]) => (
-                            <div key={k}>
-                              <label className="text-xs text-muted-foreground">
-                                {k}
-                                {detail.parse_result?.matchedAs?.[k]?.mode === 'manual' && (
-                                  <span className="ml-1 text-amber-700 dark:text-amber-400">
-                                    (korrigiert)
-                                  </span>
-                                )}
-                              </label>
-                              <div className="flex gap-2 mt-0.5">
-                                <Input
-                                  value={edits[k] ?? v}
-                                  onChange={(e) => setEdits({ ...edits, [k]: e.target.value })}
-                                  className="h-8 text-sm"
-                                  disabled={Boolean(detail.printed_at)}
-                                />
-                                {(edits[k] ?? v) !== v && (
-                                  <Button
-                                    size="sm" className="h-8"
-                                    disabled={busy}
-                                    onClick={() => void act(
-                                      detail.id,
-                                      { action: 'correct_field', key: k, value: edits[k] },
-                                      `${k} korrigiert`,
-                                    )}
-                                  >
-                                    Speichern
-                                  </Button>
-                                )}
+                          {feldZeilen(detail).map(({ key: k, label, required }) => {
+                            const v = detail.parse_result?.parsed?.[k] ?? ''
+                            const korrigiert = k in (detail.field_corrections ?? {})
+                            const fehlt = Boolean(detail.parse_result?.missing?.includes(k))
+                            const current = edits[k] ?? v
+                            return (
+                              <div key={k}>
+                                <label className="text-xs text-muted-foreground">
+                                  {label}
+                                  {required && ' *'}
+                                  {korrigiert && (
+                                    <span className="ml-1 text-amber-700 dark:text-amber-400">
+                                      (korrigiert)
+                                    </span>
+                                  )}
+                                  {fehlt && (
+                                    <span className="ml-1 text-destructive">(fehlt)</span>
+                                  )}
+                                </label>
+                                <div className="flex gap-2 mt-0.5">
+                                  <Input
+                                    value={current}
+                                    onChange={(e) => setEdits({ ...edits, [k]: e.target.value })}
+                                    className="h-8 text-sm"
+                                    disabled={Boolean(detail.printed_at) || busy}
+                                  />
+                                  {current !== v && (
+                                    <Button
+                                      size="sm" className="h-8"
+                                      disabled={busy}
+                                      onClick={() => void act(
+                                        detail.id,
+                                        { action: 'correct_field', key: k, value: current },
+                                        `${label} korrigiert`,
+                                      )}
+                                    >
+                                      Speichern
+                                    </Button>
+                                  )}
+                                  {korrigiert && current === v && !detail.printed_at && (
+                                    <Button
+                                      size="sm" variant="ghost" className="h-8"
+                                      disabled={busy}
+                                      title="Wieder den Wert aus der Bestellung nehmen"
+                                      onClick={() => void act(
+                                        detail.id,
+                                        { action: 'reset_field', key: k },
+                                        `${label}: Korrektur zurückgenommen`,
+                                      )}
+                                    >
+                                      <Undo2 className="w-4 h-4" />
+                                    </Button>
+                                  )}
+                                </div>
                               </div>
-                            </div>
-                          ))}
-                          {Object.keys(detail.parse_result?.parsed ?? {}).length === 0 && (
+                            )
+                          })}
+                          {!detail.parse_result && (
                             <p className="text-sm text-muted-foreground">
                               Noch nichts ausgewertet.
                             </p>
@@ -470,7 +587,7 @@ export function AdminAmazonOrders() {
                       <RefreshCw className="w-4 h-4 mr-2" />
                       Neu auswerten
                     </Button>
-                    {detail.printed_at ? (
+                    {detail.order_state === 'cancelled' && !detail.printed_at ? null : detail.printed_at ? (
                       <Button
                         variant="outline" size="sm" disabled={busy}
                         onClick={() => void act(detail.id, { action: 'unmark_printed' }, 'Druck zurückgenommen')}
@@ -496,4 +613,18 @@ export function AdminAmazonOrders() {
       </Dialog>
     </div>
   )
+}
+
+/**
+ * Alle Felder des Schemas, nicht nur die erkannten — sonst ließe sich ein
+ * fehlendes Pflichtfeld nicht nachtragen. Erkannte Werte ohne Schemafeld
+ * hängen hinten dran, damit nichts verschwindet.
+ */
+function feldZeilen(detail: OrderDetail): Array<{ key: string; label: string; required: boolean }> {
+  const rows = [...(detail.schema_fields ?? [])]
+  const bekannt = new Set(rows.map((r) => r.key))
+  for (const k of Object.keys(detail.parse_result?.parsed ?? {})) {
+    if (!bekannt.has(k)) rows.push({ key: k, label: k, required: false })
+  }
+  return rows
 }

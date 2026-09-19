@@ -54,6 +54,7 @@ export function AdminAmazonSkus() {
   const [expanded, setExpanded] = useState<string | null>(null)
   const [schemaDraft, setSchemaDraft] = useState<string>('')
   const [schemaError, setSchemaError] = useState<string | null>(null)
+  const [notesDraft, setNotesDraft] = useState<string>('')
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -103,6 +104,7 @@ export function AdminAmazonSkus() {
     if (expanded === row.id) { setExpanded(null); return }
     setExpanded(row.id)
     setSchemaError(null)
+    setNotesDraft(row.notes ?? '')
     // Gepflegtes Schema zeigen, sonst das Standard-Schema als Ausgangspunkt —
     // so hat man beim Anpassen eine vollständige Vorlage vor sich.
     const start = row.personalization_schema ?? data?.default_schema ?? []
@@ -119,6 +121,13 @@ export function AdminAmazonSkus() {
     }
     setSchemaError(null)
     await patch(row, { personalization_schema: parsed }, `Schema für ${row.sku} gespeichert`)
+  }
+
+  // Eine Notiz ändert nichts an der Auswertung — also keine Neuauswertung
+  // der wartenden Bestellungen anstoßen.
+  const saveNotes = async (row: SkuRow) => {
+    const notes = notesDraft.trim()
+    await patch(row, { notes: notes || null, reresolve: false }, `Notiz für ${row.sku} gespeichert`)
   }
 
   const resetSchema = async (row: SkuRow) => {
@@ -260,6 +269,30 @@ export function AdminAmazonSkus() {
                   <TableRow>
                     <TableCell colSpan={5} className="bg-muted/40">
                       <div className="py-2 space-y-4">
+                        <div className="space-y-2">
+                          <label htmlFor={`notes-${row.id}`} className="text-sm font-medium">
+                            Notiz
+                          </label>
+                          <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
+                            <Textarea
+                              id={`notes-${row.id}`}
+                              value={notesDraft}
+                              onChange={(e) => setNotesDraft(e.target.value)}
+                              rows={2}
+                              maxLength={2000}
+                              className="text-sm"
+                              placeholder="z. B. welches Listing, Besonderheiten der Variante"
+                            />
+                            <Button
+                              size="sm" variant="outline"
+                              onClick={() => void saveNotes(row)}
+                              disabled={savingId === row.id || notesDraft.trim() === (row.notes ?? '')}
+                            >
+                              Notiz speichern
+                            </Button>
+                          </div>
+                        </div>
+
                         <AdminAmazonSkuMapping
                           draft={schemaDraft}
                           onChange={(next) => { setSchemaDraft(next); setSchemaError(null) }}
