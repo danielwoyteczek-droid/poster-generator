@@ -516,7 +516,8 @@ spiegelt. Das ist eine Annahme, kein Wissen — und wenn sie falsch ist, ist jed
 Bogen Ausschuss. Ein Testdruck vor Baubeginn klärt es.
 
 ## QA Test Results
-_To be added by /qa_
+
+Siehe den ausgefuehrten Abschnitt am Ende dieser Datei (Lauf vom 2026-09-21).
 
 ## Deployment
 _To be added by /deploy_
@@ -849,3 +850,141 @@ Stelle ergänzt und beim Zwilling vergessen.
 | 9 | Motiv löschbar, obwohl eine Warenkorb-Position es referenziert | Der Löschknopf weicht einem Hinweis „im Warenkorb", solange eine Position das Motiv braucht |
 
 **Nicht behoben, weil bewusst so:** Die Beschränkung der Stripe-Adressabfrage auf *ein* Land bleibt. Der Versandtarif wird für dieses Land berechnet und lässt sich nach dem Anlegen der Session nicht mehr ändern — eine offene Länderliste hieße, für ein Land zu kassieren und in ein anderes zu liefern.
+
+---
+
+## QA Test Results
+
+**Tested:** 2026-09-21 - Branch `feat/proj55-dtf-print-editor` nach dem Merge von `main` (`0ec4cdf`), PR #4
+**Tester:** QA Engineer (AI)
+
+### Wie getestet wurde - und die Grenze
+
+Automatisiert: 431 Unit-/Integrationstests, 10 neue E2E-Tests fuer PROJ-55 (Chromium und Mobile Safari), die volle E2E-Suite gegen `main` verglichen, dazu ein Code-Audit der Kauf- und Upload-Wege gegen die Akzeptanzkriterien.
+
+**Nicht getestet: der Editor unter der Hand.** Ein echter Upload und eine echte Bestellung schreiben in dieselbe Datenbank wie die Produktion und legen echte Dateien im Storage ab; eine Testzahlung erzeugt eine echte Stripe-Session. Alles, was Ziehen, Skalieren, Drehen und den Upload-Dialog betrifft, ist deshalb nur ueber den Code bewertet. Firefox und Safari-Desktop stehen nicht in der Playwright-Konfiguration (nur Chromium und Mobile Safari).
+
+### Acceptance Criteria Status
+
+#### AC-1: Zugang und Navigation - erfuellt
+- [x] Link "DTF-Druck" in der Hauptnavigation, in allen fuenf Sprachen gepflegt (E2E)
+- [x] Auch in der mobilen Navigation - hinter dem Menue-Knopf, wie alle anderen Links (E2E, Mobile Safari)
+- [x] Eigene Route `/dtf`, analog zu `/map`, `/star-map`, `/photo` (E2E)
+- [x] Ohne Anmeldung benutzbar (E2E)
+
+#### AC-2: Bogen und Format - erfuellt
+- [x] Drei Formate A4 / A3 / 40 x 50 cm (E2E)
+- [x] Mehrere Boegen, je mit eigenem Format und eigener Auflage (Code)
+- [x] Formatwechsel verwirft keine Motive - `clampElementToSheet` holt sie zurueck (26 Unit-Tests)
+- [x] Sicherheitsabstand und Elementabstand zentral in `dtf-constants.ts` (Code)
+
+#### AC-3: Upload - nur ueber Code bewertet
+- [x] PNG/JPEG, Groessengrenze, Ablehnung anderer Typen: Schema und Bucket stimmen ueberein (Code)
+- [x] Motiv-Ablage, Mehrfachplatzierung ohne erneuten Upload (Code)
+- [ ] **Nicht verifiziert:** Drag & Drop, Mehrfachauswahl, JPEG-Hinweis im Browser
+
+#### AC-4: Motive platzieren - nur ueber Code bewertet
+- [x] Klemmung an Bogen und Sicherheitsabstand (Unit-Tests)
+- [ ] **Nicht verifiziert:** Ziehen, Eckanfasser, Drehen, Duplizieren, cm-Anzeige, numerische Eingabe, Hilfslinien
+
+#### AC-5: Text - teilweise
+- [x] Textelement mit Schrift, Groesse, Farbe, Ausrichtung, Fett, Versalien, Laufweite (Code)
+- [x] Fonts aus PROJ-47 (Code)
+- [x] Vorschau = Druck: Text wird beim Ablegen mit 300 dpi gerastert, beide zeigen dieselbe Grafik (Code)
+- [x] Kein Font-Fallback in der PDF - es steckt gar keine Schrift darin, nur das Raster (Code)
+- [ ] **BUG-1: Keine Warnung bei sehr kleinen Schriftgraden.**
+
+#### AC-6: Aufloesungspruefung - erfuellt
+- [x] Eine Schwelle, eine Warnung, keine Ampel, keine Blockade (Code)
+- [x] Der Freigabe-Dialog listet betroffene Motive noch einmal auf (Code)
+- [x] Schwellwert konfigurierbar (`DTF_MIN_DPI_WARNING`)
+
+#### AC-7: Druckfreigabe - erfuellt
+- [x] Keine Freigabe im Editor selbst
+- [x] Dialog erscheint nur bei DTF im Warenkorb, zeigt alle Boegen mit Format, Mass und Auflage
+- [x] Karomuster unterscheidet Transparenz von Weiss
+- [x] Zwei Checkboxen, keine vorausgewaehlt, Bezahl-Knopf bis dahin gesperrt
+- [x] Zeitstempel an der Bestellung (`dtf_print_approved_at`, `dtf_rights_confirmed_at` - live verifiziert)
+- [x] Eingefrorener Snapshot statt Live-Entwurf
+- [x] **Serverseitig erzwungen:** Ein direkter Aufruf des Checkouts ohne Freigabe endet mit 400 (E2E)
+
+#### AC-8: Warenkorb und Checkout - teilweise
+- [x] Eigene Position je Bogen, Preis nach Format x Auflage, kombinierbar mit Postern
+- [x] Bestehender Stripe-Weg, Versandkosten nach PROJ-26
+- [ ] **BUG-2: Die Auflage ist im Warenkorb nicht aenderbar.**
+
+#### AC-9: Fulfillment - erfuellt, bis auf den Testdruck
+- [x] PDF je Bogen nach Zahlungseingang, im Admin herunterladbar, wiederholbar
+- [x] Format, Auflage und die beiden Freigabe-Zeitstempel in der Bestellansicht
+- [ ] **Ungeklaert: ungespiegelt.** Siehe "Der Testdruck" unten - kein Code-Problem
+
+#### AC-10: Speichern - nicht gebaut
+- [ ] **BUG-3:** Keine der drei Anforderungen ist umgesetzt; es gibt keinen Weg, einen DTF-Entwurf zu speichern oder zu laden. Bewusst aus dem ersten Wurf herausgehalten, aber die Kriterien stehen unerfuellt in der Spec.
+
+### Security Audit Results
+
+- [x] Druckfreigabe serverseitig erzwungen, nicht nur im Dialog (E2E)
+- [x] Preise werden serverseitig aus dem Katalog geholt, nicht vom Client uebernommen
+- [x] Upload-Anmeldung, Loeschen und Vorschau-URLs pruefen den Besitz (Nutzer ueber auth.uid(), Gaeste ueber httpOnly-Cookie)
+- [x] Bucket privat, keine anon-Policy - nur signierte URLs
+- [x] Ratenbegrenzung auf Upload und Vorschau-URLs
+- [x] Admin-Druckdateien hinter `requireAdmin` (E2E)
+- [x] Aufraeum-Lauf verlangt sein Geheimnis (E2E)
+- [ ] **BUG-4, BUG-5, BUG-6** siehe unten
+
+### Bugs Found
+
+#### BUG-4: Die Zeitstempel der Druckfreigabe kommen vom Client
+- **Severity:** Medium
+- **Steps to Reproduce:** `POST /api/checkout` mit `dtfApproval: { printApprovedAt: "2019-01-01T00:00:00Z", rightsConfirmedAt: "2019-01-01T00:00:00Z" }`
+- **Expected:** Die Bestellung haelt fest, wann die Freigabe tatsaechlich erteilt wurde
+- **Actual:** `DtfApprovalSchema` prueft nur das Format (`z.string().datetime()`), nicht die Plausibilitaet. Der Wert landet unveraendert in `orders.dtf_print_approved_at`
+- **Warum das zaehlt:** Dieser Zeitstempel existiert als Nachweis gegenueber dem Kunden. Dass ihn der Kunde selbst liefert, nimmt ihm genau die Eigenschaft, fuer die er da ist. Der Server weiss ohnehin, wann der Checkout lief
+- **Priority:** Fix before deployment - eine Zeile, `new Date().toISOString()` statt des Client-Werts
+
+#### BUG-5: Der Kaufweg prueft nicht, wem die Motive gehoeren
+- **Severity:** Medium
+- **Steps to Reproduce:** Warenkorb-Position mit einem `snapshot`, dessen `elements` eine fremde `uploadId` tragen; bezahlen
+- **Actual:** Der Checkout nimmt `snapshot` als `z.record(z.string(), z.unknown())` ungeprueft entgegen. `dtf-print-file.ts` laedt danach `dtf_uploads` allein ueber `.eq('id', el.uploadId)` mit der Service-Role - ohne Besitzfilter. Die fremde Grafik landet in der Druckdatei und wird gedruckt und versendet
+- **Abschwaechend:** Upload-IDs sind UUIDv4 und werden nirgends an Dritte ausgeliefert; die Ablage- und Vorschau-Routen filtern korrekt. Praktisch braucht es eine geleakte ID
+- **Priority:** Fix before deployment - Besitzpruefung beim Anlegen der Bestellung, dieselbe Stelle, an der schon die Freigabe erzwungen wird
+
+#### BUG-2: Die Auflage ist im Warenkorb nicht aenderbar
+- **Severity:** Medium
+- **Steps to Reproduce:** Bogen mit Auflage 3 ablegen, im Warenkorb auf 2 aendern wollen
+- **Actual:** `CartView` kennt nur `removeItem`. Wer die Auflage aendern will, muss die Position loeschen und den Bogen neu ablegen - und ein zweiter Klick im Editor legt laut eigenem Hinweis eine *zusaetzliche* Position an
+- **Priority:** Fix before deployment - betrifft jede DTF-Bestellung, bei der jemand seine Meinung aendert
+
+#### BUG-3: DTF-Entwuerfe lassen sich nicht speichern
+- **Severity:** Medium
+- **Actual:** Drei Akzeptanzkriterien ohne Umsetzung. Die anderen Editoren koennen es, der Kunde wird es hier erwarten. Der Editor-Zustand ist zwar lokal persistiert, haengt aber am Browser
+- **Priority:** Fix in next sprint - bewusste Auslassung des ersten Wurfs, sollte aber in der Spec als verschoben stehen statt als offen
+
+#### BUG-6: Das Cron-Geheimnis wird mit === verglichen
+- **Severity:** Low
+- **Actual:** `verifyCronAuth` in `cleanup-uploads/route.ts` vergleicht direkt. Der Amazon-Eingang aus PROJ-31 macht es im selben Repo mit `timingSafeEqual` und Laengenpruefung - hier fehlt beides
+- **Wirkung:** Zeitseitenkanal auf ein Bearer-Geheimnis. Ueber HTTP mit Netzwerkjitter kaum ausnutzbar, und der Schaden waere ein vorgezogener Aufraeum-Lauf
+- **Priority:** Nice to have - der Praezedenzfall steht schon im Repo
+
+#### BUG-1: Keine Warnung bei sehr kleinen Schriftgraden
+- **Severity:** Low
+- **Actual:** Die Spec verlangt sie ausdruecklich ("feine Striche haften beim Transfer nicht zuverlaessig") und zieht die Parallele zur dpi-Warnung. Die dpi-Warnung gibt es, die Schrift-Warnung nicht. `DTF_MIN_FONT_SIZE_MM` existiert seit dem Review-Fix als Klemmgrenze, wird aber nirgends als Hinweis angezeigt
+- **Priority:** Fix in next sprint
+
+### Der Testdruck - der eigentliche Blocker
+
+Kein Code-Befund, aber der einzige Punkt, an dem ein Fehler jedes Exemplar unbrauchbar macht: Die Annahme "der RIP spiegelt selbst" ist unbestaetigt. Bei doppelter Spiegelung ist jeder gedruckte Bogen Ausschuss. Das laesst sich nicht testen, nur drucken.
+
+Daneben operativ offen: **`DTF_CLEANUP_CRON_SECRET`** ist nicht gesetzt. Solange das so bleibt, antwortet der Aufraeum-Lauf mit 401 und der Storage waechst ungebremst - bei 50-MB-Uploads keine theoretische Groesse.
+
+### Regression
+
+Die volle E2E-Suite laeuft auf dem gemergten Branch mit einem einzigen Fehlschlag (Galerie-Bildwechsel aus PROJ-39), der auf `main` identisch scheitert. Drei weitere Fehlschlaege des ersten Laufs erwiesen sich als Flakes unter sechs Workern: einzeln und im zweiten Volllauf gruen. **Der Branch regressiert `main` nicht.**
+
+### Summary
+
+- **Acceptance Criteria:** 7 von 10 Gruppen erfuellt, 2 teilweise, 1 nicht gebaut. Innerhalb der erfuellten Gruppen sind Upload und Platzierung nur ueber den Code bewertet
+- **Bugs Found:** 6 (0 critical, 0 high, 4 medium, 2 low)
+- **Security:** Der Kern haelt - Freigabe serverseitig erzwungen, Preise serverseitig, Besitzpruefung auf allen Upload-Routen. Zwei Medium-Befunde an den Raendern
+- **Production Ready:** **NEIN** - nicht wegen der Befunde, die sind alle klein, sondern weil der Testdruck aussteht und der Kernablauf nie von Hand durchlaufen wurde
+- **Recommendation:** BUG-4, BUG-5 und BUG-2 beheben (zusammen ueberschaubar), Secret setzen, Testdruck machen, einmal selbst durch den Editor bis zur Testzahlung. Danach ist der Merge eine Formsache
