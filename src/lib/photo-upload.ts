@@ -1,5 +1,6 @@
 import imageCompression from 'browser-image-compression'
 import { createClient } from './supabase-browser'
+import { getOrCreateGuestSessionId } from './guest-session'
 
 const BUCKET = 'user-photos'
 const MAX_SIZE_MB = 10
@@ -98,31 +99,86 @@ export async function uploadPhoto(file: File, opts: UploadOptions): Promise<Uplo
   if (error) throw new Error(`Upload fehlgeschlagen: ${error.message}`)
   opts.onProgress?.(95)
 
-  const { data: signed, error: signErr } = await supabase.storage
-    .from(BUCKET)
-    .createSignedUrl(storagePath, 60 * 60 * 24 * 7)
-  if (signErr || !signed) throw new Error('Konnte Foto-URL nicht erstellen.')
+  const signedUrl = await getPhotoSignedUrl(storagePath, opts.guestSessionId)
 
   opts.onProgress?.(100)
 
   return {
     storagePath,
-    publicUrl: signed.signedUrl,
+    publicUrl: signedUrl,
     width: dims.width,
     height: dims.height,
   }
 }
 
-export async function getPhotoSignedUrl(storagePath: string): Promise<string> {
-  const supabase = createClient()
-  const { data, error } = await supabase.storage
-    .from(BUCKET)
-    .createSignedUrl(storagePath, 60 * 60 * 24 * 7)
-  if (error || !data) throw new Error('Konnte Foto-URL nicht erneuern.')
-  return data.signedUrl
+/**
+ * Signierte Lese-URL für ein Foto.
+ *
+ * Läuft seit Migration 20260810100001 über den Server statt über den
+ * Anon-Key. Grund: Die anon-SELECT-Policy auf `user-photos` prüfte nur, ob
+ * der Ordner `anon` heißt — nicht, welchem Gast er gehört. Damit konnte
+ * jeder Gast die Fotos aller anderen lesen. Die Policy ist entfernt, das
+ * Signieren übernimmt `/api/photos/sign` mit Besitzprüfung.
+ *
+ * Für angemeldete Nutzer prüft der Server gegen `auth.uid()`; für Gäste
+ * gegen die mitgeschickte Sitzungs-ID.
+ */
+export async function getPhotoSignedUrl(
+  storagePath: string,
+  guestSessionId?: string,
+): Promise<string> {
+  const res = await fetch('/api/photos/sign', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      storagePath,
+      guestSessionId: guestSessionId ?? guestSessionIdForPath(storagePath),
+      action: 'sign',
+    }),
+  })
+  if (!res.ok) {
+    const payload = await res.json().catch(() => ({}))
+    throw new Error(payload.error ?? 'Konnte Foto-URL nicht erstellen.')
+  }
+  const { signedUrl } = (await res.json()) as { signedUrl: string }
+  return signedUrl
 }
 
-export async function deletePhoto(storagePath: string): Promise<void> {
-  const supabase = createClient()
-  await supabase.storage.from(BUCKET).remove([storagePath])
+/**
+ * Löscht ein Foto. Ebenfalls serverseitig, siehe `getPhotoSignedUrl` —
+ * die anon-DELETE-Policy erlaubte jedem Gast das Löschen fremder Fotos.
+ */
+export async function deletePhoto(
+  storagePath: string,
+  guestSessionId?: string,
+): Promise<void> {
+  await fetch('/api/photos/sign', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      storagePath,
+      guestSessionId: guestSessionId ?? guestSessionIdForPath(storagePath),
+      action: 'delete',
+    }),
+  })
+}
+
+/**
+ * Gast-Sitzung für einen Pfad, falls der Aufrufer sie nicht mitgibt.
+ *
+ * Die sechs Aufrufstellen in den Editoren rufen `deletePhoto(path)` und
+ * `getPhotoSignedUrl(path)` ohne Sitzungs-ID auf — bei angemeldeten Nutzern
+ * braucht der Server sie auch nicht. Für Gäste holen wir sie hier aus dem
+ * localStorage, statt alle Aufrufstellen anzufassen.
+ *
+ * Nur bei `anon/…`-Pfaden: Bei einem Pfad, der mit einer User-ID beginnt,
+ * würde eine mitgeschickte Gast-ID die Prüfung nur unnötig verwirren.
+ */
+function guestSessionIdForPath(storagePath: string): string | undefined {
+  if (!storagePath.startsWith('anon/')) return undefined
+  try {
+    return getOrCreateGuestSessionId()
+  } catch {
+    return undefined
+  }
 }
