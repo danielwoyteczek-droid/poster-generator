@@ -32,6 +32,14 @@ export interface RasteredText {
 }
 
 export async function rasterizeTextElement(el: DtfTextElement): Promise<RasteredText> {
+  // Vor dem Messen und Zeichnen: Canvas2D wartet nicht auf Schriften. Ist
+  // die Familie noch nicht geladen, faellt der Kontext still auf die
+  // Ersatzschrift zurueck -- und weil dieses Bild sowohl die Vorschau als
+  // auch die Druckdatei ist, haette der Kunde etwas anderes freigegeben,
+  // als er im Editor gesehen hat. Dasselbe Vorgehen wie in
+  // useMapExport/useStarMapExport/usePhotoExport.
+  await ensureFontLoaded(el.fontFamily)
+
   const pxPerMm = DTF_TARGET_DPI / 25.4
   const fontSizePx = el.fontSizeMm * pxPerMm
   const lines = (el.uppercase ? el.text.toUpperCase() : el.text).split('\n')
@@ -94,5 +102,27 @@ export async function rasterizeTextElement(el: DtfTextElement): Promise<Rastered
     heightPx,
     widthMm: widthPx / pxPerMm,
     heightMm: heightPx / pxPerMm,
+  }
+}
+
+/**
+ * Wartet, bis eine Schriftfamilie tatsaechlich zeichenbereit ist.
+ *
+ * `document.fonts.ready` allein genuegt nicht: Es erfuellt sich, wenn keine
+ * Ladung mehr laeuft -- eine Schrift, die noch gar nicht angefordert wurde,
+ * ist danach immer noch nicht da. Deshalb zusaetzlich `load()` fuer beide
+ * Schnitte, die das Raster benutzt.
+ */
+async function ensureFontLoaded(family: string): Promise<void> {
+  if (typeof document === 'undefined' || !document.fonts) return
+  try {
+    await document.fonts.ready
+    await Promise.all([
+      document.fonts.load(`normal 16px "${family}"`),
+      document.fonts.load(`700 16px "${family}"`),
+    ])
+  } catch {
+    // Eine nicht ladbare Schrift darf das Rastern nicht verhindern -- der
+    // Browser zeichnet dann mit der Ersatzschrift, wie bisher.
   }
 }

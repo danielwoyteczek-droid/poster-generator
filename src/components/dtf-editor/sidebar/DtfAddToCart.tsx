@@ -102,7 +102,12 @@ export function DtfAddToCart() {
         id: el.id,
         kind: 'image',
         uploadId,
-        previewUrl: URL.createObjectURL(raster.blob),
+        // Bewusst leer: Die Bogenbeschreibung wird persistiert, eine
+        // `blob:`-URL stirbt aber mit der Seite. Sie hier abzulegen hieße,
+        // dem Warenkorb nach einem Reload leere Kästen zu zeigen — auch im
+        // Freigabe-Dialog. Die Vorschau signiert sich über die `uploadId`
+        // selbst (siehe DtfSheetPreview).
+        previewUrl: '',
         sourceWidthPx: raster.widthPx,
         sourceHeightPx: raster.heightPx,
         // Position und Drehung bleiben; die Größe kommt aus dem Raster,
