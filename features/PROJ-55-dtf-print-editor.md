@@ -6,7 +6,7 @@
 
 > **Phasen 1–4 sind gebaut** — Upload, Editor, Kaufweg und Druckdateien.
 > Siehe „Implementierung" am Ende. Offen: Text auf dem Bogen, Bogen-Reiter im
-> Editor, Entwürfe speichern — und der Testdruck zur Spiegelung.
+> Editor, Entwürfe speichern. Die Spiegelung ist geklärt (siehe unten).
 
 ## Kontext
 
@@ -792,8 +792,9 @@ der Auslöser wechselte.
 
 #### Noch offen
 
-- **Testdruck.** Die Annahme „RIP spiegelt selbst" ist unbestätigt. Bei
-  doppelter Spiegelung ist jeder Bogen Ausschuss.
+- ~~**Testdruck zur Spiegelung.**~~ **Geklärt am 2026-09-21:** Der Betreiber
+  spiegelt am Drucker. Die Druckdatei bleibt damit ungespiegelt — genau das,
+  was die Pipeline erzeugt. Kein offener Punkt mehr.
 - **Text auf dem Bogen**, Bogen-Reiter im Editor und Entwürfe speichern —
   bewusst aus dem ersten Wurf herausgehalten.
 
@@ -913,10 +914,10 @@ Automatisiert: 431 Unit-/Integrationstests, 10 neue E2E-Tests fuer PROJ-55 (Chro
 - [x] Bestehender Stripe-Weg, Versandkosten nach PROJ-26
 - [ ] **BUG-2: Die Auflage ist im Warenkorb nicht aenderbar.**
 
-#### AC-9: Fulfillment - erfuellt, bis auf den Testdruck
+#### AC-9: Fulfillment - erfuellt
 - [x] PDF je Bogen nach Zahlungseingang, im Admin herunterladbar, wiederholbar
 - [x] Format, Auflage und die beiden Freigabe-Zeitstempel in der Bestellansicht
-- [ ] **Ungeklaert: ungespiegelt.** Siehe "Der Testdruck" unten - kein Code-Problem
+- [x] **Ungespiegelt** - am 2026-09-21 vom Betreiber bestaetigt: Er spiegelt am Drucker, die Datei bleibt ungespiegelt
 
 #### AC-10: Speichern - nicht gebaut
 - [ ] **BUG-3:** Keine der drei Anforderungen ist umgesetzt; es gibt keinen Weg, einen DTF-Entwurf zu speichern oder zu laden. Bewusst aus dem ersten Wurf herausgehalten, aber die Kriterien stehen unerfuellt in der Spec.
@@ -971,11 +972,14 @@ Automatisiert: 431 Unit-/Integrationstests, 10 neue E2E-Tests fuer PROJ-55 (Chro
 - **Actual:** Die Spec verlangt sie ausdruecklich ("feine Striche haften beim Transfer nicht zuverlaessig") und zieht die Parallele zur dpi-Warnung. Die dpi-Warnung gibt es, die Schrift-Warnung nicht. `DTF_MIN_FONT_SIZE_MM` existiert seit dem Review-Fix als Klemmgrenze, wird aber nirgends als Hinweis angezeigt
 - **Priority:** Fix in next sprint
 
-### Der Testdruck - der eigentliche Blocker
+### Spiegelung - geklaert
 
-Kein Code-Befund, aber der einzige Punkt, an dem ein Fehler jedes Exemplar unbrauchbar macht: Die Annahme "der RIP spiegelt selbst" ist unbestaetigt. Bei doppelter Spiegelung ist jeder gedruckte Bogen Ausschuss. Das laesst sich nicht testen, nur drucken.
+Am 2026-09-21 vom Betreiber bestaetigt: **Er spiegelt am Drucker.** Die Druckdatei bleibt
+ungespiegelt, genau wie die Pipeline sie erzeugt. Damit faellt der Punkt weg, der in dieser
+Spec lange als groesstes Risiko gefuehrt wurde - eine doppelte Spiegelung kann es auf diesem
+Weg nicht geben.
 
-Daneben operativ offen: **`DTF_CLEANUP_CRON_SECRET`** ist nicht gesetzt. Solange das so bleibt, antwortet der Aufraeum-Lauf mit 401 und der Storage waechst ungebremst - bei 50-MB-Uploads keine theoretische Groesse.
+Operativ offen bleibt: **`DTF_CLEANUP_CRON_SECRET`** ist nicht gesetzt. Solange das so bleibt, antwortet der Aufraeum-Lauf mit 401 und der Storage waechst ungebremst - bei 50-MB-Uploads keine theoretische Groesse.
 
 ### Regression
 
@@ -986,5 +990,8 @@ Die volle E2E-Suite laeuft auf dem gemergten Branch mit einem einzigen Fehlschla
 - **Acceptance Criteria:** 7 von 10 Gruppen erfuellt, 2 teilweise, 1 nicht gebaut. Innerhalb der erfuellten Gruppen sind Upload und Platzierung nur ueber den Code bewertet
 - **Bugs Found:** 6 (0 critical, 0 high, 4 medium, 2 low)
 - **Security:** Der Kern haelt - Freigabe serverseitig erzwungen, Preise serverseitig, Besitzpruefung auf allen Upload-Routen. Zwei Medium-Befunde an den Raendern
-- **Production Ready:** **NEIN** - nicht wegen der Befunde, die sind alle klein, sondern weil der Testdruck aussteht und der Kernablauf nie von Hand durchlaufen wurde
-- **Recommendation:** BUG-4, BUG-5 und BUG-2 beheben (zusammen ueberschaubar), Secret setzen, Testdruck machen, einmal selbst durch den Editor bis zur Testzahlung. Danach ist der Merge eine Formsache
+- **Production Ready:** **NEIN**, aber knapp. Die Spiegelung ist geklaert (2026-09-21), damit
+  bleibt als echter Vorbehalt nur, dass der Kernablauf nie von Hand durchlaufen wurde
+- **Recommendation:** BUG-4 und BUG-5 beheben (zusammen klein, beides am Checkout), BUG-2 wenn
+  Zeit ist, `DTF_CLEANUP_CRON_SECRET` setzen, einmal selbst durch den Editor bis zur
+  Testzahlung. Danach ist der Merge eine Formsache
