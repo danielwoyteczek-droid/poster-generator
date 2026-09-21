@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/admin-auth'
 import { createAdminClient } from '@/lib/supabase-admin'
-import { DTF_BUCKET } from '@/lib/dtf-constants'
+import { DTF_PRINT_BUCKET } from '@/lib/dtf-constants'
 import { generatePrintFilesForOrder } from '@/lib/dtf-print-run'
 
 export const runtime = 'nodejs'
@@ -47,7 +47,7 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
   const signedByPath = new Map<string, string>()
   if (paths.length > 0) {
     const { data: signed } = await admin.storage
-      .from(DTF_BUCKET)
+      .from(DTF_PRINT_BUCKET)
       .createSignedUrls(paths, DOWNLOAD_TTL_SECONDS)
     for (const entry of signed ?? []) {
       if (entry.path && entry.signedUrl) signedByPath.set(entry.path, entry.signedUrl)

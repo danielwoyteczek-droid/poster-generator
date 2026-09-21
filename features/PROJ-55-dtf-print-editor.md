@@ -795,3 +795,55 @@ der Auslöser wechselte.
   doppelter Spiegelung ist jeder Bogen Ausschuss.
 - **Text auf dem Bogen**, Bogen-Reiter im Editor und Entwürfe speichern —
   bewusst aus dem ersten Wurf herausgehalten.
+
+### Behoben nach Code-Review (2026-09-21)
+
+Ein Review über den gesamten PR #4 (66 Dateien) fand neun Befunde. Die beiden
+blockierenden sind hier behoben; die übrigen sieben stehen darunter als offene
+Liste.
+
+**Blocker 1 — jede Druckdatei scheiterte am Bucket.** `dtf-print-run.ts` lud das
+fertige PDF nach `dtf-uploads`. Dieser Bucket lässt laut Migration
+`20260810100000` nur `image/png` und `image/jpeg` zu, und Storage prüft den
+MIME-Typ auch gegenüber der Service-Role. Jede DTF-Bestellung wäre auf
+`failed` stehen geblieben, der Wiederholen-Knopf im Admin lief gegen dieselbe
+Wand — der Kunde zahlt, die Druckdatei entsteht nie. Behoben mit einem eigenen
+Bucket `dtf-print-files` (Migration `20260921090000`, privat, nur
+`application/pdf`, keine Größengrenze wie bei `exports`/`order-exports`).
+
+Eigener Bucket statt erweiterter MIME-Liste, weil die beiden Dateiarten
+verschiedene Lebensdauern haben: Kundenuploads ohne Bestellung räumt der Cron
+nach `DTF_RETENTION_DAYS` weg, eine Druckdatei gehört zu einer bezahlten
+Bestellung und bleibt. Ein gemeinsamer Bucket hätte den Aufräum-Lauf gezwungen,
+beides auseinanderzuhalten — genau die Art Sonderfall, die irgendwann jemand
+übersieht und die dann bezahlte Druckdateien löscht.
+
+Geändert: `DTF_PRINT_BUCKET` in `dtf-constants.ts`, der Upload in
+`dtf-print-run.ts` und das Signieren in
+`api/admin/orders/[id]/dtf-print-files/route.ts`. Der Download des
+Kunden-Originals in `dtf-print-file.ts` bleibt auf `dtf-uploads` — das ist
+Kundenmaterial, kein Erzeugnis.
+
+**Blocker 2 — Endlosschleife auf der Bestellseite des Kunden.**
+`AdminOrderDetail` überspringt DTF-Positionen beim automatischen Vorbereiten
+der Exporte; der Zwilling `OrderView` — die Seite, die der Kunde nach dem
+Bezahlen sieht — tat es nicht. `renderPosterFromSnapshot` wirft bei einem
+DTF-Snapshot, das `catch` zeigt einen Toast, das `finally` setzt `preparing`
+zurück, und weil `preparing` in den Abhängigkeiten des Effekts steht, läuft er
+sofort wieder. Ergebnis wäre eine Endlosschleife aus Fehlversuchen direkt nach
+der Zahlung. Derselbe Schutz ist jetzt in beiden Pfaden.
+
+Lehrstück für die Cross-Cutting-Regel: Der Schutz wurde beim Bau an einer
+Stelle ergänzt und beim Zwilling vergessen.
+
+#### Offen aus dem Review
+
+| # | Befund | Schwere |
+|---|---|---|
+| 3 | `checkout/route.ts` schreibt `total_cents` als reine Produktsumme, obwohl eine `shipping_rate` an der Stripe-Session hängt — Mail, Bestellseite und `trackPurchase` zeigen zu wenig | hoch |
+| 4 | `DtfAddToCart` legt eine `URL.createObjectURL(...)` in den persistierten Warenkorb und in `orders.items`; nach einem Reload ist der gerasterte Text im Freigabedialog weg — der Ansicht, auf der die verbindliche Druckfreigabe beruht | hoch |
+| 5 | `dtf-text-raster.ts` zeichnet ohne `document.fonts.ready`, anders als alle fünf Schwester-Pipelines — gedruckt ≠ freigegeben | mittel |
+| 6 | `checkout/route.ts` verengt `allowed_countries` auf ein Land aus der Locale; auf der englischen Storefront bekommt ein EU-Kunde ein Deutschland-only-Adressformular | mittel |
+| 7 | `useDtfStore.setQuantity` ohne Obergrenze, Checkout-Schema deckelt bei 99 → generischer „Invalid cart"-400 | niedrig |
+| 8 | `DtfTextRender` klemmt `widthMm`, ohne das Text-Div zu verkleinern; gedruckter Text rutscht über den Sicherheitsrand | niedrig |
+| 9 | `DtfMotifsTab` lässt ein Motiv löschen, das in einer Warenkorbposition steckt (`is_ordered` erst nach Zahlung) | niedrig |

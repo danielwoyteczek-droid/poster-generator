@@ -1,5 +1,5 @@
 import { createAdminClient } from './supabase-admin'
-import { DTF_BUCKET } from './dtf-constants'
+import { DTF_PRINT_BUCKET } from './dtf-constants'
 import {
   buildDtfSheetPdf,
   printFilePath,
@@ -106,8 +106,10 @@ export async function generatePrintFilesForOrder(orderId: string): Promise<Print
       const bytes = await buildDtfSheetPdf(snapshot)
       const path = printFilePath(orderId, index)
 
+      // Eigener Bucket: `dtf-uploads` laesst nur PNG und JPEG zu und weist
+      // ein PDF auch der Service-Role gegenueber ab.
       const { error: upErr } = await admin.storage
-        .from(DTF_BUCKET)
+        .from(DTF_PRINT_BUCKET)
         .upload(path, bytes, { contentType: 'application/pdf', upsert: true })
 
       if (upErr) throw new PrintFileError(upErr.message)

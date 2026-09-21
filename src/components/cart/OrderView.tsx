@@ -208,6 +208,16 @@ export function OrderView({ orderId, token, showSuccessBanner }: Props) {
   useEffect(() => {
     if (order?.status !== 'paid') return
     order.items.forEach((item, idx) => {
+      // PROJ-55: DTF-Positionen überspringen — wie im Zwilling
+      // AdminOrderDetail. Sie haben kein Poster-Design, das sich rendern
+      // ließe; ihre Druckdatei entsteht serverseitig aus der
+      // Bogenbeschreibung. Ohne diese Prüfung wirft
+      // renderPosterFromSnapshot, das `catch` zeigt einen Toast, das
+      // `finally` setzt `preparing` zurück — und weil `preparing` in den
+      // Abhängigkeiten steht, läuft der Effekt sofort wieder. Ergebnis wäre
+      // eine Endlosschleife aus Fehlversuchen auf der Bestellseite des
+      // Kunden, direkt nach dem Bezahlen.
+      if ((item.productId as string) === 'dtf') return
       const hasPng = exports.some((e) => e.item_index === idx && e.file_type === 'png')
       const hasPdf = exports.some((e) => e.item_index === idx && e.file_type === 'pdf')
       if (!hasPng || !hasPdf) {

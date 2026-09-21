@@ -10,6 +10,20 @@
 export const DTF_BUCKET = 'dtf-uploads'
 
 /**
+ * Die fertigen Druckdateien liegen getrennt vom Kundenmaterial.
+ *
+ * Nicht nur, weil `dtf-uploads` ausschliesslich PNG und JPEG zulaesst und
+ * ein PDF dort abgewiesen wird: Die beiden Dateiarten haben verschiedene
+ * Lebensdauern. Kundenuploads ohne Bestellung raeumt der Cron nach
+ * `DTF_RETENTION_DAYS` weg; eine Druckdatei gehoert zu einer bezahlten
+ * Bestellung und bleibt. Ein gemeinsamer Bucket haette den Aufraeum-Lauf
+ * gezwungen, beides auseinanderzuhalten.
+ *
+ * Siehe Migration 20260921090000.
+ */
+export const DTF_PRINT_BUCKET = 'dtf-print-files'
+
+/**
  * Bogenformate. Bewusst ein eigener Begriff neben den Posterformaten aus
  * `print-formats.ts` (a4 | a3 | a2): Jene Liste hängt an Produkten,
  * Warenkorb, Versandkosten, Vorlagen und der Render-Pipeline. Würde 40 × 50
