@@ -545,6 +545,7 @@
     "orderHeading": "Bestellung",
     "orderId": "ID {id}…",
     "preparing": "Wird vorbereitet…",
+    "shipping": "Versand",
     "shippingNote": "Wird innerhalb von 3–5 Werktagen versendet — die Datei kannst du zusätzlich hier herunterladen.",
     "uploadUrlFailed": "Upload-URL fehlgeschlagen",
     "storageUploadFailed": "Storage-Upload fehlgeschlagen",

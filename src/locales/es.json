@@ -545,6 +545,7 @@
     "orderHeading": "Pedido",
     "orderId": "ID {id}…",
     "preparing": "Preparando…",
+    "shipping": "Envío",
     "shippingNote": "Envío en 3–5 días laborables — también puedes descargar el archivo aquí.",
     "uploadUrlFailed": "Error en la URL de subida",
     "storageUploadFailed": "Error al subir al almacenamiento",

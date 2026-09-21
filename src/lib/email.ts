@@ -27,7 +27,11 @@ interface OrderConfirmationInput {
   orderId: string
   accessToken: string
   items: OrderItemInput[]
+  /** Tatsaechlich gezahlter Gesamtbetrag: Produkte - Rabatt + Versand. */
   totalCents: number
+  /** PROJ-26: als eigene Zeile, sonst summieren sich die Positionen nicht zum Gesamtbetrag. */
+  shippingCents?: number
+  discountCents?: number
   origin: string
   locale?: Locale
 }
@@ -39,6 +43,8 @@ const STRINGS = {
     confirmIntro: 'Deine Bestellung ist eingegangen. Du kannst sie jederzeit über den Link unten einsehen.',
     confirmCta: 'Zur Bestellung',
     confirmTotal: 'Gesamt',
+    confirmShipping: 'Versand',
+    confirmDiscount: 'Rabatt',
     confirmDigitalNote: 'Deine digitalen Dateien (PNG + PDF) stehen auf der Bestellseite zum Download bereit.',
     confirmPhysicalNote: 'Physische Produkte werden innerhalb von 3–5 Werktagen versendet.',
     confirmReply: 'Bei Fragen einfach auf diese E-Mail antworten.',
@@ -55,6 +61,8 @@ const STRINGS = {
     confirmIntro: 'Your order has been received. You can view it at any time via the link below.',
     confirmCta: 'View order',
     confirmTotal: 'Total',
+    confirmShipping: 'Shipping',
+    confirmDiscount: 'Discount',
     confirmDigitalNote: 'Your digital files (PNG + PDF) are available for download on the order page.',
     confirmPhysicalNote: 'Physical products ship within 3–5 business days.',
     confirmReply: 'For questions, just reply to this email.',
@@ -71,6 +79,8 @@ const STRINGS = {
     confirmIntro: 'Votre commande a bien été reçue. Vous pouvez la consulter à tout moment via le lien ci-dessous.',
     confirmCta: 'Voir la commande',
     confirmTotal: 'Total',
+    confirmShipping: 'Livraison',
+    confirmDiscount: 'Remise',
     confirmDigitalNote: 'Vos fichiers numériques (PNG + PDF) sont disponibles au téléchargement sur la page de commande.',
     confirmPhysicalNote: 'Les produits physiques sont expédiés sous 3 à 5 jours ouvrés.',
     confirmReply: 'Pour toute question, il suffit de répondre à cet e-mail.',
@@ -87,6 +97,8 @@ const STRINGS = {
     confirmIntro: 'Abbiamo ricevuto il tuo ordine. Puoi consultarlo in qualsiasi momento tramite il link qui sotto.',
     confirmCta: 'Vai all\'ordine',
     confirmTotal: 'Totale',
+    confirmShipping: 'Spedizione',
+    confirmDiscount: 'Sconto',
     confirmDigitalNote: 'I tuoi file digitali (PNG + PDF) sono disponibili per il download nella pagina dell\'ordine.',
     confirmPhysicalNote: 'I prodotti fisici vengono spediti entro 3–5 giorni lavorativi.',
     confirmReply: 'Per qualsiasi domanda, basta rispondere a questa e-mail.',
@@ -103,6 +115,8 @@ const STRINGS = {
     confirmIntro: 'Hemos recibido tu pedido. Puedes consultarlo en cualquier momento mediante el enlace de abajo.',
     confirmCta: 'Ver pedido',
     confirmTotal: 'Total',
+    confirmShipping: 'Envío',
+    confirmDiscount: 'Descuento',
     confirmDigitalNote: 'Tus archivos digitales (PNG + PDF) están disponibles para descargar en la página del pedido.',
     confirmPhysicalNote: 'Los productos físicos se envían en 3–5 días laborables.',
     confirmReply: 'Para cualquier pregunta, simplemente responde a este correo.',
@@ -186,6 +200,20 @@ function renderHtml(input: OrderConfirmationInput): string {
       </div>
       <table style="width:100%;border-collapse:collapse;border-top:1px solid #eee;">
         ${rows}
+        ${input.discountCents && input.discountCents > 0 ? `
+        <tr>
+          <td style="padding:10px 16px;font-size:13px;color:#666;">${s.confirmDiscount}</td>
+          <td style="padding:10px 16px;text-align:right;font-size:13px;color:#15803d;">
+            −${formatPrice(input.discountCents)}
+          </td>
+        </tr>` : ''}
+        ${input.shippingCents && input.shippingCents > 0 ? `
+        <tr>
+          <td style="padding:10px 16px;font-size:13px;color:#666;">${s.confirmShipping}</td>
+          <td style="padding:10px 16px;text-align:right;font-size:13px;color:#111;">
+            ${formatPrice(input.shippingCents)}
+          </td>
+        </tr>` : ''}
         <tr>
           <td style="padding:14px 16px;font-size:14px;color:#111;font-weight:600;">${s.confirmTotal}</td>
           <td style="padding:14px 16px;text-align:right;font-size:14px;color:#111;font-weight:700;">
@@ -221,7 +249,10 @@ interface AdminNotificationInput {
   to: string
   orderId: string
   items: OrderItemInput[]
+  /** Tatsaechlich gezahlter Gesamtbetrag: Produkte - Rabatt + Versand. */
   totalCents: number
+  shippingCents?: number
+  discountCents?: number
   email: string
   shippingAddress?: Record<string, unknown> | null
   hasPhysical: boolean
@@ -288,7 +319,9 @@ function renderAdminHtml(input: AdminNotificationInput): string {
       <h1 style="margin:12px 0 0;font-size:18px;color:#111;">Neue Bestellung #${input.orderId.slice(0, 8)}</h1>
       <p style="margin:8px 0 16px;font-size:13px;color:#666;">Kunde: ${input.email}</p>
       <table style="width:100%;border-collapse:collapse;border-top:1px solid #eee;">${rows}</table>
-      <p style="margin:16px 0 0;font-size:14px;color:#111;"><strong>Gesamt: ${formatPrice(input.totalCents)}</strong></p>
+      ${input.discountCents && input.discountCents > 0 ? `<p style="margin:12px 0 0;font-size:13px;color:#666;">Rabatt: −${formatPrice(input.discountCents)}</p>` : ''}
+      ${input.shippingCents && input.shippingCents > 0 ? `<p style="margin:4px 0 0;font-size:13px;color:#666;">Versand: ${formatPrice(input.shippingCents)}</p>` : ''}
+      <p style="margin:8px 0 0;font-size:14px;color:#111;"><strong>Gesamt: ${formatPrice(input.totalCents)}</strong></p>
       ${address}
       <div style="margin-top:20px;">
         <a href="${adminUrl}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;font-size:13px;font-weight:600;padding:10px 18px;border-radius:8px;">

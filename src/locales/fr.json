@@ -545,6 +545,7 @@
     "orderHeading": "Commande",
     "orderId": "ID {id}…",
     "preparing": "Préparation…",
+    "shipping": "Livraison",
     "shippingNote": "Expédition sous 3 à 5 jours ouvrés — vous pouvez aussi télécharger le fichier ici.",
     "uploadUrlFailed": "Échec de l'URL de téléversement",
     "storageUploadFailed": "Échec du téléversement",
