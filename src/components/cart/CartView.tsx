@@ -42,6 +42,9 @@ export function CartView() {
   const removeVoucher = useVoucherStore((s) => s.remove)
   const { frameMarkup } = useProductCatalog()
   const hasDigital = items.some((i) => i.productId === 'download')
+  // PROJ-26: Nur physische Positionen brauchen ein Lieferland. Ein rein
+  // digitaler Warenkorb soll nicht daran haengen.
+  const hasPhysical = items.some((i) => i.productId !== 'download')
   const hasDtf = items.some((i) => i.productId === 'dtf')
   const [approvalOpen, setApprovalOpen] = useState(false)
 
@@ -60,25 +63,31 @@ export function CartView() {
    * Französisch liest, liefert vermutlich nach Frankreich. Fällt auf
    * Deutschland zurück, wenn die Locale kein beliefertes Land ergibt.
    */
-  const [country, setCountry] = useState<ShippingCountry>(() => {
+  const [country, setCountry] = useState<ShippingCountry | null>(() => {
     const guess = locale.toUpperCase()
+    // Ergibt die Locale kein beliefertes Land -- 'en' tut das nicht --, wird
+    // NICHT geraten. Ein stilles 'DE' berechnete deutschen Versand und
+    // liesse Stripe danach nur eine deutsche Adresse zu; wer aus Irland
+    // bestellt, kaeme dort nicht weiter. Lieber einmal fragen.
     return (SHIPPING_COUNTRIES as readonly string[]).includes(guess)
       ? (guess as ShippingCountry)
-      : 'DE'
+      : null
   })
 
   // Der Freibetrag prüft gegen den Wert VOR Rabatt. Sonst würde ein
   // Gutschein zusätzlich den Versand finanzieren.
-  const shippingQuote = quoteShipping(
-    items.map((i) => ({
-      productId: i.productId,
-      format: i.format,
-      withFrame: i.withFrame,
-      quantity: i.quantity,
-    })),
-    country,
-    subtotalCents,
-  )
+  const shippingQuote = country
+    ? quoteShipping(
+        items.map((i) => ({
+          productId: i.productId,
+          format: i.format,
+          withFrame: i.withFrame,
+          quantity: i.quantity,
+        })),
+        country,
+        subtotalCents,
+      )
+    : null
 
   const shippingCents = shippingQuote?.cents ?? 0
   const totalCents = discountedCents + shippingCents
@@ -396,7 +405,7 @@ export function CartView() {
           className="w-full"
           size="lg"
           onClick={handleCheckoutClick}
-          disabled={isCheckingOut || (hasDigital && !digitalConsent)}
+          disabled={isCheckingOut || (hasDigital && !digitalConsent) || (hasPhysical && !country)}
         >
           {isCheckingOut ? (
             <Loader2 className="w-4 h-4 mr-2 animate-spin" />

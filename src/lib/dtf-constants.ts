@@ -67,8 +67,23 @@ export const DTF_ELEMENT_GAP_MM = 10
 /** Kleinstes sinnvolles Motiv auf dem Bogen. */
 export const DTF_MIN_ELEMENT_WIDTH_MM = 10
 
+/**
+ * Kleinste Schriftgröße auf dem Bogen. Unterhalb davon überträgt die Folie
+ * feine Striche nicht mehr zuverlässig.
+ */
+export const DTF_MIN_FONT_SIZE_MM = 2
+
 /** Höchstzahl Bögen einer Bestellung bzw. Motive je Bogen. */
 export const DTF_MAX_ELEMENTS_PER_SHEET = 60
+
+/**
+ * Höchste Auflage eines einzelnen Bogens.
+ *
+ * Muss zur Obergrenze im Checkout-Schema passen (`quantity` dort max 99).
+ * Läuft der Editor darüber hinaus, scheitert erst das Bezahlen — mit einer
+ * Meldung, die nichts darüber sagt, welche Zahl zu hoch war.
+ */
+export const DTF_MAX_SHEET_QUANTITY = 99
 
 /**
  * 50 MB. Ein bogenfüllendes PNG mit Transparenz auf 40 × 50 cm hat bei

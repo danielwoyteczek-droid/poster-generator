@@ -790,6 +790,8 @@
     "libraryHint": "Tocca per posizionarlo sul foglio. Lo stesso motivo può essere inserito più volte.",
     "placeMotif": "Posiziona sul foglio",
     "deleteMotif": "Elimina motivo",
+    "motifInCart": "Serve per un articolo nel carrello, non può essere eliminato.",
+    "motifInCartBadge": "nel carrello",
     "deleteFailed": "Impossibile eliminare il motivo.",
     "selectedHeading": "Motivo selezionato",
     "widthCm": "Larghezza in cm",
@@ -863,6 +865,7 @@
   },
   "shipping": {
     "countryLabel": "Paese di consegna",
+    "countryPlaceholder": "Seleziona il paese di consegna",
     "shippingLabel": "Spedizione",
     "free": "gratuita",
     "freeReached": "Spedizione gratuita raggiunta.",

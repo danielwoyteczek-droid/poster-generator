@@ -5,8 +5,13 @@ import {
   elementHeightMm,
   elementDpi,
   type DtfImageElement,
+  type DtfTextElement,
 } from './useDtfStore'
-import { DTF_SHEET_FORMATS, DTF_SHEET_MARGIN_MM } from '@/lib/dtf-constants'
+import {
+  DTF_MIN_FONT_SIZE_MM,
+  DTF_SHEET_FORMATS,
+  DTF_SHEET_MARGIN_MM,
+} from '@/lib/dtf-constants'
 
 /**
  * `clampElementToSheet` ist die Zusicherung, dass ein Motiv den
@@ -134,5 +139,69 @@ describe('elementDpi', () => {
     const a = elementDpi(el({ sourceWidthPx: 2000, widthMm: 100 }))!
     const b = elementDpi(el({ sourceWidthPx: 2000, widthMm: 200 }))!
     expect(b).toBeCloseTo(a / 2, 0)
+  })
+})
+
+/**
+ * Text verhält sich beim Verkleinern grundlegend anders als ein Bild.
+ *
+ * `widthMm` ist bei Text ein Messwert: `DtfTextRender` misst nach jedem
+ * Rendern nach und schreibt zurück. Ein hier geschriebener kleinerer Wert
+ * hielte also nicht. Was Text wirklich schmaler macht, ist die
+ * Schriftgröße — und nur wenn die mitgeht, stimmt später auch das Rastern
+ * für den Druck.
+ */
+describe('clampElementToSheet — Textelemente', () => {
+  function text(patch: Partial<DtfTextElement> = {}): DtfTextElement {
+    return {
+      id: 't1',
+      kind: 'text' as const,
+      text: 'Hallo',
+      fontFamily: 'Inter',
+      fontSizeMm: 20,
+      color: '#000000',
+      align: 'left' as const,
+      bold: false,
+      uppercase: false,
+      letterSpacingEm: 0,
+      heightMm: 24,
+      xMm: 10,
+      yMm: 10,
+      widthMm: 100,
+      rotationDeg: 0,
+      z: 1,
+      ...patch,
+    }
+  }
+
+  it('lässt einen passenden Text unverändert', () => {
+    const input = text()
+    expect(clampElementToSheet(input, 'a4')).toEqual(input)
+  })
+
+  it('verkleinert die Schrift, nicht nur die gespeicherte Breite', () => {
+    // 260 mm breit auf A4 (190 mm nutzbar) — muss auf ~73 % schrumpfen.
+    const out = clampElementToSheet(text({ widthMm: 260, xMm: 10 }), 'a4') as DtfTextElement
+
+    expect(out.fontSizeMm).toBeLessThan(20)
+    // Breite, Höhe und Schriftgröße müssen um denselben Faktor gehen,
+    // sonst laufen Anzeige und Druck auseinander.
+    const factor = out.fontSizeMm / 20
+    expect(out.widthMm).toBeCloseTo(260 * factor, 4)
+    expect(out.heightMm).toBeCloseTo(24 * factor, 4)
+  })
+
+  it('passt den verkleinerten Text danach in den bedruckbaren Bereich', () => {
+    const out = clampElementToSheet(text({ widthMm: 260, xMm: 10 }), 'a4')
+    const usableW = A4.widthMm - 2 * M
+    expect(boundingBoxMm(out).width).toBeLessThanOrEqual(usableW + 0.001)
+  })
+
+  it('geht nicht unter die kleinste Schriftgröße', () => {
+    const out = clampElementToSheet(
+      text({ widthMm: 5000, heightMm: 600, fontSizeMm: 3 }),
+      'a4',
+    ) as DtfTextElement
+    expect(out.fontSizeMm).toBeGreaterThanOrEqual(DTF_MIN_FONT_SIZE_MM)
   })
 })

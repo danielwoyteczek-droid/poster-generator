@@ -2,7 +2,9 @@ import { create } from 'zustand'
 import {
   DTF_DEFAULT_SHEET_FORMAT,
   DTF_MAX_ELEMENTS_PER_SHEET,
+  DTF_MAX_SHEET_QUANTITY,
   DTF_MIN_ELEMENT_WIDTH_MM,
+  DTF_MIN_FONT_SIZE_MM,
   DTF_SHEET_FORMATS,
   DTF_SHEET_MARGIN_MM,
   effectiveDpi,
@@ -254,8 +256,29 @@ export function clampElementToSheet(el: DtfElement, format: DtfSheetFormat): Dtf
   const box = boundingBoxMm(next)
   const overflow = Math.max(box.width / usableW, box.height / usableH)
   if (overflow > 1) {
-    const capped = Math.max(DTF_MIN_ELEMENT_WIDTH_MM, next.widthMm / overflow)
-    next = { ...next, widthMm: capped }
+    if (isTextElement(next)) {
+      // Bei Text ist `widthMm` ein Messwert, kein Stellwert: Die Breite
+      // ergibt sich aus Schrift und Inhalt, und `DtfTextRender` misst sie
+      // nach jedem Rendern neu. Ein kleinerer Wert hier würde sofort wieder
+      // überschrieben — die gespeicherte Breite liefe dauerhaft neben der
+      // dargestellten her, und das Rastern für den Druck rechnete mit der
+      // echten Breite bei geklemmter Position. Der Text ragte über den
+      // Sicherheitsrand hinaus.
+      //
+      // Was Text tatsächlich schmaler macht, ist die Schriftgröße. Breite
+      // und Höhe folgen ihr linear, die Hüllbox passt danach.
+      const fontSizeMm = Math.max(DTF_MIN_FONT_SIZE_MM, next.fontSizeMm / overflow)
+      const factor = fontSizeMm / next.fontSizeMm
+      next = {
+        ...next,
+        fontSizeMm,
+        widthMm: next.widthMm * factor,
+        heightMm: next.heightMm * factor,
+      }
+    } else {
+      const capped = Math.max(DTF_MIN_ELEMENT_WIDTH_MM, next.widthMm / overflow)
+      next = { ...next, widthMm: capped }
+    }
   }
 
   // 2. Mittelpunkt in den erlaubten Bereich schieben.
@@ -365,7 +388,11 @@ export const useDtfStore = create<DtfState>((set, get) => ({
     set((s) =>
       withActiveSheet(s, (sheet) => ({
         ...sheet,
-        quantity: Math.max(1, Math.round(quantity)),
+        // Obere Grenze wie im Checkout-Schema. Ohne sie liesse das
+        // Plus-Zeichen beliebig hochzaehlen, und der Kunde bekaeme beim
+        // Bezahlen ein nichtssagendes "Invalid cart" statt eines Hinweises
+        // an der Stelle, an der er die Zahl eingestellt hat.
+        quantity: Math.min(DTF_MAX_SHEET_QUANTITY, Math.max(1, Math.round(quantity))),
       })),
     ),
 

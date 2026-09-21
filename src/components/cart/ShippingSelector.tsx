@@ -32,7 +32,8 @@ export function ShippingSelector({
   onCountryChange,
   quote,
 }: {
-  country: ShippingCountry
+  /** `null`, solange die Locale kein beliefertes Land ergab — dann muss der Kunde waehlen. */
+  country: ShippingCountry | null
   onCountryChange: (country: ShippingCountry) => void
   quote: ShippingQuote | null
 }) {
@@ -55,9 +56,14 @@ export function ShippingSelector({
         {t('countryLabel')}
       </Label>
 
-      <Select value={country} onValueChange={(v) => onCountryChange(v as ShippingCountry)}>
+      <Select
+        value={country ?? undefined}
+        onValueChange={(v) => onCountryChange(v as ShippingCountry)}
+      >
         <SelectTrigger id="shipping-country">
-          <SelectValue />
+          {/* Ohne Vorauswahl steht hier die Aufforderung statt eines leeren
+              Feldes — der Kunde soll sehen, dass hier noch etwas fehlt. */}
+          <SelectValue placeholder={t('countryPlaceholder')} />
         </SelectTrigger>
         <SelectContent>
           {SHIPPING_COUNTRIES.map((code) => (

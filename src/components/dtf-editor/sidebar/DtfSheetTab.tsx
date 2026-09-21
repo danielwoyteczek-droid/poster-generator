@@ -5,7 +5,11 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
-import { DTF_SHEET_FORMAT_OPTIONS, DTF_SHEET_FORMATS } from '@/lib/dtf-constants'
+import {
+  DTF_MAX_SHEET_QUANTITY,
+  DTF_SHEET_FORMAT_OPTIONS,
+  DTF_SHEET_FORMATS,
+} from '@/lib/dtf-constants'
 import { useDtfStore, activeSheetOf } from '@/hooks/useDtfStore'
 import { DtfSheetList } from './DtfSheetList'
 import { DtfAddToCart } from './DtfAddToCart'
@@ -92,7 +96,7 @@ export function DtfSheetTab() {
             id="dtf-quantity"
             type="number"
             min={1}
-            max={99}
+            max={DTF_MAX_SHEET_QUANTITY}
             value={quantity}
             onChange={(e) => setQuantity(Number(e.target.value) || 1)}
             className="text-center"
@@ -103,6 +107,7 @@ export function DtfSheetTab() {
             size="icon"
             aria-label={t('quantityIncrease')}
             onClick={() => setQuantity(quantity + 1)}
+            disabled={quantity >= DTF_MAX_SHEET_QUANTITY}
           >
             +
           </Button>

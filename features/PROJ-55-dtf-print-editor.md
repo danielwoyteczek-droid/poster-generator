@@ -836,14 +836,16 @@ der Zahlung. Derselbe Schutz ist jetzt in beiden Pfaden.
 Lehrstück für die Cross-Cutting-Regel: Der Schutz wurde beim Bau an einer
 Stelle ergänzt und beim Zwilling vergessen.
 
-#### Offen aus dem Review
+#### Die übrigen sieben — ebenfalls behoben (2026-09-21)
 
-| # | Befund | Schwere |
+| # | Befund | Behebung |
 |---|---|---|
-| 3 | `checkout/route.ts` schreibt `total_cents` als reine Produktsumme, obwohl eine `shipping_rate` an der Stripe-Session hängt — Mail, Bestellseite und `trackPurchase` zeigen zu wenig | hoch |
-| 4 | `DtfAddToCart` legt eine `URL.createObjectURL(...)` in den persistierten Warenkorb und in `orders.items`; nach einem Reload ist der gerasterte Text im Freigabedialog weg — der Ansicht, auf der die verbindliche Druckfreigabe beruht | hoch |
-| 5 | `dtf-text-raster.ts` zeichnet ohne `document.fonts.ready`, anders als alle fünf Schwester-Pipelines — gedruckt ≠ freigegeben | mittel |
-| 6 | `checkout/route.ts` verengt `allowed_countries` auf ein Land aus der Locale; auf der englischen Storefront bekommt ein EU-Kunde ein Deutschland-only-Adressformular | mittel |
-| 7 | `useDtfStore.setQuantity` ohne Obergrenze, Checkout-Schema deckelt bei 99 → generischer „Invalid cart"-400 | niedrig |
-| 8 | `DtfTextRender` klemmt `widthMm`, ohne das Text-Div zu verkleinern; gedruckter Text rutscht über den Sicherheitsrand | niedrig |
-| 9 | `DtfMotifsTab` lässt ein Motiv löschen, das in einer Warenkorbposition steckt (`is_ordered` erst nach Zahlung) | niedrig |
+| 3 | `total_cents` ohne Versand — Mail, Bestellseite und Tracking zeigten zu wenig | Eigene Spalte `orders.shipping_cents` aus `session.total_details.amount_shipping`; Gesamtbetrag `max(0, total − discount) + shipping`. Der Webhook gleicht gegen `session.amount_total` ab und meldet Abweichungen an Sentry. Beide Mails zeigen Rabatt und Versand als eigene Zeilen |
+| 4 | `blob:`-URL im persistierten Warenkorb; Freigabe-Dialog zeigte nach einem Reload leere Kästen | Die Datei lag längst im Storage — nur die Adresse war flüchtig. `DtfSheetPreview` holt die URLs über die `uploadId` (`POST /api/dtf/uploads/preview-urls`). Behebt zugleich das Ablaufen der 6-Stunden-Signaturen bei Bild-Motiven |
+| 5 | Raster zeichnete ohne geladene Schrift | `document.fonts.ready` + `load()` vor dem Messen, wie in den fünf Schwester-Pipelines |
+| 6 | `allowed_countries` aus der Locale geraten; englische Storefront ⇒ Deutschland-only-Adressformular | Es wird nicht mehr geraten: Ergibt die Locale kein beliefertes Land, bleibt die Auswahl leer und der Kauf-Knopf gesperrt. Serverseitig 400 statt stillem `DE` |
+| 7 | `setQuantity` ohne Obergrenze, Checkout deckelt bei 99 | `DTF_MAX_SHEET_QUANTITY` im Store und am Plus-Knopf — die Grenze greift dort, wo die Zahl eingestellt wird |
+| 8 | Geklemmte `widthMm` verkleinerte den Text nicht; gedruckt ragte er über den Sicherheitsrand | Bei Text ist `widthMm` ein Messwert. Geklemmt wird jetzt die Schriftgröße, Breite und Höhe folgen mit demselben Faktor. 4 Unit-Tests |
+| 9 | Motiv löschbar, obwohl eine Warenkorb-Position es referenziert | Der Löschknopf weicht einem Hinweis „im Warenkorb", solange eine Position das Motiv braucht |
+
+**Nicht behoben, weil bewusst so:** Die Beschränkung der Stripe-Adressabfrage auf *ein* Land bleibt. Der Versandtarif wird für dieses Land berechnet und lässt sich nach dem Anlegen der Session nicht mehr ändern — eine offene Länderliste hieße, für ein Land zu kassieren und in ein anderes zu liefern.

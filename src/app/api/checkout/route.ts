@@ -207,6 +207,19 @@ export async function POST(req: NextRequest) {
    * kalkulierbarer Verlust, eine abgebrochene ein sicherer. Der Vorfall
    * gehört aber ins Log.
    */
+  // Kein stilles Ausweichen auf Deutschland: Der Versandtarif und die
+  // Adressabfrage bei Stripe haengen beide an diesem Land. Geraten hiesse,
+  // deutschen Versand zu berechnen und dem Kunden danach nur eine deutsche
+  // Adresse zuzulassen -- fuer jemanden ausserhalb Deutschlands eine
+  // Sackgasse im Bezahlvorgang. Der Warenkorb fragt das Land ab, bevor er
+  // den Knopf freigibt; kommt hier trotzdem keines an, ist das ein Fehler
+  // und kein Fall fuer eine Annahme.
+  if (hasPhysical && !parsed.data.shippingCountry) {
+    return NextResponse.json(
+      { error: 'Lieferland fehlt' },
+      { status: 400 },
+    )
+  }
   const shippingCountry = parsed.data.shippingCountry ?? DOMESTIC_COUNTRY
   const shippingQuote = hasPhysical
     ? quoteShipping(

@@ -20,6 +20,7 @@ import {
   type DtfMotif,
 } from '@/hooks/useDtfStore'
 import { uploadDtfMotif, listDtfUploads, deleteDtfUpload } from '@/lib/dtf-upload'
+import { useCartStore } from '@/hooks/useCartStore'
 import { cn } from '@/lib/utils'
 
 /**
@@ -32,6 +33,25 @@ import { cn } from '@/lib/utils'
 export function DtfMotifsTab() {
   const t = useTranslations('dtfEditor')
   const fileRef = useRef<HTMLInputElement>(null)
+  const cartItems = useCartStore((s) => s.items)
+
+  /**
+   * Motive, die in einer Warenkorb-Position stecken.
+   *
+   * Die Position trägt eine eingefrorene Bogenbeschreibung, aber nur den
+   * Verweis auf die Datei — nicht die Datei selbst. Wer das Motiv hier
+   * löscht, macht die Bestellung unerfüllbar: Beim Erzeugen der Druckdatei
+   * fehlt das Original, und zwar erst nach der Zahlung. `is_ordered` schützt
+   * davor nicht, das wird erst beim Bezahlen gesetzt.
+   */
+  const lockedMotifIds = new Set(
+    cartItems
+      .filter((item) => item.productId === 'dtf')
+      .flatMap((item) => {
+        const snap = item.snapshot as { elements?: Array<{ uploadId?: string }> } | undefined
+        return (snap?.elements ?? []).map((el) => el.uploadId).filter((id): id is string => !!id)
+      }),
+  )
 
   const [busy, setBusy] = useState(false)
   const [progress, setProgress] = useState(0)
@@ -182,21 +202,31 @@ export function DtfMotifsTab() {
                     />
                   )}
                 </button>
-                <button
-                  type="button"
-                  aria-label={t('deleteMotif')}
-                  onClick={async () => {
-                    try {
-                      await deleteDtfUpload(m.id)
-                      removeMotif(m.id)
-                    } catch (err) {
-                      setError(err instanceof Error ? err.message : t('deleteFailed'))
-                    }
-                  }}
-                  className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-destructive text-destructive-foreground text-xs leading-none opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
-                >
-                  ×
-                </button>
+                {!lockedMotifIds.has(m.id) && (
+                  <button
+                    type="button"
+                    aria-label={t('deleteMotif')}
+                    onClick={async () => {
+                      try {
+                        await deleteDtfUpload(m.id)
+                        removeMotif(m.id)
+                      } catch (err) {
+                        setError(err instanceof Error ? err.message : t('deleteFailed'))
+                      }
+                    }}
+                    className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-destructive text-destructive-foreground text-xs leading-none opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+                  >
+                    ×
+                  </button>
+                )}
+                {lockedMotifIds.has(m.id) && (
+                  <span
+                    title={t('motifInCart')}
+                    className="absolute -top-1.5 -right-1.5 rounded-full bg-muted px-1.5 py-0.5 text-[10px] leading-none text-muted-foreground ring-1 ring-border"
+                  >
+                    {t('motifInCartBadge')}
+                  </span>
+                )}
               </div>
             ))}
           </div>

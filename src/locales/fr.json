@@ -790,6 +790,8 @@
     "libraryHint": "Touchez pour placer sur la feuille. Un même motif peut être placé plusieurs fois.",
     "placeMotif": "Placer sur la feuille",
     "deleteMotif": "Supprimer le motif",
+    "motifInCart": "Nécessaire pour un article du panier, suppression impossible.",
+    "motifInCartBadge": "dans le panier",
     "deleteFailed": "Impossible de supprimer le motif.",
     "selectedHeading": "Motif sélectionné",
     "widthCm": "Largeur en cm",
@@ -863,6 +865,7 @@
   },
   "shipping": {
     "countryLabel": "Pays de livraison",
+    "countryPlaceholder": "Veuillez choisir un pays de livraison",
     "shippingLabel": "Livraison",
     "free": "offerte",
     "freeReached": "Livraison offerte atteinte.",

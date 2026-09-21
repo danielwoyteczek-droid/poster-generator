@@ -790,6 +790,8 @@
     "libraryHint": "Tap to place it on the sheet. The same artwork can be placed several times.",
     "placeMotif": "Place on sheet",
     "deleteMotif": "Delete artwork",
+    "motifInCart": "Needed for an item in your cart, so it cannot be deleted.",
+    "motifInCartBadge": "in cart",
     "deleteFailed": "Could not delete artwork.",
     "selectedHeading": "Selected artwork",
     "widthCm": "Width in cm",
@@ -863,6 +865,7 @@
   },
   "shipping": {
     "countryLabel": "Delivery country",
+    "countryPlaceholder": "Please select a delivery country",
     "shippingLabel": "Shipping",
     "free": "free",
     "freeReached": "Free shipping reached.",

@@ -790,6 +790,8 @@
     "libraryHint": "Antippen legt das Motiv auf den Bogen. Dasselbe Motiv lässt sich mehrfach platzieren.",
     "placeMotif": "Auf den Bogen legen",
     "deleteMotif": "Motiv löschen",
+    "motifInCart": "Wird für eine Position im Warenkorb gebraucht und kann deshalb nicht gelöscht werden.",
+    "motifInCartBadge": "im Warenkorb",
     "deleteFailed": "Motiv konnte nicht gelöscht werden.",
     "selectedHeading": "Ausgewähltes Motiv",
     "widthCm": "Breite in cm",
@@ -863,6 +865,7 @@
   },
   "shipping": {
     "countryLabel": "Lieferland",
+    "countryPlaceholder": "Bitte Lieferland wählen",
     "shippingLabel": "Versand",
     "free": "kostenlos",
     "freeReached": "Versandkostenfrei erreicht.",
