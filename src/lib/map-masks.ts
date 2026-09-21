@@ -76,11 +76,16 @@ export const MAP_MASKS: Record<MapMaskKey, MapMaskDefinition> = {
     label: 'Kreis',
     svgPath: '/masks/circle.svg',
     applicableTo: ['map', 'star-map'],
+    // Only the map editor composes this `shape`; the star map loads
+    // `svgPath` (circle.svg, own geometry) and is unaffected.
     shape: {
       viewBox: '0 0 595.3 841.9',
       width: 595.3, height: 841.9,
-      markup: '<circle cx="297.6" cy="297.6" r="266.5"/>',
-      bottomFraction: 0.67,
+      // r 266.5 → 252.33 (2026-09-16): 5 mm more margin left/right/top on
+      // A4 (595.3 units = 210 mm), same proportion on A3/A2. Keep in sync
+      // with `split-circles` below.
+      markup: '<circle cx="297.6" cy="297.6" r="252.33"/>',
+      bottomFraction: 0.653,
       landscapeScale: 1.15,
       landscapeYOffset: 0.06,
     },
@@ -202,10 +207,10 @@ export const MAP_MASKS: Record<MapMaskKey, MapMaskDefinition> = {
     shape: {
       viewBox: '0 0 595.3 841.9',
       width: 595.3, height: 841.9,
-      // Match the non-split `circle` mask geometry (cy=297.6, r=266.5)
+      // Match the non-split `circle` mask geometry (cy=297.6, r=252.33)
       // so single/split versions sit at the same poster height.
-      markup: '<circle cx="297.6" cy="297.6" r="266.5"/>',
-      bottomFraction: 0.67,
+      markup: '<circle cx="297.6" cy="297.6" r="252.33"/>',
+      bottomFraction: 0.653,
       landscapeScale: 1.15,
       landscapeYOffset: 0.06,
       shapeLandscape: {
@@ -216,7 +221,8 @@ export const MAP_MASKS: Record<MapMaskKey, MapMaskDefinition> = {
         // midline (x=420.95) and vertical midpoint (y=297.65) so the
         // half-clip at canvas midline cuts the circle into two clean
         // semicircles without auto-fit shrinking it.
-        markup: '<circle cx="420.95" cy="269.65" r="213.2"/>',
+        // r scaled with the portrait circle (213.2 × 252.33/266.5).
+        markup: '<circle cx="420.95" cy="269.65" r="201.86"/>',
         bottomFraction: 1,
       },
     },

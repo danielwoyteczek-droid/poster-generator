@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase-admin'
 import { LocaleSchema } from '@/lib/preset-locales'
 import { OccasionSchema } from '@/lib/occasions'
+import { refreshPresetsPhotoUrls } from '@/lib/preset-photo-urls'
 
 export async function GET(req: NextRequest) {
   const posterType = req.nextUrl.searchParams.get('poster_type')
@@ -41,5 +42,5 @@ export async function GET(req: NextRequest) {
 
   const { data, error } = await query
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json({ presets: data ?? [] })
+  return NextResponse.json({ presets: await refreshPresetsPhotoUrls(admin, data ?? []) })
 }

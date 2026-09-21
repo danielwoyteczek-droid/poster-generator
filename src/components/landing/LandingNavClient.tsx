@@ -250,6 +250,12 @@ export function LandingNavClient({ occasionLinks = [] }: LandingNavClientProps) 
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
+                      <Link href="/private/admin/image-generator" className="cursor-pointer">
+                        <ImageIcon className="w-4 h-4 mr-2" />
+                        Image Generator
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
                       <Link href="/private/admin/etsy-listings" className="cursor-pointer">
                         <LayoutTemplate className="w-4 h-4 mr-2" />
                         Etsy Mass-Listings
@@ -259,6 +265,18 @@ export function LandingNavClient({ occasionLinks = [] }: LandingNavClientProps) 
                       <Link href="/private/admin/listing-image-sets" className="cursor-pointer">
                         <LayoutTemplate className="w-4 h-4 mr-2" />
                         Listing-Image-Sets
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/private/admin/amazon/orders" className="cursor-pointer">
+                        <Package className="w-4 h-4 mr-2" />
+                        Amazon-Bestellungen
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/private/admin/amazon/skus" className="cursor-pointer">
+                        <LayoutTemplate className="w-4 h-4 mr-2" />
+                        Amazon-SKUs
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>

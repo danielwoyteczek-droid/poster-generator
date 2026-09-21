@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/admin-auth'
 import { createAdminClient } from '@/lib/supabase-admin'
+import { bakePaletteIntoConfig, type PresetConfig } from '@/lib/image-generator/palette-bake'
 
 // PROJ-53: Render-Trigger (Ansatz A — Preset-Klon je Palette).
 // Pro gewählter Palette wird ein Preset-Klon erzeugt/aktualisiert:
@@ -11,8 +12,6 @@ import { createAdminClient } from '@/lib/supabase-admin'
 //  - render_status='pending' → Render-Worker (PROJ-30/52) übernimmt.
 // Re-Render-fähig: bestehende Klone werden AKTUALISIERT (nicht übersprungen),
 // damit Paletten-/Ort-Änderungen und Fixes beim erneuten Klick greifen.
-
-interface PresetConfig { [key: string]: unknown }
 
 export async function POST(_req: NextRequest, context: { params: Promise<{ id: string }> }) {
   const auth = await requireAdmin()
@@ -85,17 +84,7 @@ export async function POST(_req: NextRequest, context: { params: Promise<{ id: s
   )
 
   const buildConfig = (paletteId: string): PresetConfig => {
-    const config: PresetConfig = { ...((base.config_json as PresetConfig) ?? {}) }
-    const colors = paletteColors.get(paletteId)
-    if (colors) {
-      // Named DB-Palette als Custom einbacken — überschreibt eine evtl. vom
-      // Basis-Preset geerbte customPalette und braucht keinen DB-Cache.
-      config.paletteId = 'custom'
-      config.customPalette = colors
-      config.customPaletteBase = colors.water ?? colors.land ?? '#84c5a6'
-    } else {
-      config.paletteId = paletteId
-    }
+    const config = bakePaletteIntoConfig(base.config_json as PresetConfig, paletteId, paletteColors.get(paletteId))
     if (locOverride) {
       const marker = (config.marker as Record<string, unknown> | undefined) ?? {}
       config.marker = { ...marker, lat: locOverride.lat, lng: locOverride.lng }

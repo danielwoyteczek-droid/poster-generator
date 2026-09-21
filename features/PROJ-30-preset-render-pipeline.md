@@ -1128,6 +1128,44 @@ Die Admin-Render-Library ([AdminRenderLibrary.tsx](src/components/admin/AdminRen
 - [api/presets/[id]/route.ts](src/app/api/presets/[id]/route.ts) — serviert Drafts, wenn der Request einen gültigen `x-render-token` trägt (`validateHeadlessToken`). Der Worker schickt den Header ohnehin bei jedem Same-Origin-Request mit. Kunden-Deeplinks (kein Token) sehen weiterhin nur published Presets.
 - [HeadlessRenderBridge.tsx](src/components/editor/HeadlessRenderBridge.tsx) — Schutznetz: bei `__presetApplied !== true` (Fehler **oder** Timeout) wird nicht mehr der Default gerendert; `__renderPosterPng` wirft stattdessen → Worker markiert `render_status='failed'` mit klarer Ursache statt ein falsches Bild hochzuladen.
 
+### 2026-09-16 — Bugfix: Render zeigt anderen Kartenausschnitt als Editor und Export
+**Symptom:** Preset-Renders (Inspiration, Mockups, Etsy, Image Generator) zeigten einen engeren, teils anders zentrierten Ausschnitt als der Editor. „Eigene Karte gestalten" öffnete dadurch scheinbar ein anderes Design als die Preset-Karte. Editor-Export und Bestell-Druckdateien waren korrekt.
+
+**Ursachen:**
+1. `buildPosterCanvas` ([useMapExport.ts](src/hooks/useMapExport.ts)) rechnet den Ausschnitt aus Zoom × Vorschaugröße. Der Headless-Editor hat keine MapPreview → `viewportWidth = 0` → Rückfall auf **500 px**. Der Editor zeichnet seit PROJ-37 aber auf der logischen Fläche (A4 = 800 px) → Render zu eng. `renderVpW/H` (PROJ-53) kaschierte das nur für neu gespeicherte Presets.
+2. Der Worker übergab immer die **Marker-Position** als `lat/lng`; die Bridge setzte damit Kartenmitte **und** Marker → bei Presets mit Pin außerhalb der Mitte falsche Kartenmitte. Ohne URL-Position übernahm die Bridge aus dem Preset nur den Zoom, nicht die Mitte.
+
+**Fix:**
+- `buildPosterCanvas`: Rückfall = logische Kartenfläche des Formats (`effectiveLogicalCanvas` × Map-Target inkl. Layout/Innenrand) statt 500 px. Editor-Exporte und alle 25 geprüften Bestell-Snapshots tragen eine Vorschaugröße und sind nicht betroffen.
+- [HeadlessRenderBridge.tsx](src/components/editor/HeadlessRenderBridge.tsx): ohne URL-Position komplette Preset-Kamera (Mitte + Zoom) übernehmen.
+- [render-worker.ts](scripts/render-worker.ts): Presets mit gespeicherter Kartenmitte (`config.lat/lng`) bekommen keine Positions-Überschreibung mehr; ältere Presets ohne Mitte weiter über den Marker.
+
+**Verifikation:** Headless-Testrenders (ohne DB-Schreiben) gegen den Live-Editor verglichen (London, Heart_New York, New York Quer identisch). Danach alle 24 Karten-Presets lokal neu gerendert (A4/A3/A2 + Mockups), fehlerfrei.
+
+**Bekannte Rest-Punkte (nicht durch den Fix verursacht):** Presets ohne gespeicherten Ort (Pink London, Dark Heart) rendern am Rückfall-Ort Berlin; ältere Presets ohne Kartenmitte, deren Marker nicht zum Design passt (Madrid (FR), Heart Love, Euer Moment), müssen im Editor neu gespeichert werden. Split-Foto fehlt im Render („Erster Kuss", „Euer Moment") und die Schrift „Ashley Southine Reg" lädt headless nicht — eigene Bugs. City-Renders (PROJ-42, Stand Mai ohne Pin) nach Merge neu rendern.
+
+### Bugfix 2026-09-17: DB-Paletten rendern headless als mint
+
+**Symptom:** „Herz Klassiker" (Palette `weiss-weiss`) war im Editor-Vorschaubild schwarz-weiß, im Headless-Render und damit in der Image-Generator-Grundfarbe (PROJ-56) mint.
+
+**Ursache:** Paletten, die nur in der DB existieren (`weiss-weiss`, `blue-water`), löst `resolvePalette` über den Client-Cache aus `useMapPalettes` auf. Den wärmt nur die Palettenauswahl in der Sidebar — der Headless-Editor mountet sie nicht, also Rückfall auf `MAP_PALETTES[0]` (mint). Farbvarianten waren nicht betroffen (Farben per `bakePaletteIntoConfig` eingebacken).
+
+**Fix:** [petite-style-loader.ts](src/lib/petite-style-loader.ts) `buildPetiteStyle` lädt im Browser vor dem Auflösen einmalig die DB-Paletten (`loadMapPalettes()` in [useMapPalettes.ts](src/hooks/useMapPalettes.ts)); bei Fetch-Fehler bleibt der bisherige Rückfall. Geteilter Pfad für Editor-Vorschau, Hochzeits-Slots, PNG/PDF-Export, Admin-Paletten-Vorschau und alle Headless-Renders.
+
+**Verifikation (Paletten):** Lokaler Headless-Render mit Render-Token schwarz-weiß. Nach Deploy (PR #16) Herz Klassiker, Heart_Etsy und New York neu gerendert (A4/A3/A2 + Mockups) sowie die drei Grundfarben-Galeriebilder von Herz Klassiker neu erzeugt — Farben korrekt.
+
+### Bugfix 2026-09-17: Preset-Fotos fehlen, Admin-Fonts falsch, Foto-Poster-Render bricht ab
+
+Behebt die oben als Rest-Punkte genannten Bugs „Split-Foto fehlt im Render" und „Ashley Southine Reg lädt headless nicht".
+
+**1. Fotos fehlen (Erster Kuss, Euer Moment, Muttertag mit Fotos):** Presets speicherten die 7-Tage-signierte Upload-URL aus `photo-upload.ts` — seit Mai abgelaufen. Betraf Headless-Render und Kunden-Editor. Fix: [preset-photo-urls.ts](src/lib/preset-photo-urls.ts) signiert alle im Preset referenzierten `user-photos`-Pfade bei jedem Abruf neu (`/api/presets`, `/api/presets/[id]`, `/api/admin/presets/[id]`). Nur Pfade aus dem Preset selbst werden signiert. (PR #18)
+
+**2. Falsche Schrift (Admin-Fonts, PROJ-47):** Nur der Font-Picker der Sidebar registrierte DB-Fonts. Fix: [HeadlessRenderBridge.tsx](src/components/editor/HeadlessRenderBridge.tsx) ruft vor dem Ready-Signal `ensureFontsRegistered()` aus [useFonts.ts](src/hooks/useFonts.ts). (PR #18)
+
+**3. Foto-Poster-Render „NetworkError" nur im GitHub-Worker:** `ensureMaskFontLoaded` lud die next/font-Liste `Anton, "Anton Fallback"`; die Fallback-Face ist `local(Arial)`. Ohne Arial (Linux-Runner, vermutlich Android-Kunden beim Export) lehnt `document.fonts.load` die ganze Liste ab. Fix: nur die primäre Familie laden ([photo-mask-render.ts](src/lib/photo-mask-render.ts), wirkt auch auf `poster-from-snapshot`). Im Browser nachgestellt. (PR #19)
+
+**Verifikation:** Lokale Headless-Renders von Erster Kuss und Muttertag mit Fotos. Nach Deploy Erster Kuss, Euer Moment und Muttertag mit Fotos per GitHub-Worker neu gerendert — Fotos und Script-Fonts vorhanden.
+
 ## QA Test Results
 _To be added by /qa_
 

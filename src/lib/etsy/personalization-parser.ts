@@ -41,6 +41,30 @@ export const PersonalizationFieldSchema = z.object({
   // order. `positional` defaults to true; set to false for fields the
   // buyer is unlikely to type unprompted (e.g. coordinates).
   positional: z.boolean().default(true),
+  /**
+   * PROJ-31: Welchen Textblock des Presets dieses Feld befüllt — die `id`
+   * aus `config_json.textBlocks`. Ohne Ziel füllt das Feld keinen Textblock:
+   * entweder weil es woanders hingehört (Ort, Format, Rahmen — siehe
+   * RESERVED_NON_TEXT_KEYS), oder weil die Zuordnung noch nicht gepflegt
+   * ist. Der zweite Fall schickt die Bestellung in die Prüfung; der Text
+   * wird NICHT ersatzweise der Reihe nach verteilt.
+   */
+  target: z.string().min(1).max(64).optional(),
+  /**
+   * PROJ-31: Was geschieht, wenn der Käufer das Feld leer lässt.
+   *
+   *  `preset` — der im Preset hinterlegte Text bleibt stehen
+   *  `auto`   — aus der Bestellung ableiten statt aus dem Preset:
+   *             ein Koordinatenblock bleibt Koordinatenblock und der
+   *             Renderer setzt Stadt + Koordinaten; ein normaler Block
+   *             bekommt den aufgelösten Ortsnamen
+   *  `leer`   — Block wird geleert
+   *
+   * Nicht gesetzt heißt `preset`: der Block bleibt unberührt. Bewusst
+   * optional statt mit Vorgabewert, damit „nicht gepflegt" ein eigener
+   * Zustand bleibt und bestehende Schemata unverändert weiter gelten.
+   */
+  whenEmpty: z.enum(['preset', 'auto', 'leer']).optional(),
 })
 
 export const PersonalizationSchemaSchema = z.array(PersonalizationFieldSchema).max(20)
@@ -73,7 +97,7 @@ export type ParseResult = ParseSuccess | ParseFailure
  *   - strip punctuation
  *   - collapse whitespace
  */
-function normalize(s: string): string {
+export function normalize(s: string): string {
   return s
     .normalize('NFD')
     .replace(/\p{M}/gu, '')
@@ -111,7 +135,15 @@ function splitLineToKeyValue(line: string): { label: string; value: string } | n
   return null
 }
 
-function findFieldForLabel(
+/**
+ * Findet das Schema-Feld zu einer Beschriftung. Verglichen wird normalisiert
+ * gegen Key, Label, englisches Label und alle Fallbacks.
+ *
+ * PROJ-31: wird auch vom Amazon-Pfad genutzt. Dort kommen die Beschriftungen
+ * nicht aus Freitext, sondern direkt aus den Anpassungsfeldern — derselbe
+ * Abgleich, nur ohne vorheriges Zerlegen von Zeilen.
+ */
+export function findFieldForLabel(
   fields: PersonalizationField[],
   labelRaw: string,
 ): PersonalizationField | null {
@@ -200,7 +232,25 @@ export function parsePersonalization(
     }
   }
 
-  // Phase 3: validate required + regex.
+  return finalizeParse(parsed, matchedAs, unmatchedLines, schema)
+}
+
+/**
+ * Letzte Stufe für beide Verkaufskanäle: Pflichtfelder prüfen, Werte gegen
+ * ihr Muster prüfen, Ergebnis formen.
+ *
+ * Herausgelöst für PROJ-31. Etsy erreicht sie weiterhin über
+ * `parsePersonalization()`; Amazon ruft sie mit direkt zugeordneten Feldern
+ * auf, ohne den Umweg über Freitext. Beide Kanäle liefern damit dasselbe
+ * `ParseResult` und laufen durch denselben Prüf- und Render-Weg — es gibt
+ * keinen zweiten Review-Pfad.
+ */
+export function finalizeParse(
+  parsed: Record<string, string>,
+  matchedAs: Record<string, { label: string; mode: 'labelled' | 'positional' }>,
+  unmatchedLines: string[],
+  schema: PersonalizationSchema,
+): ParseResult {
   const missing: string[] = []
   const invalid: Array<{ key: string; value: string; reason: string }> = []
   for (const field of schema) {

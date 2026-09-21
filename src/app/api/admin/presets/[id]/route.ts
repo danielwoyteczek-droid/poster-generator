@@ -4,6 +4,7 @@ import { requireAdmin } from '@/lib/admin-auth'
 import { createAdminClient } from '@/lib/supabase-admin'
 import { TargetLocalesSchema } from '@/lib/preset-locales'
 import { OccasionsSchema } from '@/lib/occasions'
+import { refreshPresetPhotoUrls } from '@/lib/preset-photo-urls'
 
 const PatchSchema = z.object({
   name: z.string().trim().min(1).max(200).optional(),
@@ -25,7 +26,8 @@ export async function GET(_req: NextRequest, context: { params: Promise<{ id: st
   const admin = createAdminClient()
   const { data, error } = await admin.from('presets').select('*').eq('id', id).single()
   if (error || !data) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-  return NextResponse.json({ preset: data })
+  const config_json = await refreshPresetPhotoUrls(admin, data.config_json)
+  return NextResponse.json({ preset: { ...data, config_json } })
 }
 
 export async function PATCH(req: NextRequest, context: { params: Promise<{ id: string }> }) {

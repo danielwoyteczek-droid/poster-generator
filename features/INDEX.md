@@ -44,7 +44,7 @@
 | PROJ-28 | Business Center | Approved | [PROJ-28-business-center.md](PROJ-28-business-center.md) | 2026-04-26 |
 | PROJ-29 | Anlass-Landing-Pages (SEO) | Approved | [PROJ-29-occasion-landing-pages.md](PROJ-29-occasion-landing-pages.md) | 2026-04-26 |
 | PROJ-30 | Preset-Render-Pipeline | Approved | [PROJ-30-preset-render-pipeline.md](PROJ-30-preset-render-pipeline.md) | 2026-04-27 |
-| PROJ-31 | Amazon-Bestellungs-Importer (SP-API) | Planned | [PROJ-31-amazon-order-importer.md](PROJ-31-amazon-order-importer.md) | 2026-04-28 |
+| PROJ-31 | Amazon-Custom-Anpassungsdaten-Importer | Approved | [PROJ-31-amazon-order-importer.md](PROJ-31-amazon-order-importer.md) | 2026-04-28 |
 | PROJ-32 | Foto-Poster-Editor | In Progress | [PROJ-32-photo-poster-editor.md](PROJ-32-photo-poster-editor.md) | 2026-04-29 |
 | PROJ-33 | Saisonaler Marketing-Kalender | Architected | [PROJ-33-seasonal-marketing-calendar.md](PROJ-33-seasonal-marketing-calendar.md) | 2026-04-29 |
 | PROJ-34 | Star-Map Aquarell-Texturen | Deployed | [PROJ-34-starmap-textures.md](PROJ-34-starmap-textures.md) | 2026-04-30 |
@@ -69,10 +69,11 @@
 | PROJ-53 | Etsy Mass-Listing-Generator (Paletten-Varianten-Matrix + Vela-CSV) | Planned | [PROJ-53-etsy-mass-listing-generator.md](PROJ-53-etsy-mass-listing-generator.md) | 2026-05-31 |
 | PROJ-54 | Listing-Image-Sets (Etsy-Bild-Vorlagen pro Produkttyp) | In Progress | [PROJ-54-listing-image-sets.md](PROJ-54-listing-image-sets.md) | 2026-06-02 |
 | PROJ-55 | DTF-Print-Editor (Kunden-Motive auf Transferbogen) | In Progress | [PROJ-55-dtf-print-editor.md](PROJ-55-dtf-print-editor.md) | 2026-08-10 |
+| PROJ-56 | Image Generator (Galerie-/Mockup-Bilder pro Preset) | Deployed | [PROJ-56-image-generator.md](PROJ-56-image-generator.md) | 2026-09-16 |
 
 <!-- Add features above this line -->
 
-## Next Available ID: PROJ-56
+## Next Available ID: PROJ-57
 
 ## Recommended Build Order
 1. **PROJ-1** — Karten-Editor Core (Fundament der App)

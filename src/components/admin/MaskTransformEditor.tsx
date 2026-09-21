@@ -119,6 +119,19 @@ export function MaskTransformEditor({ mask, target = 'mask', open, onOpenChange,
     window.addEventListener('pointerup', onUp)
   }
 
+  // Storage (and the composer) scale around the viewBox origin (0,0), so a
+  // centred silhouette at scale 1.5 is stored with a negative x. The slider
+  // instead scales around the viewBox centre — tx/ty compensate so the shape
+  // stays put — and the x/y readout shows the offset from centred, which is
+  // 0 for a centred shape at any scale. Stored values keep their meaning.
+  const handleScaleChange = (next: number) => {
+    setTx(tx + (scale - next) * vb.w / 2)
+    setTy(ty + (scale - next) * vb.h / 2)
+    setScale(next)
+  }
+  const offsetX = tx + (scale - 1) * vb.w / 2
+  const offsetY = ty + (scale - 1) * vb.h / 2
+
   const handleReset = () => {
     setTx(0)
     setTy(0)
@@ -256,11 +269,11 @@ export function MaskTransformEditor({ mask, target = 'mask', open, onOpenChange,
               min={SCALE_MIN}
               max={SCALE_MAX}
               step={SCALE_STEP}
-              onValueChange={([v]) => setScale(v)}
+              onValueChange={([v]) => handleScaleChange(v)}
             />
             <div className="grid grid-cols-2 gap-2 text-[11px] text-muted-foreground">
-              <span>x: {round2(tx)}</span>
-              <span>y: {round2(ty)}</span>
+              <span>x: {round2(offsetX)}</span>
+              <span>y: {round2(offsetY)}</span>
             </div>
           </div>
         </div>
