@@ -1,9 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import type Stripe from 'stripe'
+import * as Sentry from '@sentry/nextjs'
 import { stripe } from '@/lib/stripe'
 import { createAdminClient } from '@/lib/supabase-admin'
 import { sendOrderConfirmation, sendAdminNewOrderNotification } from '@/lib/email'
 import { dispatchB2BWebhookEvent, isB2BCheckoutSession } from '@/lib/b2b-webhook-handlers'
+import { generatePrintFilesForOrder } from '@/lib/dtf-print-run'
+
+export const runtime = 'nodejs'
+/**
+ * PROJ-55: Die Erzeugung der DTF-Druckdateien lädt Originale von bis zu
+ * 50 MB und baut daraus PDFs — das dauert länger als die Standardgrenze.
+ * Schlägt es trotzdem ins Zeitlimit, bleibt die Zeile auf 'failed' und
+ * lässt sich aus der Bestellansicht wiederholen.
+ */
+export const maxDuration = 300
 
 export async function POST(req: NextRequest) {
   try {
@@ -76,6 +87,11 @@ export async function POST(req: NextRequest) {
       // We also resolve the promotion-code ID back to its human name so the
       // order record stays readable in admin/marketing reporting.
       const discountCents = session.total_details?.amount_discount ?? 0
+
+      // PROJ-26: Versandkosten aus derselben Quelle. `total_cents` auf der
+      // Bestellung ist die Produktsumme und bleibt es — der Gesamtbetrag
+      // ergibt sich als total - discount + shipping.
+      const shippingCents = session.total_details?.amount_shipping ?? 0
       let resolvedDiscountCode: string | null = null
       const sessionWithDiscounts = session as Stripe.Checkout.Session & {
         discounts?: Array<{ promotion_code?: string | null }>
@@ -111,16 +127,44 @@ export async function POST(req: NextRequest) {
           shipping_address: shipping?.address
             ? { ...shipping.address, name: shipping.name ?? null }
             : null,
+          shipping_cents: shippingCents,
           ...discountUpdate,
         })
         .eq('stripe_session_id', session.id)
-        .select('id, access_token, total_cents, items, email, shipping_address')
+        .select('id, access_token, total_cents, shipping_cents, discount_cents, items, email, shipping_address')
         .single()
 
       if (updateErr) {
         console.error('[webhook] order update failed:', updateErr)
       } else {
         console.log('[webhook] order updated to paid:', updated?.id)
+      }
+
+      // Was der Kunde tatsächlich gezahlt hat. Mails und Tracking bekommen
+      // diesen Wert, nicht die Produktsumme — sonst steht in der
+      // Bestätigung ein anderer Betrag als auf der Kartenabrechnung.
+      // `Math.max(0, …)` vor dem Versand: Ein Gutschein über den vollen
+      // Warenwert macht die Produktseite 0, nicht negativ — Stripe bucht
+      // dann trotzdem den Versand ab. Ohne die Klammer meldete der
+      // Abgleich unten einen Fehler, wo keiner ist.
+      const grandTotalCents = updated
+        ? Math.max(0, updated.total_cents - (updated.discount_cents ?? 0)) +
+          (updated.shipping_cents ?? 0)
+        : 0
+      // Stripe ist die Wahrheit; weicht unsere Rechnung ab, stimmt eine
+      // Annahme nicht mehr. Nur melden, nicht korrigieren — der Webhook
+      // darf daran nicht scheitern, und stillschweigend überschreiben
+      // würde den Fehler verstecken.
+      if (updated && session.amount_total != null && grandTotalCents !== session.amount_total) {
+        console.error(
+          '[webhook] Betrag weicht von Stripe ab:',
+          { orderId: updated.id, grandTotalCents, stripeAmountTotal: session.amount_total },
+        )
+        Sentry.captureMessage('Bestellbetrag weicht von Stripe ab', {
+          level: 'error',
+          tags: { feature: 'PROJ-26', order_id: updated.id },
+          extra: { grandTotalCents, stripeAmountTotal: session.amount_total },
+        })
       }
 
       // Lock all projects referenced by this order's items
@@ -140,6 +184,28 @@ export async function POST(req: NextRequest) {
         }
       }
 
+      // PROJ-55: Druckdateien für DTF-Positionen erzeugen. Bewusst hier und
+      // nicht in einem eigenen Job: Der Betreiber soll die PDF vorfinden,
+      // wenn er die Bestellung öffnet.
+      //
+      // Fehler dürfen den Webhook NICHT scheitern lassen — Stripe würde
+      // sonst erneut zustellen und die Bestellung mehrfach verarbeiten. Ein
+      // fehlgeschlagener Lauf hinterlässt eine Zeile mit Status 'failed'
+      // und lässt sich aus der Bestellansicht wiederholen.
+      if (updated?.id) {
+        const hasDtf = (updated.items as Array<{ productId?: string }> | null)?.some(
+          (i) => i.productId === 'dtf',
+        )
+        if (hasDtf) {
+          try {
+            const run = await generatePrintFilesForOrder(updated.id)
+            console.log('[webhook] dtf print files:', run)
+          } catch (err) {
+            console.error('[webhook] dtf print file generation failed:', err)
+          }
+        }
+      }
+
       if (updated?.email) {
         const origin =
           req.headers.get('origin') ??
@@ -153,7 +219,9 @@ export async function POST(req: NextRequest) {
             orderId: updated.id,
             accessToken: updated.access_token,
             items: updated.items,
-            totalCents: updated.total_cents,
+            totalCents: grandTotalCents,
+            shippingCents: updated.shipping_cents ?? 0,
+            discountCents: updated.discount_cents ?? 0,
             origin: baseUrl,
             locale: orderLocale,
           })
@@ -171,7 +239,9 @@ export async function POST(req: NextRequest) {
               to: adminEmail,
               orderId: updated.id,
               items: updated.items,
-              totalCents: updated.total_cents,
+              totalCents: grandTotalCents,
+              shippingCents: updated.shipping_cents ?? 0,
+              discountCents: updated.discount_cents ?? 0,
               email: updated.email,
               shippingAddress: (updated as { shipping_address?: Record<string, unknown> | null }).shipping_address ?? null,
               hasPhysical,

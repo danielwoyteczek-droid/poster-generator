@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import { useCartStore } from '@/hooks/useCartStore'
 import { useVoucherStore } from '@/hooks/useVoucherStore'
 import { trackPurchase, hashedEmail } from '@/lib/analytics'
-import { formatPrice, getItemFallbackLabel, getItemLabelKey } from '@/lib/products'
+import { formatPrice, getItemFallbackLabel, getItemLabelKey, displayFormatLabel } from '@/lib/products'
 import { PRINT_FORMAT_OPTIONS, type PrintFormat } from '@/lib/print-formats'
 import {
   renderPosterFromSnapshot,
@@ -47,6 +47,8 @@ interface OrderData {
   /** PROJ-48: present on orders paid after 2026-05-14, null/0 on older orders. */
   discount_code?: string | null
   discount_cents?: number | null
+  /** PROJ-26: Versandkosten, 0 bei digitalen und bei allen Bestellungen vor PROJ-26. */
+  shipping_cents?: number | null
   /** Customer email — used (SHA-256 hashed) for Google Ads Enhanced Conversions. */
   email?: string | null
 }
@@ -57,8 +59,16 @@ interface Props {
   showSuccessBanner: boolean
 }
 
-function formatLabel(id: string) {
-  return PRINT_FORMAT_OPTIONS.find((f) => f.id === id)?.label ?? id.toUpperCase()
+/**
+ * Was der Kunde tatsächlich gezahlt hat.
+ *
+ * `total_cents` ist die Produktsumme und bleibt es — der Rabatt kommt aus
+ * Stripe (PROJ-48), der Versand ebenso (PROJ-26). Beide Spalten fehlen auf
+ * alten Bestellungen; dort ist 0 die richtige Antwort, weil damals weder
+ * Gutscheine noch Versandkosten berechnet wurden.
+ */
+function grandTotal(order: OrderData): number {
+  return Math.max(0, order.total_cents - (order.discount_cents ?? 0)) + (order.shipping_cents ?? 0)
 }
 
 export function OrderView({ orderId, token, showSuccessBanner }: Props) {
@@ -101,7 +111,9 @@ export function OrderView({ orderId, token, showSuccessBanner }: Props) {
       const emailHash = order.email ? await hashedEmail(order.email) : null
       trackPurchase({
         transactionId: order.id,
-        totalCents: order.total_cents,
+        // Was der Kunde gezahlt hat, nicht die Produktsumme — sonst meldet
+        // das Tracking dauerhaft zu niedrige Umsaetze.
+        totalCents: grandTotal(order),
         emailHash,
         items,
       })
@@ -212,6 +224,16 @@ export function OrderView({ orderId, token, showSuccessBanner }: Props) {
   useEffect(() => {
     if (order?.status !== 'paid') return
     order.items.forEach((item, idx) => {
+      // PROJ-55: DTF-Positionen überspringen — wie im Zwilling
+      // AdminOrderDetail. Sie haben kein Poster-Design, das sich rendern
+      // ließe; ihre Druckdatei entsteht serverseitig aus der
+      // Bogenbeschreibung. Ohne diese Prüfung wirft
+      // renderPosterFromSnapshot, das `catch` zeigt einen Toast, das
+      // `finally` setzt `preparing` zurück — und weil `preparing` in den
+      // Abhängigkeiten steht, läuft der Effekt sofort wieder. Ergebnis wäre
+      // eine Endlosschleife aus Fehlversuchen auf der Bestellseite des
+      // Kunden, direkt nach dem Bezahlen.
+      if ((item.productId as string) === 'dtf') return
       const hasPng = exports.some((e) => e.item_index === idx && e.file_type === 'png')
       const hasPdf = exports.some((e) => e.item_index === idx && e.file_type === 'pdf')
       if (!hasPng || !hasPdf) {
@@ -275,24 +297,23 @@ export function OrderView({ orderId, token, showSuccessBanner }: Props) {
           </div>
           <div className="text-right">
             {order.discount_cents && order.discount_cents > 0 ? (
-              <>
-                <div className="text-xs text-muted-foreground line-through">
-                  {formatPrice(order.total_cents)}
-                </div>
-                {order.discount_code && (
-                  <div className="text-xs text-green-700 font-medium mt-0.5">
-                    −{formatPrice(order.discount_cents)} ({order.discount_code})
-                  </div>
-                )}
-                <div className="text-sm font-semibold text-foreground mt-0.5">
-                  {formatPrice(Math.max(0, order.total_cents - order.discount_cents))}
-                </div>
-              </>
-            ) : (
-              <div className="text-sm font-semibold text-foreground">
+              <div className="text-xs text-muted-foreground line-through">
                 {formatPrice(order.total_cents)}
               </div>
-            )}
+            ) : null}
+            {order.discount_cents && order.discount_cents > 0 && order.discount_code ? (
+              <div className="text-xs text-green-700 font-medium mt-0.5">
+                −{formatPrice(order.discount_cents)} ({order.discount_code})
+              </div>
+            ) : null}
+            {order.shipping_cents && order.shipping_cents > 0 ? (
+              <div className="text-xs text-muted-foreground mt-0.5">
+                {t('shipping')} {formatPrice(order.shipping_cents)}
+              </div>
+            ) : null}
+            <div className="text-sm font-semibold text-foreground mt-0.5">
+              {formatPrice(grandTotal(order))}
+            </div>
           </div>
         </div>
 
@@ -315,7 +336,7 @@ export function OrderView({ orderId, token, showSuccessBanner }: Props) {
                     </p>
                     <h3 className="text-sm font-semibold text-foreground truncate mt-0.5">{item.title}</h3>
                     <p className="text-xs text-muted-foreground mt-1">
-                      {productLabel(item)} · {formatLabel(item.format)} · {formatPrice(item.priceCents)}
+                      {productLabel(item)} · {displayFormatLabel(item.format)} · {formatPrice(item.priceCents)}
                     </p>
                   </div>
 

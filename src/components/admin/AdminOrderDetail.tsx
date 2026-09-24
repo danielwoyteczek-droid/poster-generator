@@ -6,7 +6,8 @@ import { ArrowLeft, Loader2, Download as DownloadIcon, Truck, CheckCircle2 } fro
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { formatPrice, getItemFallbackLabel } from '@/lib/products'
+import { formatPrice, getItemFallbackLabel, displayFormatLabel } from '@/lib/products'
+import { AdminDtfPrintFiles } from './AdminDtfPrintFiles'
 import { PRINT_FORMAT_OPTIONS, type PrintFormat } from '@/lib/print-formats'
 import {
   renderPosterFromSnapshot,
@@ -59,10 +60,6 @@ const STATUS_LABELS: Record<FulfillmentStatus, string> = {
 function productLabel(item: { productId: 'download' | 'poster' | 'frame'; withFrame?: boolean }) {
   return getItemFallbackLabel(item)
 }
-function formatLabel(id: string) {
-  return PRINT_FORMAT_OPTIONS.find((f) => f.id === id)?.label ?? id.toUpperCase()
-}
-
 export function AdminOrderDetail({ orderId }: { orderId: string }) {
   const [order, setOrder] = useState<OrderDetail | null>(null)
   const [exports, setExports] = useState<OrderExport[]>([])
@@ -155,6 +152,12 @@ export function AdminOrderDetail({ orderId }: { orderId: string }) {
   useEffect(() => {
     if (!order) return
     order.items.forEach((item, idx) => {
+      // PROJ-55: DTF-Positionen überspringen. Sie haben kein Poster-Design,
+      // das sich rendern liesse — ihre Druckdatei entsteht serverseitig aus
+      // der Bogenbeschreibung (siehe AdminDtfPrintFiles). Ohne diese Prüfung
+      // würde renderPosterFromSnapshot bei jedem Öffnen der Bestellung
+      // scheitern und eine Fehlermeldung werfen.
+      if ((item.productId as string) === 'dtf') return
       const hasPng = exports.some((e) => e.item_index === idx && e.file_type === 'png')
       const hasPdf = exports.some((e) => e.item_index === idx && e.file_type === 'pdf')
       if (!hasPng || !hasPdf) {
@@ -268,6 +271,11 @@ export function AdminOrderDetail({ orderId }: { orderId: string }) {
         </div>
       )}
 
+      {/* PROJ-55: Erscheint nur, wenn die Bestellung DTF-Positionen enthält.
+          Steht bewusst über den Artikeln — beim Fulfillment ist die
+          Druckdatei das Erste, was gebraucht wird. */}
+      <AdminDtfPrintFiles orderId={orderId} />
+
       <div className="rounded-xl bg-white border border-border">
         <h2 className="text-sm font-semibold text-foreground p-6 pb-3">Artikel</h2>
         <ul className="divide-y divide-gray-100">
@@ -286,7 +294,7 @@ export function AdminOrderDetail({ orderId }: { orderId: string }) {
                   </div>
                   <div className="text-sm font-semibold text-foreground mt-0.5 truncate">{item.title}</div>
                   <div className="text-xs text-muted-foreground mt-1">
-                    {productLabel(item)} · {formatLabel(item.format)} · {formatPrice(item.priceCents)}
+                    {productLabel(item)} · {displayFormatLabel(item.format)} · {formatPrice(item.priceCents)}
                   </div>
                 </div>
                 <div className="flex gap-2 shrink-0">

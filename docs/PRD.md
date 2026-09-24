@@ -49,6 +49,7 @@ Ein webbasierter Karten-Poster-Generator, mit dem Nutzer ohne Designkenntnisse p
 | P1 | Geo-Grenzen-Masken (Länder/Regionen/Städte als echte Posterform, neue Kartenform-Option im Editor) | Planned |
 | P1 | Local-Mockup-Provider (sharp-basiertes Compositing in PROJ-30, spart Dynamic-Mockups-Kosten bei Etsy-Variantenrendern) | Planned |
 | P1 | Image Generator (Preset → Mockups → alle Galerie-Bilder auf einer Seite, inkl. Overlays, optionale Zusatzfarben) | Planned |
+| P1 | DTF-Print-Editor (Kunden-Motive auf Transferbogen: A4/A3/40×50, freie Platzierung, verbindliche Druckfreigabe) | Planned |
 
 ## Success Metrics
 - Conversion Rate: >5% der anonymen Nutzer erstellen ein Konto

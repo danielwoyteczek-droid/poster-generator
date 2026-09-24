@@ -7,17 +7,31 @@ import { type ProductId } from '@/lib/products'
 import { getProductCatalog } from '@/lib/stripe-catalog'
 import { tierToStripeLineItems } from '@/lib/tier-expansion'
 import type { PrintFormat } from '@/lib/print-formats'
+import type { DtfSheetFormat } from '@/lib/dtf-constants'
+import { quoteShipping, SHIPPING_COUNTRIES, DOMESTIC_COUNTRY } from '@/lib/shipping'
+import { getUploadOwner } from '@/lib/dtf-guest-session'
 
 const CartItemSchema = z.object({
-  productId: z.enum(['download', 'poster']),
+  productId: z.enum(['download', 'poster', 'dtf']),
   /**
    * PROJ-48: only meaningful when productId='poster'. When true, the
    * checkout route expands the cart item to two Stripe line items
    * (poster_<fmt> + frame_markup_<fmt>).
    */
   withFrame: z.boolean().default(false),
-  format: z.enum(['a4', 'a3', 'a2']),
-  posterType: z.enum(['map', 'star-map', 'photo']),
+  /**
+   * PROJ-55: Poster rechnen nach Papierformat (a4 | a3 | a2), DTF nach
+   * Bogenmaß (a4 | a3 | 40x50). `productId` entscheidet, welche Bedeutung
+   * gilt — die Prüfung darauf passiert unten beim Bauen der Stripe-Zeilen.
+   */
+  format: z.enum(['a4', 'a3', 'a2', '40x50']),
+  posterType: z.enum(['map', 'star-map', 'photo', 'dtf']),
+  /**
+   * PROJ-55: Auflage. Poster sind immer Einzelstücke; DTF-Bögen können
+   * mehrfach gedruckt werden. Geht als Menge an Stripe, damit der
+   * hinterlegte Stückpreis maßgeblich bleibt.
+   */
+  quantity: z.number().int().min(1).max(99).default(1),
   title: z.string().min(1).max(200),
   projectId: z.string().uuid().nullable().optional(),
   snapshot: z.record(z.string(), z.unknown()),
@@ -41,9 +55,27 @@ const AttributionSchema = z.object({
   first_seen_at: z.string().datetime(),
 })
 
+/**
+ * PROJ-55: Druckfreigabe und Rechteinhaber-Bestätigung aus dem Dialog, der
+ * dem Checkout vorgeschaltet ist. Nur gesetzt, wenn der Warenkorb
+ * DTF-Positionen enthält — bei allen anderen Bestellungen fehlt das Feld
+ * und die Spalten auf `orders` bleiben NULL.
+ */
+const DtfApprovalSchema = z.object({
+  printApprovedAt: z.string().datetime(),
+  rightsConfirmedAt: z.string().datetime(),
+})
+
 const CheckoutBodySchema = z.object({
   items: z.array(CartItemSchema).min(1).max(20),
   digitalConsent: z.boolean().optional(),
+  dtfApproval: DtfApprovalSchema.optional(),
+  /**
+   * PROJ-26: Lieferland aus der Warenkorb-Auswahl. Bestimmt Zone und
+   * Versandtarif. Muss hier ankommen, weil Stripe `shipping_options` beim
+   * Anlegen der Session festnagelt und die Adresse erst danach erfragt.
+   */
+  shippingCountry: z.enum(SHIPPING_COUNTRIES).optional(),
   attribution: AttributionSchema.optional(),
   /**
    * Active editor locale at checkout time (PROJ-20). Stored on the order
@@ -88,8 +120,9 @@ export async function POST(req: NextRequest) {
   type ExpandedItem = {
     productId: ProductId
     withFrame: boolean
-    format: PrintFormat
-    posterType: 'map' | 'star-map' | 'photo'
+    format: PrintFormat | DtfSheetFormat
+    posterType: 'map' | 'star-map' | 'photo' | 'dtf'
+    quantity: number
     title: string
     projectId?: string | null
     snapshot: Record<string, unknown>
@@ -100,13 +133,34 @@ export async function POST(req: NextRequest) {
   let expanded: ExpandedItem[]
   try {
     expanded = parsed.data.items.map((item) => {
-      const lineItems = tierToStripeLineItems(item.productId, item.withFrame, item.format)
+      // PROJ-55: DTF rechnet nach Bogenmaß und kennt keine Rahmen-Option,
+      // deshalb ein eigener Zweig statt einer Erweiterung der
+      // Tier-Expansion. Die Auflage geht als Menge an Stripe — so bleibt
+      // der im Dashboard gepflegte Stückpreis maßgeblich.
+      if (item.productId === 'dtf') {
+        const sheetFormat = item.format as DtfSheetFormat
+        const price = catalog.dtfSheets[sheetFormat]
+        if (!price) {
+          throw new Error(`No Stripe price configured for dtf/${item.format}`)
+        }
+        return {
+          ...item,
+          priceCents: price.unitAmount * item.quantity,
+          stripeLineItems: [
+            { stripePriceId: price.stripePriceId, quantity: item.quantity },
+          ],
+        }
+      }
+
+      const posterFormat = item.format as PrintFormat
+      const posterProduct = item.productId as Exclude<ProductId, 'dtf'>
+      const lineItems = tierToStripeLineItems(posterProduct, item.withFrame, posterFormat)
       const priceCents = lineItems.reduce((sum, li) => {
         const unitAmount =
-          catalog.products[item.productId]?.[item.format]?.stripePriceId === li.stripePriceId
-            ? (catalog.products[item.productId]?.[item.format]?.unitAmount ?? 0)
-            : catalog.frameMarkup[item.format]?.stripePriceId === li.stripePriceId
-            ? (catalog.frameMarkup[item.format]?.unitAmount ?? 0)
+          catalog.products[posterProduct]?.[posterFormat]?.stripePriceId === li.stripePriceId
+            ? (catalog.products[posterProduct]?.[posterFormat]?.unitAmount ?? 0)
+            : catalog.frameMarkup[posterFormat]?.stripePriceId === li.stripePriceId
+            ? (catalog.frameMarkup[posterFormat]?.unitAmount ?? 0)
             : 0
         return sum + unitAmount * li.quantity
       }, 0)
@@ -132,6 +186,124 @@ export async function POST(req: NextRequest) {
     )
   }
 
+  // PROJ-55: Der Freigabe-Dialog sitzt im Warenkorb, also im Client. Ohne
+  // diese Prüfung liesse er sich mit einem direkten Aufruf überspringen —
+  // und genau die Freigabe ist der rechtliche Kern des Produkts. Sie hier
+  // zu erzwingen, ist die einzige Stelle, an der sie nicht umgehbar ist.
+  const hasDtf = expanded.some((i) => i.productId === 'dtf')
+  if (hasDtf && !parsed.data.dtfApproval) {
+    return NextResponse.json(
+      { error: 'Druckfreigabe und Rechteinhaber-Bestätigung erforderlich' },
+      { status: 400 },
+    )
+  }
+
+  /**
+   * PROJ-55: Gehoeren die Motive ueberhaupt dem Besteller?
+   *
+   * Die Bogenbeschreibung kommt als freies JSON aus dem Warenkorb, und die
+   * Druck-Pipeline laedt spaeter jede `uploadId` mit der Service-Role --
+   * also an RLS vorbei. Ohne diese Pruefung koennte jemand, der eine fremde
+   * ID kennt, fremdes Kundenmaterial drucken und sich zuschicken lassen.
+   *
+   * IDs sind UUIDv4 und werden nirgends an Dritte ausgeliefert; der Weg
+   * setzt also ein Leck voraus. Die Pruefung ist trotzdem richtig hier: Es
+   * ist die letzte Stelle, an der noch bekannt ist, WER bestellt -- danach
+   * laeuft alles unter der Service-Role.
+   */
+  if (hasDtf) {
+    const uploadIds = [
+      ...new Set(
+        expanded.flatMap((i) => {
+          if (i.productId !== 'dtf') return []
+          const snap = i.snapshot as { elements?: Array<{ uploadId?: unknown }> }
+          return (snap?.elements ?? [])
+            .map((el) => el.uploadId)
+            .filter((id): id is string => typeof id === 'string' && id.length > 0)
+        }),
+      ),
+    ]
+
+    if (uploadIds.length > 0) {
+      const owner = await getUploadOwner()
+      if (!owner) {
+        return NextResponse.json(
+          { error: 'Motive konnten nicht zugeordnet werden' },
+          { status: 400 },
+        )
+      }
+
+      const ownedQuery = createAdminClient()
+        .from('dtf_uploads')
+        .select('id')
+        .in('id', uploadIds)
+        .limit(uploadIds.length)
+      const { data: owned, error: ownedErr } =
+        owner.kind === 'user'
+          ? await ownedQuery.eq('user_id', owner.userId)
+          : await ownedQuery.eq('guest_session_id', owner.guestSessionId)
+
+      if (ownedErr) {
+        console.error('[checkout] dtf upload ownership check failed:', ownedErr)
+        return NextResponse.json({ error: 'Motive konnten nicht geprueft werden' }, { status: 500 })
+      }
+
+      // Bewusst ohne Angabe, WELCHE ID fehlt: Aus der Antwort soll sich
+      // nicht ablesen lassen, ob eine fremde ID existiert.
+      if ((owned?.length ?? 0) !== uploadIds.length) {
+        return NextResponse.json(
+          { error: 'Der Warenkorb enthaelt Motive, die nicht zu dieser Sitzung gehoeren' },
+          { status: 400 },
+        )
+      }
+    }
+  }
+
+  /**
+   * PROJ-26: Versandtarif bestimmen. Der Client hat dieselbe Rechnung schon
+   * für die Anzeige gemacht; hier läuft sie erneut, weil ein Betrag, den
+   * der Client berechnet, kein Betrag ist, auf den man sich verlassen kann.
+   *
+   * Fehlt die Stripe-ID, wird ohne Versandkosten fortgefahren statt die
+   * Bestellung abzubrechen: Eine Bestellung ohne Versandkosten ist ein
+   * kalkulierbarer Verlust, eine abgebrochene ein sicherer. Der Vorfall
+   * gehört aber ins Log.
+   */
+  // Kein stilles Ausweichen auf Deutschland: Der Versandtarif und die
+  // Adressabfrage bei Stripe haengen beide an diesem Land. Geraten hiesse,
+  // deutschen Versand zu berechnen und dem Kunden danach nur eine deutsche
+  // Adresse zuzulassen -- fuer jemanden ausserhalb Deutschlands eine
+  // Sackgasse im Bezahlvorgang. Der Warenkorb fragt das Land ab, bevor er
+  // den Knopf freigibt; kommt hier trotzdem keines an, ist das ein Fehler
+  // und kein Fall fuer eine Annahme.
+  if (hasPhysical && !parsed.data.shippingCountry) {
+    return NextResponse.json(
+      { error: 'Lieferland fehlt' },
+      { status: 400 },
+    )
+  }
+  const shippingCountry = parsed.data.shippingCountry ?? DOMESTIC_COUNTRY
+  const shippingQuote = hasPhysical
+    ? quoteShipping(
+        expanded.map((e) => ({
+          productId: e.productId,
+          format: e.format,
+          withFrame: e.withFrame,
+          quantity: e.quantity,
+        })),
+        shippingCountry,
+        // Wert VOR Rabatt — sonst würde ein Gutschein den Versand finanzieren.
+        totalCents,
+      )
+    : null
+  const shippingRateId = shippingQuote?.stripeShippingRateId ?? null
+  if (shippingQuote && shippingQuote.cents > 0 && !shippingRateId) {
+    console.warn('[checkout] no Stripe shipping rate configured', {
+      zone: shippingQuote.zone,
+      method: shippingQuote.method,
+    })
+  }
+
   // Pick locale from explicit body field, then NEXT_LOCALE cookie, then DE
   const cookieLocale = req.cookies.get('NEXT_LOCALE')?.value
   const locale = parsed.data.locale
@@ -145,6 +317,10 @@ export async function POST(req: NextRequest) {
     withFrame: e.withFrame,
     format: e.format,
     posterType: e.posterType,
+    // PROJ-55: Auflage mitschreiben. Ohne sie wüsste das Fulfillment nicht,
+    // wie oft ein Bogen gedruckt werden soll — der Gesamtpreis allein sagt
+    // es nicht, sobald sich Preise ändern.
+    quantity: e.quantity,
     title: e.title,
     projectId: e.projectId ?? null,
     snapshot: e.snapshot,
@@ -155,6 +331,9 @@ export async function POST(req: NextRequest) {
   // PROJ-48: persist the voucher code (not the amount — Stripe is
   // authoritative). discount_cents stays 0 until the webhook reads it
   // from session.total_details.amount_discount.
+  // Einmal berechnet: Beide Bestaetigungen fielen im selben Klick, zwei
+  // getrennte Aufrufe koennten sich um eine Millisekunde unterscheiden.
+  const approvedAt = parsed.data.dtfApproval ? new Date().toISOString() : null
   const attribution = parsed.data.attribution
   const { data: order, error: insertErr } = await admin
     .from('orders')
@@ -176,6 +355,18 @@ export async function POST(req: NextRequest) {
       landing_page: attribution?.landing_page ?? null,
       referrer: attribution?.referrer ?? null,
       attribution_at: attribution?.first_seen_at ?? null,
+      // PROJ-55: Druckfreigabe und Rechteinhaber-Bestätigung. Nur gesetzt,
+      // wenn der Warenkorb DTF enthielt und der Dialog durchlaufen wurde.
+      //
+      // Der Zeitpunkt kommt vom SERVER, nicht aus dem Rumpf. Der Client
+      // schickt seine beiden Zeitstempel weiterhin mit — sie sind der
+      // Beleg, dass der Dialog durchlaufen wurde, und ihr Fehlen führt
+      // oben zum 400. Als Datum taugen sie nicht: Dieser Eintrag existiert
+      // als Nachweis gegenüber dem Kunden, und ein Nachweis, den der
+      // Kunde selbst datiert, ist keiner. Der Server weiß ohnehin, wann
+      // der Checkout lief.
+      dtf_print_approved_at: approvedAt,
+      dtf_rights_confirmed_at: approvedAt,
     })
     .select('id, access_token')
     .single()
@@ -207,8 +398,15 @@ export async function POST(req: NextRequest) {
     cancel_url: `${origin}/${locale}/cart`,
     customer_email: user?.email,
     allow_promotion_codes: hasCartVoucher ? undefined : true,
+    // PROJ-26: Adressabfrage auf das im Warenkorb gewählte Land beschränken,
+    // damit Gezahltes und Geliefertes zusammenpassen. Vorher standen hier
+    // fest DE/AT/CH und es wurden nie Versandkosten berechnet; die Schweiz
+    // ist wegen Zoll und Einfuhrumsatzsteuer nicht mehr dabei.
     shipping_address_collection: hasPhysical
-      ? { allowed_countries: ['DE', 'AT', 'CH'] }
+      ? { allowed_countries: [shippingCountry] }
+      : undefined,
+    shipping_options: shippingRateId
+      ? [{ shipping_rate: shippingRateId }]
       : undefined,
     metadata: { order_id: order.id },
   }
