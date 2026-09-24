@@ -935,20 +935,20 @@ Automatisiert: 431 Unit-/Integrationstests, 10 neue E2E-Tests fuer PROJ-55 (Chro
 
 ### Bugs Found
 
-#### BUG-4: Die Zeitstempel der Druckfreigabe kommen vom Client
+#### BUG-4: Die Zeitstempel der Druckfreigabe kommen vom Client - BEHOBEN 2026-09-24
 - **Severity:** Medium
 - **Steps to Reproduce:** `POST /api/checkout` mit `dtfApproval: { printApprovedAt: "2019-01-01T00:00:00Z", rightsConfirmedAt: "2019-01-01T00:00:00Z" }`
 - **Expected:** Die Bestellung haelt fest, wann die Freigabe tatsaechlich erteilt wurde
 - **Actual:** `DtfApprovalSchema` prueft nur das Format (`z.string().datetime()`), nicht die Plausibilitaet. Der Wert landet unveraendert in `orders.dtf_print_approved_at`
 - **Warum das zaehlt:** Dieser Zeitstempel existiert als Nachweis gegenueber dem Kunden. Dass ihn der Kunde selbst liefert, nimmt ihm genau die Eigenschaft, fuer die er da ist. Der Server weiss ohnehin, wann der Checkout lief
-- **Priority:** Fix before deployment - eine Zeile, `new Date().toISOString()` statt des Client-Werts
+- **Behebung:** Der Client schickt seine beiden Zeitstempel weiterhin mit - ihr Fehlen fuehrt nach wie vor zum 400, sie sind also der Beleg, dass der Dialog durchlaufen wurde. Als *Datum* zaehlen sie nicht mehr: Geschrieben wird `approvedAt`, einmal serverseitig berechnet (einmal, nicht zweimal - beide Bestaetigungen fielen im selben Klick)
 
-#### BUG-5: Der Kaufweg prueft nicht, wem die Motive gehoeren
+#### BUG-5: Der Kaufweg prueft nicht, wem die Motive gehoeren - BEHOBEN 2026-09-24
 - **Severity:** Medium
 - **Steps to Reproduce:** Warenkorb-Position mit einem `snapshot`, dessen `elements` eine fremde `uploadId` tragen; bezahlen
 - **Actual:** Der Checkout nimmt `snapshot` als `z.record(z.string(), z.unknown())` ungeprueft entgegen. `dtf-print-file.ts` laedt danach `dtf_uploads` allein ueber `.eq('id', el.uploadId)` mit der Service-Role - ohne Besitzfilter. Die fremde Grafik landet in der Druckdatei und wird gedruckt und versendet
 - **Abschwaechend:** Upload-IDs sind UUIDv4 und werden nirgends an Dritte ausgeliefert; die Ablage- und Vorschau-Routen filtern korrekt. Praktisch braucht es eine geleakte ID
-- **Priority:** Fix before deployment - Besitzpruefung beim Anlegen der Bestellung, dieselbe Stelle, an der schon die Freigabe erzwungen wird
+- **Behebung:** Der Checkout sammelt alle `uploadId` aus den DTF-Positionen und prueft sie gegen den Besitzer der Sitzung - direkt neben der Freigabe-Pruefung, also an der letzten Stelle, an der noch bekannt ist, WER bestellt; danach laeuft alles unter der Service-Role. Die Fehlermeldung nennt bewusst keine ID, sonst liesse sich aus der Antwort ablesen, ob eine fremde existiert. Per HTTP gegen den laufenden Server geprueft: ohne Sitzung 400, mit fremder Sitzung 400, Freigabe-Erzwingung unveraendert
 
 #### BUG-2: Die Auflage ist im Warenkorb nicht aenderbar
 - **Severity:** Medium
@@ -988,7 +988,7 @@ Die volle E2E-Suite laeuft auf dem gemergten Branch mit einem einzigen Fehlschla
 ### Summary
 
 - **Acceptance Criteria:** 7 von 10 Gruppen erfuellt, 2 teilweise, 1 nicht gebaut. Innerhalb der erfuellten Gruppen sind Upload und Platzierung nur ueber den Code bewertet
-- **Bugs Found:** 6 (0 critical, 0 high, 4 medium, 2 low)
+- **Bugs Found:** 6 (0 critical, 0 high, 4 medium, 2 low) - BUG-4 und BUG-5 am 2026-09-24 behoben, 4 offen
 - **Security:** Der Kern haelt - Freigabe serverseitig erzwungen, Preise serverseitig, Besitzpruefung auf allen Upload-Routen. Zwei Medium-Befunde an den Raendern
 - **Production Ready:** **NEIN**, aber knapp. Die Spiegelung ist geklaert (2026-09-21), damit
   bleibt als echter Vorbehalt nur, dass der Kernablauf nie von Hand durchlaufen wurde

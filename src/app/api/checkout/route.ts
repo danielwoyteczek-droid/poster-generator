@@ -9,6 +9,7 @@ import { tierToStripeLineItems } from '@/lib/tier-expansion'
 import type { PrintFormat } from '@/lib/print-formats'
 import type { DtfSheetFormat } from '@/lib/dtf-constants'
 import { quoteShipping, SHIPPING_COUNTRIES, DOMESTIC_COUNTRY } from '@/lib/shipping'
+import { getUploadOwner } from '@/lib/dtf-guest-session'
 
 const CartItemSchema = z.object({
   productId: z.enum(['download', 'poster', 'dtf']),
@@ -198,6 +199,67 @@ export async function POST(req: NextRequest) {
   }
 
   /**
+   * PROJ-55: Gehoeren die Motive ueberhaupt dem Besteller?
+   *
+   * Die Bogenbeschreibung kommt als freies JSON aus dem Warenkorb, und die
+   * Druck-Pipeline laedt spaeter jede `uploadId` mit der Service-Role --
+   * also an RLS vorbei. Ohne diese Pruefung koennte jemand, der eine fremde
+   * ID kennt, fremdes Kundenmaterial drucken und sich zuschicken lassen.
+   *
+   * IDs sind UUIDv4 und werden nirgends an Dritte ausgeliefert; der Weg
+   * setzt also ein Leck voraus. Die Pruefung ist trotzdem richtig hier: Es
+   * ist die letzte Stelle, an der noch bekannt ist, WER bestellt -- danach
+   * laeuft alles unter der Service-Role.
+   */
+  if (hasDtf) {
+    const uploadIds = [
+      ...new Set(
+        expanded.flatMap((i) => {
+          if (i.productId !== 'dtf') return []
+          const snap = i.snapshot as { elements?: Array<{ uploadId?: unknown }> }
+          return (snap?.elements ?? [])
+            .map((el) => el.uploadId)
+            .filter((id): id is string => typeof id === 'string' && id.length > 0)
+        }),
+      ),
+    ]
+
+    if (uploadIds.length > 0) {
+      const owner = await getUploadOwner()
+      if (!owner) {
+        return NextResponse.json(
+          { error: 'Motive konnten nicht zugeordnet werden' },
+          { status: 400 },
+        )
+      }
+
+      const ownedQuery = createAdminClient()
+        .from('dtf_uploads')
+        .select('id')
+        .in('id', uploadIds)
+        .limit(uploadIds.length)
+      const { data: owned, error: ownedErr } =
+        owner.kind === 'user'
+          ? await ownedQuery.eq('user_id', owner.userId)
+          : await ownedQuery.eq('guest_session_id', owner.guestSessionId)
+
+      if (ownedErr) {
+        console.error('[checkout] dtf upload ownership check failed:', ownedErr)
+        return NextResponse.json({ error: 'Motive konnten nicht geprueft werden' }, { status: 500 })
+      }
+
+      // Bewusst ohne Angabe, WELCHE ID fehlt: Aus der Antwort soll sich
+      // nicht ablesen lassen, ob eine fremde ID existiert.
+      if ((owned?.length ?? 0) !== uploadIds.length) {
+        return NextResponse.json(
+          { error: 'Der Warenkorb enthaelt Motive, die nicht zu dieser Sitzung gehoeren' },
+          { status: 400 },
+        )
+      }
+    }
+  }
+
+  /**
    * PROJ-26: Versandtarif bestimmen. Der Client hat dieselbe Rechnung schon
    * für die Anzeige gemacht; hier läuft sie erneut, weil ein Betrag, den
    * der Client berechnet, kein Betrag ist, auf den man sich verlassen kann.
@@ -269,6 +331,9 @@ export async function POST(req: NextRequest) {
   // PROJ-48: persist the voucher code (not the amount — Stripe is
   // authoritative). discount_cents stays 0 until the webhook reads it
   // from session.total_details.amount_discount.
+  // Einmal berechnet: Beide Bestaetigungen fielen im selben Klick, zwei
+  // getrennte Aufrufe koennten sich um eine Millisekunde unterscheiden.
+  const approvedAt = parsed.data.dtfApproval ? new Date().toISOString() : null
   const attribution = parsed.data.attribution
   const { data: order, error: insertErr } = await admin
     .from('orders')
@@ -292,8 +357,16 @@ export async function POST(req: NextRequest) {
       attribution_at: attribution?.first_seen_at ?? null,
       // PROJ-55: Druckfreigabe und Rechteinhaber-Bestätigung. Nur gesetzt,
       // wenn der Warenkorb DTF enthielt und der Dialog durchlaufen wurde.
-      dtf_print_approved_at: parsed.data.dtfApproval?.printApprovedAt ?? null,
-      dtf_rights_confirmed_at: parsed.data.dtfApproval?.rightsConfirmedAt ?? null,
+      //
+      // Der Zeitpunkt kommt vom SERVER, nicht aus dem Rumpf. Der Client
+      // schickt seine beiden Zeitstempel weiterhin mit — sie sind der
+      // Beleg, dass der Dialog durchlaufen wurde, und ihr Fehlen führt
+      // oben zum 400. Als Datum taugen sie nicht: Dieser Eintrag existiert
+      // als Nachweis gegenüber dem Kunden, und ein Nachweis, den der
+      // Kunde selbst datiert, ist keiner. Der Server weiß ohnehin, wann
+      // der Checkout lief.
+      dtf_print_approved_at: approvedAt,
+      dtf_rights_confirmed_at: approvedAt,
     })
     .select('id, access_token')
     .single()

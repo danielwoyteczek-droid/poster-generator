@@ -104,6 +104,53 @@ test.describe('PROJ-55 Der Server glaubt dem Client nicht', () => {
     expect((await res.json()).error).toMatch(/Lieferland/i)
   })
 
+  test('Fremde Motive kommen nicht in eine Bestellung', async ({ request }) => {
+    // Die Bogenbeschreibung ist freies JSON aus dem Warenkorb, und die
+    // Druck-Pipeline laedt jede uploadId spaeter mit der Service-Role, also
+    // an RLS vorbei. Ohne Pruefung liesse sich fremdes Kundenmaterial
+    // drucken und zuschicken. Diese Anfrage hat keine Gast-Sitzung, die ID
+    // gehoert ihr also sicher nicht.
+    const res = await request.post('/api/checkout', {
+      data: {
+        items: [
+          {
+            ...dtfItem,
+            snapshot: {
+              kind: 'dtf-sheet',
+              format: 'a4',
+              quantity: 1,
+              elements: [
+                {
+                  id: 'e1',
+                  kind: 'image',
+                  uploadId: '11111111-1111-4111-8111-111111111111',
+                  previewUrl: '',
+                  sourceWidthPx: 1000,
+                  sourceHeightPx: 1000,
+                  xMm: 10,
+                  yMm: 10,
+                  widthMm: 50,
+                  rotationDeg: 0,
+                  z: 1,
+                },
+              ],
+            },
+          },
+        ],
+        shippingCountry: 'DE',
+        dtfApproval: {
+          printApprovedAt: new Date().toISOString(),
+          rightsConfirmedAt: new Date().toISOString(),
+        },
+      },
+    })
+
+    expect(res.status()).toBe(400)
+    // Die Meldung sagt bewusst nicht, WELCHE ID fehlt -- sonst liesse sich
+    // aus der Antwort ablesen, ob eine fremde ID existiert.
+    expect((await res.json()).error).toMatch(/zugeordnet|Sitzung/i)
+  })
+
   test('Der Aufräum-Lauf verlangt sein Geheimnis', async ({ request }) => {
     const ohne = await request.post('/api/dtf/cron/cleanup-uploads')
     expect(ohne.status()).toBe(401)
